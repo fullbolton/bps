@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"/usr/local/bin:$PATH\")",
+      "Bash(npx next:*)"
+    ]
+  }
+}

@@ -1,0 +1,785 @@
+"use client";
+
+import { useState } from "react";
+import { formatDateTR } from "@/lib/format-date";
+import {
+  Building2,
+  FileText,
+  Users,
+  Briefcase,
+  ListChecks,
+  CalendarCheck,
+  AlertTriangle,
+  Mail,
+  Megaphone,
+  Eye,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+} from "lucide-react";
+import {
+  PageHeader,
+  KPIStatCard,
+  ActivityFeed,
+  ContractExpiryCard,
+} from "@/components/ui";
+import {
+  MOCK_EXPIRING_CONTRACTS,
+  MOCK_RISKY_COMPANIES,
+  MOCK_DASHBOARD_ACTIVITY,
+} from "@/mocks/dashboard";
+import { MOCK_EVRAKLAR } from "@/mocks/evraklar";
+import { MOCK_FIRMALAR } from "@/mocks/firmalar";
+import { MOCK_SOZLESMELER } from "@/mocks/sozlesmeler";
+import { MOCK_TALEPLER } from "@/mocks/talepler";
+import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
+import { MOCK_RANDEVULAR } from "@/mocks/randevular";
+import { MOCK_GOREVLER } from "@/mocks/gorevler";
+import { clsx } from "clsx";
+import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI } from "@/mocks/finansal-ozet";
+import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
+import { MOCK_DUYURULAR } from "@/mocks/duyurular";
+import type { Duyuru } from "@/mocks/duyurular";
+import { MOCK_INISIYATIFLER } from "@/mocks/inisiyatifler";
+import type { Inisiyatif } from "@/mocks/inisiyatifler";
+import type { InisiyatifDurumu } from "@/types/inisiyatif";
+import { useRole } from "@/context/RoleContext";
+import { MOCK_KURUMSAL_BELGELER, kalanGunHesapla, BELGE_TURU_LABELS } from "@/mocks/kurumsal-belgeler";
+import { getHotelEmailContext, generateHotelEmailDraft } from "@/lib/draft-hotel-email";
+import {
+  SURFACE_PRIMARY,
+  BORDER_DEFAULT,
+  BORDER_SUBTLE,
+  RADIUS_DEFAULT,
+  TYPE_BODY,
+  TYPE_CARD_TITLE,
+  TYPE_CAPTION,
+  TEXT_PRIMARY,
+  TEXT_BODY,
+  TEXT_MUTED,
+  TEXT_LINK,
+  TEXT_SECONDARY,
+  SURFACE_HEADER,
+  SURFACE_OVERLAY_DARK,
+  RADIUS_SM,
+  Z_OVERLAY,
+} from "@/styles/tokens";
+
+// Page-local helpers — same pattern as Firma Detay pilot
+const CARD = `${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`;
+const CARD_LG = `${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-5`;
+const CARD_TITLE = `${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-3`;
+const CARD_TITLE_ICON = `${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-3 flex items-center gap-1.5`;
+const LIST_DIVIDER = `border-b ${BORDER_SUBTLE}`;
+
+export default function DashboardPage() {
+  const { role } = useRole();
+  const [announcements, setAnnouncements] = useState<Duyuru[]>(MOCK_DUYURULAR);
+  const [announceOpen, setAnnounceOpen] = useState(false);
+  const [annBaslik, setAnnBaslik] = useState("");
+  const [annIcerik, setAnnIcerik] = useState("");
+  const [annBagliKayit, setAnnBagliKayit] = useState("");
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [draftText, setDraftText] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  // Yönetici İnisiyatifleri — attention bookmarks
+  const [inisiyatifler, setInisiyatifler] = useState<Inisiyatif[]>(MOCK_INISIYATIFLER);
+  const [iniCreateOpen, setIniCreateOpen] = useState(false);
+  const [iniExpandedId, setIniExpandedId] = useState<string | null>(null);
+  const [iniBaslik, setIniBaslik] = useState("");
+  const [iniAmac, setIniAmac] = useState("");
+  const [iniIlgiliKisi, setIniIlgiliKisi] = useState("");
+  const [iniHedefTarih, setIniHedefTarih] = useState("");
+  const [iniFirmaId, setIniFirmaId] = useState("");
+  const derivedKpis = {
+    toplamFirma: MOCK_FIRMALAR.length,
+    aktifSozlesme: MOCK_SOZLESMELER.filter((s) => s.durum === "aktif").length,
+    acikTalep: MOCK_TALEPLER.reduce((sum, t) => sum + t.acikKalan, 0),
+    aktifPersonel: MOCK_IS_GUCU.reduce((sum, ig) => sum + ig.aktifKisi, 0),
+    bekleyenGorev: MOCK_GOREVLER.filter((g) => g.durum === "acik" || g.durum === "devam_ediyor" || g.durum === "gecikti").length,
+    yaklasanRandevu: MOCK_RANDEVULAR.filter((r) => r.durum === "planlandi").length,
+  };
+  const derivedOpenDemands = MOCK_TALEPLER
+    .filter((t) => t.acikKalan > 0)
+    .map((t) => ({ id: t.id, firma: t.firmaAdi, pozisyon: t.pozisyon, adet: t.acikKalan }));
+  const derivedTodayTasks = [...MOCK_GOREVLER]
+    .filter((g) => g.durum === "acik" || g.durum === "devam_ediyor" || g.durum === "gecikti")
+    .sort((a, b) => {
+      const statusWeight = (durum: string) => durum === "gecikti" ? 0 : durum === "devam_ediyor" ? 1 : 2;
+      const statusDiff = statusWeight(a.durum) - statusWeight(b.durum);
+      if (statusDiff !== 0) return statusDiff;
+      const aTime = a.termin && a.termin !== "—" ? new Date(a.termin).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = b.termin && b.termin !== "—" ? new Date(b.termin).getTime() : Number.MAX_SAFE_INTEGER;
+      return aTime - bTime;
+    })
+    .slice(0, 4)
+    .map((task) => ({
+      id: task.id,
+      baslik: task.baslik,
+      firma: task.firmaAdi,
+      gecikme: task.durum === "gecikti",
+    }));
+
+  function handleGenerateDraft() {
+    const ctx = getHotelEmailContext();
+    setDraftText(generateHotelEmailDraft(ctx));
+    setCopied(false);
+  }
+
+  function handleCopy() {
+    if (draftText) {
+      navigator.clipboard.writeText(draftText).then(() => setCopied(true));
+    }
+  }
+
+  return (
+    <>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Operasyon ve risk görünürlüğü"
+      />
+
+      <div className="space-y-6">
+        {/* KPI Cards — filtered by role; görüntüleyici sees values but no nav to blocked pages */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <KPIStatCard
+            label="Toplam Firma"
+            value={derivedKpis.toplamFirma}
+            icon={<Building2 size={18} />}
+            href="/firmalar"
+          />
+          {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
+            <KPIStatCard
+              label="Aktif Sözleşme"
+              value={derivedKpis.aktifSozlesme}
+              icon={<FileText size={18} />}
+              href="/sozlesmeler"
+            />
+          )}
+          {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
+            <KPIStatCard
+              label="Açık Talep"
+              value={derivedKpis.acikTalep}
+              icon={<Users size={18} />}
+              href="/talepler"
+            />
+          )}
+          {!["muhasebe", "goruntuleyici"].includes(role) && (
+            <KPIStatCard
+              label="Aktif Personel"
+              value={derivedKpis.aktifPersonel}
+              icon={<Briefcase size={18} />}
+              href="/aktif-isgucu"
+            />
+          )}
+          {!["muhasebe", "goruntuleyici"].includes(role) && (
+            <KPIStatCard
+              label="Bekleyen Görev"
+              value={derivedKpis.bekleyenGorev}
+              icon={<ListChecks size={18} />}
+              href="/gorevler"
+            />
+          )}
+          {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
+            <KPIStatCard
+              label="Yaklaşan Randevu"
+              value={derivedKpis.yaklasanRandevu}
+              icon={<CalendarCheck size={18} />}
+              href="/randevular"
+            />
+          )}
+        </div>
+
+        {/* Signal cards row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Bugünün Görevleri — hidden for muhasebe */}
+          {!["muhasebe", "goruntuleyici"].includes(role) && <div className={CARD}>
+            <h3 className={CARD_TITLE}>
+              Bugünün Görevleri
+            </h3>
+            {derivedTodayTasks.length === 0 ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                Bugün için görev yok.
+              </p>
+            ) : (
+              <div className="space-y-0">
+                {derivedTodayTasks.map((task, idx) => (
+                  <div
+                    key={task.id}
+                    className={clsx(
+                      "flex items-start gap-2 py-2.5",
+                      idx < derivedTodayTasks.length - 1 && LIST_DIVIDER
+                    )}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className={`${TYPE_BODY} ${TEXT_BODY}`}>
+                        {task.baslik}
+                        {task.gecikme && (
+                          <span className={`ml-2 ${TYPE_CAPTION} text-red-600 font-medium`}>
+                            Gecikmiş
+                          </span>
+                        )}
+                      </p>
+                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                        {task.firma}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>}
+
+          {/* Yaklaşan Sözleşme Bitişleri — hidden for ik + muhasebe */}
+          {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
+            <ContractExpiryCard
+              contracts={MOCK_EXPIRING_CONTRACTS}
+              actionHref="/sozlesmeler"
+            />
+          )}
+
+          {/* Açık Talepler — hidden for ik + muhasebe */}
+          {!["ik", "muhasebe", "goruntuleyici"].includes(role) && <div className={CARD}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>
+                Açık Personel Talepleri
+              </h3>
+              <a href="/talepler" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
+            </div>
+            {derivedOpenDemands.length === 0 ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                Açık talep yok.
+              </p>
+            ) : (
+              <div className="space-y-0">
+                {derivedOpenDemands.map((d, idx) => (
+                  <div
+                    key={d.id}
+                    className={clsx(
+                      "flex items-center justify-between py-2.5",
+                      idx < derivedOpenDemands.length - 1 && LIST_DIVIDER
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{d.pozisyon}</p>
+                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{d.firma}</p>
+                    </div>
+                    <span className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY} ml-3 flex-shrink-0`}>
+                      {d.adet} kişi
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>}
+
+          {/* Eksik Evraklar — hidden for muhasebe, derived from shared MOCK_EVRAKLAR */}
+          {!["muhasebe", "goruntuleyici"].includes(role) && (() => {
+            const eksikEvraklar = MOCK_EVRAKLAR
+              .filter((e) => e.durum !== "tam")
+              .map((e) => ({
+                id: e.id,
+                evrak: e.evrakAdi,
+                firma: e.firmaAdi,
+                durum: e.durum,
+              }))
+              .slice(0, 5);
+            return (
+              <div className={CARD}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>
+                    Eksik / Süresi Dolan Evraklar
+                  </h3>
+                  <a href="/evraklar" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
+                </div>
+                {eksikEvraklar.length === 0 ? (
+                  <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                    Eksik evrak yok.
+                  </p>
+                ) : (
+                  <div className="space-y-0">
+                    {eksikEvraklar.map((doc, idx) => (
+                      <div
+                        key={doc.id}
+                        className={clsx(
+                          "flex items-center justify-between py-2.5",
+                          idx < eksikEvraklar.length - 1 && LIST_DIVIDER
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{doc.evrak}</p>
+                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{doc.firma}</p>
+                        </div>
+                        <span className={`${TYPE_CAPTION} text-red-600 font-medium ml-3 flex-shrink-0`}>
+                          {doc.durum === "eksik" ? "Eksik" : doc.durum === "suresi_doldu" ? "Süresi Doldu" : "Yaklaşıyor"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Riskli Firmalar */}
+          <div className={CARD}>
+            <h3 className={CARD_TITLE_ICON}>
+              <AlertTriangle size={14} className="text-amber-500" />
+              Riskli Firmalar
+            </h3>
+            {MOCK_RISKY_COMPANIES.length === 0 ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                Risk sinyali yok.
+              </p>
+            ) : (
+              <div className="space-y-0">
+                {MOCK_RISKY_COMPANIES.map((company, idx) => (
+                  <div
+                    key={company.id}
+                    className={clsx(
+                      "py-2.5",
+                      idx < MOCK_RISKY_COMPANIES.length - 1 && LIST_DIVIDER
+                    )}
+                  >
+                    <a
+                      href={`/firmalar/${company.id}`}
+                      className={`${TYPE_BODY} ${TEXT_LINK} hover:underline font-medium`}
+                    >
+                      {company.firmaAdi}
+                    </a>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                      {company.sebep}
+                    </p>
+                    {/* Ticari baskı sub-signals — hidden for ik (no commercial detail) */}
+                    {role !== "ik" && (() => {
+                      const tb = getTicariBaskiByFirma(company.id);
+                      if (!tb) return null;
+                      const parts = [
+                        tb.gecikmisAlacak && `Gecikmiş: ${tb.gecikmisAlacak}`,
+                        tb.kesilmemisBekleyen && `Kesilmemiş: ${tb.kesilmemisBekleyen}`,
+                      ].filter(Boolean);
+                      if (parts.length === 0) return null;
+                      return (
+                        <p className={`${TYPE_CAPTION} text-amber-600 mt-0.5`}>
+                          Ticari: {parts.join(" · ")}
+                        </p>
+                      );
+                    })()}
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Geographic concentration signal */}
+            {MOCK_RISKY_COMPANIES.length > 0 && (() => {
+              const cityCount = new Map<string, { count: number; partner: string }>();
+              for (const c of MOCK_RISKY_COMPANIES) {
+                const firma = MOCK_FIRMALAR.find((f) => f.id === c.id);
+                const partner = FIRMA_PARTNER_MAP[c.id];
+                if (firma) {
+                  const prev = cityCount.get(firma.sehir);
+                  cityCount.set(firma.sehir, {
+                    count: (prev?.count ?? 0) + 1,
+                    partner: partner?.partnerAdi ?? "—",
+                  });
+                }
+              }
+              const top = [...cityCount.entries()].sort((a, b) => b[1].count - a[1].count)[0];
+              if (!top || top[1].count < 2) return null;
+              return (
+                <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-3 pt-2 border-t ${BORDER_SUBTLE}`}>
+                  Yoğunlaşma: {top[1].count} riskli firma {top[0]}'da — Partner: {top[1].partner}
+                </p>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Kurumsal Kritik Tarihler — all roles, only when approaching/overdue items exist */}
+        {(() => {
+          const kritikler = MOCK_KURUMSAL_BELGELER.filter(
+            (b) => b.durum === "suresi_yaklsiyor" || b.durum === "suresi_doldu"
+          ).slice(0, 4);
+          if (kritikler.length === 0) return null;
+          return (
+            <div className={CARD}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={CARD_TITLE_ICON}>
+                  <Clock size={14} className="text-amber-500" />
+                  Kritik Tarihler
+                </h3>
+                <a href="/kurumsal-tarihler" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
+              </div>
+              <div className="space-y-0">
+                {kritikler.map((b, idx) => {
+                  const kalan = kalanGunHesapla(b.bitisTarihi);
+                  return (
+                    <div key={b.id} className={clsx("py-2.5", idx < kritikler.length - 1 && LIST_DIVIDER)}>
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{b.baslik}</p>
+                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{BELGE_TURU_LABELS[b.tur]} · {b.sorumlu}</p>
+                        </div>
+                        <span className={`${TYPE_CAPTION} font-medium flex-shrink-0 ml-3 ${kalan < 0 ? "text-red-600" : "text-amber-600"}`}>
+                          {kalan < 0 ? `${Math.abs(kalan)} gün gecikmiş` : `${kalan} gün`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Operational draft helper — signal-adjacent, visually secondary */}
+        {["yonetici", "operasyon"].includes(role) && (
+          <div
+            onClick={() => { setDraftText(null); setCopied(false); setDraftOpen(true); }}
+            className={`border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-3 flex items-center gap-3 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors`}
+          >
+            <Mail size={16} className={TEXT_MUTED} />
+            <div>
+              <p className={`${TYPE_BODY} ${TEXT_BODY}`}>Günlük Otel E-postası</p>
+              <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Bugünkü personel dağılımına göre konaklama bildirimi taslağı</p>
+            </div>
+          </div>
+        )}
+
+        {/* Yönetici İnisiyatifleri — attention bookmarks, yönetici-only */}
+        {role === "yonetici" && (() => {
+          const aktifler = inisiyatifler.filter((i) => i.durum === "aktif");
+          const tamamlananlar = inisiyatifler.filter((i) => i.durum !== "aktif").slice(0, 2);
+          const aktiveFirmalar = MOCK_FIRMALAR.filter((f) => f.durum === "aktif");
+
+          function handleIniCreate() {
+            if (!iniBaslik.trim()) return;
+            const firma = aktiveFirmalar.find((f) => f.id === iniFirmaId);
+            const newIni: Inisiyatif = {
+              id: `ini-new-${Date.now()}`,
+              baslik: iniBaslik.trim(),
+              ...(iniAmac.trim() ? { kisaAmac: iniAmac.trim() } : {}),
+              ...(iniIlgiliKisi.trim() ? { ilgiliKisi: iniIlgiliKisi.trim() } : {}),
+              ...(iniHedefTarih ? { hedefTarih: iniHedefTarih } : {}),
+              ...(firma ? { firmaId: firma.id, firmaAdi: firma.firmaAdi } : {}),
+              durum: "aktif",
+            };
+            console.log("[İnisiyatif oluşturuldu]", newIni);
+            setInisiyatifler((prev) => [newIni, ...prev]);
+            setIniCreateOpen(false);
+            setIniBaslik(""); setIniAmac(""); setIniIlgiliKisi(""); setIniHedefTarih(""); setIniFirmaId("");
+          }
+
+          function handleIniStatusChange(id: string, durum: InisiyatifDurumu) {
+            console.log(`[İnisiyatif ${durum}]`, id);
+            setInisiyatifler((prev) =>
+              prev.map((i) => i.id === id ? { ...i, durum } : i)
+            );
+            if (iniExpandedId === id) setIniExpandedId(null);
+          }
+
+          function handleIniNoteUpdate(id: string, note: string) {
+            setInisiyatifler((prev) =>
+              prev.map((i) => i.id === id ? { ...i, yoneticiNotu: note } : i)
+            );
+          }
+
+          return (
+            <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5`}>
+                  <Eye size={12} />
+                  Yönetici İnisiyatifleri
+                </h3>
+                <button
+                  onClick={() => {
+                    setIniBaslik(""); setIniAmac(""); setIniIlgiliKisi(""); setIniHedefTarih(""); setIniFirmaId("");
+                    setIniCreateOpen(!iniCreateOpen);
+                  }}
+                  className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
+                >
+                  Yeni İnisiyatif
+                </button>
+              </div>
+
+              {/* Create form — inline, compact */}
+              {iniCreateOpen && (
+                <div className={`mb-3 p-3 ${SURFACE_HEADER} ${RADIUS_SM} space-y-2`}>
+                  <input
+                    type="text"
+                    value={iniBaslik}
+                    onChange={(e) => setIniBaslik(e.target.value)}
+                    placeholder="Başlık (zorunlu)"
+                    className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                  />
+                  <input
+                    type="text"
+                    value={iniAmac}
+                    onChange={(e) => setIniAmac(e.target.value)}
+                    placeholder="Kısa amaç (opsiyonel)"
+                    className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={iniIlgiliKisi}
+                      onChange={(e) => setIniIlgiliKisi(e.target.value)}
+                      placeholder="İlgili kişi (opsiyonel)"
+                      className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                    />
+                    <input
+                      type="date"
+                      value={iniHedefTarih}
+                      onChange={(e) => setIniHedefTarih(e.target.value)}
+                      className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                    />
+                  </div>
+                  <select
+                    value={iniFirmaId}
+                    onChange={(e) => setIniFirmaId(e.target.value)}
+                    className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
+                  >
+                    <option value="">Firma bağlantısı (opsiyonel)</option>
+                    {aktiveFirmalar.map((f) => (
+                      <option key={f.id} value={f.id}>{f.firmaAdi}</option>
+                    ))}
+                  </select>
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setIniCreateOpen(false)} className={`px-2 py-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>İptal</button>
+                    <button
+                      onClick={handleIniCreate}
+                      disabled={!iniBaslik.trim()}
+                      className={`px-2 py-1 ${TYPE_CAPTION} text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}
+                    >
+                      Oluştur
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Active initiatives list */}
+              {aktifler.length === 0 && tamamlananlar.length === 0 ? (
+                <p className={`${TYPE_CAPTION} ${TEXT_MUTED} text-center py-2`}>Aktif inisiyatif yok.</p>
+              ) : (
+                <div className="space-y-0">
+                  {aktifler.map((ini, idx) => {
+                    const isExpanded = iniExpandedId === ini.id;
+                    return (
+                      <div key={ini.id} className={`py-2.5 ${idx < aktifler.length - 1 || tamamlananlar.length > 0 ? LIST_DIVIDER : ""}`}>
+                        <div
+                          className="flex items-start justify-between cursor-pointer group"
+                          onClick={() => setIniExpandedId(isExpanded ? null : ini.id)}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className={`${TYPE_BODY} font-medium ${TEXT_BODY} group-hover:text-slate-900`}>{ini.baslik}</p>
+                            <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                              {ini.ilgiliKisi && <span>İlgili: {ini.ilgiliKisi}</span>}
+                              {ini.ilgiliKisi && ini.hedefTarih && <span> · </span>}
+                              {ini.hedefTarih && <span>Hedef: {formatDateTR(ini.hedefTarih)}</span>}
+                              {(ini.ilgiliKisi || ini.hedefTarih) && ini.firmaAdi && <span> · </span>}
+                              {ini.firmaAdi && <span>↳ {ini.firmaAdi}</span>}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                              <span className="w-1 h-1 rounded-full bg-blue-500" />
+                              Aktif
+                            </span>
+                            {isExpanded ? <ChevronUp size={12} className={TEXT_MUTED} /> : <ChevronDown size={12} className={TEXT_MUTED} />}
+                          </div>
+                        </div>
+
+                        {/* Expanded detail — compact inline */}
+                        {isExpanded && (
+                          <div className={`mt-2 p-3 ${SURFACE_HEADER} ${RADIUS_SM} space-y-2`}>
+                            {ini.kisaAmac && (
+                              <p className={`${TYPE_CAPTION} ${TEXT_BODY}`}>{ini.kisaAmac}</p>
+                            )}
+                            <div>
+                              <label className={`${TYPE_CAPTION} ${TEXT_MUTED} block mb-1`}>Yönetici notu</label>
+                              <textarea
+                                value={ini.yoneticiNotu ?? ""}
+                                onChange={(e) => handleIniNoteUpdate(ini.id, e.target.value)}
+                                placeholder="Kısa takip notu..."
+                                rows={2}
+                                className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none`}
+                              />
+                            </div>
+                            <div className="flex gap-2 pt-1">
+                              <button
+                                onClick={() => handleIniStatusChange(ini.id, "tamamlandi")}
+                                className={`px-2 py-1 ${TYPE_CAPTION} text-green-600 hover:text-green-700 hover:underline`}
+                              >
+                                Tamamlandı
+                              </button>
+                              <button
+                                onClick={() => handleIniStatusChange(ini.id, "iptal")}
+                                className={`px-2 py-1 ${TYPE_CAPTION} ${TEXT_MUTED} hover:text-red-600 hover:underline`}
+                              >
+                                İptal
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Recently resolved — muted, capped at 2 */}
+                  {tamamlananlar.map((ini, idx) => (
+                    <div key={ini.id} className={`py-2 ${idx < tamamlananlar.length - 1 ? LIST_DIVIDER : ""}`}>
+                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} line-through`}>{ini.baslik}</p>
+                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-slate-100 text-slate-500 ring-1 ring-inset ring-slate-400/20 no-underline">
+                          {ini.durum === "tamamlandi" ? "Tamamlandı" : "İptal"}
+                        </span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Duyurular — management priority strip, hidden for muhasebe */}
+        {role !== "muhasebe" && <div className={CARD}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5`}>
+              <Megaphone size={12} />
+              Duyurular
+            </h3>
+            {role === "yonetici" && (
+              <button
+                onClick={() => { setAnnBaslik(""); setAnnIcerik(""); setAnnBagliKayit(""); setAnnounceOpen(!announceOpen); }}
+                className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
+              >
+                Duyuru Ekle
+              </button>
+            )}
+          </div>
+
+          {/* Compose — yönetici only, inline */}
+          {announceOpen && role === "yonetici" && (
+            <div className={`mb-3 p-3 ${SURFACE_HEADER} ${RADIUS_SM} space-y-2`}>
+              <input
+                type="text"
+                value={annBaslik}
+                onChange={(e) => setAnnBaslik(e.target.value)}
+                placeholder="Başlık"
+                className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+              />
+              <textarea
+                value={annIcerik}
+                onChange={(e) => setAnnIcerik(e.target.value)}
+                placeholder="Kısa açıklama (1–2 cümle)"
+                rows={2}
+                className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none`}
+              />
+              <input
+                type="text"
+                value={annBagliKayit}
+                onChange={(e) => setAnnBagliKayit(e.target.value)}
+                placeholder="Bağlı kayıt (opsiyonel, ör. firma adı)"
+                className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+              />
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setAnnounceOpen(false)} className={`px-2 py-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>İptal</button>
+                <button
+                  onClick={() => {
+                    if (!annBaslik.trim() || !annIcerik.trim()) return;
+                    setAnnouncements((prev) => [{
+                      id: `duy-new-${Date.now()}`,
+                      baslik: annBaslik.trim(),
+                      icerik: annIcerik.trim(),
+                      tarih: "Az önce",
+                      ...(annBagliKayit.trim() ? { bagliKayit: annBagliKayit.trim() } : {}),
+                    }, ...prev]);
+                    setAnnounceOpen(false);
+                  }}
+                  disabled={!annBaslik.trim() || !annIcerik.trim()}
+                  className={`px-2 py-1 ${TYPE_CAPTION} text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}
+                >
+                  Yayınla
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Announcement list — capped at 3 */}
+          {announcements.length === 0 ? (
+            <p className={`${TYPE_CAPTION} ${TEXT_MUTED} text-center py-2`}>Henüz duyuru yok.</p>
+          ) : (
+            <div className="space-y-0">
+              {announcements.slice(0, 3).map((d, idx) => (
+                <div key={d.id} className={`py-2.5 ${idx < Math.min(announcements.length, 3) - 1 ? LIST_DIVIDER : ""}`}>
+                  <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{d.baslik}</p>
+                  <p className={`${TYPE_CAPTION} ${TEXT_BODY} mt-0.5`}>{d.icerik}</p>
+                  <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                    Yönetici · {d.tarih}
+                    {d.bagliKayit && <span> · ↳ {d.bagliKayit}</span>}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>}
+
+        {/* Son Aktiviteler — hidden for muhasebe */}
+        {role !== "muhasebe" && (
+          <div className={CARD_LG}>
+            <h3 className={CARD_TITLE}>
+              Son Aktiviteler
+            </h3>
+            <ActivityFeed events={MOCK_DASHBOARD_ACTIVITY} maxItems={8} />
+          </div>
+        )}
+      </div>
+
+      {/* Morning hotel email draft modal */}
+      {draftOpen && (
+        <div className={`fixed inset-0 ${SURFACE_OVERLAY_DARK} flex items-center justify-center ${Z_OVERLAY}`} onClick={() => setDraftOpen(false)}>
+          <div className={`${SURFACE_PRIMARY} ${RADIUS_DEFAULT} shadow-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
+            <div className={`px-5 py-4 border-b ${BORDER_DEFAULT} flex-shrink-0`}>
+              <h2 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>Günlük Otel E-postası</h2>
+              <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>
+                Taslak metin — göndermeden önce gözden geçirin
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {!draftText ? (
+                <div className="space-y-3">
+                  <p className={`${TYPE_BODY} ${TEXT_BODY}`}>
+                    Bugünkü aktif personel dağılımına göre otel bilgilendirme e-postası taslağı oluşturulacak.
+                  </p>
+                  <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
+                    Veriler mevcut iş gücü kayıtlarından alınacaktır. Taslak gönderilmeden önce incelemeniz gerekir.
+                  </p>
+                </div>
+              ) : (
+                <div className={`${SURFACE_HEADER} ${RADIUS_SM} p-4`}>
+                  <pre className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap font-sans`}>{draftText}</pre>
+                </div>
+              )}
+            </div>
+
+            <div className={`px-5 py-3 border-t ${BORDER_DEFAULT} flex justify-end gap-2 flex-shrink-0`}>
+              <button onClick={() => setDraftOpen(false)} className={`px-4 py-2 ${TYPE_BODY} font-medium ${TEXT_BODY} ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} hover:bg-slate-50`}>
+                {draftText ? "Kapat" : "İptal"}
+              </button>
+              {!draftText ? (
+                <button onClick={handleGenerateDraft} className={`px-4 py-2 ${TYPE_BODY} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700`}>
+                  Taslak Oluştur
+                </button>
+              ) : (
+                <button onClick={handleCopy} className={`px-4 py-2 ${TYPE_BODY} font-medium text-white ${copied ? "bg-green-600" : "bg-blue-600"} ${RADIUS_SM} ${copied ? "" : "hover:bg-blue-700"}`}>
+                  {copied ? "Kopyalandı" : "Kopyala"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

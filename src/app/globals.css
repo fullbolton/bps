@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/*
+ * Layout dimensions — consumed by shell components (Sidebar, Topbar, Layout).
+ * Design tokens live in src/styles/tokens.ts (authoritative source).
+ */
+:root {
+  --sidebar-width: 256px;
+  --topbar-height: 56px;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+}
