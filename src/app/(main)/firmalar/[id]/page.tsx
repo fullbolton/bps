@@ -506,7 +506,7 @@ export default function FirmaDetayPage({
                   return <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Aktif risk sinyali yok.</p>;
                 }
 
-                const canDraftPayment = ticariBullets.length > 0 && (role === "yonetici" || role === "satis");
+                const canDraftPayment = ticariBullets.length > 0 && (role === "yonetici" || role === "partner");
 
                 return (
                   <>
@@ -538,7 +538,7 @@ export default function FirmaDetayPage({
             </div>}
 
             {/* 9. Tahmini Ticari Kalite — management assumption visibility */}
-            {(role === "yonetici" || role === "satis") && (() => {
+            {(role === "yonetici" || role === "partner") && (() => {
               const kalite = getFirmaTicariKaliteOzeti(id);
               const toplam = kalite.saglikli + kalite.dar + kalite.riskli;
               if (toplam === 0) return null;
@@ -584,8 +584,8 @@ export default function FirmaDetayPage({
             })()}
           </div>
 
-          {/* Ticari Temas — outbound draft helpers, yönetici + satış only */}
-          {(role === "yonetici" || role === "satis") && firma.durum === "aktif" && (() => {
+          {/* Ticari Temas — outbound draft helpers, yönetici + partner only */}
+          {(role === "yonetici" || role === "partner") && firma.durum === "aktif" && (() => {
             const sonGorusmeTarih = firma.sonGorusme;
             const isStale = sonGorusmeTarih && sonGorusmeTarih !== "—" && (() => {
               const diff = (new Date().getTime() - new Date(sonGorusmeTarih).getTime()) / (1000 * 60 * 60 * 24);
@@ -622,8 +622,8 @@ export default function FirmaDetayPage({
             );
           })()}
 
-          {/* Teklif Hesaplayıcı — inline offer calculator, yönetici + satış only */}
-          {(role === "yonetici" || role === "satis") && firma.durum === "aktif" && (
+          {/* Teklif Hesaplayıcı — inline offer calculator, yönetici + partner only */}
+          {(role === "yonetici" || role === "partner") && firma.durum === "aktif" && (
             <div className={`${SURFACE_PRIMARY} border ${hesapOpen ? BORDER_DEFAULT : `border-dashed ${BORDER_DEFAULT}`} ${RADIUS_DEFAULT} ${hesapOpen ? "p-4" : "px-4 py-2.5"} transition-all`}>
               <div
                 className="flex items-center justify-between cursor-pointer"
@@ -986,7 +986,7 @@ export default function FirmaDetayPage({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <h3 className={CARD_TITLE_PLAIN}>Yetkili Kişiler</h3>
               <div className="flex flex-shrink-0 items-center gap-2 sm:justify-end">
-                {(role === "yonetici" || role === "satis") && yetkililer.length < 5 && (
+                {(role === "yonetici" || role === "partner") && yetkililer.length < 5 && (
                   <button
                     type="button"
                     onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setContactModalOpen(true); }}
@@ -1048,7 +1048,7 @@ export default function FirmaDetayPage({
                         )}
                       </div>
                       {/* Edit action — role-gated */}
-                      {(role === "yonetici" || role === "satis" || role === "operasyon") && (
+                      {(role === "yonetici" || role === "partner" || role === "operasyon") && (
                         <button
                           type="button"
                           onClick={() => {
@@ -1097,7 +1097,7 @@ export default function FirmaDetayPage({
                       })()}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                      {(role === "yonetici" || role === "satis") && (() => {
+                      {(role === "yonetici" || role === "partner") && (() => {
                         const band = getContractMarjBandi(s.id);
                         if (!band) return null;
                         return <MarginBandBadge band={band} />;
