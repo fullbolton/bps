@@ -75,13 +75,22 @@ export const MOCK_YONLENDIRMELER: Yonlendirme[] = [
 ];
 
 /**
- * Helper: derive organizational unit from BPS role.
- * In production this would come from user profile; in demo it maps directly.
+ * Helper: derive organizational unit (birim) from BPS role.
+ *
+ * PHASE 0 SHIM — See `01_product/PARTNER_SCOPE_TOUCHPOINTS.md` §1 for the
+ * role-vs-birim terminology split. In production (Faz 3+), birim will come
+ * from `profiles.unit` instead of being derived from role. This helper
+ * remains only because `src/mocks/yonlendirmeler.ts` is mock-backed until
+ * the Faz 3/4 yonlendirme migration.
+ *
+ * The `partner` role falls through to the default "yonetim" birim, because
+ * BPS partner is portfolio-scoped and does not belong to a legacy sales
+ * department. Faz 3 migration will replace this derivation with real
+ * unit assignment per user.
  */
 export function birimFromRole(role: string): BirimKodu {
   switch (role) {
     case "operasyon": return "operasyon";
-    case "satis": return "satis";
     case "ik": return "ik";
     case "muhasebe": return "muhasebe";
     case "yonetici": return "yonetim";

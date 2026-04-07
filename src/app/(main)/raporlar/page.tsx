@@ -59,8 +59,8 @@ const ALL_REPORTS: ReportOption[] = [
 
 const REPORT_ROLE_ACCESS: Record<UserRole, string[]> = {
   yonetici: ["is-gucu", "sozlesme-bitis", "talep-analizi", "randevu-sonuc", "riskli-firma", "partner-ozet"],
+  partner: ["is-gucu", "sozlesme-bitis", "talep-analizi", "randevu-sonuc", "riskli-firma", "partner-ozet"],
   operasyon: ["is-gucu", "talep-analizi", "randevu-sonuc"],
-  satis: ["sozlesme-bitis", "randevu-sonuc", "riskli-firma"],
   ik: ["is-gucu"],
   muhasebe: ["riskli-firma", "partner-ozet"],
   goruntuleyici: ["is-gucu", "sozlesme-bitis", "talep-analizi", "randevu-sonuc", "riskli-firma"],

@@ -22,7 +22,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-export type UserRole = "yonetici" | "operasyon" | "satis" | "ik" | "muhasebe" | "goruntuleyici";
+export type UserRole = "yonetici" | "partner" | "operasyon" | "ik" | "muhasebe" | "goruntuleyici";
 
 interface AuthContextValue {
   /** Current authenticated user, or null if loading / not authenticated */
@@ -45,7 +45,7 @@ const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
 });
 
-const VALID_ROLES: UserRole[] = ["yonetici", "operasyon", "satis", "ik", "muhasebe", "goruntuleyici"];
+const VALID_ROLES: UserRole[] = ["yonetici", "partner", "operasyon", "ik", "muhasebe", "goruntuleyici"];
 
 function resolveRole(user: User | null): UserRole {
   if (!user) return "goruntuleyici";
