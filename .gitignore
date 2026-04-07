@@ -4,3 +4,5 @@ node_modules/
 .env
 .vercel/
 *.tsbuildinfo
+.DS_Store
+.claude/
