@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo } from "react";
+import { use, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   StickyNote,
@@ -59,11 +59,17 @@ import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI, FIRMA_KESILMEMIS_DAGILIMI
 import { getContractMarjBandi, getFirmaTicariKaliteOzeti } from "@/mocks/ticari-kalite";
 import { getAktifInisiyatiflerByFirma } from "@/mocks/inisiyatifler";
 import { MOCK_YONLENDIRMELER, birimFromRole } from "@/mocks/yonlendirmeler";
-import { MOCK_YETKILILER, replaceFirmaYetkililer } from "@/mocks/yetkililer";
 import { MOCK_NOTLAR, NOT_ETIKET_LABELS } from "@/mocks/notlar";
 import type { MockNot, NotEtiketi } from "@/mocks/notlar";
-import type { MockYetkili } from "@/mocks/yetkililer";
 import type { Yonlendirme } from "@/mocks/yonlendirmeler";
+import { createClient } from "@/lib/supabase/client";
+import {
+  listContactsByLegacyCompanyId,
+  createContact,
+  updateContactFull,
+  updateContactPhoneEmail,
+} from "@/lib/services/contacts";
+import type { ContactRow } from "@/types/database.types";
 import { BIRIM_LABELS } from "@/types/yonlendirme";
 import type { BirimKodu } from "@/types/yonlendirme";
 import type { EvrakKategorisi } from "@/types/batch4";
@@ -148,21 +154,36 @@ export default function FirmaDetayPage({
   );
   const [notEditTarget, setNotEditTarget] = useState<MockNot | null>(null);
   const [notTagFilter, setNotTagFilter] = useState<NotEtiketi | "">("");
-  // Yetkili ki��iler state
-  const [yetkililer, _setYetkililer] = useState<MockYetkili[]>(
-    () => MOCK_YETKILILER.filter((y) => y.firmaId === id)
-  );
-  function setYetkililer(
-    updater: MockYetkili[] | ((prev: MockYetkili[]) => MockYetkili[])
-  ) {
-    _setYetkililer((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      replaceFirmaYetkililer(id, next);
-      return next;
-    });
-  }
+  // Yetkili kişiler — Faz 1A: real Supabase truth via service layer.
+  // Resolution flow inside the service: legacy mock id ("f1") → companies row
+  // (RLS-checked) → contacts query. Out-of-scope/missing firmas surface as
+  // a CompanyNotFoundOrOutOfScopeError, which we map to an inline message.
+  const supabase = useMemo(() => createClient(), []);
+  const [yetkililer, setYetkililer] = useState<ContactRow[]>([]);
+  const [yetkililerLoading, setYetkililerLoading] = useState(true);
+  const [yetkililerError, setYetkililerError] = useState<string | null>(null);
+  const reloadYetkililer = useCallback(async () => {
+    setYetkililerError(null);
+    try {
+      const rows = await listContactsByLegacyCompanyId(supabase, id);
+      setYetkililer(rows);
+    } catch (err) {
+      setYetkililer([]);
+      setYetkililerError(
+        err instanceof Error
+          ? err.message
+          : "Yetkili kişiler yüklenirken bir hata oluştu.",
+      );
+    } finally {
+      setYetkililerLoading(false);
+    }
+  }, [supabase, id]);
+  useEffect(() => {
+    setYetkililerLoading(true);
+    void reloadYetkililer();
+  }, [reloadYetkililer]);
   const [contactModalOpen, setContactModalOpen] = useState(false);
-  const [editingContact, setEditingContact] = useState<MockYetkili | null>(null);
+  const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [editPhoneEmailOnly, setEditPhoneEmailOnly] = useState(false);
   // Ticari Temas — outbound draft helpers
   const [temasType, setTemasType] = useState<"yeniden_temas" | "odeme_takibi" | null>(null);
@@ -1001,7 +1022,20 @@ export default function FirmaDetayPage({
                 )}
               </div>
             </div>
-            {yetkililer.length === 0 ? (
+            {yetkililerError && (
+              <p
+                className={`${TYPE_CAPTION} text-red-600 mb-3`}
+                role="alert"
+                aria-live="polite"
+              >
+                {yetkililerError}
+              </p>
+            )}
+            {yetkililerLoading ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>
+                Yetkili kişiler yükleniyor…
+              </p>
+            ) : yetkililer.length === 0 ? (
               <div className="py-2 -mx-1">
                 <EmptyState
                   title="Yetkili kişi yok"
@@ -1011,40 +1045,38 @@ export default function FirmaDetayPage({
               </div>
             ) : (
               <div className="space-y-0">
-                {yetkililer
-                  .sort((a, b) => (a.anaYetkili === b.anaYetkili ? 0 : a.anaYetkili ? -1 : 1))
-                  .map((ytk, idx) => (
+                {yetkililer.map((ytk, idx) => (
                   <div key={ytk.id} className={`py-3 ${idx < yetkililer.length - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{ytk.adSoyad}</p>
-                          {ytk.anaYetkili && (
+                          <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{ytk.full_name}</p>
+                          {ytk.is_primary && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
                               <Star size={8} />
                               Ana Yetkili
                             </span>
                           )}
                         </div>
-                        {ytk.unvan && (
-                          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5`}>{ytk.unvan}</p>
+                        {ytk.title && (
+                          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5`}>{ytk.title}</p>
                         )}
                         <div className="flex flex-col gap-1.5 mt-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
-                          {ytk.telefon && (
-                            <a href={`tel:${ytk.telefon.replace(/\s/g, "")}`} className={`${TYPE_CAPTION} ${TEXT_LINK} inline-flex items-center gap-1.5 min-w-0 hover:underline`}>
+                          {ytk.phone && (
+                            <a href={`tel:${ytk.phone.replace(/\s/g, "")}`} className={`${TYPE_CAPTION} ${TEXT_LINK} inline-flex items-center gap-1.5 min-w-0 hover:underline`}>
                               <Phone size={12} className={`flex-shrink-0 ${TEXT_MUTED}`} aria-hidden />
-                              <span className="break-all">{ytk.telefon}</span>
+                              <span className="break-all">{ytk.phone}</span>
                             </a>
                           )}
-                          {ytk.eposta && (
-                            <a href={`mailto:${ytk.eposta}`} className={`${TYPE_CAPTION} ${TEXT_LINK} inline-flex items-center gap-1.5 min-w-0 hover:underline`}>
+                          {ytk.email && (
+                            <a href={`mailto:${ytk.email}`} className={`${TYPE_CAPTION} ${TEXT_LINK} inline-flex items-center gap-1.5 min-w-0 hover:underline`}>
                               <Mail size={12} className={`flex-shrink-0 ${TEXT_MUTED}`} aria-hidden />
-                              <span className="break-all">{ytk.eposta}</span>
+                              <span className="break-all">{ytk.email}</span>
                             </a>
                           )}
                         </div>
-                        {ytk.kisaNotlar && (
-                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>{ytk.kisaNotlar}</p>
+                        {ytk.context_note && (
+                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>{ytk.context_note}</p>
                         )}
                       </div>
                       {/* Edit action — role-gated */}
@@ -1057,7 +1089,7 @@ export default function FirmaDetayPage({
                             setContactModalOpen(true);
                           }}
                           className={`flex-shrink-0 ml-3 p-1.5 ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
-                          aria-label={`${ytk.adSoyad} — düzenle`}
+                          aria-label={`${ytk.full_name} — düzenle`}
                         >
                           <Pencil size={13} aria-hidden />
                         </button>
@@ -1427,47 +1459,40 @@ export default function FirmaDetayPage({
         onClose={() => { setContactModalOpen(false); setEditingContact(null); setEditPhoneEmailOnly(false); }}
         editData={editingContact}
         phoneEmailOnly={editPhoneEmailOnly}
-        currentAnaYetkiliAdi={yetkililer.find((y) => y.anaYetkili)?.adSoyad}
-        onSubmit={(data) => {
+        currentAnaYetkiliAdi={yetkililer.find((y) => y.is_primary)?.full_name}
+        onSubmit={async (data) => {
+          // Faz 1A: persist via service layer. The service re-verifies
+          // partner scope, enforces max-5 / phone-or-email / single-primary,
+          // and narrows the operasyon patch to {phone, email}. Errors
+          // (validation, scope, DB) bubble up so the modal can render
+          // them inline; only on resolve do we refetch and close.
           if (editingContact) {
-            // Edit existing
-            setYetkililer((prev) =>
-              prev.map((y) => {
-                if (y.id === editingContact.id) {
-                  const updated = editPhoneEmailOnly
-                    ? { ...y, telefon: data.telefon || y.telefon, eposta: data.eposta || y.eposta }
-                    : { ...y, ...data };
-                  return updated;
-                }
-                // If new anaYetkili was set, unset others
-                if (data.anaYetkili && !editPhoneEmailOnly && y.firmaId === id) {
-                  return { ...y, anaYetkili: false };
-                }
-                return y;
-              })
-            );
-            console.log("[Yetkili güncellendi]", editingContact.id, data);
+            if (editPhoneEmailOnly) {
+              await updateContactPhoneEmail(supabase, id, editingContact.id, {
+                phone: data.phone,
+                email: data.email,
+              });
+            } else {
+              await updateContactFull(supabase, id, editingContact.id, {
+                fullName: data.fullName,
+                title: data.title,
+                phone: data.phone,
+                email: data.email,
+                isPrimary: data.isPrimary,
+                contextNote: data.contextNote,
+              });
+            }
           } else {
-            // Create new
-            const newYetkili: MockYetkili = {
-              id: `ytk-new-${Date.now()}`,
-              firmaId: id,
-              adSoyad: data.adSoyad,
-              ...(data.unvan ? { unvan: data.unvan } : {}),
-              ...(data.telefon ? { telefon: data.telefon } : {}),
-              ...(data.eposta ? { eposta: data.eposta } : {}),
-              anaYetkili: data.anaYetkili,
-              ...(data.kisaNotlar ? { kisaNotlar: data.kisaNotlar } : {}),
-            };
-            setYetkililer((prev) => {
-              // If new one is anaYetkili, unset others
-              const updated = data.anaYetkili
-                ? prev.map((y) => y.firmaId === id ? { ...y, anaYetkili: false } : y)
-                : prev;
-              return [newYetkili, ...updated];
+            await createContact(supabase, id, {
+              fullName: data.fullName,
+              title: data.title,
+              phone: data.phone,
+              email: data.email,
+              isPrimary: data.isPrimary,
+              contextNote: data.contextNote,
             });
-            console.log("[Yetkili oluşturuldu]", newYetkili);
           }
+          await reloadYetkililer();
         }}
       />
 
@@ -1628,7 +1653,7 @@ export default function FirmaDetayPage({
                 <button
                   onClick={() => {
                     if (temasType === "yeniden_temas") {
-                      const currentAnaYetkili = yetkililer.find((y) => y.anaYetkili)?.adSoyad ?? firma.anaYetkili;
+                      const currentAnaYetkili = yetkililer.find((y) => y.is_primary)?.full_name ?? firma.anaYetkili;
                       const draft = generateYenidenTemasDraft({
                         firmaAdi: firma.firmaAdi,
                         anaYetkili: currentAnaYetkili,

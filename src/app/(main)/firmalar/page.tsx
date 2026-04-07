@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import {
@@ -15,8 +15,9 @@ import { MOCK_FIRMALAR } from "@/mocks/firmalar";
 import { MOCK_SOZLESMELER } from "@/mocks/sozlesmeler";
 import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
 import { MOCK_RANDEVULAR } from "@/mocks/randevular";
-import { getAnaYetkiliByFirma } from "@/mocks/yetkililer";
 import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
+import { createClient } from "@/lib/supabase/client";
+import { getPrimaryContactNamesByLegacyIds } from "@/lib/services/contacts";
 import type { MockFirma } from "@/mocks/firmalar";
 import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
 
@@ -136,6 +137,34 @@ export default function FirmalarPage() {
   });
   const handleSearch = useCallback((val: string) => setSearch(val), []);
 
+  // Faz 1A: Ana Yetkili column reads from real contacts truth via the
+  // service layer. We resolve every visible firma's primary contact in a
+  // single round trip (no N+1) and fall back to the firma's static
+  // mock-shipped value when the firma has no primary contact yet, or
+  // when RLS hides it from the current caller. The full Firmalar list
+  // cutover (Faz 2) will replace MOCK_FIRMALAR entirely; this slice only
+  // touches the Ana Yetkili column to keep it consistent with the
+  // contacts table edits performed in Firma Detay > Yetkililer.
+  const supabase = useMemo(() => createClient(), []);
+  const [primaryNames, setPrimaryNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let active = true;
+    void getPrimaryContactNamesByLegacyIds(
+      supabase,
+      MOCK_FIRMALAR.map((f) => f.id),
+    )
+      .then((map) => {
+        if (active) setPrimaryNames(map);
+      })
+      .catch(() => {
+        // Silent fall-through to the per-firma static fallback below.
+        if (active) setPrimaryNames({});
+      });
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+
   const filteredData = useMemo(() => {
     const derivedFirmalar = MOCK_FIRMALAR.map((f) => {
       const firmaRandevular = MOCK_RANDEVULAR.filter((r) => r.firmaId === f.id);
@@ -150,7 +179,7 @@ export default function FirmalarPage() {
         ...f,
         aktifSozlesme: MOCK_SOZLESMELER.filter((s) => s.firmaId === f.id && s.durum === "aktif").length,
         aktifIsGucu: MOCK_IS_GUCU.find((ig) => ig.firmaId === f.id)?.aktifKisi ?? 0,
-        anaYetkili: getAnaYetkiliByFirma(f.id) ?? f.anaYetkili,
+        anaYetkili: primaryNames[f.id] ?? f.anaYetkili,
         sonGorusme: sonTamamlananRandevu?.tarih ?? f.sonGorusme ?? "—",
         sonrakiRandevu: sonrakiPlanliRandevu?.tarih ?? f.sonrakiRandevu ?? "—",
       };
@@ -173,7 +202,7 @@ export default function FirmalarPage() {
       if (filters.partner && FIRMA_PARTNER_MAP[f.id]?.partnerAdi !== filters.partner) return false;
       return true;
     });
-  }, [search, filters]);
+  }, [search, filters, primaryNames]);
 
   const rowActions: RowAction<MockFirma>[] = [
     {

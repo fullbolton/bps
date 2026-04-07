@@ -1,22 +1,18 @@
 /**
- * BPS Phase 0 — Supabase database type baseline.
+ * BPS — Supabase database type surface.
  *
  * This file is the typed surface that the service layer reads against.
- * It is intentionally minimal in Phase 0 — only the `profiles` table is
- * defined here, matching the SQL in `supabase/migrations/`.
+ * Phase 0 added `profiles` and `access_requests`. Faz 1A (Yetkililer
+ * slice) adds `companies`, `contacts`, and `partner_company_assignments`.
+ * Future phases will extend this file with notes, contracts, etc.
  *
- * Future phases (Faz 1A onward) will extend this file with companies,
- * contacts, notes, contracts, etc. as each domain is migrated.
- *
- * Hand-rolled rather than generated for Phase 0:
+ * Hand-rolled rather than generated:
  *   - `supabase gen types typescript --linked > src/types/database.types.ts`
  *     is the intended long-term workflow once the project is linked to a
  *     Supabase instance via the CLI.
- *   - Phase 0 keeps this file hand-written so the worktree can compile
- *     without a live database connection or CLI dependency.
- *
- * Shape mirrors the convention used by `supabase gen types typescript`
- * so that a future generated regeneration will be a drop-in replacement.
+ *   - Keeping this file hand-written lets the worktree compile without a
+ *     live database connection or CLI dependency, and it stays a near
+ *     1:1 shape with what `supabase gen types` would emit.
  */
 
 import type { UserRole } from "@/context/AuthContext";
@@ -38,7 +34,8 @@ export type ProfileUnit =
   | "diger";
 
 // ---------------------------------------------------------------------------
-// Database type — Phase 0 (profiles only)
+// Database type — Phase 0 (profiles, access_requests) + Faz 1A
+// (companies anchor, contacts, partner_company_assignments)
 // ---------------------------------------------------------------------------
 
 export type Json =
@@ -132,9 +129,172 @@ export interface Database {
         };
         Relationships: [];
       };
+      // ---------------------------------------------------------------------
+      // companies — Faz 1A minimal anchor
+      // ---------------------------------------------------------------------
+      // Mirrors `supabase/migrations/20260407000200_create_companies_anchor.sql`.
+      // Only the columns the Yetkililer slice needs are present. The full
+      // Firmalar migration will extend this row shape; the typed surface
+      // will be regenerated then.
+      // ---------------------------------------------------------------------
+      companies: {
+        Row: {
+          id: string;
+          name: string;
+          legacy_mock_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          legacy_mock_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          legacy_mock_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "companies_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // ---------------------------------------------------------------------
+      // contacts — Faz 1A primary truth (Yetkililer)
+      // ---------------------------------------------------------------------
+      // Mirrors `supabase/migrations/20260407000300_create_contacts.sql`.
+      // The DB enforces phone-or-email and the single-primary partial
+      // unique index. The max-5-per-firma rule is enforced by trigger.
+      // ---------------------------------------------------------------------
+      contacts: {
+        Row: {
+          id: string;
+          company_id: string;
+          full_name: string;
+          title: string | null;
+          phone: string | null;
+          email: string | null;
+          is_primary: boolean;
+          context_note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          full_name: string;
+          title?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          is_primary?: boolean;
+          context_note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          full_name?: string;
+          title?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          is_primary?: boolean;
+          context_note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contacts_company_id_fkey";
+            columns: ["company_id"];
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contacts_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // ---------------------------------------------------------------------
+      // partner_company_assignments — Faz 1A partner-scope source
+      // ---------------------------------------------------------------------
+      // Mirrors `supabase/migrations/20260407000200_create_companies_anchor.sql`.
+      // Many-to-many between partner-role users and companies. yonetici
+      // managed; partners read their own rows only.
+      // ---------------------------------------------------------------------
+      partner_company_assignments: {
+        Row: {
+          id: string;
+          partner_user_id: string;
+          company_id: string;
+          assigned_by: string | null;
+          assigned_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_user_id: string;
+          company_id: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
+        };
+        Update: {
+          id?: string;
+          partner_user_id?: string;
+          company_id?: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "partner_company_assignments_partner_user_id_fkey";
+            columns: ["partner_user_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "partner_company_assignments_company_id_fkey";
+            columns: ["company_id"];
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "partner_company_assignments_assigned_by_fkey";
+            columns: ["assigned_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      current_user_role: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      current_user_has_company_scope: {
+        Args: { target_company_id: string };
+        Returns: boolean;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
@@ -147,3 +307,18 @@ export interface Database {
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
+
+export type CompanyRow = Database["public"]["Tables"]["companies"]["Row"];
+export type CompanyInsert = Database["public"]["Tables"]["companies"]["Insert"];
+export type CompanyUpdate = Database["public"]["Tables"]["companies"]["Update"];
+
+export type ContactRow = Database["public"]["Tables"]["contacts"]["Row"];
+export type ContactInsert = Database["public"]["Tables"]["contacts"]["Insert"];
+export type ContactUpdate = Database["public"]["Tables"]["contacts"]["Update"];
+
+export type PartnerCompanyAssignmentRow =
+  Database["public"]["Tables"]["partner_company_assignments"]["Row"];
+export type PartnerCompanyAssignmentInsert =
+  Database["public"]["Tables"]["partner_company_assignments"]["Insert"];
+export type PartnerCompanyAssignmentUpdate =
+  Database["public"]["Tables"]["partner_company_assignments"]["Update"];
