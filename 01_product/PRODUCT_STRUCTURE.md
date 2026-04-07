@@ -18,15 +18,8 @@
 ## Üst Bar
 Her ekranda sabit olacak ortak alanlar:
 - global arama
-- hızlı ekle butonu
 - bildirim / uyarı ikonu
 - kullanıcı menüsü
-
-### Hızlı Ekle Menüsü
-- Yeni firma (yönetici + satış)
-- Yeni sözleşme (yönetici + satış)
-
-Not: Hızlı Ekle menüsü yalnızca firma ve sözleşme oluşturma yetkisi olan roller için görünür. Diğer roller için menü gizlidir.
 
 ---
 
@@ -95,7 +88,7 @@ Portföyü görmek, filtrelemek ve firma detaya geçmek.
 
 ### Ticari Özet kullanım notu
 - ilk beklenti görünürlük öncelikli ve read-only kullanımdır
-- satış ve operasyon erişimi varsa bu görünürlük yalnızca ilgili firma bağlamında sınırlıdır
+- partner ve operasyon erişimi varsa bu görünürlük yalnızca ilgili firma veya atanmış portföy bağlamında sınırlıdır
 - manuel özet ticari veri güncellemesi ilk aşamada yalnızca yöneticiye açıktır
 - Ticari Risk Etiketi, genel firma riskinden ayrı ticari sinyaldir; genel riski etkileyebilir ama yerine geçmez
 

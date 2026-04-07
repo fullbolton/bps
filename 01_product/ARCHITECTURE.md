@@ -144,19 +144,24 @@ Specific framework folders are not.
 
 The architecture assumes six main roles:
 - `yönetici`
+- `partner`
 - `operasyon`
-- `satış`
 - `ik`
 - `muhasebe`
 - `görüntüleyici`
 
+Authorization is interpreted as `role + scope`, not role-only.
+
 Role shape:
-- `yönetici` has full cross-system operational and management visibility
+- `yönetici` has global full cross-system operational and management visibility
+- `partner` is a portfolio-scoped admin-like role — has manager-like full operational power only inside the assigned portfolio, may see portfolio-bounded commercial/financial visibility there, and cannot see other partners' firms, financials, or operational truth
 - `operasyon` focuses on staffing demand, active workforce, tasks, documents, and operational follow-up
-- `satış` focuses on company relationship, appointments, contacts, contract follow-up, and company-level commercial visibility where needed
 - `ik` focuses narrowly on document compliance and personnel completion — sees Evraklar (full), Aktif İş Gücü (read-only), Görevler (bounded execution, no reassignment), and Company Detail operational context — does not see commercial tools, financial surfaces, or management-layer features
 - `muhasebe` focuses on bounded summary-level financial visibility maintenance — sees Finansal Özet (full including upload-extract-confirm), Company Detail (Ticari Özet read-only + Sözleşmeler read-only + Yönlendirmeler), and Dashboard (narrow financial context only) — does not see operational modules, commercial tools, Ayarlar, or management-layer features
 - `görüntüleyici` is summary-observation only and should not mutate records or access operational-depth surfaces
+
+Real-data migration will require an explicit partner-to-portfolio or partner-to-company mapping so scoped access can be enforced consistently.
+This is an access-model intent note only; it does not define schema.
 
 Company-wide Financial Summary remains a management-visibility layer. Yönetici is the management owner. Muhasebe participates as a bounded summary-maintenance actor — uploading, reviewing, and confirming summary financial data — but this does not transform Financial Summary into accounting software, ERP, payroll, ledger logic, or reconciliation.
 

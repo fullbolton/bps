@@ -4,7 +4,6 @@
 - PageHeader
 - DateRangePicker
 - GlobalSearch
-- QuickAddButton (yönetici + satış only)
 - KPIStatCard x6 (role-filtered)
 - TodayTasksCard (hidden for muhasebe)
 - ContractExpiryCard (hidden for ik + muhasebe)
@@ -20,13 +19,12 @@
 ---
 
 ## Firmalar Liste — Bileşen Listesi
-- PageHeader (Yeni Firma action: yönetici + satış only)
+- PageHeader
 - SearchInput
 - FilterBar
 - SavedFilterChips
 - DataTable
 - RowActionMenu (Detaya Git)
-- NewCompanyModal
 
 ---
 
@@ -67,7 +65,7 @@
 #### İlk Derinlik ve Davranış
 - minimum alanlar: ad soyad, rol / unvan, en az bir iletişim kanalı
 - ilk sürümde firma bağlamlı kontak listesi yeterlidir; generic CRM rehberi beklenmez
-- satış rolü ana bakım sahibidir; operasyon yalnızca operasyonel koordinasyon gereken temel alanlarda sınırlı müdahale eder
+- partner rolü ana bakım sahibidir; operasyon yalnızca operasyonel koordinasyon gereken temel alanlarda sınırlı müdahale eder
 - yetkili ekleme ve anlamlı değişiklikler zaman çizgisine düşebilir
 - yetkililer randevu ve görev bağlamında seçilebilir
 
@@ -130,7 +128,6 @@
 - SummaryChips
 - DataTable
 - RightPreviewPanel
-- NewContractModal
 - RenewalTaskModal
 
 ---

@@ -23,6 +23,13 @@ Kurallar:
 - Firma detayı, ürünün ana çalışma yüzeyidir.
 - Dashboard karar yüzeyidir; veri mezarlığı değildir.
 
+### 1.1 Rol ve kapsam birlikte okunur
+- Yetkilendirme yalnızca rol adıyla değil, `rol + kapsam` birlikte değerlendirilmelidir.
+- `yönetici` global tam erişim taşıyan roldür.
+- `partner`, yalnızca atanmış portföy içinde yönetici-benzeri tam operasyon yetkisi taşır.
+- `partner`, başka partnerlerin firmalarını, finansallarını veya operasyonel truth'ünü görmez.
+- Bu model BPS'yi partner portalına dönüştürmez; aynı iç ürün içinde scoped erişim kuralı olarak kalır.
+
 ---
 
 ## 2. Firma kuralları
@@ -65,7 +72,7 @@ Kurallar:
 - Yetkili kaydı firma bağlamında tutulmalıdır.
 - Yetkililer randevu katılımcısı, görüşme muhatabı veya görev bağlamı olarak seçilebilir.
 - Yetkili ekleme ve anlamlı rol/değişiklikleri zaman çizgisine düşebilir; küçük yazım düzeltmeleri timeline gürültüsü üretmemelidir.
-- Yetkili düzenleme hakları `ROLE_MATRIX.md` ile sınırlandırılır; ilk beklenti satış odaklı sahiplik, operasyon tarafında ise yalnızca operasyonel koordinasyon gereken temel alanlarda sınırlı müdahaledir.
+- Yetkili düzenleme hakları `ROLE_MATRIX.md` ile sınırlandırılır; ilk beklenti partner odaklı sahipliktir, operasyon tarafında ise yalnızca operasyonel koordinasyon gereken temel alanlarda sınırlı müdahaledir.
 
 ### 2.6 Notlar
 - Notlar firma bağlamında kurumsal iç hafıza alanıdır.

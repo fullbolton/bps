@@ -53,9 +53,10 @@ Read the active source-of-truth files in this order before proposing structural 
 9. `01_product/TASK_ROADMAP.md`
 10. `01_product/ARCHITECTURE.md`
 11. `01_product/TECH_STACK_DECISION.md`
-12. `02_rules/WORKFLOW_RULES.md`
-13. `02_rules/STATUS_DICTIONARY.md`
-14. `02_rules/ROLE_MATRIX.md`
+12. `01_product/REAL_DATA_MIGRATION_MASTER_PLAN.md`
+13. `02_rules/WORKFLOW_RULES.md`
+14. `02_rules/STATUS_DICTIONARY.md`
+15. `02_rules/ROLE_MATRIX.md`
 
 `01_product/ARCHITECTURE.md` is a derived architectural synthesis file.
 It helps organize system understanding, but it must not override workflow, status, or role rules.
@@ -63,6 +64,8 @@ It helps organize system understanding, but it must not override workflow, statu
 It tracks completed batches, current focus, future sequencing, and operational pain-point mapping, but it must not override workflow, status, or role rules for product behavior.
 `01_product/TECH_STACK_DECISION.md` is an authoritative technical-direction file.
 It guides stack and implementation boundaries, but it must not override workflow, status, or role rules for product behavior.
+`01_product/REAL_DATA_MIGRATION_MASTER_PLAN.md` is an authoritative migration-governance file.
+It defines phased real-data migration intent, batch order, and guardrails, but it must not override workflow, status, role rules, or prematurely define final SQL/schema detail.
 
 Read these conditionally when relevant:
 - `02_rules/REVIEW_STANDARD.md` for execution-batch reviews, design reviews, or closeout checks
@@ -80,13 +83,13 @@ Use this hierarchy when documents overlap:
 4. `01_product/SYSTEM_MAP.md` and `01_product/PRODUCT_STRUCTURE.md`
 5. `01_product/SCREEN_SPEC.md`, `01_product/COMPONENT_SYSTEM.md`, `01_product/BUILD_PRIORITY.md`, `01_product/TASK_ROADMAP.md`
 6. `02_rules/WORKFLOW_RULES.md`, `02_rules/STATUS_DICTIONARY.md`, `02_rules/ROLE_MATRIX.md`
-7. `01_product/ARCHITECTURE.md` and `01_product/TECH_STACK_DECISION.md` as technical-direction / synthesis layer only
+7. `01_product/ARCHITECTURE.md`, `01_product/TECH_STACK_DECISION.md`, and `01_product/REAL_DATA_MIGRATION_MASTER_PLAN.md` as technical-direction / migration-governance synthesis layer only
 8. `02_rules/REVIEW_STANDARD.md`
 9. `02_rules/MIGRATION_SAFETY.md` when activated
 10. `00_core/CHANGELOG.md` as historical record only
 
 If two files in the same tier conflict, the earlier file in the read order wins.
-If `01_product/TASK_ROADMAP.md`, `01_product/ARCHITECTURE.md`, or `01_product/TECH_STACK_DECISION.md` conflicts with workflow, status, or role rules, the rule documents win.
+If `01_product/TASK_ROADMAP.md`, `01_product/ARCHITECTURE.md`, `01_product/TECH_STACK_DECISION.md`, or `01_product/REAL_DATA_MIGRATION_MASTER_PLAN.md` conflicts with workflow, status, or role rules, the rule documents win.
 The changelog records decisions but does not override active source-of-truth documents.
 
 ---

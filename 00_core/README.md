@@ -16,6 +16,7 @@ Bu klasör, Partner Staff ofis içi operasyon arayüzü için Codex'e verilecek 
 - `TASK_ROADMAP.md` → tamamlanan batch'ler, aktif odak, gelecek batch haritası ve operasyonel problem eşleşmesi
 - `ARCHITECTURE.md` → ürün-sistem mimarisi için türetilmiş sentez katmanı
 - `TECH_STACK_DECISION.md` → başlangıç teknik stack ve mimari yön kararı
+- `REAL_DATA_MIGRATION_MASTER_PLAN.md` → fazlı gerçek-veri migration intent'i, guardrail'ler ve batch sırası
 
 ## UI / Design Referansları
 - `docs/design/DESIGN.md`, `docs/design/design-tokens.md`, `docs/design/BPS_UI_MAPPING.md` → UI refresh ve design-system referans seti; ürün davranışı için source-of-truth değildir
@@ -44,9 +45,10 @@ Yeni bir Codex oturumunda canonical okuma sırası şu olmalıdır:
 9. `TASK_ROADMAP.md`
 10. `ARCHITECTURE.md`
 11. `TECH_STACK_DECISION.md`
-12. `WORKFLOW_RULES.md`
-13. `STATUS_DICTIONARY.md`
-14. `ROLE_MATRIX.md`
+12. `REAL_DATA_MIGRATION_MASTER_PLAN.md`
+13. `WORKFLOW_RULES.md`
+14. `STATUS_DICTIONARY.md`
+15. `ROLE_MATRIX.md`
 
 Koşullu / governance dokümanları:
 - `CHANGELOG.md` → son dokümantasyon kararlarını anlamak ve güncellemek için
@@ -55,7 +57,7 @@ Koşullu / governance dokümanları:
 
 Örnek başlangıç komutu:
 
-"Önce README.md, ardından CODEX.md, SKILLS.md, SYSTEM_MAP.md, PRODUCT_STRUCTURE.md, SCREEN_SPEC.md, COMPONENT_SYSTEM.md, BUILD_PRIORITY.md, TASK_ROADMAP.md, ARCHITECTURE.md, TECH_STACK_DECISION.md, WORKFLOW_RULES.md, STATUS_DICTIONARY.md ve ROLE_MATRIX.md dosyalarını sırayla oku. BPS dokümanlarını source of truth kabul et. Generic CRM, HRIS veya ERP/accounting kapsamına kayma. Önce problem tanımı yap, sonra yapısal etkiyi değerlendir, sonra çözüm öner."
+"Önce README.md, ardından CODEX.md, SKILLS.md, SYSTEM_MAP.md, PRODUCT_STRUCTURE.md, SCREEN_SPEC.md, COMPONENT_SYSTEM.md, BUILD_PRIORITY.md, TASK_ROADMAP.md, ARCHITECTURE.md, TECH_STACK_DECISION.md, REAL_DATA_MIGRATION_MASTER_PLAN.md, WORKFLOW_RULES.md, STATUS_DICTIONARY.md ve ROLE_MATRIX.md dosyalarını sırayla oku. BPS dokümanlarını source of truth kabul et. Generic CRM, HRIS veya ERP/accounting kapsamına kayma. Önce problem tanımı yap, sonra yapısal etkiyi değerlendir, sonra çözüm öner."
 
 ## Kısa Not
 Bu sistem ürünün merkezini şu 4 akışta sabitler:

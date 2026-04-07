@@ -58,6 +58,12 @@ Current implementation direction remains:
 - AI and automation stay after core operational surfaces
 - communication stays last
 
+Role-model migration note:
+- `partner` replaces `satis` in the final accepted role model
+- authorization is now interpreted as `rol + kapsam`, not role-only
+- real-data migration will require partner -> portfolio / firma mapping so scoped access can be enforced
+- `goruntuleyici` remains as the bounded read-only role
+
 ---
 
 ## Completed Batches
@@ -412,10 +418,10 @@ Progress note:
   - `Company Detail` only
   - `Genel Bakis`:
     - compact `Tahmini Ticari Kalite` card
-    - role-gated to `yonetici` and `satis`
+    - role-gated to `yonetici` and `partner`
   - `Sozlesmeler` tab:
     - per-contract `MarginBandBadge`
-    - role-gated to `yonetici` and `satis`
+    - role-gated to `yonetici` and `partner`
   - flat mock position-type assumptions only
   - user-facing surfaces show only band labels:
     - `saglikli`
@@ -453,7 +459,7 @@ Progress note:
   - `Company Detail` only
   - `Genel Bakis` only
   - compact inline `Teklif Hesaplayici`
-  - role-gated to `yonetici` and `satis`
+  - role-gated to `yonetici` and `partner`
   - user-facing inputs:
     - required:
       - `Net Ucret (gunluk)`
@@ -505,7 +511,7 @@ Core framing:
 
 Intent:
 - add organizational-unit-based coordination on top of roles
-- enable record-context directed routing between units such as operasyon, satis, muhasebe, and yonetim
+- enable record-context directed routing between units such as operasyon, partner, muhasebe, and yonetim
 - clarify cross-unit ownership, bottlenecks, and pending coordination across firms, contracts, demands, and tasks
 - remain bounded as a coordination/routing layer rather than becoming a messaging or inbox product
 - close at Phase 1 because the core firma-context coordination visibility gap was already solved and wider propagation would add limited value while increasing per-row complexity, `Dashboard` signal inflation, inbox emergence, and primitive blurring risk
@@ -675,7 +681,7 @@ Progress note:
   - `kisaNotlar` is a short context annotation only, not a thread or history
   - role-gated:
     - `yonetici`: view / add / full edit / ana yetkili management
-    - `satis`: view / add / full edit / ana yetkili management
+    - `partner`: view / add / full edit / ana yetkili management
     - `operasyon`: view / phone-email-only edit
     - `ik`: no access
     - `goruntuleyici`: no access
@@ -707,6 +713,110 @@ Intent:
 - cover narrow, operations-relevant internal requests such as `izin talebi` and `satin alma talebi`
 - frame them as support workflows with operational impact and coordination value
 - remain saved intentionally until an explicit future planning pass activates it
+
+### Oneri / Hata Bildir
+Positioning:
+- later future note after current roadmap phases
+- bounded internal rollout-learning feedback intake surface
+- not current committed batch scope
+
+Core framing:
+- not a helpdesk system
+- not a ticketing platform
+- not a request-tracking workflow
+- not a chat/comment layer
+- not a second task system
+- keep it lightweight, bounded, and rollout-learning oriented
+
+Intent:
+- capture internal rollout bugs and suggestions before they are lost across verbal/chat channels
+- keep feedback intake lightweight without expanding BPS into support-tool behavior
+- remain saved intentionally until an explicit future planning pass activates it
+
+Desired later behavior:
+- name: `Oneri / Hata Bildir`
+- type:
+  - `Hata`
+  - `Oneri`
+- current screen/module context captured or selectable
+- short title
+- description
+- priority:
+  - `Dusuk`
+  - `Normal`
+  - `Yuksek`
+- optional screenshot
+- yonetici can review submissions
+
+Boundaries preserved:
+- no threaded replies
+- no assignee workflow
+- no SLA/support queue
+- no `my request status` lifecycle
+- no inbox/helpdesk behavior
+
+### Gorev Talebi / Acik Ustlenilebilir Is
+Positioning:
+- later future note after current roadmap phases
+- revisit only after Migration Phase 3 / real task activation
+- not current committed batch scope
+
+Core framing:
+- not a permanent open work board
+- not a marketplace
+- not a bidding system
+- not a cross-unit free-for-all
+- not a second communication layer
+
+Intent:
+- cover a bounded task-request / open-claimable-work start mode only after real task truth exists
+- keep temporary open work from getting lost before a clear owner takes responsibility
+- preserve explicit ownership once work is claimed
+
+Desired later behavior:
+- two start modes:
+  - assigned task
+  - task request / open claimable work
+- open task request remains temporary
+- when claimed, it becomes a normal assigned task
+- first version stays bounded by unit / relevant role pool
+- no cross-unit open labor market behavior
+
+### Gorev Yuku / Is Kapanis Gorunurlugu
+Positioning:
+- later future note after current roadmap phases
+- revisit only after real task truth exists
+- not current committed batch scope
+
+Core framing:
+- not person performance scoring
+- not employee ranking
+- not leaderboard behavior
+- not HR performance management
+- not payroll / bonus decision logic
+
+Intent:
+- show where task load is concentrating
+- show where overdue work is clustering
+- show closure / carrying patterns
+- help management identify operational bottlenecks without turning BPS into a people-rating system
+
+Desired later visibility:
+- current open task count by person
+- completed task count in last 7 / 30 days
+- overdue task count by person
+- stagnant assigned task count
+- unclaimed open task requests
+- task load by unit
+- task load by partner portfolio
+
+Boundaries preserved:
+- no employee score
+- no success percentage score
+- no ranking table / leaderboard
+- no good/bad worker labels
+- no HR performance management drift
+- no activation before real task truth exists
 
 ### Cografi Gorsellestirme Katmani / Turkiye -> Sehir -> Operasyon Noktalari
 Positioning:
@@ -763,7 +873,7 @@ Progress note:
   - two draft types only:
     - `Yeniden Temas`
     - `Odeme Takibi`
-  - role-gated to `yonetici` and `satis`
+  - role-gated to `yonetici` and `partner`
   - plain text drafts only
   - generate -> preview -> copy pattern only
 - Boundaries preserved:
