@@ -1466,6 +1466,17 @@ export default function FirmaDetayPage({
           // and narrows the operasyon patch to {phone, email}. Errors
           // (validation, scope, DB) bubble up so the modal can render
           // them inline; only on resolve do we refetch and close.
+          //
+          // Faz 1A closeout fix: after a successful mutation we MUST also
+          // call router.refresh() so the Firmalar list page sees the new
+          // truth on its next visit. Without this, Next.js 15's client
+          // Router Cache (staleTimes.static = 300s) restores the cached
+          // tree of /firmalar when we router.push back to it, preserving
+          // the stale `primaryNames` state — its useEffect never re-runs
+          // and the Ana Yetkili column shows the static mock fallback.
+          // router.refresh() is the only client API that invalidates the
+          // entire prefetch cache (see refresh-reducer.js: prefetchCache
+          // = new Map()).
           if (editingContact) {
             if (editPhoneEmailOnly) {
               await updateContactPhoneEmail(supabase, id, editingContact.id, {
@@ -1493,6 +1504,11 @@ export default function FirmaDetayPage({
             });
           }
           await reloadYetkililer();
+          // Invalidate the entire client Router Cache so /firmalar
+          // (cached as a static page with staleTimes.static = 300s)
+          // re-fetches its primaryNames on next visit instead of
+          // restoring the cached tree with stale state.
+          router.refresh();
         }}
       />
 
