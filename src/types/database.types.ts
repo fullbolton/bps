@@ -4,7 +4,8 @@
  * This file is the typed surface that the service layer reads against.
  * Phase 0 added `profiles` and `access_requests`. Faz 1A (Yetkililer
  * slice) adds `companies`, `contacts`, and `partner_company_assignments`.
- * Future phases will extend this file with notes, contracts, etc.
+ * Faz 1B (Notlar slice) adds `notes`. Future phases will extend this
+ * file with contracts, requests, etc.
  *
  * Hand-rolled rather than generated:
  *   - `supabase gen types typescript --linked > src/types/database.types.ts`
@@ -14,6 +15,8 @@
  *     live database connection or CLI dependency, and it stays a near
  *     1:1 shape with what `supabase gen types` would emit.
  */
+
+import type { NoteTagKey } from "@/lib/note-tags";
 
 import type { UserRole } from "@/context/AuthContext";
 
@@ -234,6 +237,64 @@ export interface Database {
         ];
       };
       // ---------------------------------------------------------------------
+      // notes — Faz 1B primary truth (Notlar)
+      // ---------------------------------------------------------------------
+      // Mirrors `supabase/migrations/20260407000400_create_notes.sql`.
+      // Ownership is tracked via author_id (FK to profiles). author_name is
+      // denormalized at write time and used only for display — never for
+      // authorization decisions. tag is nullable and constrained at the DB
+      // level to the six ROLE_MATRIX-sanctioned values via a CHECK.
+      // ---------------------------------------------------------------------
+      notes: {
+        Row: {
+          id: string;
+          company_id: string;
+          author_id: string | null;
+          author_name: string;
+          content: string;
+          tag: NoteTagKey | null;
+          is_pinned: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          author_id?: string | null;
+          author_name: string;
+          content: string;
+          tag?: NoteTagKey | null;
+          is_pinned?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          author_id?: string | null;
+          author_name?: string;
+          content?: string;
+          tag?: NoteTagKey | null;
+          is_pinned?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notes_company_id_fkey";
+            columns: ["company_id"];
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notes_author_id_fkey";
+            columns: ["author_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // ---------------------------------------------------------------------
       // partner_company_assignments — Faz 1A partner-scope source
       // ---------------------------------------------------------------------
       // Mirrors `supabase/migrations/20260407000200_create_companies_anchor.sql`.
@@ -315,6 +376,10 @@ export type CompanyUpdate = Database["public"]["Tables"]["companies"]["Update"];
 export type ContactRow = Database["public"]["Tables"]["contacts"]["Row"];
 export type ContactInsert = Database["public"]["Tables"]["contacts"]["Insert"];
 export type ContactUpdate = Database["public"]["Tables"]["contacts"]["Update"];
+
+export type NoteRow = Database["public"]["Tables"]["notes"]["Row"];
+export type NoteInsert = Database["public"]["Tables"]["notes"]["Insert"];
+export type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 
 export type PartnerCompanyAssignmentRow =
   Database["public"]["Tables"]["partner_company_assignments"]["Row"];

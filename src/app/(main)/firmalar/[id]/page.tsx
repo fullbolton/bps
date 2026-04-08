@@ -48,6 +48,7 @@ import { MOCK_BAHSETMELER } from "@/mocks/bahsetmeler";
 import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
 import type { Bahsetme } from "@/mocks/bahsetmeler";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { MOCK_FIRMALAR, MOCK_FIRMA_DETAY, MOCK_FIRMA_TIMELINE } from "@/mocks/firmalar";
 import { MOCK_SOZLESMELER, MOCK_SOZLESME_DETAY } from "@/mocks/sozlesmeler";
 import { MOCK_RANDEVULAR, RANDEVU_TIPI_LABELS } from "@/mocks/randevular";
@@ -59,8 +60,6 @@ import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI, FIRMA_KESILMEMIS_DAGILIMI
 import { getContractMarjBandi, getFirmaTicariKaliteOzeti } from "@/mocks/ticari-kalite";
 import { getAktifInisiyatiflerByFirma } from "@/mocks/inisiyatifler";
 import { MOCK_YONLENDIRMELER, birimFromRole } from "@/mocks/yonlendirmeler";
-import { MOCK_NOTLAR, NOT_ETIKET_LABELS } from "@/mocks/notlar";
-import type { MockNot, NotEtiketi } from "@/mocks/notlar";
 import type { Yonlendirme } from "@/mocks/yonlendirmeler";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -69,7 +68,16 @@ import {
   updateContactFull,
   updateContactPhoneEmail,
 } from "@/lib/services/contacts";
-import type { ContactRow } from "@/types/database.types";
+import {
+  listNotesByLegacyCompanyId,
+  createNote,
+  updateNoteContent,
+  pinNote,
+  unpinNote,
+} from "@/lib/services/notes";
+import { NOTE_TAG_LABELS } from "@/lib/note-tags";
+import type { NoteTagKey } from "@/lib/note-tags";
+import type { ContactRow, NoteRow } from "@/types/database.types";
 import { BIRIM_LABELS } from "@/types/yonlendirme";
 import type { BirimKodu } from "@/types/yonlendirme";
 import type { EvrakKategorisi } from "@/types/batch4";
@@ -125,6 +133,7 @@ export default function FirmaDetayPage({
   const { id } = use(params);
   const router = useRouter();
   const { role } = useRole();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("genel");
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteDefaultIcerik, setNoteDefaultIcerik] = useState("");
@@ -148,12 +157,16 @@ export default function FirmaDetayPage({
   const [yonlendirmeOpen, setYonlendirmeOpen] = useState(false);
   const [yonHedefBirim, setYonHedefBirim] = useState<BirimKodu | "">("");
   const [yonAciklama, setYonAciklama] = useState("");
-  // Notlar state
-  const [notlar, setNotlar] = useState<MockNot[]>(
-    () => MOCK_NOTLAR.filter((n) => n.firmaId === id)
-  );
-  const [notEditTarget, setNotEditTarget] = useState<MockNot | null>(null);
-  const [notTagFilter, setNotTagFilter] = useState<NotEtiketi | "">("");
+  // Notlar state — Faz 1B: real Supabase truth via service layer.
+  // One fetch feeds both the Notlar tab (full list, pinned first then
+  // chronological) and the Genel Bakış > Son Notlar card (top 3 slice).
+  // The service resolves legacy id → companies row → RLS-scoped note
+  // rows, so partner scope is re-verified at every read.
+  const [notlar, setNotlar] = useState<NoteRow[]>([]);
+  const [notlarLoading, setNotlarLoading] = useState(true);
+  const [notlarError, setNotlarError] = useState<string | null>(null);
+  const [notEditTarget, setNotEditTarget] = useState<NoteRow | null>(null);
+  const [notTagFilter, setNotTagFilter] = useState<NoteTagKey | "">("");
   // Yetkili kişiler — Faz 1A: real Supabase truth via service layer.
   // Resolution flow inside the service: legacy mock id ("f1") → companies row
   // (RLS-checked) → contacts query. Out-of-scope/missing firmas surface as
@@ -182,6 +195,26 @@ export default function FirmaDetayPage({
     setYetkililerLoading(true);
     void reloadYetkililer();
   }, [reloadYetkililer]);
+  const reloadNotlar = useCallback(async () => {
+    setNotlarError(null);
+    try {
+      const rows = await listNotesByLegacyCompanyId(supabase, id);
+      setNotlar(rows);
+    } catch (err) {
+      setNotlar([]);
+      setNotlarError(
+        err instanceof Error
+          ? err.message
+          : "Notlar yüklenirken bir hata oluştu.",
+      );
+    } finally {
+      setNotlarLoading(false);
+    }
+  }, [supabase, id]);
+  useEffect(() => {
+    setNotlarLoading(true);
+    void reloadNotlar();
+  }, [reloadNotlar]);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [editPhoneEmailOnly, setEditPhoneEmailOnly] = useState(false);
@@ -480,7 +513,11 @@ export default function FirmaDetayPage({
                 <StickyNote size={14} className={TEXT_MUTED} />
                 Son Notlar
               </h3>
-              {notlar.length === 0 ? (
+              {notlarError ? (
+                <p className={`${TYPE_CAPTION} text-red-600 py-2`} role="alert">{notlarError}</p>
+              ) : notlarLoading ? (
+                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>Yükleniyor…</p>
+              ) : notlar.length === 0 ? (
                 <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
                   Henüz not yok.
                 </p>
@@ -488,8 +525,8 @@ export default function FirmaDetayPage({
                 <div className="space-y-2">
                   {notlar.slice(0, 3).map((n) => (
                     <div key={n.id} className={`py-1.5 ${LIST_DIVIDER}`}>
-                      <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.icerik}</p>
-                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{n.yazan} · {formatDateTR(n.tarih)}</p>
+                      <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
+                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{n.author_name} · {formatDateTR(n.created_at.slice(0, 10))}</p>
                     </div>
                   ))}
                 </div>
@@ -1274,13 +1311,43 @@ export default function FirmaDetayPage({
 
         {/* Notlar tab — firm-scoped institutional memory */}
         {activeTab === "notlar" && (() => {
-          const sabitlenenler = notlar.filter((n) => n.sabitlendi);
+          // Capability gates — authoritative source is the DB RLS policy
+          // `notes_update_own_or_broad`. We mirror the same logic here so
+          // buttons that the server would reject never render.
+          //   - broad edit: yonetici (global), partner (scoped — scope
+          //     check already applied server-side via RLS)
+          //   - self edit:  operasyon / ik may edit their own notes;
+          //     ownership comes from `author_id`, NEVER from `author_name`
+          //   - pin/unpin: yonetici only
+          const canEditNote = (n: NoteRow) => {
+            if (role === "yonetici" || role === "partner") return true;
+            if (role === "operasyon" || role === "ik") {
+              return !!user && n.author_id === user.id;
+            }
+            return false;
+          };
+          const canPin = (_n: NoteRow) => role === "yonetici";
+
+          const sabitlenenler = notlar.filter((n) => n.is_pinned);
           const filtrelenmis = notlar
-            .filter((n) => !notTagFilter || n.etiket === notTagFilter)
-            .filter((n) => !n.sabitlendi);
-          const mevcutEtiketler = [...new Set(notlar.map((n) => n.etiket).filter(Boolean))] as NotEtiketi[];
-          const canEditNote = (_n: MockNot) => role === "yonetici";
-          const canPin = (_n: MockNot) => role === "yonetici";
+            .filter((n) => !notTagFilter || n.tag === notTagFilter)
+            .filter((n) => !n.is_pinned);
+          const mevcutEtiketler = [
+            ...new Set(notlar.map((n) => n.tag).filter(Boolean)),
+          ] as NoteTagKey[];
+
+          async function handlePinToggle(n: NoteRow, next: boolean) {
+            try {
+              if (next) await pinNote(supabase, id, n.id);
+              else await unpinNote(supabase, id, n.id);
+              await reloadNotlar();
+              router.refresh();
+            } catch (err) {
+              setNotlarError(
+                err instanceof Error ? err.message : "Sabitleme işlemi başarısız.",
+              );
+            }
+          }
 
           return (
             <div className={CARD_LG}>
@@ -1290,12 +1357,12 @@ export default function FirmaDetayPage({
                   {mevcutEtiketler.length > 0 && (
                     <select
                       value={notTagFilter}
-                      onChange={(e) => setNotTagFilter(e.target.value as NotEtiketi | "")}
+                      onChange={(e) => setNotTagFilter(e.target.value as NoteTagKey | "")}
                       className={`px-2 py-1 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
                     >
                       <option value="">Tüm etiketler</option>
                       {mevcutEtiketler.map((et) => (
-                        <option key={et} value={et}>{NOT_ETIKET_LABELS[et]}</option>
+                        <option key={et} value={et}>{NOTE_TAG_LABELS[et]}</option>
                       ))}
                     </select>
                   )}
@@ -1311,7 +1378,15 @@ export default function FirmaDetayPage({
                 </div>
               </div>
 
-              {notlar.length === 0 ? (
+              {notlarError && (
+                <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
+                  {notlarError}
+                </p>
+              )}
+
+              {notlarLoading ? (
+                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
+              ) : notlar.length === 0 ? (
                 <EmptyState title="Not yok" description="Bu firma için henüz not eklenmemiş." size="tab" />
               ) : (
                 <div className="space-y-0">
@@ -1326,15 +1401,15 @@ export default function FirmaDetayPage({
                         <div key={n.id} className={`py-3 ${idx < sabitlenenler.length - 1 ? `border-b ${BORDER_SUBTLE}` : `border-b ${BORDER_DEFAULT} mb-3 pb-3`}`}>
                           <div className="flex items-start justify-between">
                             <div className="min-w-0 flex-1">
-                              <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.icerik}</p>
+                              <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
                               <div className={`flex items-center gap-2 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
-                                <span>{n.yazan}</span>
+                                <span>{n.author_name}</span>
                                 <span>·</span>
-                                <span>{formatDateTR(n.tarih)}</span>
-                                {n.etiket && (
+                                <span>{formatDateTR(n.created_at.slice(0, 10))}</span>
+                                {n.tag && (
                                   <>
                                     <span>·</span>
-                                    <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{NOT_ETIKET_LABELS[n.etiket]}</span>
+                                    <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{NOTE_TAG_LABELS[n.tag]}</span>
                                   </>
                                 )}
                                 <span className="text-blue-500 flex items-center gap-0.5"><Pin size={9} /> Sabit</span>
@@ -1343,7 +1418,7 @@ export default function FirmaDetayPage({
                             <div className="flex items-center gap-1 flex-shrink-0 ml-3">
                               {canPin(n) && (
                                 <button
-                                  onClick={() => setNotlar((prev) => prev.map((x) => x.id === n.id ? { ...x, sabitlendi: false } : x))}
+                                  onClick={() => { void handlePinToggle(n, false); }}
                                   className={`p-1 ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
                                   title="Sabitlemeyi kaldır"
                                 >
@@ -1373,15 +1448,15 @@ export default function FirmaDetayPage({
                     <div key={n.id} className={`py-3 ${idx < filtrelenmis.length - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
-                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.icerik}</p>
+                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
                           <div className={`flex items-center gap-2 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
-                            <span>{n.yazan}</span>
+                            <span>{n.author_name}</span>
                             <span>·</span>
-                            <span>{formatDateTR(n.tarih)}</span>
-                            {n.etiket && (
+                            <span>{formatDateTR(n.created_at.slice(0, 10))}</span>
+                            {n.tag && (
                               <>
                                 <span>·</span>
-                                <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{NOT_ETIKET_LABELS[n.etiket]}</span>
+                                <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{NOTE_TAG_LABELS[n.tag]}</span>
                               </>
                             )}
                           </div>
@@ -1389,7 +1464,7 @@ export default function FirmaDetayPage({
                         <div className="flex items-center gap-1 flex-shrink-0 ml-3">
                           {canPin(n) && (
                             <button
-                              onClick={() => setNotlar((prev) => prev.map((x) => x.id === n.id ? { ...x, sabitlendi: true } : x))}
+                              onClick={() => { void handlePinToggle(n, true); }}
                               className={`p-1 ${TEXT_MUTED} hover:text-blue-500 ${RADIUS_SM} hover:bg-slate-100`}
                               title="Sabitle"
                             >
@@ -1428,29 +1503,34 @@ export default function FirmaDetayPage({
         open={noteOpen}
         onClose={() => { setNoteOpen(false); setNoteDefaultIcerik(""); setNotEditTarget(null); }}
         firmaAdi={firma.firmaAdi}
-        defaultIcerik={notEditTarget ? notEditTarget.icerik : noteDefaultIcerik}
-        defaultEtiket={notEditTarget?.etiket ?? ""}
+        defaultIcerik={notEditTarget ? notEditTarget.content : noteDefaultIcerik}
+        defaultEtiket={notEditTarget?.tag ?? ""}
         editMode={!!notEditTarget}
-        onSubmit={({ icerik, etiket }) => {
+        onSubmit={async ({ icerik, etiket }) => {
+          // Faz 1B: persist via service layer. The service re-verifies
+          // partner scope, enforces ownership (author_id based) for the
+          // self-edit path, trims content, whitelists the tag, and
+          // stamps author_id/author_name from the authenticated session.
+          // Errors (validation, ownership, scope, DB) bubble up so the
+          // modal can render them inline; only on resolve do we refetch.
+          // router.refresh() is called for the same reason as the
+          // Yetkililer cutover — the Firmalar list is a cached static
+          // page and its RSC payload must be invalidated for downstream
+          // readers to re-fetch.
           if (notEditTarget) {
-            setNotlar((prev) => prev.map((n) =>
-              n.id === notEditTarget.id ? { ...n, icerik, etiket: etiket || undefined } : n
-            ));
-            console.log("[Not güncellendi]", notEditTarget.id);
+            await updateNoteContent(supabase, id, notEditTarget.id, {
+              content: icerik,
+              tag: etiket,
+            });
           } else {
-            const newNot: MockNot = {
-              id: `not-new-${Date.now()}`,
-              firmaId: id,
-              icerik,
-              yazan: "Demo Kullanıcı",
-              tarih: new Date().toISOString().split("T")[0],
-              etiket: etiket || undefined,
-              sabitlendi: false,
-            };
-            setNotlar((prev) => [newNot, ...prev]);
-            console.log("[Not oluşturuldu]", newNot);
+            await createNote(supabase, id, {
+              content: icerik,
+              tag: etiket,
+            });
           }
           setNotEditTarget(null);
+          await reloadNotlar();
+          router.refresh();
         }}
       />
 

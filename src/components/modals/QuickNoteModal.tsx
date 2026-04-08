@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { ModalShell } from "@/components/ui";
-import { NOT_ETIKET_LABELS } from "@/mocks/notlar";
-import type { NotEtiketi } from "@/mocks/notlar";
+import { NOTE_TAG_LABELS } from "@/lib/note-tags";
+import type { NoteTagKey } from "@/lib/note-tags";
 
 interface QuickNoteModalProps {
   open: boolean;
@@ -13,11 +13,16 @@ interface QuickNoteModalProps {
   /** Pre-filled note text, e.g. from AI suggestion flow */
   defaultIcerik?: string;
   /** Pre-selected tag for edit mode */
-  defaultEtiket?: NotEtiketi | "";
+  defaultEtiket?: NoteTagKey | "";
   /** If true, modal is in edit mode */
   editMode?: boolean;
-  /** Called on submit with note content + tag */
-  onSubmit?: (data: { icerik: string; etiket: NotEtiketi | "" }) => void;
+  /**
+   * Called on submit with note content + tag. May return a Promise —
+   * the modal awaits it and only closes on resolve, so the parent can
+   * throw a Turkish-localized service-layer error and the modal
+   * surfaces it inline instead of silently closing on failure.
+   */
+  onSubmit?: (data: { icerik: string; etiket: NoteTagKey | "" }) => Promise<void> | void;
 }
 
 /**
@@ -35,28 +40,44 @@ export default function QuickNoteModal({
   onSubmit,
 }: QuickNoteModalProps) {
   const [icerik, setIcerik] = useState(defaultIcerik ?? "");
-  const [etiket, setEtiket] = useState<NotEtiketi | "">(defaultEtiket ?? "");
+  const [etiket, setEtiket] = useState<NoteTagKey | "">(defaultEtiket ?? "");
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setIcerik(defaultIcerik ?? "");
       setEtiket(defaultEtiket ?? "");
+      setSubmitError(null);
+      setSaving(false);
     }
   }, [open, defaultIcerik, defaultEtiket]);
 
-  function handleSubmit() {
-    if (!icerik.trim()) return;
-    if (onSubmit) {
-      onSubmit({ icerik: icerik.trim(), etiket });
-    } else {
-      console.log("[demo] Not eklendi:", { firma: firmaAdi, icerik: icerik.trim(), etiket });
+  async function handleSubmit() {
+    if (!icerik.trim() || saving) return;
+    setSaving(true);
+    setSubmitError(null);
+    try {
+      if (onSubmit) {
+        await onSubmit({ icerik: icerik.trim(), etiket });
+      } else {
+        console.log("[demo] Not eklendi:", { firma: firmaAdi, icerik: icerik.trim(), etiket });
+      }
+      resetAndClose();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu.",
+      );
+    } finally {
+      setSaving(false);
     }
-    resetAndClose();
   }
 
   function resetAndClose() {
     setIcerik("");
     setEtiket("");
+    setSubmitError(null);
+    setSaving(false);
     onClose();
   }
 
@@ -69,16 +90,17 @@ export default function QuickNoteModal({
         <>
           <button
             onClick={resetAndClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50"
+            disabled={saving}
+            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             İptal
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!icerik.trim()}
+            disabled={!icerik.trim() || saving}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {editMode ? "Güncelle" : "Kaydet"}
+            {saving ? "Kaydediliyor…" : editMode ? "Güncelle" : "Kaydet"}
           </button>
         </>
       }
@@ -93,7 +115,8 @@ export default function QuickNoteModal({
             onChange={(e) => setIcerik(e.target.value)}
             placeholder="Notunuzu yazın..."
             rows={4}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            disabled={saving}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         <div>
@@ -102,15 +125,21 @@ export default function QuickNoteModal({
           </label>
           <select
             value={etiket}
-            onChange={(e) => setEtiket(e.target.value as NotEtiketi | "")}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            onChange={(e) => setEtiket(e.target.value as NoteTagKey | "")}
+            disabled={saving}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
           >
             <option value="">Etiket seçin (opsiyonel)</option>
-            {(Object.entries(NOT_ETIKET_LABELS) as [NotEtiketi, string][]).map(([key, label]) => (
+            {(Object.entries(NOTE_TAG_LABELS) as [NoteTagKey, string][]).map(([key, label]) => (
               <option key={key} value={key}>{label}</option>
             ))}
           </select>
         </div>
+        {submitError && (
+          <p className="text-xs text-red-600" role="alert" aria-live="polite">
+            {submitError}
+          </p>
+        )}
       </div>
     </ModalShell>
   );
