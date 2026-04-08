@@ -12,12 +12,12 @@ import {
   RiskBadge,
 } from "@/components/ui";
 import { MOCK_FIRMALAR } from "@/mocks/firmalar";
-import { MOCK_SOZLESMELER } from "@/mocks/sozlesmeler";
 import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
 import { MOCK_RANDEVULAR } from "@/mocks/randevular";
 import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
 import { createClient } from "@/lib/supabase/client";
 import { getPrimaryContactNamesByLegacyIds } from "@/lib/services/contacts";
+import { getActiveContractCountsByLegacyIds } from "@/lib/services/contracts";
 import type { MockFirma } from "@/mocks/firmalar";
 import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
 
@@ -142,24 +142,28 @@ export default function FirmalarPage() {
   // single round trip (no N+1) and fall back to the firma's static
   // mock-shipped value when the firma has no primary contact yet, or
   // when RLS hides it from the current caller. The full Firmalar list
-  // cutover (Faz 2) will replace MOCK_FIRMALAR entirely; this slice only
-  // touches the Ana Yetkili column to keep it consistent with the
-  // contacts table edits performed in Firma Detay > Yetkililer.
+  // cutover will replace MOCK_FIRMALAR entirely; this slice only
+  // touches the Ana Yetkili column.
+  //
+  // Faz 2 addition: the Aktif Sözleşme column now also resolves through
+  // the contracts service via getActiveContractCountsByLegacyIds. The
+  // batched query returns one count per firma in a single round trip;
+  // out-of-scope or contract-less firmas surface as 0 in the fallback.
+  // Both fetches share the same Supabase client and run in parallel.
   const supabase = useMemo(() => createClient(), []);
   const [primaryNames, setPrimaryNames] = useState<Record<string, string>>({});
+  const [activeContractCounts, setActiveContractCounts] = useState<Record<string, number>>({});
   useEffect(() => {
     let active = true;
-    void getPrimaryContactNamesByLegacyIds(
-      supabase,
-      MOCK_FIRMALAR.map((f) => f.id),
-    )
-      .then((map) => {
-        if (active) setPrimaryNames(map);
-      })
-      .catch(() => {
-        // Silent fall-through to the per-firma static fallback below.
-        if (active) setPrimaryNames({});
-      });
+    const legacyIds = MOCK_FIRMALAR.map((f) => f.id);
+    Promise.all([
+      getPrimaryContactNamesByLegacyIds(supabase, legacyIds).catch(() => ({})),
+      getActiveContractCountsByLegacyIds(supabase, legacyIds).catch(() => ({})),
+    ]).then(([names, counts]) => {
+      if (!active) return;
+      setPrimaryNames(names);
+      setActiveContractCounts(counts);
+    });
     return () => {
       active = false;
     };
@@ -177,7 +181,7 @@ export default function FirmalarPage() {
 
       return {
         ...f,
-        aktifSozlesme: MOCK_SOZLESMELER.filter((s) => s.firmaId === f.id && s.durum === "aktif").length,
+        aktifSozlesme: activeContractCounts[f.id] ?? 0,
         aktifIsGucu: MOCK_IS_GUCU.find((ig) => ig.firmaId === f.id)?.aktifKisi ?? 0,
         anaYetkili: primaryNames[f.id] ?? f.anaYetkili,
         sonGorusme: sonTamamlananRandevu?.tarih ?? f.sonGorusme ?? "—",
@@ -202,7 +206,7 @@ export default function FirmalarPage() {
       if (filters.partner && FIRMA_PARTNER_MAP[f.id]?.partnerAdi !== filters.partner) return false;
       return true;
     });
-  }, [search, filters, primaryNames]);
+  }, [search, filters, primaryNames, activeContractCounts]);
 
   const rowActions: RowAction<MockFirma>[] = [
     {

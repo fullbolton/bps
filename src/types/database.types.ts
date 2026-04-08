@@ -4,8 +4,8 @@
  * This file is the typed surface that the service layer reads against.
  * Phase 0 added `profiles` and `access_requests`. Faz 1A (Yetkililer
  * slice) adds `companies`, `contacts`, and `partner_company_assignments`.
- * Faz 1B (Notlar slice) adds `notes`. Future phases will extend this
- * file with contracts, requests, etc.
+ * Faz 1B (Notlar slice) adds `notes`. Faz 2 (Sözleşmeler slice) adds
+ * `contracts`. Future phases will extend this file with requests, etc.
  *
  * Hand-rolled rather than generated:
  *   - `supabase gen types typescript --linked > src/types/database.types.ts`
@@ -17,6 +17,7 @@
  */
 
 import type { NoteTagKey } from "@/lib/note-tags";
+import type { SozlesmeDurumu } from "@/types/ui";
 
 import type { UserRole } from "@/context/AuthContext";
 
@@ -237,6 +238,93 @@ export interface Database {
         ];
       };
       // ---------------------------------------------------------------------
+      // contracts — Faz 2 primary truth (Sözleşmeler)
+      // ---------------------------------------------------------------------
+      // Mirrors `supabase/migrations/20260407000500_create_contracts.sql`.
+      // `kalan_gun` and approaching signals are NOT columns — they are
+      // derived in `src/lib/services/contracts.ts` from `end_date`, per
+      // the rule "do not create a second truth for kalan gün".
+      // ---------------------------------------------------------------------
+      contracts: {
+        Row: {
+          id: string;
+          company_id: string;
+          name: string;
+          contract_type: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          status: SozlesmeDurumu;
+          contract_value: string | null;
+          scope: string | null;
+          responsible: string | null;
+          last_action_label: string | null;
+          critical_clauses: string[];
+          renewal_target_date: string | null;
+          renewal_discussion_opened: boolean;
+          renewal_responsible_set: boolean;
+          renewal_task_created: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          name: string;
+          contract_type?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          status?: SozlesmeDurumu;
+          contract_value?: string | null;
+          scope?: string | null;
+          responsible?: string | null;
+          last_action_label?: string | null;
+          critical_clauses?: string[];
+          renewal_target_date?: string | null;
+          renewal_discussion_opened?: boolean;
+          renewal_responsible_set?: boolean;
+          renewal_task_created?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          name?: string;
+          contract_type?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          status?: SozlesmeDurumu;
+          contract_value?: string | null;
+          scope?: string | null;
+          responsible?: string | null;
+          last_action_label?: string | null;
+          critical_clauses?: string[];
+          renewal_target_date?: string | null;
+          renewal_discussion_opened?: boolean;
+          renewal_responsible_set?: boolean;
+          renewal_task_created?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contracts_company_id_fkey";
+            columns: ["company_id"];
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contracts_created_by_fkey";
+            columns: ["created_by"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      // ---------------------------------------------------------------------
       // notes — Faz 1B primary truth (Notlar)
       // ---------------------------------------------------------------------
       // Mirrors `supabase/migrations/20260407000400_create_notes.sql`.
@@ -380,6 +468,10 @@ export type ContactUpdate = Database["public"]["Tables"]["contacts"]["Update"];
 export type NoteRow = Database["public"]["Tables"]["notes"]["Row"];
 export type NoteInsert = Database["public"]["Tables"]["notes"]["Insert"];
 export type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
+
+export type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
+export type ContractInsert = Database["public"]["Tables"]["contracts"]["Insert"];
+export type ContractUpdate = Database["public"]["Tables"]["contracts"]["Update"];
 
 export type PartnerCompanyAssignmentRow =
   Database["public"]["Tables"]["partner_company_assignments"]["Row"];

@@ -27,6 +27,7 @@ import type { Database, CompanyRow } from "@/types/database.types";
 import {
   selectCompanyByLegacyMockId,
   selectCompaniesByLegacyMockIds,
+  selectCompaniesByIds,
 } from "@/lib/supabase/companies";
 
 type Client = SupabaseClient<Database>;
@@ -118,4 +119,34 @@ export async function getCompanyIdMapByLegacyMockIds(
     }
   }
   return map;
+}
+
+/**
+ * Batch helper: returns a map of `{ companyId (uuid) → display name }`
+ * AND a parallel map of `{ companyId → legacy_mock_id }` (when set).
+ *
+ * Added in Faz 2 so the Sözleşmeler list page can render the firma
+ * column and route to the firma detail page (which still uses legacy
+ * mock ids in its URL until the full Firmalar migration). Out-of-scope
+ * rows are silently absent.
+ */
+export async function getCompanyDisplayMapByIds(
+  client: Client,
+  companyIds: string[],
+): Promise<{
+  nameById: Record<string, string>;
+  legacyById: Record<string, string>;
+}> {
+  if (companyIds.length === 0) return { nameById: {}, legacyById: {} };
+
+  const rows = await selectCompaniesByIds(client, companyIds);
+  const nameById: Record<string, string> = {};
+  const legacyById: Record<string, string> = {};
+  for (const row of rows) {
+    nameById[row.id] = row.name;
+    if (row.legacy_mock_id) {
+      legacyById[row.id] = row.legacy_mock_id;
+    }
+  }
+  return { nameById, legacyById };
 }

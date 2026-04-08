@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
 import {
   PageHeader,
@@ -13,12 +14,22 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { NewContractModal } from "@/components/modals";
+// Faz 2: Sözleşmeler list cutover. Contracts and the active-count
+// statistics now come from the contracts service layer; the still-mock
+// MOCK_FIRMALAR is reused only as a UI dictionary so the firma filter
+// dropdown and the New Contract modal can offer firma names without
+// touching the full Firmalar migration. The mock contract truth has no
+// reader on this page anymore.
+import { MOCK_FIRMALAR } from "@/mocks/firmalar";
+import { createClient } from "@/lib/supabase/client";
 import {
-  MOCK_SOZLESMELER,
-  MOCK_SOZLESME_DETAY,
-  getSozlesmeStatusCounts,
-} from "@/mocks/sozlesmeler";
-import type { MockSozlesme } from "@/mocks/sozlesmeler";
+  listAllContracts,
+  createContract,
+  type ContractCreateInput,
+} from "@/lib/services/contracts";
+import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
+import type { ContractRow } from "@/types/database.types";
 import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
 import { clsx } from "clsx";
 import {
@@ -34,6 +45,7 @@ import {
   BORDER_SUBTLE,
   RADIUS_FULL,
 } from "@/styles/tokens";
+import { computeRemainingDays } from "@/lib/services/contracts";
 
 // Page-local helpers
 const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
@@ -49,6 +61,17 @@ const STATUS_LABELS: Record<string, string> = {
   suresi_doldu: "Süresi Doldu",
   feshedildi: "Feshedildi",
 };
+
+/**
+ * Augment the raw `ContractRow` with cached derived values + the firma
+ * display name. This is the row shape consumed by the DataTable and the
+ * RightSidePanel preview. firma_name is resolved against MOCK_FIRMALAR
+ * by `legacy_mock_id` until the full Firmalar migration lands.
+ */
+interface ContractListRow extends ContractRow {
+  firma_name: string;
+  remaining_days: number | null;
+}
 
 const FILTER_CONFIG: FilterConfig[] = [
   {
@@ -69,17 +92,8 @@ const FILTER_CONFIG: FilterConfig[] = [
     label: "Firma",
     type: "select",
     placeholder: "Tüm firmalar",
-    options: Array.from(new Set(MOCK_SOZLESMELER.map((s) => s.firmaAdi))).map(
+    options: Array.from(new Set(MOCK_FIRMALAR.map((f) => f.firmaAdi))).map(
       (name) => ({ label: name, value: name })
-    ),
-  },
-  {
-    key: "tur",
-    label: "Tür",
-    type: "select",
-    placeholder: "Tüm türler",
-    options: Array.from(new Set(MOCK_SOZLESMELER.map((s) => s.tur))).map(
-      (t) => ({ label: t, value: t })
     ),
   },
 ];
@@ -88,14 +102,14 @@ const FILTER_CONFIG: FilterConfig[] = [
  * Columns match PRODUCT_STRUCTURE > Sözleşmeler > Liste kolonları exactly:
  * sözleşme adı, firma, tür, başlangıç, bitiş, kalan gün, durum, sorumlu, son işlem
  */
-const COLUMNS: ColumnDef<MockSozlesme>[] = [
-  { key: "sozlesmeAdi", header: "Sözleşme Adı", sortable: true },
-  { key: "firmaAdi", header: "Firma", sortable: true },
-  { key: "tur", header: "Tür", sortable: true },
-  { key: "baslangic", header: "Başlangıç", sortable: true, render: (val) => formatDateTR(val as string) },
-  { key: "bitis", header: "Bitiş", sortable: true, render: (val) => formatDateTR(val as string) },
+const COLUMNS: ColumnDef<ContractListRow>[] = [
+  { key: "name", header: "Sözleşme Adı", sortable: true },
+  { key: "firma_name", header: "Firma", sortable: true },
+  { key: "contract_type", header: "Tür", sortable: true, render: (v) => <span>{(v as string) ?? "—"}</span> },
+  { key: "start_date", header: "Başlangıç", sortable: true, render: (val) => formatDateTR((val as string | null)?.slice(0, 10) ?? "") },
+  { key: "end_date", header: "Bitiş", sortable: true, render: (val) => formatDateTR((val as string | null)?.slice(0, 10) ?? "") },
   {
-    key: "kalanGun",
+    key: "remaining_days",
     header: "Kalan Gün",
     sortable: true,
     render: (val) => {
@@ -114,26 +128,16 @@ const COLUMNS: ColumnDef<MockSozlesme>[] = [
     },
   },
   {
-    key: "durum",
+    key: "status",
     header: "Durum",
     sortable: true,
-    render: (val) => <StatusBadge status={val as MockSozlesme["durum"]} />,
+    render: (val) => <StatusBadge status={val as ContractListRow["status"]} />,
   },
-  { key: "sorumlu", header: "Sorumlu", sortable: true },
+  { key: "responsible", header: "Sorumlu", sortable: true, render: (v) => <span>{(v as string) ?? "—"}</span> },
   {
-    key: "sonIslem",
+    key: "last_action_label",
     header: "Son İşlem",
-    render: (val, row) => {
-      // Only show preparation milestone for early-lifecycle contracts (taslak, imza_bekliyor)
-      if (row.durum === "taslak" || row.durum === "imza_bekliyor") {
-        const detay = MOCK_SOZLESME_DETAY[row.id];
-        if (detay?.ticariHazirlik) {
-          const last = [...detay.ticariHazirlik.adimlar].reverse().find((a) => a.tamamlandi);
-          if (last) return <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{last.adim} — {last.tarih}</span>;
-        }
-      }
-      return <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{(val as string) || "—"}</span>;
-    },
+    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{(val as string) || "—"}</span>,
   },
 ];
 
@@ -141,46 +145,97 @@ export default function SozlesmelerPage() {
   const { role } = useRole();
   const router = useRouter();
 
+  const supabase = useMemo(() => createClient(), []);
+  const [contracts, setContracts] = useState<ContractRow[]>([]);
+  const [companyNameById, setCompanyNameById] = useState<Record<string, string>>({});
+  const [companyLegacyById, setCompanyLegacyById] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({
     durum: "",
     firma: "",
-    tur: "",
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
 
-  const statusCounts = useMemo(() => getSozlesmeStatusCounts(), []);
+  const reload = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const rows = await listAllContracts(supabase);
+      setContracts(rows);
+      // Resolve firma display names + legacy ids for the rows we just
+      // fetched. This is a single batched round trip — the
+      // getCompanyDisplayMapByIds helper deduplicates ids internally.
+      const uniqueCompanyIds = Array.from(new Set(rows.map((r) => r.company_id)));
+      const display = await getCompanyDisplayMapByIds(supabase, uniqueCompanyIds);
+      setCompanyNameById(display.nameById);
+      setCompanyLegacyById(display.legacyById);
+    } catch (err) {
+      setContracts([]);
+      setCompanyNameById({});
+      setCompanyLegacyById({});
+      setLoadError(
+        err instanceof Error ? err.message : "Sözleşmeler yüklenirken bir hata oluştu.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    setLoading(true);
+    void reload();
+  }, [reload]);
+
+  const enrichedRows: ContractListRow[] = useMemo(() => {
+    return contracts.map((c) => ({
+      ...c,
+      firma_name: companyNameById[c.company_id] ?? "—",
+      remaining_days: computeRemainingDays(c.end_date),
+    }));
+  }, [contracts, companyNameById]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const c of contracts) {
+      counts[c.status] = (counts[c.status] ?? 0) + 1;
+    }
+    return counts;
+  }, [contracts]);
 
   const filteredData = useMemo(() => {
-    return MOCK_SOZLESMELER.filter((s) => {
+    return enrichedRows.filter((s) => {
       if (search) {
         const q = search.toLowerCase();
         const match =
-          s.sozlesmeAdi.toLowerCase().includes(q) ||
-          s.firmaAdi.toLowerCase().includes(q) ||
-          s.tur.toLowerCase().includes(q);
+          s.name.toLowerCase().includes(q) ||
+          (s.firma_name?.toLowerCase().includes(q) ?? false) ||
+          (s.contract_type?.toLowerCase().includes(q) ?? false);
         if (!match) return false;
       }
-      if (filters.durum && s.durum !== filters.durum) return false;
-      if (filters.firma && s.firmaAdi !== filters.firma) return false;
-      if (filters.tur && s.tur !== filters.tur) return false;
+      if (filters.durum && s.status !== filters.durum) return false;
+      if (filters.firma && s.firma_name !== filters.firma) return false;
       return true;
     });
-  }, [search, filters]);
+  }, [enrichedRows, search, filters]);
 
   const selectedContract = useMemo(
-    () => MOCK_SOZLESMELER.find((s) => s.id === selectedId) ?? null,
-    [selectedId]
+    () => enrichedRows.find((s) => s.id === selectedId) ?? null,
+    [enrichedRows, selectedId]
   );
 
-  const rowActions: RowAction<MockSozlesme>[] = [
+  const rowActions: RowAction<ContractListRow>[] = [
     {
       label: "Önizleme",
       onClick: (row) => setSelectedId(row.id),
     },
   ];
+
+  const canCreate = role === "yonetici" || role === "partner";
 
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
@@ -196,9 +251,23 @@ export default function SozlesmelerPage() {
       <PageHeader
         title="Sözleşmeler"
         subtitle="Sözleşme yaşam döngüsü"
+        actions={canCreate ? [
+          {
+            label: "Yeni Sözleşme",
+            onClick: () => setCreateOpen(true),
+            icon: <Plus size={16} />,
+            variant: "primary",
+          },
+        ] : undefined}
       />
 
       <div className="space-y-4">
+        {loadError && (
+          <p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">
+            {loadError}
+          </p>
+        )}
+
         {/* Status summary chips — clickable as filter shortcuts */}
         <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(statusCounts).map(([status, count]) => (
@@ -234,22 +303,26 @@ export default function SozlesmelerPage() {
           />
         </div>
 
-        <DataTable<MockSozlesme>
-          columns={COLUMNS}
-          data={filteredData}
-          rowKey="id"
-          onRowClick={(row) => router.push(`/sozlesmeler/${row.id}`)}
-          rowActions={rowActions}
-          emptyTitle="Sözleşme bulunamadı"
-          emptyDescription="Arama veya filtre kriterlerinizi değiştirin."
-        />
+        {loading ? (
+          <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Yükleniyor…</p>
+        ) : (
+          <DataTable<ContractListRow>
+            columns={COLUMNS}
+            data={filteredData}
+            rowKey="id"
+            onRowClick={(row) => router.push(`/sozlesmeler/${row.id}`)}
+            rowActions={rowActions}
+            emptyTitle="Sözleşme bulunamadı"
+            emptyDescription="Arama veya filtre kriterlerinizi değiştirin."
+          />
+        )}
       </div>
 
       {/* Right side panel — preview (not full detail) */}
       <RightSidePanel
         open={!!selectedContract}
         onClose={() => setSelectedId(null)}
-        title={selectedContract?.sozlesmeAdi}
+        title={selectedContract?.name}
       >
         {selectedContract && (
           <div className="space-y-4">
@@ -257,84 +330,129 @@ export default function SozlesmelerPage() {
               <div>
                 <dt className={DL_LABEL}>Firma</dt>
                 <dd className={`${TYPE_BODY} mt-0.5`}>
-                  <a
-                    href={`/firmalar/${selectedContract.firmaId}`}
-                    className={`${TEXT_LINK} hover:underline`}
-                  >
-                    {selectedContract.firmaAdi}
-                  </a>
+                  {companyLegacyById[selectedContract.company_id] ? (
+                    <a
+                      href={`/firmalar/${companyLegacyById[selectedContract.company_id]}`}
+                      className={`${TEXT_LINK} hover:underline`}
+                    >
+                      {selectedContract.firma_name}
+                    </a>
+                  ) : (
+                    <span className={TEXT_BODY}>{selectedContract.firma_name}</span>
+                  )}
                 </dd>
               </div>
               <div>
                 <dt className={DL_LABEL}>Durum</dt>
                 <dd className="mt-1">
-                  <StatusBadge status={selectedContract.durum} />
+                  <StatusBadge status={selectedContract.status} />
                 </dd>
               </div>
-              <div>
-                <dt className={DL_LABEL}>Tür</dt>
-                <dd className={DL_VALUE}>
-                  {selectedContract.tur}
-                </dd>
-              </div>
-              <div>
-                <dt className={DL_LABEL}>Başlangıç</dt>
-                <dd className={DL_VALUE}>
-                  {formatDateTR(selectedContract.baslangic)}
-                </dd>
-              </div>
-              <div>
-                <dt className={DL_LABEL}>Bitiş</dt>
-                <dd className={DL_VALUE}>
-                  {formatDateTR(selectedContract.bitis)}
-                </dd>
-              </div>
-              {selectedContract.kalanGun !== null && (
+              {selectedContract.contract_type && (
+                <div>
+                  <dt className={DL_LABEL}>Tür</dt>
+                  <dd className={DL_VALUE}>{selectedContract.contract_type}</dd>
+                </div>
+              )}
+              {selectedContract.start_date && (
+                <div>
+                  <dt className={DL_LABEL}>Başlangıç</dt>
+                  <dd className={DL_VALUE}>
+                    {formatDateTR(selectedContract.start_date.slice(0, 10))}
+                  </dd>
+                </div>
+              )}
+              {selectedContract.end_date && (
+                <div>
+                  <dt className={DL_LABEL}>Bitiş</dt>
+                  <dd className={DL_VALUE}>
+                    {formatDateTR(selectedContract.end_date.slice(0, 10))}
+                  </dd>
+                </div>
+              )}
+              {selectedContract.remaining_days !== null && (
                 <div>
                   <dt className={DL_LABEL}>Kalan Gün</dt>
                   <dd
                     className={clsx(
                       `${TYPE_BODY} font-medium mt-0.5`,
-                      selectedContract.kalanGun <= 15
+                      selectedContract.remaining_days <= 15
                         ? "text-red-600"
-                        : selectedContract.kalanGun <= 30
+                        : selectedContract.remaining_days <= 30
                           ? "text-amber-600"
                           : TEXT_BODY
                     )}
                   >
-                    {selectedContract.kalanGun} gün
+                    {selectedContract.remaining_days} gün
                   </dd>
                 </div>
               )}
-              <div>
-                <dt className={DL_LABEL}>Sorumlu</dt>
-                <dd className={DL_VALUE}>
-                  {selectedContract.sorumlu}
-                </dd>
-              </div>
-              <div>
-                <dt className={DL_LABEL}>Son İşlem</dt>
-                <dd className={DL_VALUE}>
-                  {selectedContract.sonIslem}
-                </dd>
-              </div>
-              <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
-                <dt className={DL_LABEL}>Tutar</dt>
-                <dd className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY} mt-0.5`}>
-                  {selectedContract.tutar}
-                </dd>
-              </div>
-              <div>
-                <dt className={DL_LABEL}>Kapsam</dt>
-                <dd className={DL_VALUE}>
-                  {selectedContract.kapsam}
-                </dd>
+              {selectedContract.responsible && (
+                <div>
+                  <dt className={DL_LABEL}>Sorumlu</dt>
+                  <dd className={DL_VALUE}>{selectedContract.responsible}</dd>
+                </div>
+              )}
+              {selectedContract.last_action_label && (
+                <div>
+                  <dt className={DL_LABEL}>Son İşlem</dt>
+                  <dd className={DL_VALUE}>{selectedContract.last_action_label}</dd>
+                </div>
+              )}
+              {selectedContract.contract_value && (
+                <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
+                  <dt className={DL_LABEL}>Tutar</dt>
+                  <dd className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY} mt-0.5`}>
+                    {selectedContract.contract_value}
+                  </dd>
+                </div>
+              )}
+              {selectedContract.scope && (
+                <div>
+                  <dt className={DL_LABEL}>Kapsam</dt>
+                  <dd className={DL_VALUE}>{selectedContract.scope}</dd>
+                </div>
+              )}
+              <div className="pt-2">
+                <a
+                  href={`/sozlesmeler/${selectedContract.id}`}
+                  className={`${TYPE_BODY} ${TEXT_LINK} hover:underline`}
+                >
+                  Detaya git →
+                </a>
               </div>
             </dl>
           </div>
         )}
       </RightSidePanel>
 
+      <NewContractModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        firmalar={MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }))}
+        onSubmit={async (data) => {
+          // Faz 2: persist via service layer. The service re-verifies
+          // partner scope, validates name + date order + active-dates,
+          // and stamps created_by from the auth session. Errors bubble
+          // up so the modal can render them inline; only on resolve do
+          // we refetch and close. router.refresh() invalidates the
+          // entire client Router Cache so cached firma detail / firmalar
+          // list pages will re-fetch on their next visit.
+          const payload: ContractCreateInput = {
+            legacyCompanyId: data.firmaId,
+            name: data.sozlesmeAdi,
+            contractType: data.tur || undefined,
+            startDate: data.baslangic || null,
+            endDate: data.bitis || null,
+            scope: data.kapsam || undefined,
+            contractValue: data.tutar || undefined,
+            responsible: data.sorumlu || undefined,
+          };
+          await createContract(supabase, payload);
+          await reload();
+          router.refresh();
+        }}
+      />
     </>
   );
 }

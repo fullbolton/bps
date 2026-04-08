@@ -101,3 +101,25 @@ export async function selectCompaniesByLegacyMockIds(
   }
   return data ?? [];
 }
+
+/**
+ * Batch-resolve multiple company rows by their real UUID ids.
+ * Added in Faz 2 (Sözleşmeler) so the Sözleşmeler list page can show
+ * the firma name column without doing a per-row join.
+ */
+export async function selectCompaniesByIds(
+  client: Client,
+  companyIds: string[],
+): Promise<CompanyRow[]> {
+  if (companyIds.length === 0) return [];
+
+  const { data, error } = await client
+    .from("companies")
+    .select("*")
+    .in("id", companyIds);
+
+  if (error) {
+    throw new Error(`companies select failed: ${error.message}`);
+  }
+  return data ?? [];
+}

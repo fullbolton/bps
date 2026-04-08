@@ -1,25 +1,41 @@
 "use client";
 
-import { use } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
-import { ArrowLeft, FileText, FolderOpen, CheckCircle2, Circle } from "lucide-react";
 import {
   EmptyState,
   PageHeader,
   ContractSummaryHeader,
   RenewalTrackingCard,
-  StatusBadge,
 } from "@/components/ui";
+import { NewContractModal } from "@/components/modals";
 import { useRole } from "@/context/RoleContext";
-import { MOCK_SOZLESME_DETAY, MOCK_SOZLESMELER } from "@/mocks/sozlesmeler";
-import { MOCK_GOREVLER } from "@/mocks/gorevler";
-import { MOCK_RANDEVULAR } from "@/mocks/randevular";
+// Faz 2: Sözleşme Detay core read path cuts over to the contracts
+// service layer. Sections that depended on excluded domains are
+// removed in this slice — see the cutover report's "what was
+// implemented" + "unresolved items" sections.
+import { MOCK_FIRMALAR } from "@/mocks/firmalar";
+import { createClient } from "@/lib/supabase/client";
+import {
+  getContractById,
+  updateContractContent,
+  updateContractStatus,
+  updateContractRenewal,
+  computeRemainingDays,
+  CONTRACT_STATUSES,
+  type ContractContentUpdateInput,
+} from "@/lib/services/contracts";
+import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
+import type { ContractRow } from "@/types/database.types";
+import type { SozlesmeDurumu } from "@/types/ui";
 import {
   SURFACE_PRIMARY,
   BORDER_DEFAULT,
   BORDER_SUBTLE,
   RADIUS_DEFAULT,
+  RADIUS_SM,
   TYPE_BODY,
   TYPE_CARD_TITLE,
   TYPE_CAPTION,
@@ -27,14 +43,21 @@ import {
   TEXT_BODY,
   TEXT_SECONDARY,
   TEXT_MUTED,
-  TEXT_DISABLED,
+  BUTTON_BASE,
+  BUTTON_SECONDARY,
 } from "@/styles/tokens";
 
 // Page-local helpers
 const SECTION = `${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-5`;
 const SECTION_TITLE = `${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-3`;
-const SECTION_TITLE_ICON = `${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-3 flex items-center gap-1.5`;
-const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
+
+const STATUS_LABELS: Record<SozlesmeDurumu, string> = {
+  taslak: "Taslak",
+  imza_bekliyor: "İmza Bekliyor",
+  aktif: "Aktif",
+  suresi_doldu: "Süresi Doldu",
+  feshedildi: "Feshedildi",
+};
 
 export default function SozlesmeDetayPage({
   params,
@@ -45,61 +68,44 @@ export default function SozlesmeDetayPage({
   const router = useRouter();
   const { role } = useRole();
 
-  const detay = MOCK_SOZLESME_DETAY[id];
-  const base = detay ?? MOCK_SOZLESMELER.find((s) => s.id === id);
-  const liveBagliGorevler = detay
-    ? (() => {
-        const linked = new Map<string, { id: string; baslik: string; durum: string }>();
+  const supabase = useMemo(() => createClient(), []);
+  const [contract, setContract] = useState<ContractRow | null>(null);
+  const [firmaName, setFirmaName] = useState<string>("");
+  const [firmaLegacyId, setFirmaLegacyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
-        for (const gorev of detay.bagliGorevler) {
-          const current = MOCK_GOREVLER.find((item) => item.id === gorev.id);
-          linked.set(
-            gorev.id,
-            current
-              ? { id: current.id, baslik: current.baslik, durum: current.durum }
-              : gorev
-          );
-        }
+  const reload = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const row = await getContractById(supabase, id);
+      setContract(row);
+      if (row) {
+        const display = await getCompanyDisplayMapByIds(supabase, [row.company_id]);
+        setFirmaName(display.nameById[row.company_id] ?? "—");
+        setFirmaLegacyId(display.legacyById[row.company_id] ?? null);
+      } else {
+        setFirmaName("");
+        setFirmaLegacyId(null);
+      }
+    } catch (err) {
+      setContract(null);
+      setLoadError(
+        err instanceof Error ? err.message : "Sözleşme yüklenirken bir hata oluştu.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, id]);
 
-        for (const gorev of MOCK_GOREVLER.filter((item) => item.kaynak === "sozlesme" && item.kaynakRef === id)) {
-          if (!linked.has(gorev.id)) {
-            linked.set(gorev.id, {
-              id: gorev.id,
-              baslik: gorev.baslik,
-              durum: gorev.durum,
-            });
-          }
-        }
+  useEffect(() => {
+    setLoading(true);
+    void reload();
+  }, [reload]);
 
-        return Array.from(linked.values());
-      })()
-    : [];
-  const liveBagliRandevular = detay
-    ? detay.bagliRandevular.map((randevu) => {
-        const current = MOCK_RANDEVULAR.find((item) => item.id === randevu.id);
-        return current
-          ? {
-              id: current.id,
-              tarih: current.tarih,
-              durum: current.durum,
-              sonuc: current.sonuc || undefined,
-            }
-          : randevu;
-      })
-    : [];
-
-  if (!base) {
-    return (
-      <div className="py-12">
-        <EmptyState
-          title="Sözleşme bulunamadı"
-          description="Bu ID ile eşleşen bir sözleşme bulunamadı."
-          size="page"
-          action={{ label: "Sözleşmelere Dön", onClick: () => router.push("/sozlesmeler") }}
-        />
-      </div>
-    );
-  }
+  const canEdit = role === "yonetici" || role === "partner";
 
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
@@ -108,6 +114,64 @@ export default function SozlesmeDetayPage({
         <EmptyState title="Erişim kısıtlı" description="Bu ekran erişiminizin dışındadır." size="page" />
       </>
     );
+  }
+
+  if (loading) {
+    return (
+      <div className="py-12">
+        <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center`}>Yükleniyor…</p>
+      </div>
+    );
+  }
+
+  if (!contract) {
+    return (
+      <div className="py-12">
+        <EmptyState
+          title="Sözleşme bulunamadı"
+          description={loadError ?? "Bu ID ile eşleşen bir sözleşme bulunamadı veya erişim yetkiniz yok."}
+          size="page"
+          action={{ label: "Sözleşmelere Dön", onClick: () => router.push("/sozlesmeler") }}
+        />
+      </div>
+    );
+  }
+
+  const kalanGun = computeRemainingDays(contract.end_date);
+
+  async function handleStatusChange(next: SozlesmeDurumu) {
+    if (!contract) return;
+    if (next === contract.status) return;
+    setActionError(null);
+    try {
+      await updateContractStatus(supabase, contract.id, next);
+      await reload();
+      router.refresh();
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Durum değiştirilemedi.",
+      );
+    }
+  }
+
+  async function handleRenewalToggle(
+    field:
+      | "renewalDiscussionOpened"
+      | "renewalResponsibleSet"
+      | "renewalTaskCreated",
+    next: boolean,
+  ) {
+    if (!contract) return;
+    setActionError(null);
+    try {
+      await updateContractRenewal(supabase, contract.id, { [field]: next });
+      await reload();
+      router.refresh();
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Yenileme takibi güncellenemedi.",
+      );
+    }
   }
 
   return (
@@ -122,206 +186,180 @@ export default function SozlesmeDetayPage({
       </button>
 
       <ContractSummaryHeader
-        sozlesmeAdi={base.sozlesmeAdi}
-        durum={base.durum}
-        firmaAdi={base.firmaAdi}
-        firmaHref={`/firmalar/${base.firmaId}`}
-        tur={base.tur}
-        baslangic={base.baslangic}
-        bitis={base.bitis}
-        kalanGun={base.kalanGun}
-        sorumlu={base.sorumlu}
-        tutar={base.tutar !== "—" ? base.tutar : undefined}
+        sozlesmeAdi={contract.name}
+        durum={contract.status}
+        firmaAdi={firmaName}
+        firmaHref={firmaLegacyId ? `/firmalar/${firmaLegacyId}` : "#"}
+        tur={contract.contract_type ?? "—"}
+        baslangic={contract.start_date ? formatDateTR(contract.start_date.slice(0, 10)) : ""}
+        bitis={contract.end_date ? formatDateTR(contract.end_date.slice(0, 10)) : ""}
+        kalanGun={kalanGun}
+        sorumlu={contract.responsible ?? "—"}
+        tutar={contract.contract_value ?? undefined}
       />
 
-      {/* Section-based detail composition — not a tab system */}
-      {detay ? (
-        <div className="space-y-6">
-          {/* 0. Ticari Hazırlık — contract preparation history (Batch 6) */}
-          {detay.ticariHazirlik && (
-            <section className={SECTION}>
-              <h2 className={SECTION_TITLE}>Ticari Hazırlık</h2>
-              <div className="space-y-3">
-                {detay.ticariHazirlik.adimlar.map((adim, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    {adim.tamamlandi ? (
-                      <CheckCircle2 size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <Circle size={16} className={`${TEXT_DISABLED} mt-0.5 flex-shrink-0`} />
-                    )}
-                    <div className="min-w-0">
-                      <p className={`${TYPE_BODY} ${adim.tamamlandi ? TEXT_BODY : TEXT_MUTED}`}>
-                        {adim.adim}
-                      </p>
-                      <div className={`flex items-center gap-2 mt-0.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
-                        <span>{formatDateTR(adim.tarih)}</span>
-                        <span>·</span>
-                        <span>{adim.user}</span>
-                      </div>
-                      {adim.not && (
-                        <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5`}>{adim.not}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {detay.ticariHazirlik.imzaliPdfNotu && (
-                <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-4 pt-3 border-t ${BORDER_SUBTLE}`}>
-                  {detay.ticariHazirlik.imzaliPdfNotu}
-                </p>
-              )}
-            </section>
-          )}
-
-          {/* 1. Dosyalar & Versiyonlar */}
-          <section className={SECTION}>
-            <h2 className={SECTION_TITLE_ICON}>
-              <FolderOpen size={14} className={TEXT_MUTED} />
-              Dosyalar & Versiyonlar
-            </h2>
-            {detay.dosyalar.length === 0 ? (
-              <EmptyState title="Dosya yok" size="card" />
-            ) : (
-              <div className="space-y-2">
-                {detay.dosyalar.map((d, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center justify-between py-2 ${LIST_DIVIDER}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <FileText size={14} className={TEXT_MUTED} />
-                      <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{d.ad}</span>
-                    </div>
-                    <div className={`flex items-center gap-3 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
-                      <span className={`font-medium ${TEXT_SECONDARY}`}>{d.versiyon}</span>
-                      <span>{formatDateTR(d.tarih)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* 2. Kritik Maddeler Özeti */}
-          <section className={SECTION}>
-            <h2 className={SECTION_TITLE}>
-              Kritik Maddeler Özeti
-            </h2>
-            {detay.kritikMaddeler.length === 0 ? (
-              <EmptyState title="Kritik madde tanımlanmamış" size="card" />
-            ) : (
-              <ul className="space-y-2">
-                {detay.kritikMaddeler.map((madde, idx) => (
-                  <li
-                    key={idx}
-                    className={`flex items-start gap-2 ${TYPE_BODY} ${TEXT_BODY}`}
-                  >
-                    <span className="text-blue-500 mt-0.5 font-bold">•</span>
-                    {madde}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* 3. Yenileme Takibi */}
-          <section>
-            <RenewalTrackingCard
-              bitisTarihi={detay.yenileme.bpisTarihi}
-              gorusmeAcildiMi={detay.yenileme.gorusmeAcildiMi}
-              sorumluVar={detay.yenileme.sorumluVar}
-              gorevUretildi={detay.yenileme.gorevUretildi}
-            />
-          </section>
-
-          {/* 4. Bağlı Görevler */}
-          <section className={SECTION}>
-            <h2 className={SECTION_TITLE}>
-              Bağlı Görevler
-            </h2>
-            {liveBagliGorevler.length === 0 ? (
-              <EmptyState title="Bağlı görev yok" size="card" />
-            ) : (
-              <div className="space-y-2">
-                {liveBagliGorevler.map((g) => (
-                  <a
-                    key={g.id}
-                    href="/gorevler"
-                    className={`flex items-center justify-between py-2 ${LIST_DIVIDER}`}
-                  >
-                    <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{g.baslik}</span>
-                    <StatusBadge status={g.durum as "acik" | "devam_ediyor" | "gecikti" | "tamamlandi" | "iptal"} />
-                  </a>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* 5. Bağlı Randevular */}
-          <section className={SECTION}>
-            <h2 className={SECTION_TITLE}>
-              Bağlı Randevular
-            </h2>
-            {liveBagliRandevular.length === 0 ? (
-              <EmptyState title="Bağlı randevu yok" size="card" />
-            ) : (
-              <div className="space-y-2">
-                {liveBagliRandevular.map((r) => (
-                  <a
-                    key={r.id}
-                    href="/randevular"
-                    className={`flex items-center justify-between py-2 ${LIST_DIVIDER}`}
-                  >
-                    <div>
-                      <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(r.tarih)}</span>
-                      {r.sonuc && (
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{r.sonuc}</p>
-                      )}
-                    </div>
-                    <StatusBadge status={r.durum as "planlandi" | "tamamlandi" | "iptal" | "ertelendi"} />
-                  </a>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* 6. İç Notlar */}
-          <section className={SECTION}>
-            <h2 className={SECTION_TITLE}>
-              İç Notlar
-            </h2>
-            {detay.icNotlar.length === 0 ? (
-              <EmptyState title="Henüz not yok" size="card" />
-            ) : (
-              <div className="space-y-3">
-                {detay.icNotlar.map((not, idx) => (
-                  <div
-                    key={idx}
-                    className={`py-2.5 ${LIST_DIVIDER}`}
-                  >
-                    <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{not.icerik}</p>
-                    <div className={`flex items-center gap-2 mt-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
-                      <span>{formatDateTR(not.tarih)}</span>
-                      <span>·</span>
-                      <span>{not.user}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      ) : (
-        /* Fallback for contracts without extended detail data */
-        <div className={SECTION}>
-          <p className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>
-            Kapsam: {base.kapsam}
-          </p>
-          <p className={`${TYPE_BODY} ${TEXT_MUTED} mt-3`}>
-            Bu sözleşme için detay verisi henüz tanımlanmamış.
-          </p>
+      {/* Contract-owned write actions — yonetici / partner only */}
+      {canEdit && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <label className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
+              Durum:
+            </label>
+            <select
+              value={contract.status}
+              onChange={(e) => { void handleStatusChange(e.target.value as SozlesmeDurumu); }}
+              className={`px-2 py-1 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
+            >
+              {CONTRACT_STATUSES.map((s) => (
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className={`${BUTTON_BASE} ${BUTTON_SECONDARY} inline-flex items-center gap-1.5`}
+          >
+            <Pencil size={14} />
+            Sözleşmeyi Düzenle
+          </button>
         </div>
       )}
+
+      {actionError && (
+        <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
+          {actionError}
+        </p>
+      )}
+
+      <div className="space-y-6">
+        {/* Kritik Maddeler Özeti — real DB column */}
+        <section className={SECTION}>
+          <h2 className={SECTION_TITLE}>Kritik Maddeler Özeti</h2>
+          {contract.critical_clauses.length === 0 ? (
+            <EmptyState title="Kritik madde tanımlanmamış" size="card" />
+          ) : (
+            <ul className="space-y-2">
+              {contract.critical_clauses.map((madde, idx) => (
+                <li
+                  key={idx}
+                  className={`flex items-start gap-2 ${TYPE_BODY} ${TEXT_BODY}`}
+                >
+                  <span className="text-blue-500 mt-0.5 font-bold">•</span>
+                  {madde}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Yenileme Takibi — bounded renewal-tracking truth (scope item 5) */}
+        <section className="space-y-2">
+          <RenewalTrackingCard
+            bitisTarihi={
+              contract.renewal_target_date
+                ? formatDateTR(contract.renewal_target_date.slice(0, 10))
+                : contract.end_date
+                  ? formatDateTR(contract.end_date.slice(0, 10))
+                  : "—"
+            }
+            gorusmeAcildiMi={contract.renewal_discussion_opened}
+            sorumluVar={contract.renewal_responsible_set}
+            gorevUretildi={contract.renewal_task_created}
+          />
+          {canEdit && (
+            <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
+              <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-2`}>
+                Yenileme takibi sinyallerini güncelle
+              </p>
+              <div className="space-y-2">
+                <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
+                  <input
+                    type="checkbox"
+                    checked={contract.renewal_discussion_opened}
+                    onChange={(e) => { void handleRenewalToggle("renewalDiscussionOpened", e.target.checked); }}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Yenileme görüşmesi açıldı
+                </label>
+                <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
+                  <input
+                    type="checkbox"
+                    checked={contract.renewal_responsible_set}
+                    onChange={(e) => { void handleRenewalToggle("renewalResponsibleSet", e.target.checked); }}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Sorumlu kişi atandı
+                </label>
+                <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
+                  <input
+                    type="checkbox"
+                    checked={contract.renewal_task_created}
+                    onChange={(e) => { void handleRenewalToggle("renewalTaskCreated", e.target.checked); }}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  İlgili görev üretildi
+                </label>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Kapsam ve Tutar — display-only secondary info */}
+        {(contract.scope || contract.contract_value) && (
+          <section className={SECTION}>
+            <h2 className={SECTION_TITLE}>Kapsam ve Tutar</h2>
+            <dl className="space-y-3">
+              {contract.scope && (
+                <div>
+                  <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Kapsam</dt>
+                  <dd className={`${TYPE_BODY} ${TEXT_BODY} mt-0.5`}>{contract.scope}</dd>
+                </div>
+              )}
+              {contract.contract_value && (
+                <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
+                  <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Tutar</dt>
+                  <dd className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY} mt-0.5`}>
+                    {contract.contract_value}
+                  </dd>
+                </div>
+              )}
+              {contract.last_action_label && (
+                <div>
+                  <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Son İşlem</dt>
+                  <dd className={`${TYPE_BODY} ${TEXT_BODY} mt-0.5`}>{contract.last_action_label}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
+        )}
+      </div>
+
+      <NewContractModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        firmalar={MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }))}
+        editData={contract}
+        onSubmit={async (data) => {
+          // Faz 2: persist via service layer. Status changes go through
+          // updateContractStatus instead — this path only patches
+          // content fields. Errors bubble inline; on resolve we refetch
+          // and invalidate the client Router Cache so list/firma readers
+          // see the new truth on their next visit.
+          const patch: ContractContentUpdateInput = {
+            name: data.sozlesmeAdi,
+            contractType: data.tur || null,
+            startDate: data.baslangic || null,
+            endDate: data.bitis || null,
+            scope: data.kapsam || null,
+            contractValue: data.tutar || null,
+            responsible: data.sorumlu || null,
+          };
+          await updateContractContent(supabase, contract.id, patch);
+          await reload();
+          router.refresh();
+        }}
+      />
     </>
   );
 }
