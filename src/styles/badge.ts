@@ -173,12 +173,12 @@ export const PRIORITY_CONFIG: Record<OncelikSeviyesi, { label: string; color: st
 // Per design-tokens.md §12: manuel=accent(purple), randevu=interactive(blue), sozlesme=neutral(slate)
 // ---------------------------------------------------------------------------
 
-import type { GorevKaynagi } from "@/mocks/gorevler";
+import type { TaskSourceType } from "@/lib/task-sources";
 
 /** TaskSourceBadge uses slate-50 for sozlesme (same lighter neutral as PriorityBadge düşük) */
 const TASK_SOURCE_NEUTRAL = "bg-slate-50 text-slate-600 ring-slate-500/20";
 
-export const TASK_SOURCE_CONFIG: Record<GorevKaynagi, { label: string; color: string }> = {
+export const TASK_SOURCE_CONFIG: Record<TaskSourceType, { label: string; color: string }> = {
   manuel: { label: "Manuel", color: COLOR_ACCENT },
   randevu: { label: "Randevu", color: BADGE_COLOR.interactive },
   sozlesme: { label: "Sözleşme", color: TASK_SOURCE_NEUTRAL },

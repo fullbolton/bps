@@ -7,7 +7,8 @@
 
 import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import type { MockTalep } from "@/mocks/talepler";
+import type { StaffingDemandRow } from "@/types/database.types";
+import { computeOpenCount } from "@/lib/services/staffing-demands";
 import {
   SURFACE_PRIMARY,
   BORDER_DEFAULT,
@@ -47,7 +48,7 @@ function formatTooltipDate(dateStr: string): string {
 }
 
 interface DemandTrendChartProps {
-  talepler: MockTalep[];
+  talepler: StaffingDemandRow[];
 }
 
 export default function DemandTrendChart({ talepler }: DemandTrendChartProps) {
@@ -56,19 +57,19 @@ export default function DemandTrendChart({ talepler }: DemandTrendChartProps) {
   const chartData = useMemo(() => {
     if (talepler.length === 0) return [];
 
-    // Sort demands by baslangicTarihi
+    // Sort demands by start_date
     const sorted = [...talepler].sort(
-      (a, b) => new Date(a.baslangicTarihi).getTime() - new Date(b.baslangicTarihi).getTime()
+      (a, b) => new Date(a.start_date ?? "").getTime() - new Date(b.start_date ?? "").getTime()
     );
 
-    // Build daily data points: each demand contributes its acikKalan starting from its baslangicTarihi
+    // Build daily data points: each demand contributes its open count starting from its start_date
     const dateMap = new Map<string, number>();
 
     // Compute cumulative açık talep hacmi per date
     for (const t of sorted) {
-      const date = t.baslangicTarihi;
+      const date = t.start_date ?? "";
       const current = dateMap.get(date) ?? 0;
-      dateMap.set(date, current + t.acikKalan);
+      dateMap.set(date, current + computeOpenCount(t));
     }
 
     // Convert to sorted array

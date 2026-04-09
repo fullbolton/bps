@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { ModalShell } from "@/components/ui";
-import type { GorevKaynagi } from "@/mocks/gorevler";
-import { KAYNAK_LABELS } from "@/mocks/gorevler";
+import { TASK_SOURCE_LABELS } from "@/lib/task-sources";
+import type { TaskSourceType } from "@/lib/task-sources";
 
 const ONCELIK_OPTIONS = [
   { value: "dusuk", label: "Düşük" },
@@ -18,7 +18,7 @@ interface NewTaskModalProps {
   firmalar: { id: string; ad: string }[];
   allowAssignee?: boolean;
   /** Pre-selected kaynak when creating from a specific context */
-  defaultKaynak?: GorevKaynagi;
+  defaultKaynak?: TaskSourceType;
   defaultFirmaId?: string;
   defaultKaynakRef?: string;
   /** Pre-filled from AI suggestion flow */
@@ -27,12 +27,12 @@ interface NewTaskModalProps {
   onSubmit?: (payload: {
     baslik: string;
     firmaId: string;
-    kaynak: GorevKaynagi;
+    kaynak: TaskSourceType;
     kaynakRef?: string;
     atananKisi: string;
     termin: string;
     oncelik: string;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 export default function NewTaskModal({
@@ -49,10 +49,12 @@ export default function NewTaskModal({
 }: NewTaskModalProps) {
   const [baslik, setBaslik] = useState(defaultBaslik ?? "");
   const [firmaId, setFirmaId] = useState(defaultFirmaId ?? "");
-  const [kaynak, setKaynak] = useState<GorevKaynagi>(defaultKaynak ?? "manuel");
+  const [kaynak, setKaynak] = useState<TaskSourceType>(defaultKaynak ?? "manuel");
   const [atananKisi, setAtananKisi] = useState("");
   const [termin, setTermin] = useState("");
   const [oncelik, setOncelik] = useState(defaultOncelik ?? "normal");
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const isSourceLocked = Boolean(defaultKaynak && defaultKaynakRef);
 
   useEffect(() => {
@@ -61,11 +63,12 @@ export default function NewTaskModal({
     setKaynak(defaultKaynak ?? "manuel");
     setAtananKisi("");
     setTermin("");
+    setSubmitError(null);
     if (defaultBaslik) setBaslik(defaultBaslik);
     if (defaultOncelik) setOncelik(defaultOncelik);
   }, [open, defaultFirmaId, defaultKaynak, defaultBaslik, defaultOncelik]);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!baslik.trim() || !firmaId) return;
     const payload = {
       baslik: baslik.trim(),
@@ -76,9 +79,18 @@ export default function NewTaskModal({
       termin,
       oncelik,
     };
-    console.log("[demo] Yeni görev:", payload);
-    onSubmit?.(payload);
-    resetAndClose();
+    setSaving(true);
+    setSubmitError(null);
+    try {
+      await onSubmit?.(payload);
+      resetAndClose();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Görev oluşturulurken bir hata oluştu.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   function resetAndClose() {
@@ -89,6 +101,7 @@ export default function NewTaskModal({
     setAtananKisi("");
     setTermin("");
     setOncelik("normal");
+    setSubmitError(null);
     onClose();
   }
 
@@ -107,22 +120,27 @@ export default function NewTaskModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!baslik.trim() || !firmaId}
+            disabled={!baslik.trim() || !firmaId || saving}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Oluştur
+            {saving ? "Kaydediliyor..." : "Oluştur"}
           </button>
         </>
       }
     >
       <div className="space-y-4">
+        {submitError && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2">
+            <p className="text-xs font-medium text-red-700">{submitError}</p>
+          </div>
+        )}
         {defaultKaynakRef && (
           <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
             <p className="text-xs font-medium text-blue-700">
               Kaynak bağlamı korunuyor
             </p>
             <p className="mt-1 text-xs text-blue-600">
-              Bu görev {KAYNAK_LABELS[kaynak]} kaynağı ile oluşturulacak.
+              Bu görev {TASK_SOURCE_LABELS[kaynak]} kaynağı ile oluşturulacak.
               Kaynak referansı: {defaultKaynakRef}
             </p>
           </div>
@@ -163,13 +181,13 @@ export default function NewTaskModal({
             </label>
             <select
               value={kaynak}
-              onChange={(e) => setKaynak(e.target.value as GorevKaynagi)}
+              onChange={(e) => setKaynak(e.target.value as TaskSourceType)}
               disabled={isSourceLocked}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {(Object.keys(KAYNAK_LABELS) as GorevKaynagi[]).map((k) => (
+              {(Object.keys(TASK_SOURCE_LABELS) as TaskSourceType[]).map((k) => (
                 <option key={k} value={k}>
-                  {KAYNAK_LABELS[k]}
+                  {TASK_SOURCE_LABELS[k]}
                 </option>
               ))}
             </select>

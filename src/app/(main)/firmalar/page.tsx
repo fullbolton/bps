@@ -12,12 +12,13 @@ import {
   RiskBadge,
 } from "@/components/ui";
 import { MOCK_FIRMALAR } from "@/mocks/firmalar";
-import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
-import { MOCK_RANDEVULAR } from "@/mocks/randevular";
 import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
 import { createClient } from "@/lib/supabase/client";
 import { getPrimaryContactNamesByLegacyIds } from "@/lib/services/contacts";
 import { getActiveContractCountsByLegacyIds } from "@/lib/services/contracts";
+import { getWorkforceSummariesByLegacyIds, deriveOpenGap } from "@/lib/services/workforce-summary";
+import { getAppointmentDatesByLegacyIds } from "@/lib/services/appointments";
+import type { WorkforceSummaryRow } from "@/types/database.types";
 import type { MockFirma } from "@/mocks/firmalar";
 import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
 
@@ -153,16 +154,25 @@ export default function FirmalarPage() {
   const supabase = useMemo(() => createClient(), []);
   const [primaryNames, setPrimaryNames] = useState<Record<string, string>>({});
   const [activeContractCounts, setActiveContractCounts] = useState<Record<string, number>>({});
+  const [workforceByLegacy, setWorkforceByLegacy] = useState<Record<string, WorkforceSummaryRow>>({});
+  const [appointmentDates, setAppointmentDates] = useState<{
+    lastCompleted: Record<string, string>;
+    nextPlanned: Record<string, string>;
+  }>({ lastCompleted: {}, nextPlanned: {} });
   useEffect(() => {
     let active = true;
     const legacyIds = MOCK_FIRMALAR.map((f) => f.id);
     Promise.all([
       getPrimaryContactNamesByLegacyIds(supabase, legacyIds).catch(() => ({})),
       getActiveContractCountsByLegacyIds(supabase, legacyIds).catch(() => ({})),
-    ]).then(([names, counts]) => {
+      getWorkforceSummariesByLegacyIds(supabase, legacyIds).catch(() => ({})),
+      getAppointmentDatesByLegacyIds(supabase, legacyIds).catch(() => ({ lastCompleted: {}, nextPlanned: {} })),
+    ]).then(([names, counts, workforce, apptDates]) => {
       if (!active) return;
       setPrimaryNames(names);
       setActiveContractCounts(counts);
+      setWorkforceByLegacy(workforce);
+      setAppointmentDates(apptDates);
     });
     return () => {
       active = false;
@@ -171,21 +181,17 @@ export default function FirmalarPage() {
 
   const filteredData = useMemo(() => {
     const derivedFirmalar = MOCK_FIRMALAR.map((f) => {
-      const firmaRandevular = MOCK_RANDEVULAR.filter((r) => r.firmaId === f.id);
-      const sonTamamlananRandevu = [...firmaRandevular]
-        .filter((r) => r.durum === "tamamlandi")
-        .sort((a, b) => getAppointmentTimestamp(b.tarih, b.saat) - getAppointmentTimestamp(a.tarih, a.saat))[0];
-      const sonrakiPlanliRandevu = [...firmaRandevular]
-        .filter((r) => r.durum === "planlandi")
-        .sort((a, b) => getAppointmentTimestamp(a.tarih, a.saat) - getAppointmentTimestamp(b.tarih, b.saat))[0];
+      // Workforce: real DB truth if available, otherwise static mock
+      const wf = workforceByLegacy[f.id];
+      const aktifIsGucu = wf?.current_count ?? 0;
 
       return {
         ...f,
         aktifSozlesme: activeContractCounts[f.id] ?? 0,
-        aktifIsGucu: MOCK_IS_GUCU.find((ig) => ig.firmaId === f.id)?.aktifKisi ?? 0,
+        aktifIsGucu,
         anaYetkili: primaryNames[f.id] ?? f.anaYetkili,
-        sonGorusme: sonTamamlananRandevu?.tarih ?? f.sonGorusme ?? "—",
-        sonrakiRandevu: sonrakiPlanliRandevu?.tarih ?? f.sonrakiRandevu ?? "—",
+        sonGorusme: appointmentDates.lastCompleted[f.id] ?? "—",
+        sonrakiRandevu: appointmentDates.nextPlanned[f.id] ?? "—",
       };
     });
 
@@ -206,7 +212,7 @@ export default function FirmalarPage() {
       if (filters.partner && FIRMA_PARTNER_MAP[f.id]?.partnerAdi !== filters.partner) return false;
       return true;
     });
-  }, [search, filters, primaryNames, activeContractCounts]);
+  }, [search, filters, primaryNames, activeContractCounts, workforceByLegacy, appointmentDates]);
 
   const rowActions: RowAction<MockFirma>[] = [
     {

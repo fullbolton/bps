@@ -17,7 +17,15 @@
  */
 
 import type { NoteTagKey } from "@/lib/note-tags";
-import type { SozlesmeDurumu } from "@/types/ui";
+import type { AppointmentMeetingType } from "@/lib/appointment-types";
+import type { TaskSourceType } from "@/lib/task-sources";
+import type {
+  SozlesmeDurumu,
+  TalepDurumu,
+  RandevuDurumu,
+  GorevDurumu,
+  OncelikSeviyesi,
+} from "@/types/ui";
 
 import type { UserRole } from "@/context/AuthContext";
 
@@ -383,6 +391,215 @@ export interface Database {
         ];
       };
       // ---------------------------------------------------------------------
+      // staffing_demands — Faz 3A (Personel Talepleri)
+      // ---------------------------------------------------------------------
+      staffing_demands: {
+        Row: {
+          id: string;
+          company_id: string;
+          position: string;
+          requested_count: number;
+          provided_count: number;
+          location: string | null;
+          start_date: string | null;
+          priority: OncelikSeviyesi;
+          status: TalepDurumu;
+          responsible: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          position: string;
+          requested_count?: number;
+          provided_count?: number;
+          location?: string | null;
+          start_date?: string | null;
+          priority?: OncelikSeviyesi;
+          status?: TalepDurumu;
+          responsible?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          position?: string;
+          requested_count?: number;
+          provided_count?: number;
+          location?: string | null;
+          start_date?: string | null;
+          priority?: OncelikSeviyesi;
+          status?: TalepDurumu;
+          responsible?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "staffing_demands_company_id_fkey"; columns: ["company_id"]; referencedRelation: "companies"; referencedColumns: ["id"] },
+          { foreignKeyName: "staffing_demands_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      // ---------------------------------------------------------------------
+      // appointments — Faz 3B (Randevular)
+      // ---------------------------------------------------------------------
+      appointments: {
+        Row: {
+          id: string;
+          company_id: string;
+          contract_id: string | null;
+          meeting_date: string;
+          meeting_time: string | null;
+          meeting_type: AppointmentMeetingType;
+          attendee: string | null;
+          status: RandevuDurumu;
+          result: string | null;
+          next_action: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          contract_id?: string | null;
+          meeting_date: string;
+          meeting_time?: string | null;
+          meeting_type?: AppointmentMeetingType;
+          attendee?: string | null;
+          status?: RandevuDurumu;
+          result?: string | null;
+          next_action?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          contract_id?: string | null;
+          meeting_date?: string;
+          meeting_time?: string | null;
+          meeting_type?: AppointmentMeetingType;
+          attendee?: string | null;
+          status?: RandevuDurumu;
+          result?: string | null;
+          next_action?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "appointments_company_id_fkey"; columns: ["company_id"]; referencedRelation: "companies"; referencedColumns: ["id"] },
+          { foreignKeyName: "appointments_contract_id_fkey"; columns: ["contract_id"]; referencedRelation: "contracts"; referencedColumns: ["id"] },
+          { foreignKeyName: "appointments_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      // ---------------------------------------------------------------------
+      // tasks — Faz 3C (Görevler)
+      // ---------------------------------------------------------------------
+      tasks: {
+        Row: {
+          id: string;
+          company_id: string;
+          contract_id: string | null;
+          appointment_id: string | null;
+          title: string;
+          assigned_to: string | null;
+          due_date: string | null;
+          source_type: TaskSourceType;
+          source_ref: string | null;
+          priority: OncelikSeviyesi;
+          status: GorevDurumu;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          contract_id?: string | null;
+          appointment_id?: string | null;
+          title: string;
+          assigned_to?: string | null;
+          due_date?: string | null;
+          source_type?: TaskSourceType;
+          source_ref?: string | null;
+          priority?: OncelikSeviyesi;
+          status?: GorevDurumu;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          contract_id?: string | null;
+          appointment_id?: string | null;
+          title?: string;
+          assigned_to?: string | null;
+          due_date?: string | null;
+          source_type?: TaskSourceType;
+          source_ref?: string | null;
+          priority?: OncelikSeviyesi;
+          status?: GorevDurumu;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "tasks_company_id_fkey"; columns: ["company_id"]; referencedRelation: "companies"; referencedColumns: ["id"] },
+          { foreignKeyName: "tasks_contract_id_fkey"; columns: ["contract_id"]; referencedRelation: "contracts"; referencedColumns: ["id"] },
+          { foreignKeyName: "tasks_appointment_id_fkey"; columns: ["appointment_id"]; referencedRelation: "appointments"; referencedColumns: ["id"] },
+          { foreignKeyName: "tasks_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      // ---------------------------------------------------------------------
+      // workforce_summary — Faz 3D (Aktif İş Gücü, aggregate-only)
+      // ---------------------------------------------------------------------
+      workforce_summary: {
+        Row: {
+          id: string;
+          company_id: string;
+          location: string | null;
+          target_count: number;
+          current_count: number;
+          hires_last_30d: number;
+          exits_last_30d: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          location?: string | null;
+          target_count?: number;
+          current_count?: number;
+          hires_last_30d?: number;
+          exits_last_30d?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          location?: string | null;
+          target_count?: number;
+          current_count?: number;
+          hires_last_30d?: number;
+          exits_last_30d?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "workforce_summary_company_id_fkey"; columns: ["company_id"]; referencedRelation: "companies"; referencedColumns: ["id"] },
+        ];
+      };
+      // ---------------------------------------------------------------------
       // partner_company_assignments — Faz 1A partner-scope source
       // ---------------------------------------------------------------------
       // Mirrors `supabase/migrations/20260407000200_create_companies_anchor.sql`.
@@ -472,6 +689,22 @@ export type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 export type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
 export type ContractInsert = Database["public"]["Tables"]["contracts"]["Insert"];
 export type ContractUpdate = Database["public"]["Tables"]["contracts"]["Update"];
+
+export type StaffingDemandRow = Database["public"]["Tables"]["staffing_demands"]["Row"];
+export type StaffingDemandInsert = Database["public"]["Tables"]["staffing_demands"]["Insert"];
+export type StaffingDemandUpdate = Database["public"]["Tables"]["staffing_demands"]["Update"];
+
+export type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
+export type AppointmentInsert = Database["public"]["Tables"]["appointments"]["Insert"];
+export type AppointmentUpdate = Database["public"]["Tables"]["appointments"]["Update"];
+
+export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
+export type TaskInsert = Database["public"]["Tables"]["tasks"]["Insert"];
+export type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
+
+export type WorkforceSummaryRow = Database["public"]["Tables"]["workforce_summary"]["Row"];
+export type WorkforceSummaryInsert = Database["public"]["Tables"]["workforce_summary"]["Insert"];
+export type WorkforceSummaryUpdate = Database["public"]["Tables"]["workforce_summary"]["Update"];
 
 export type PartnerCompanyAssignmentRow =
   Database["public"]["Tables"]["partner_company_assignments"]["Row"];

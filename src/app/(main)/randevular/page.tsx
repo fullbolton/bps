@@ -1,6 +1,22 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+/**
+ * Randevular list page — Phase 3B cutover.
+ *
+ * Data source: Supabase `appointments` table via the service layer.
+ * Company names are resolved in a single batched round trip via
+ * `getCompanyDisplayMapByIds`. MOCK_FIRMALAR is retained only for
+ * the firma filter dropdown and the NewTaskModal firma picker, until
+ * the full Firmalar migration completes.
+ *
+ * The appointment-to-task handoff (completing an appointment and
+ * optionally creating a linked task) is delegated to the service
+ * layer's `completeAppointment`, which handles both the status
+ * update and the task creation atomically.
+ */
+
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Plus } from "lucide-react";
 import {
@@ -18,17 +34,27 @@ import {
   AppointmentResultModal,
   NewTaskModal,
 } from "@/components/modals";
+import { createClient } from "@/lib/supabase/client";
 import {
-  MOCK_RANDEVULAR,
-  RANDEVU_TIPI_LABELS,
-  updateRandevular,
-} from "@/mocks/randevular";
-import { MOCK_GOREVLER, updateGorevler } from "@/mocks/gorevler";
+  listAllAppointments,
+  createAppointment,
+  completeAppointment,
+} from "@/lib/services/appointments";
+import { createTask } from "@/lib/services/tasks";
+import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
+import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
+import type { AppointmentMeetingType } from "@/lib/appointment-types";
+import type { AppointmentRow } from "@/types/database.types";
 import { MOCK_FIRMALAR } from "@/mocks/firmalar";
-import type { MockRandevu, RandevuTipi } from "@/mocks/randevular";
-import type { MockGorev } from "@/mocks/gorevler";
-import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
-import type { OncelikSeviyesi } from "@/types/ui";
+import type {
+  ColumnDef,
+  FilterConfig,
+  FilterValues,
+  RowAction,
+  OncelikSeviyesi,
+} from "@/types/ui";
+import { selectTasksByAppointmentId } from "@/lib/supabase/tasks";
+import type { TaskRow } from "@/types/database.types";
 import { clsx } from "clsx";
 import {
   TYPE_BODY,
@@ -52,22 +78,30 @@ const DL_VALUE = `${TYPE_BODY} ${TEXT_BODY} mt-0.5`;
 const COL_TRUNCATED = `${TYPE_BODY} ${TEXT_SECONDARY} truncate max-w-[200px] block`;
 
 const STATUS_LABELS: Record<string, string> = {
-  planlandi: "Planlandı",
-  tamamlandi: "Tamamlandı",
-  iptal: "İptal",
+  planlandi: "Planlandi",
+  tamamlandi: "Tamamlandi",
+  iptal: "Iptal",
   ertelendi: "Ertelendi",
 };
+
+/**
+ * Augment the raw `AppointmentRow` with the resolved firma display
+ * name. This is the row shape consumed by the DataTable.
+ */
+interface AppointmentListRow extends AppointmentRow {
+  firma_name: string;
+}
 
 const FILTER_CONFIG: FilterConfig[] = [
   {
     key: "durum",
     label: "Durum",
     type: "select",
-    placeholder: "Tüm durumlar",
+    placeholder: "Tum durumlar",
     options: [
-      { label: "Planlandı", value: "planlandi" },
-      { label: "Tamamlandı", value: "tamamlandi" },
-      { label: "İptal", value: "iptal" },
+      { label: "Planlandi", value: "planlandi" },
+      { label: "Tamamlandi", value: "tamamlandi" },
+      { label: "Iptal", value: "iptal" },
       { label: "Ertelendi", value: "ertelendi" },
     ],
   },
@@ -75,8 +109,8 @@ const FILTER_CONFIG: FilterConfig[] = [
     key: "firma",
     label: "Firma",
     type: "select",
-    placeholder: "Tüm firmalar",
-    options: Array.from(new Set(MOCK_RANDEVULAR.map((r) => r.firmaAdi))).map(
+    placeholder: "Tum firmalar",
+    options: Array.from(new Set(MOCK_FIRMALAR.map((f) => f.firmaAdi))).map(
       (name) => ({ label: name, value: name })
     ),
   },
@@ -84,44 +118,44 @@ const FILTER_CONFIG: FilterConfig[] = [
     key: "tip",
     label: "Tip",
     type: "select",
-    placeholder: "Tüm tipler",
-    options: (Object.keys(RANDEVU_TIPI_LABELS) as RandevuTipi[]).map((t) => ({
-      label: RANDEVU_TIPI_LABELS[t],
+    placeholder: "Tum tipler",
+    options: (Object.keys(APPOINTMENT_TYPE_LABELS) as AppointmentMeetingType[]).map((t) => ({
+      label: APPOINTMENT_TYPE_LABELS[t],
       value: t,
     })),
   },
 ];
 
-const COLUMNS: ColumnDef<MockRandevu>[] = [
-  { key: "tarih", header: "Tarih", sortable: true, render: (val) => formatDateTR(val as string) },
-  { key: "firmaAdi", header: "Firma", sortable: true },
+const COLUMNS: ColumnDef<AppointmentListRow>[] = [
+  { key: "meeting_date", header: "Tarih", sortable: true, render: (val) => formatDateTR(val as string) },
+  { key: "firma_name", header: "Firma", sortable: true },
   {
-    key: "gorusmeTipi",
-    header: "Görüşme Tipi",
-    render: (val) => <span>{RANDEVU_TIPI_LABELS[val as RandevuTipi] ?? String(val)}</span>,
+    key: "meeting_type",
+    header: "Gorusme Tipi",
+    render: (val) => <span>{APPOINTMENT_TYPE_LABELS[val as AppointmentMeetingType] ?? String(val)}</span>,
   },
-  { key: "katilimci", header: "Katılımcı" },
+  { key: "attendee", header: "Katilimci", render: (val) => <span>{(val as string) || "\u2014"}</span> },
   {
-    key: "durum",
+    key: "status",
     header: "Durum",
     sortable: true,
-    render: (val) => <StatusBadge status={val as MockRandevu["durum"]} />,
+    render: (val) => <StatusBadge status={val as AppointmentListRow["status"]} />,
   },
   {
-    key: "sonuc",
-    header: "Sonuç",
+    key: "result",
+    header: "Sonuc",
     render: (val) => (
       <span className={COL_TRUNCATED}>
-        {(val as string) || "—"}
+        {(val as string) || "\u2014"}
       </span>
     ),
   },
   {
-    key: "sonrakiAksiyon",
+    key: "next_action",
     header: "Sonraki Aksiyon",
     render: (val) => (
       <span className={COL_TRUNCATED}>
-        {(val as string) || "—"}
+        {(val as string) || "\u2014"}
       </span>
     ),
   },
@@ -129,16 +163,15 @@ const COLUMNS: ColumnDef<MockRandevu>[] = [
 
 export default function RandevularPage() {
   const { role } = useRole();
-  const [appointments, _setAppointments] = useState(MOCK_RANDEVULAR);
-  function setAppointments(
-    updater: typeof MOCK_RANDEVULAR | ((prev: typeof MOCK_RANDEVULAR) => typeof MOCK_RANDEVULAR)
-  ) {
-    _setAppointments((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      updateRandevular(next);
-      return next;
-    });
-  }
+  const router = useRouter();
+
+  const supabase = useMemo(() => createClient(), []);
+  const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
+  const [companyNameById, setCompanyNameById] = useState<Record<string, string>>({});
+  const [companyLegacyById, setCompanyLegacyById] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({
     durum: "",
@@ -153,73 +186,132 @@ export default function RandevularPage() {
     randevuId?: string;
   }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tasks, _setTasks] = useState(MOCK_GOREVLER);
-  function setTasks(
-    updater: typeof MOCK_GOREVLER | ((prev: typeof MOCK_GOREVLER) => typeof MOCK_GOREVLER)
-  ) {
-    _setTasks((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      updateGorevler(next);
-      return next;
-    });
-  }
+  const [selectedTasks, setSelectedTasks] = useState<TaskRow[]>([]);
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
+
+  // ------------------------------------------------------------------
+  // Data loading
+  // ------------------------------------------------------------------
+
+  const reload = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const rows = await listAllAppointments(supabase);
+      setAppointments(rows);
+      const uniqueCompanyIds = Array.from(new Set(rows.map((r) => r.company_id)));
+      const display = await getCompanyDisplayMapByIds(supabase, uniqueCompanyIds);
+      setCompanyNameById(display.nameById);
+      setCompanyLegacyById(display.legacyById);
+    } catch (err) {
+      setAppointments([]);
+      setCompanyNameById({});
+      setCompanyLegacyById({});
+      setLoadError(
+        err instanceof Error ? err.message : "Randevular yuklenirken bir hata olustu.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    setLoading(true);
+    void reload();
+  }, [reload]);
+
+  // ------------------------------------------------------------------
+  // Load tasks linked to the selected appointment (for the side panel)
+  // ------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!selectedId) {
+      setSelectedTasks([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const tasks = await selectTasksByAppointmentId(supabase, selectedId);
+        if (!cancelled) setSelectedTasks(tasks);
+      } catch {
+        if (!cancelled) setSelectedTasks([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, selectedId]);
+
+  // ------------------------------------------------------------------
+  // Derived data
+  // ------------------------------------------------------------------
+
+  const enrichedRows: AppointmentListRow[] = useMemo(() => {
+    return appointments.map((a) => ({
+      ...a,
+      firma_name: companyNameById[a.company_id] ?? "\u2014",
+    }));
+  }, [appointments, companyNameById]);
+
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const appointment of appointments) {
-      counts[appointment.durum] = (counts[appointment.durum] || 0) + 1;
+      counts[appointment.status] = (counts[appointment.status] || 0) + 1;
     }
     return counts;
   }, [appointments]);
 
   const filteredData = useMemo(() => {
-    return appointments.filter((r) => {
+    return enrichedRows.filter((r) => {
       if (search) {
         const q = search.toLowerCase();
         const match =
-          r.firmaAdi.toLowerCase().includes(q) ||
-          r.katilimci.toLowerCase().includes(q) ||
-          r.sonuc.toLowerCase().includes(q);
+          r.firma_name.toLowerCase().includes(q) ||
+          (r.attendee?.toLowerCase().includes(q) ?? false) ||
+          (r.result?.toLowerCase().includes(q) ?? false);
         if (!match) return false;
       }
-      if (filters.durum && r.durum !== filters.durum) return false;
-      if (filters.firma && r.firmaAdi !== filters.firma) return false;
-      if (filters.tip && r.gorusmeTipi !== filters.tip) return false;
+      if (filters.durum && r.status !== filters.durum) return false;
+      if (filters.firma && r.firma_name !== filters.firma) return false;
+      if (filters.tip && r.meeting_type !== filters.tip) return false;
       return true;
     });
-  }, [appointments, search, filters]);
+  }, [enrichedRows, search, filters]);
 
   const selectedRandevu = useMemo(
-    () => appointments.find((r) => r.id === selectedId) ?? null,
-    [appointments, selectedId]
+    () => enrichedRows.find((r) => r.id === selectedId) ?? null,
+    [enrichedRows, selectedId]
   );
-
-  const selectedRandevuTasks = useMemo(() => {
-    if (!selectedRandevu) return [];
-    return tasks.filter((task) => task.kaynakRef === selectedRandevu.id);
-  }, [tasks, selectedRandevu]);
 
   const firmaOptions = MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }));
 
-  const rowActions: RowAction<MockRandevu>[] = [
+  const rowActions: RowAction<AppointmentListRow>[] = [
     {
       label: "Tamamla",
       onClick: (row) => setResultTarget({ open: true, randevuId: row.id }),
-      isDisabled: (row) => row.durum === "tamamlandi" || row.durum === "iptal",
+      isDisabled: (row) => row.status === "tamamlandi" || row.status === "iptal",
     },
     {
-      label: "Görev Oluştur",
-      onClick: (row) =>
-        setTaskTarget({ open: true, firmaId: row.firmaId, randevuId: row.id }),
+      label: "Gorev Olustur",
+      onClick: (row) => {
+        // Find the legacy mock id for this company so NewTaskModal can
+        // work with the still-mock firmalar dictionary.
+        const legacyId = companyLegacyById[row.company_id] ?? row.company_id;
+        setTaskTarget({ open: true, firmaId: legacyId, randevuId: row.id });
+      },
     },
   ];
+
+  // ------------------------------------------------------------------
+  // Role gate
+  // ------------------------------------------------------------------
 
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
       <>
-        <PageHeader title="Randevular" subtitle="Görüşme takibi" />
-        <EmptyState title="Erişim kısıtlı" description="Bu ekran erişiminizin dışındadır." size="page" />
+        <PageHeader title="Randevular" subtitle="Gorusme takibi" />
+        <EmptyState title="Erisim kisitli" description="Bu ekran erisiminizin disindadir." size="page" />
       </>
     );
   }
@@ -228,7 +320,7 @@ export default function RandevularPage() {
     <>
       <PageHeader
         title="Randevular"
-        subtitle="Görüşme sonuçları ve takip aksiyonları"
+        subtitle="Gorusme sonuclari ve takip aksiyonlari"
         actions={[
           {
             label: "Yeni Randevu",
@@ -239,6 +331,12 @@ export default function RandevularPage() {
       />
 
       <div className="space-y-4">
+        {loadError && (
+          <p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">
+            {loadError}
+          </p>
+        )}
+
         <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(statusCounts).map(([status, count]) => (
             <button
@@ -261,20 +359,24 @@ export default function RandevularPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput placeholder="Firma, katılımcı ara..." onChange={handleSearch} />
+            <SearchInput placeholder="Firma, katilimci ara..." onChange={handleSearch} />
           </div>
           <FilterBar filters={FILTER_CONFIG} values={filters} onChange={setFilters} />
         </div>
 
-        <DataTable<MockRandevu>
-          columns={COLUMNS}
-          data={filteredData}
-          rowKey="id"
-          onRowClick={(row) => setSelectedId(row.id)}
-          rowActions={rowActions}
-          emptyTitle="Randevu bulunamadı"
-          emptyDescription="Arama veya filtre kriterlerinizi değiştirin."
-        />
+        {loading ? (
+          <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Yukleniyor...</p>
+        ) : (
+          <DataTable<AppointmentListRow>
+            columns={COLUMNS}
+            data={filteredData}
+            rowKey="id"
+            onRowClick={(row) => setSelectedId(row.id)}
+            rowActions={rowActions}
+            emptyTitle="Randevu bulunamadi"
+            emptyDescription="Arama veya filtre kriterlerinizi degistirin."
+          />
+        )}
       </div>
 
       <RightSidePanel
@@ -287,46 +389,55 @@ export default function RandevularPage() {
             <div>
               <dt className={DL_LABEL}>Firma</dt>
               <dd className={`${TYPE_BODY} mt-0.5`}>
-                <a href={`/firmalar/${selectedRandevu.firmaId}`} className={`${TEXT_LINK} hover:underline`}>
-                  {selectedRandevu.firmaAdi}
-                </a>
+                {companyLegacyById[selectedRandevu.company_id] ? (
+                  <a
+                    href={`/firmalar/${companyLegacyById[selectedRandevu.company_id]}`}
+                    className={`${TEXT_LINK} hover:underline`}
+                  >
+                    {selectedRandevu.firma_name}
+                  </a>
+                ) : (
+                  <span className={TEXT_BODY}>{selectedRandevu.firma_name}</span>
+                )}
               </dd>
             </div>
             <div>
               <dt className={DL_LABEL}>Tarih / Saat</dt>
-              <dd className={DL_VALUE}>{formatDateTR(selectedRandevu.tarih)} {selectedRandevu.saat}</dd>
+              <dd className={DL_VALUE}>
+                {formatDateTR(selectedRandevu.meeting_date)} {selectedRandevu.meeting_time ?? ""}
+              </dd>
             </div>
             <div>
-              <dt className={DL_LABEL}>Görüşme Tipi</dt>
-              <dd className={DL_VALUE}>{RANDEVU_TIPI_LABELS[selectedRandevu.gorusmeTipi]}</dd>
+              <dt className={DL_LABEL}>Gorusme Tipi</dt>
+              <dd className={DL_VALUE}>{APPOINTMENT_TYPE_LABELS[selectedRandevu.meeting_type]}</dd>
             </div>
             <div>
-              <dt className={DL_LABEL}>Katılımcı</dt>
-              <dd className={DL_VALUE}>{selectedRandevu.katilimci}</dd>
+              <dt className={DL_LABEL}>Katilimci</dt>
+              <dd className={DL_VALUE}>{selectedRandevu.attendee || "\u2014"}</dd>
             </div>
             <div>
               <dt className={DL_LABEL}>Durum</dt>
-              <dd className="mt-1"><StatusBadge status={selectedRandevu.durum} /></dd>
+              <dd className="mt-1"><StatusBadge status={selectedRandevu.status} /></dd>
             </div>
-            {selectedRandevu.sonuc && (
+            {selectedRandevu.result && (
               <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
-                <dt className={DL_LABEL}>Sonuç</dt>
-                <dd className={DL_VALUE}>{selectedRandevu.sonuc}</dd>
+                <dt className={DL_LABEL}>Sonuc</dt>
+                <dd className={DL_VALUE}>{selectedRandevu.result}</dd>
               </div>
             )}
-            {selectedRandevu.sonrakiAksiyon && (
+            {selectedRandevu.next_action && (
               <div>
                 <dt className={DL_LABEL}>Sonraki Aksiyon</dt>
-                <dd className={DL_VALUE}>{selectedRandevu.sonrakiAksiyon}</dd>
+                <dd className={DL_VALUE}>{selectedRandevu.next_action}</dd>
               </div>
             )}
-            {selectedRandevuTasks.length > 0 && (
+            {selectedTasks.length > 0 && (
               <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
-                <dt className={DL_LABEL}>Bu Randevudan Açılan Görevler</dt>
+                <dt className={DL_LABEL}>Bu Randevudan Acilan Gorevler</dt>
                 <dd className="mt-1 space-y-1.5">
-                  {selectedRandevuTasks.map((task, idx) => (
-                    <p key={`${task.baslik}-${idx}`} className={`${TYPE_BODY} ${TEXT_BODY}`}>
-                      {task.baslik}
+                  {selectedTasks.map((task) => (
+                    <p key={task.id} className={`${TYPE_BODY} ${TEXT_BODY}`}>
+                      {task.title}
                     </p>
                   ))}
                 </dd>
@@ -340,42 +451,31 @@ export default function RandevularPage() {
         open={newOpen}
         onClose={() => setNewOpen(false)}
         firmalar={firmaOptions}
-        onSubmit={({ firmaId, firmaAdi, tarih, saat, gorusmeTipi, katilimci }) => {
-          setAppointments((prev) => [
-            {
-              id: `rnd-new-${Date.now()}`,
-              tarih,
-              saat,
-              firmaId,
-              firmaAdi,
-              gorusmeTipi,
-              katilimci: katilimci.trim() || "—",
-              durum: "planlandi",
-              sonuc: "",
-              sonrakiAksiyon: "",
-            },
-            ...prev,
-          ]);
+        onSubmit={async ({ firmaId, tarih, saat, gorusmeTipi, katilimci }) => {
+          await createAppointment(supabase, {
+            legacyCompanyId: firmaId,
+            meetingDate: tarih,
+            meetingTime: saat || undefined,
+            meetingType: gorusmeTipi,
+            attendee: katilimci || undefined,
+          });
+          await reload();
+          router.refresh();
         }}
       />
       <AppointmentResultModal
         open={resultTarget.open}
         onClose={() => setResultTarget({ open: false })}
         randevuId={resultTarget.randevuId}
-        onComplete={({ randevuId, sonuc, sonrakiAksiyon }) => {
+        onComplete={async ({ randevuId, sonuc, sonrakiAksiyon }) => {
           if (!randevuId) return;
-          setAppointments((prev) =>
-            prev.map((appointment) =>
-              appointment.id === randevuId
-                ? {
-                    ...appointment,
-                    durum: "tamamlandi",
-                    sonuc,
-                    sonrakiAksiyon,
-                  }
-                : appointment
-            )
-          );
+          await completeAppointment(supabase, randevuId, {
+            result: sonuc,
+            nextAction: sonrakiAksiyon,
+            createTask: true,
+          });
+          await reload();
+          router.refresh();
         }}
       />
       <NewTaskModal
@@ -385,22 +485,19 @@ export default function RandevularPage() {
         defaultKaynak="randevu"
         defaultFirmaId={taskTarget.firmaId}
         defaultKaynakRef={taskTarget.randevuId}
-        onSubmit={({ baslik, firmaId, kaynak, kaynakRef, atananKisi, termin, oncelik }) => {
-          const firma = MOCK_FIRMALAR.find((item) => item.id === firmaId);
-          if (!firma) return;
-          const newTask: MockGorev = {
-            id: `g-local-${Date.now()}`,
-            baslik,
-            firmaId,
-            firmaAdi: firma.firmaAdi,
-            kaynak,
-            kaynakRef,
-            atananKisi: atananKisi.trim() || "Atanmadı",
-            termin: termin || "—",
-            oncelik: oncelik as OncelikSeviyesi,
-            durum: "acik",
-          };
-          setTasks((prev) => [newTask, ...prev]);
+        onSubmit={async ({ baslik, firmaId, kaynak, kaynakRef, atananKisi, termin, oncelik }) => {
+          await createTask(supabase, {
+            legacyCompanyId: firmaId,
+            title: baslik,
+            assignedTo: atananKisi || undefined,
+            dueDate: termin || undefined,
+            sourceType: kaynak,
+            sourceRef: kaynakRef,
+            appointmentId: kaynakRef,
+            priority: oncelik,
+          });
+          await reload();
+          router.refresh();
         }}
       />
     </>

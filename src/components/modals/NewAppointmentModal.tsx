@@ -1,9 +1,17 @@
 "use client";
 
+/**
+ * NewAppointmentModal — Phase 3B cutover.
+ *
+ * Imports moved from mocks/randevular to lib/appointment-types.
+ * onSubmit is now async — the parent awaits the service-layer call
+ * and this modal shows a saving spinner + inline error on failure.
+ */
+
 import { useState } from "react";
 import { ModalShell } from "@/components/ui";
-import type { RandevuTipi } from "@/mocks/randevular";
-import { RANDEVU_TIPI_LABELS } from "@/mocks/randevular";
+import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
+import type { AppointmentMeetingType } from "@/lib/appointment-types";
 
 interface NewAppointmentModalProps {
   open: boolean;
@@ -14,9 +22,9 @@ interface NewAppointmentModalProps {
     firmaAdi: string;
     tarih: string;
     saat: string;
-    gorusmeTipi: RandevuTipi;
+    gorusmeTipi: AppointmentMeetingType;
     katilimci: string;
-  }) => void;
+  }) => Promise<void> | void;
 }
 
 export default function NewAppointmentModal({
@@ -28,10 +36,12 @@ export default function NewAppointmentModal({
   const [firmaId, setFirmaId] = useState("");
   const [tarih, setTarih] = useState("");
   const [saat, setSaat] = useState("");
-  const [tip, setTip] = useState<RandevuTipi>("ziyaret");
+  const [tip, setTip] = useState<AppointmentMeetingType>("ziyaret");
   const [katilimci, setKatilimci] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!firmaId || !tarih) return;
     const payload = {
       firmaId,
@@ -41,9 +51,18 @@ export default function NewAppointmentModal({
       gorusmeTipi: tip,
       katilimci,
     };
-    console.log("[demo] Yeni randevu:", payload);
-    onSubmit?.(payload);
-    resetAndClose();
+    setSaving(true);
+    setSubmitError(null);
+    try {
+      await onSubmit?.(payload);
+      resetAndClose();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Randevu olusturulurken bir hata olustu.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   function resetAndClose() {
@@ -52,6 +71,7 @@ export default function NewAppointmentModal({
     setSaat("");
     setTip("ziyaret");
     setKatilimci("");
+    setSubmitError(null);
     onClose();
   }
 
@@ -64,21 +84,27 @@ export default function NewAppointmentModal({
         <>
           <button
             onClick={resetAndClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50"
+            disabled={saving}
+            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40"
           >
-            İptal
+            Iptal
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!firmaId || !tarih}
+            disabled={!firmaId || !tarih || saving}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Oluştur
+            {saving ? "Kaydediliyor..." : "Olustur"}
           </button>
         </>
       }
     >
       <div className="space-y-4">
+        {submitError && (
+          <p className="text-xs text-red-600" role="alert" aria-live="polite">
+            {submitError}
+          </p>
+        )}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
             Firma <span className="text-red-500">*</span>
@@ -88,7 +114,7 @@ export default function NewAppointmentModal({
             onChange={(e) => setFirmaId(e.target.value)}
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Firma seçin</option>
+            <option value="">Firma secin</option>
             {firmalar.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.ad}
@@ -122,29 +148,29 @@ export default function NewAppointmentModal({
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Görüşme Tipi
+            Gorusme Tipi
           </label>
           <select
             value={tip}
-            onChange={(e) => setTip(e.target.value as RandevuTipi)}
+            onChange={(e) => setTip(e.target.value as AppointmentMeetingType)}
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {(Object.keys(RANDEVU_TIPI_LABELS) as RandevuTipi[]).map((t) => (
+            {(Object.keys(APPOINTMENT_TYPE_LABELS) as AppointmentMeetingType[]).map((t) => (
               <option key={t} value={t}>
-                {RANDEVU_TIPI_LABELS[t]}
+                {APPOINTMENT_TYPE_LABELS[t]}
               </option>
             ))}
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Katılımcı
+            Katilimci
           </label>
           <input
             type="text"
             value={katilimci}
             onChange={(e) => setKatilimci(e.target.value)}
-            placeholder="Katılımcı adı"
+            placeholder="Katilimci adi"
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>

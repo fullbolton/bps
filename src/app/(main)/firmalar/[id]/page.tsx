@@ -50,9 +50,7 @@ import type { Bahsetme } from "@/mocks/bahsetmeler";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { MOCK_FIRMALAR, MOCK_FIRMA_DETAY, MOCK_FIRMA_TIMELINE } from "@/mocks/firmalar";
-import { MOCK_RANDEVULAR, RANDEVU_TIPI_LABELS } from "@/mocks/randevular";
-import { MOCK_TALEPLER } from "@/mocks/talepler";
-import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
+// Phase 3 mock imports removed — these now read from real Supabase truth:
 import { MOCK_EVRAKLAR } from "@/mocks/evraklar";
 import { KATEGORI_LABELS } from "@/types/batch4";
 import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI, FIRMA_KESILMEMIS_DAGILIMI } from "@/mocks/finansal-ozet";
@@ -78,14 +76,35 @@ import {
   listContractsByLegacyCompanyId,
   computeRemainingDays,
 } from "@/lib/services/contracts";
+import {
+  listDemandsByLegacyCompanyId,
+  computeOpenCount,
+} from "@/lib/services/staffing-demands";
+import {
+  listAppointmentsByLegacyCompanyId,
+  deriveLastCompletedDate,
+  deriveNextPlannedDate,
+} from "@/lib/services/appointments";
+import {
+  getWorkforceSummaryByLegacyCompanyId,
+  deriveOpenGap,
+} from "@/lib/services/workforce-summary";
 import { NOTE_TAG_LABELS } from "@/lib/note-tags";
 import type { NoteTagKey } from "@/lib/note-tags";
-import type { ContactRow, ContractRow, NoteRow } from "@/types/database.types";
+import type {
+  ContactRow,
+  ContractRow,
+  NoteRow,
+  StaffingDemandRow,
+  AppointmentRow,
+  WorkforceSummaryRow,
+} from "@/types/database.types";
 import { BIRIM_LABELS } from "@/types/yonlendirme";
 import type { BirimKodu } from "@/types/yonlendirme";
 import type { EvrakKategorisi } from "@/types/batch4";
 import type { TabItem } from "@/types/ui";
-import type { RandevuTipi } from "@/mocks/randevular";
+import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
+import type { AppointmentMeetingType } from "@/lib/appointment-types";
 import {
   SURFACE_PRIMARY,
   SURFACE_HEADER,
@@ -218,6 +237,18 @@ export default function FirmaDetayPage({
     setNotlarLoading(true);
     void reloadNotlar();
   }, [reloadNotlar]);
+  // Phase 3 state: Talepler, Randevular, İş Gücü — real Supabase truth.
+  const [firmaTalepler, setFirmaTalepler] = useState<StaffingDemandRow[]>([]);
+  const [firmaRandevular, setFirmaRandevular] = useState<AppointmentRow[]>([]);
+  const [firmaIsGucu, setFirmaIsGucu] = useState<WorkforceSummaryRow | null>(null);
+  useEffect(() => {
+    void listDemandsByLegacyCompanyId(supabase, id)
+      .then(setFirmaTalepler).catch(() => setFirmaTalepler([]));
+    void listAppointmentsByLegacyCompanyId(supabase, id)
+      .then(setFirmaRandevular).catch(() => setFirmaRandevular([]));
+    void getWorkforceSummaryByLegacyCompanyId(supabase, id)
+      .then(setFirmaIsGucu).catch(() => setFirmaIsGucu(null));
+  }, [supabase, id]);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [editPhoneEmailOnly, setEditPhoneEmailOnly] = useState(false);
@@ -405,8 +436,7 @@ export default function FirmaDetayPage({
 
             {/* 2. Açık Talepler — hidden for muhasebe */}
             {role !== "muhasebe" && (() => {
-              const firmaTalepler = MOCK_TALEPLER.filter((t) => t.firmaId === id);
-              const acikKalanToplam = firmaTalepler.reduce((s, t) => s + t.acikKalan, 0);
+              const acikKalanToplam = firmaTalepler.reduce((s, t) => s + computeOpenCount(t), 0);
               return (
                 <div className={CARD}>
                   <h3 className={CARD_TITLE}>
@@ -417,14 +447,14 @@ export default function FirmaDetayPage({
                     <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{acikKalanToplam}</span>
                     <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>açık pozisyon</span>
                   </div>
-                  {firmaTalepler.filter((t) => t.acikKalan > 0).length === 0 ? (
+                  {firmaTalepler.filter((t) => computeOpenCount(t) > 0).length === 0 ? (
                     <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Tüm talepler karşılanmış.</p>
                   ) : (
                     <div className="space-y-1.5 mt-2">
-                      {firmaTalepler.filter((t) => t.acikKalan > 0).map((t) => (
+                      {firmaTalepler.filter((t) => computeOpenCount(t) > 0).map((t) => (
                         <div key={t.id} className={`flex items-center justify-between ${TYPE_CAPTION}`}>
-                          <span className="text-slate-600">{t.pozisyon}</span>
-                          <span className="text-red-600 font-medium">{t.acikKalan} açık</span>
+                          <span className="text-slate-600">{t.position}</span>
+                          <span className="text-red-600 font-medium">{computeOpenCount(t)} açık</span>
                         </div>
                       ))}
                     </div>
@@ -435,7 +465,6 @@ export default function FirmaDetayPage({
 
             {/* 3. Aktif İş Gücü Özeti — hidden for muhasebe */}
             {role !== "muhasebe" && (() => {
-              const firmaIsGucu = MOCK_IS_GUCU.find((ig) => ig.firmaId === id);
               return (
                 <div className={CARD}>
                   <h3 className={CARD_TITLE}>
@@ -445,15 +474,15 @@ export default function FirmaDetayPage({
                   {firmaIsGucu ? (
                     <div className="space-y-2">
                       <div className="flex items-baseline gap-2">
-                        <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{firmaIsGucu.aktifKisi}</span>
-                        <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>/ {firmaIsGucu.hedefKisi} hedef</span>
+                        <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{firmaIsGucu.current_count}</span>
+                        <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>/ {firmaIsGucu.target_count} hedef</span>
                       </div>
-                      {firmaIsGucu.acikFark > 0 && (
-                        <p className={`${TYPE_CAPTION} text-amber-600 font-medium`}>{firmaIsGucu.acikFark} açık fark</p>
+                      {deriveOpenGap(firmaIsGucu) > 0 && (
+                        <p className={`${TYPE_CAPTION} text-amber-600 font-medium`}>{deriveOpenGap(firmaIsGucu)} açık fark</p>
                       )}
                       <div className={`flex items-center gap-3 ${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
-                        <span className="text-green-600">+{firmaIsGucu.son30GunGiris} giriş</span>
-                        <span className="text-red-600">−{firmaIsGucu.son30GunCikis} çıkış</span>
+                        <span className="text-green-600">+{firmaIsGucu.hires_last_30d} giriş</span>
+                        <span className="text-red-600">−{firmaIsGucu.exits_last_30d} çıkış</span>
                       </div>
                     </div>
                   ) : (
@@ -466,9 +495,9 @@ export default function FirmaDetayPage({
               );
             })()}
 
-            {/* 4. Yaklaşan Randevular — hidden for muhasebe, derived from source */}
+            {/* 4. Yaklaşan Randevular — hidden for muhasebe, derived from real truth */}
             {role !== "muhasebe" && (() => {
-              const planliRandevuSayisi = MOCK_RANDEVULAR.filter((r) => r.firmaId === id && r.durum === "planlandi").length;
+              const planliRandevuSayisi = firmaRandevular.filter((r) => r.status === "planlandi").length;
               return (
                 <div className={CARD}>
                   <h3 className={CARD_TITLE}>
@@ -1231,9 +1260,8 @@ export default function FirmaDetayPage({
           </div>
         )}
 
-        {/* Randevular tab — firm's appointments */}
+        {/* Randevular tab — firm's appointments (Faz 3 real truth) */}
         {activeTab === "randevular" && (() => {
-          const firmaRandevular = MOCK_RANDEVULAR.filter((r) => r.firmaId === id);
           return (
             <div className={CARD_LG}>
               <h3 className={CARD_TITLE_PLAIN}>
@@ -1250,14 +1278,14 @@ export default function FirmaDetayPage({
                     >
                       <div className="min-w-0">
                         <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>
-                          {formatDateTR(r.tarih)} {r.saat} — {RANDEVU_TIPI_LABELS[r.gorusmeTipi as RandevuTipi]}
+                          {formatDateTR(r.meeting_date)} {r.meeting_time ?? ""} — {APPOINTMENT_TYPE_LABELS[r.meeting_type as AppointmentMeetingType] ?? r.meeting_type}
                         </p>
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{r.katilimci}</p>
-                        {r.sonuc && (
-                          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5 truncate max-w-md`}>{r.sonuc}</p>
+                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{r.attendee ?? "—"}</p>
+                        {r.result && (
+                          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5 truncate max-w-md`}>{r.result}</p>
                         )}
                       </div>
-                      <StatusBadge status={r.durum} />
+                      <StatusBadge status={r.status} />
                     </div>
                   ))}
                 </div>
@@ -1266,9 +1294,8 @@ export default function FirmaDetayPage({
           );
         })()}
 
-        {/* Talepler tab — firm's requests */}
+        {/* Talepler tab — firm's requests (Faz 3 real truth) */}
         {activeTab === "talepler" && (() => {
-          const firmaTalepler = MOCK_TALEPLER.filter((t) => t.firmaId === id);
           return (
             <>
             <DemandTrendChart talepler={firmaTalepler} />
@@ -1281,10 +1308,10 @@ export default function FirmaDetayPage({
                   {firmaTalepler.map((t) => (
                     <div key={t.id} className={`flex items-center justify-between py-2.5 ${LIST_DIVIDER}`}>
                       <div className="min-w-0">
-                        <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{t.pozisyon}</p>
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{t.talepEdilen} talep · {t.saglanan} sağlanan · {t.acikKalan} açık</p>
+                        <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{t.position}</p>
+                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{t.requested_count} talep · {t.provided_count} sağlanan · {computeOpenCount(t)} açık</p>
                       </div>
-                      <StatusBadge status={t.durum} />
+                      <StatusBadge status={t.status} />
                     </div>
                   ))}
                 </div>
@@ -1294,32 +1321,31 @@ export default function FirmaDetayPage({
           );
         })()}
 
-        {/* Aktif İş Gücü tab — firm's workforce */}
+        {/* Aktif İş Gücü tab — firm's workforce (Faz 3 real truth) */}
         {activeTab === "aktif-isgucu" && (() => {
-          const firmaIsGucu = MOCK_IS_GUCU.find((ig) => ig.firmaId === id);
           return (
             <div className={CARD_LG}>
               <h3 className={CARD_TITLE_PLAIN}>Aktif İş Gücü</h3>
               {firmaIsGucu ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className={`text-center p-3 ${SURFACE_HEADER} rounded`}>
-                    <p className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{firmaIsGucu.aktifKisi}</p>
+                    <p className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{firmaIsGucu.current_count}</p>
                     <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-1`}>Aktif Kişi</p>
                   </div>
                   <div className={`text-center p-3 ${SURFACE_HEADER} rounded`}>
-                    <p className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{firmaIsGucu.hedefKisi}</p>
+                    <p className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{firmaIsGucu.target_count}</p>
                     <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-1`}>Hedef Kişi</p>
                   </div>
                   <div className={`text-center p-3 ${SURFACE_HEADER} rounded`}>
-                    <p className={`${TYPE_KPI_VALUE} ${firmaIsGucu.acikFark > 0 ? "text-red-600" : "text-green-600"}`}>{firmaIsGucu.acikFark > 0 ? `−${firmaIsGucu.acikFark}` : "0"}</p>
+                    <p className={`${TYPE_KPI_VALUE} ${deriveOpenGap(firmaIsGucu) > 0 ? "text-red-600" : "text-green-600"}`}>{deriveOpenGap(firmaIsGucu) > 0 ? `−${deriveOpenGap(firmaIsGucu)}` : "0"}</p>
                     <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-1`}>Açık Fark</p>
                   </div>
                   <div className="text-center p-3 bg-green-50 rounded">
-                    <p className="text-xl font-semibold text-green-700">+{firmaIsGucu.son30GunGiris}</p>
+                    <p className="text-xl font-semibold text-green-700">+{firmaIsGucu.hires_last_30d}</p>
                     <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-1`}>Son 30g Giriş</p>
                   </div>
                   <div className="text-center p-3 bg-red-50 rounded">
-                    <p className="text-xl font-semibold text-red-600">−{firmaIsGucu.son30GunCikis}</p>
+                    <p className="text-xl font-semibold text-red-600">−{firmaIsGucu.exits_last_30d}</p>
                     <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-1`}>Son 30g Çıkış</p>
                   </div>
                 </div>

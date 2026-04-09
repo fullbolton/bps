@@ -9,6 +9,7 @@ import {
   PageHeader,
   ContractSummaryHeader,
   RenewalTrackingCard,
+  StatusBadge,
 } from "@/components/ui";
 import { NewContractModal } from "@/components/modals";
 import { useRole } from "@/context/RoleContext";
@@ -28,7 +29,10 @@ import {
   type ContractContentUpdateInput,
 } from "@/lib/services/contracts";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
-import type { ContractRow } from "@/types/database.types";
+import { listTasksByContractId } from "@/lib/services/tasks";
+import { listAppointmentsByContractId } from "@/lib/services/appointments";
+import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
+import type { ContractRow, TaskRow, AppointmentRow } from "@/types/database.types";
 import type { SozlesmeDurumu } from "@/types/ui";
 import {
   SURFACE_PRIMARY,
@@ -76,6 +80,9 @@ export default function SozlesmeDetayPage({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  // Faz 3: linked tasks and appointments for this contract
+  const [linkedTasks, setLinkedTasks] = useState<TaskRow[]>([]);
+  const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRow[]>([]);
 
   const reload = useCallback(async () => {
     setLoadError(null);
@@ -86,9 +93,16 @@ export default function SozlesmeDetayPage({
         const display = await getCompanyDisplayMapByIds(supabase, [row.company_id]);
         setFirmaName(display.nameById[row.company_id] ?? "—");
         setFirmaLegacyId(display.legacyById[row.company_id] ?? null);
+        // Faz 3: load linked tasks and appointments for this contract
+        void listTasksByContractId(supabase, row.id)
+          .then(setLinkedTasks).catch(() => setLinkedTasks([]));
+        void listAppointmentsByContractId(supabase, row.id)
+          .then(setLinkedAppointments).catch(() => setLinkedAppointments([]));
       } else {
         setFirmaName("");
         setFirmaLegacyId(null);
+        setLinkedTasks([]);
+        setLinkedAppointments([]);
       }
     } catch (err) {
       setContract(null);
@@ -333,6 +347,45 @@ export default function SozlesmeDetayPage({
             </dl>
           </section>
         )}
+
+        {/* Bağlı Görevler — Faz 3 real truth via tasks service */}
+        <section className={SECTION}>
+          <h2 className={SECTION_TITLE}>Bağlı Görevler</h2>
+          {linkedTasks.length === 0 ? (
+            <EmptyState title="Bağlı görev yok" size="card" />
+          ) : (
+            <div className="space-y-2">
+              {linkedTasks.map((g) => (
+                <a key={g.id} href="/gorevler" className={`flex items-center justify-between py-2 border-b ${BORDER_SUBTLE} last:border-0`}>
+                  <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{g.title}</span>
+                  <StatusBadge status={g.status} />
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Bağlı Randevular — Faz 3 real truth via appointments service */}
+        <section className={SECTION}>
+          <h2 className={SECTION_TITLE}>Bağlı Randevular</h2>
+          {linkedAppointments.length === 0 ? (
+            <EmptyState title="Bağlı randevu yok" size="card" />
+          ) : (
+            <div className="space-y-2">
+              {linkedAppointments.map((r) => (
+                <a key={r.id} href="/randevular" className={`flex items-center justify-between py-2 border-b ${BORDER_SUBTLE} last:border-0`}>
+                  <div>
+                    <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(r.meeting_date)} — {APPOINTMENT_TYPE_LABELS[r.meeting_type] ?? r.meeting_type}</span>
+                    {r.result && (
+                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{r.result}</p>
+                    )}
+                  </div>
+                  <StatusBadge status={r.status} />
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       <NewContractModal
