@@ -28,6 +28,7 @@ Bu klasör, Partner Staff ofis içi operasyon arayüzü için Codex'e verilecek 
 
 ## Koşullu / Governance Dokümanları
 - `CHANGELOG.md` → dokümantasyon ve yapısal karar geçmişi
+- `WORKFLOWS_PROMPT.md` → tekrar kullanılabilir standart workflow prompt kütüphanesi; ürün/rol/workflow kuralı tanımlamaz
 - `REVIEW_STANDARD.md` → batch review ve kapanış kontrol standardı
 - `MIGRATION_SAFETY.md` → yalnızca canlı kullanım ve gerçek veri olduğunda aktive edilen güvenlik ilkeleri
 
@@ -52,6 +53,7 @@ Yeni bir Codex oturumunda canonical okuma sırası şu olmalıdır:
 
 Koşullu / governance dokümanları:
 - `CHANGELOG.md` → son dokümantasyon kararlarını anlamak ve güncellemek için
+- `WORKFLOWS_PROMPT.md` → tekrar kullanılan oturum/prompt workflow'ları gerektiğinde
 - `REVIEW_STANDARD.md` → substantial batch review veya closeout öncesi
 - `MIGRATION_SAFETY.md` → yalnızca canlı iç kullanım ve gerçek veri sonrası, contract-level değişikliklerde
 

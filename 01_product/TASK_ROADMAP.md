@@ -64,6 +64,14 @@ Role-model migration note:
 - real-data migration will require partner -> portfolio / firma mapping so scoped access can be enforced
 - `goruntuleyici` remains as the bounded read-only role
 
+Real-data migration state:
+- `Faz 0 — Altyapi + Profiles + Kesif` -> completed
+- `Faz 1A — Yetkililer + minimal company identity anchor` -> completed
+- `Faz 1B — Notlar` -> completed
+- `Faz 2 — Sozlesmeler` -> completed
+- validated Phase 2 readers: `Firma Detay > Sozlesmeler`, `Genel Bakis > Aktif Sozlesmeler`, `Sozlesmeler` listesi, `Firmalar` list active-contract count
+- migration order does not change; Faz 3 is not started by this closeout patch
+
 ---
 
 ## Completed Batches

@@ -1,0 +1,31 @@
+Ayık Adam — Cursor / v0 / başka bir kod asistanına yapıştırılacak ÜRETİM PROMPTU
+================================================================================
+
+Bağlam:
+- Ürün: "Ayık Adam" — İstanbul pilotu; müşteri alkollüyken kendi aracıyla güvenli şekilde
+  eve/varişe dönmek için vale/şoför çağırır. Şoför kendi arabasıyla gelmez; müşterinin
+  arabasını sürer. Güven, kimlik, teslim (handoff) ve operasyon önceliklidir.
+
+Görev:
+- React Native (Expo) için müşteri uygulaması MVP arayüzü üret. Backend yok; mock state yeterli.
+- Ekranlar (minimum): (1) Ana istek: harita placeholder, alış/varış kartı, plaka satırı,
+  güven çipleri, "Vale çağır" CTA. (2) Aranıyor: spinner + tahmini ücret bandı + iptal.
+  (3) Atandı: vale özeti (ad soyad maskeli), doğrulama rozetleri, ETA, destek butonu,
+  "Araç teslimine geç". (4) Teslim: plaka görünür + zorunlu checklist; hepsi işaretlenmeden
+  "Yolculuğu başlat" disabled. (5) Yolculuk: sade durum + "varışı doğrula" (alert veya modal).
+- Tasarım: koyu lacivert zemin, zümrüt yeşili birincil buton, küçük altın pilot rozeti.
+  Tipografi system / Inter. Mobile-first, Türkçe kopya.
+- Dispatch gerçek algoritma yazma: setTimeout ile 2sn sonra "atandı" state'ine geçsin.
+- Dosya yapısı sade olsun: App.tsx veya src/screens/* — projede mevcut stile uy.
+
+Kısıtlar:
+- Uber klonu değil; kopya güven ve teslim odaklı.
+- Ödeme entegrasyonu yok; sadece placeholder metin.
+- Harici harita SDK zorunlu değil; View + gradient placeholder kabul.
+
+Çıktı:
+- Tek komutla çalışır Expo projesi veya tek App.tsx + basit navigasyon (React Navigation isteğe bağlı).
+- README’de `npx expo start` ile çalıştırma.
+
+================================================================================
+Bu promptu ihtiyaca göre kısaltıp uzatabilirsin; üstteki "Görev" bölümü asıl talimat.
