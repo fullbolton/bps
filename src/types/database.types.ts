@@ -19,12 +19,15 @@
 import type { NoteTagKey } from "@/lib/note-tags";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
 import type { TaskSourceType } from "@/lib/task-sources";
+import type { DocumentCategory } from "@/lib/document-categories";
+import type { CriticalDateType, CriticalDatePriority } from "@/lib/critical-date-types";
 import type {
   SozlesmeDurumu,
   TalepDurumu,
   RandevuDurumu,
   GorevDurumu,
   OncelikSeviyesi,
+  EvrakDurumu,
 } from "@/types/ui";
 
 import type { UserRole } from "@/context/AuthContext";
@@ -600,6 +603,101 @@ export interface Database {
         ];
       };
       // ---------------------------------------------------------------------
+      // documents — Phase 4A (Evraklar)
+      // ---------------------------------------------------------------------
+      documents: {
+        Row: {
+          id: string;
+          company_id: string;
+          name: string;
+          category: DocumentCategory;
+          status: EvrakDurumu;
+          validity_date: string | null;
+          storage_path: string | null;
+          uploaded_by: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          name: string;
+          category?: DocumentCategory;
+          status?: EvrakDurumu;
+          validity_date?: string | null;
+          storage_path?: string | null;
+          uploaded_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          name?: string;
+          category?: DocumentCategory;
+          status?: EvrakDurumu;
+          validity_date?: string | null;
+          storage_path?: string | null;
+          uploaded_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "documents_company_id_fkey"; columns: ["company_id"]; referencedRelation: "companies"; referencedColumns: ["id"] },
+          { foreignKeyName: "documents_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      // ---------------------------------------------------------------------
+      // critical_dates — Phase 4B (Kurumsal Kritik Tarihler)
+      // ---------------------------------------------------------------------
+      // Status is DERIVED from deadline_date — never stored. See
+      // src/lib/critical-date-types.ts > deriveDeadlineStatus.
+      // ---------------------------------------------------------------------
+      critical_dates: {
+        Row: {
+          id: string;
+          title: string;
+          date_type: CriticalDateType;
+          deadline_date: string;
+          priority: CriticalDatePriority;
+          responsible: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          date_type?: CriticalDateType;
+          deadline_date: string;
+          priority?: CriticalDatePriority;
+          responsible?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          date_type?: CriticalDateType;
+          deadline_date?: string;
+          priority?: CriticalDatePriority;
+          responsible?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "critical_dates_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      // ---------------------------------------------------------------------
       // partner_company_assignments — Faz 1A partner-scope source
       // ---------------------------------------------------------------------
       // Mirrors `supabase/migrations/20260407000200_create_companies_anchor.sql`.
@@ -705,6 +803,14 @@ export type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
 export type WorkforceSummaryRow = Database["public"]["Tables"]["workforce_summary"]["Row"];
 export type WorkforceSummaryInsert = Database["public"]["Tables"]["workforce_summary"]["Insert"];
 export type WorkforceSummaryUpdate = Database["public"]["Tables"]["workforce_summary"]["Update"];
+
+export type DocumentRow = Database["public"]["Tables"]["documents"]["Row"];
+export type DocumentInsert = Database["public"]["Tables"]["documents"]["Insert"];
+export type DocumentUpdate = Database["public"]["Tables"]["documents"]["Update"];
+
+export type CriticalDateRow = Database["public"]["Tables"]["critical_dates"]["Row"];
+export type CriticalDateInsert = Database["public"]["Tables"]["critical_dates"]["Insert"];
+export type CriticalDateUpdate = Database["public"]["Tables"]["critical_dates"]["Update"];
 
 export type PartnerCompanyAssignmentRow =
   Database["public"]["Tables"]["partner_company_assignments"]["Row"];

@@ -50,9 +50,10 @@ import type { Bahsetme } from "@/mocks/bahsetmeler";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { MOCK_FIRMALAR, MOCK_FIRMA_DETAY, MOCK_FIRMA_TIMELINE } from "@/mocks/firmalar";
-// Phase 3 mock imports removed — these now read from real Supabase truth:
-import { MOCK_EVRAKLAR } from "@/mocks/evraklar";
-import { KATEGORI_LABELS } from "@/types/batch4";
+// Phase 4 — documents now read from real Supabase truth:
+import { listDocumentsByLegacyCompanyId } from "@/lib/services/documents";
+import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
+import type { DocumentCategory } from "@/lib/document-categories";
 import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI, FIRMA_KESILMEMIS_DAGILIMI } from "@/mocks/finansal-ozet";
 import { getContractMarjBandi, getFirmaTicariKaliteOzeti } from "@/mocks/ticari-kalite";
 import { getAktifInisiyatiflerByFirma } from "@/mocks/inisiyatifler";
@@ -98,10 +99,10 @@ import type {
   StaffingDemandRow,
   AppointmentRow,
   WorkforceSummaryRow,
+  DocumentRow,
 } from "@/types/database.types";
 import { BIRIM_LABELS } from "@/types/yonlendirme";
 import type { BirimKodu } from "@/types/yonlendirme";
-import type { EvrakKategorisi } from "@/types/batch4";
 import type { TabItem } from "@/types/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
@@ -301,6 +302,22 @@ export default function FirmaDetayPage({
     () => firmaSozlesmeler.filter((s) => s.status === "aktif"),
     [firmaSozlesmeler]
   );
+
+  // -------------------------------------------------------------------------
+  // Phase 4A — Firma Evraklar (real Supabase truth)
+  // -------------------------------------------------------------------------
+  const [firmaDocs, setFirmaDocs] = useState<DocumentRow[]>([]);
+  const reloadDocs = useCallback(async () => {
+    try {
+      const rows = await listDocumentsByLegacyCompanyId(supabase, id);
+      setFirmaDocs(rows);
+    } catch {
+      setFirmaDocs([]);
+    }
+  }, [supabase, id]);
+  useEffect(() => {
+    void reloadDocs();
+  }, [reloadDocs]);
 
   if (!firma) {
     return (
@@ -523,8 +540,7 @@ export default function FirmaDetayPage({
 
             {/* 5. Eksik Evraklar — hidden for muhasebe */}
             {role !== "muhasebe" && (() => {
-              const firmaEvraklar = MOCK_EVRAKLAR.filter((e) => e.firmaId === id);
-              const eksikler = firmaEvraklar.filter((e) => e.durum !== "tam");
+              const eksikler = firmaDocs.filter((e) => e.status !== "tam");
               return (
                 <div className={CARD}>
                   <h3 className={CARD_TITLE}>
@@ -535,16 +551,16 @@ export default function FirmaDetayPage({
                     <span className={`${TYPE_KPI_VALUE} font-semibold ${eksikler.length > 0 ? "text-amber-600" : TEXT_PRIMARY}`}>
                       {eksikler.length}
                     </span>
-                    <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>eksik / süresi dolan evrak</span>
+                    <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>eksik / suresi dolan evrak</span>
                   </div>
                   {eksikler.length === 0 ? (
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Tüm evraklar tamam.</p>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Tum evraklar tamam.</p>
                   ) : (
                     <div className="space-y-1.5 mt-2">
                       {eksikler.map((e) => (
                         <div key={e.id} className={`flex items-center justify-between ${TYPE_CAPTION}`}>
-                          <span className="text-slate-600 truncate mr-2">{e.evrakAdi}</span>
-                          <StatusBadge status={e.durum} />
+                          <span className="text-slate-600 truncate mr-2">{e.name}</span>
+                          <StatusBadge status={e.status} />
                         </div>
                       ))}
                     </div>
@@ -1356,23 +1372,22 @@ export default function FirmaDetayPage({
           );
         })()}
 
-        {/* Evraklar tab — firm's documents */}
+        {/* Evraklar tab — firm's documents (real Supabase truth) */}
         {activeTab === "evraklar" && (() => {
-          const firmaEvraklar = MOCK_EVRAKLAR.filter((e) => e.firmaId === id);
           return (
             <div className={CARD_LG}>
-              <h3 className={CARD_TITLE_PLAIN}>Firma Evrakları</h3>
-              {firmaEvraklar.length === 0 ? (
-                <EmptyState title="Evrak yok" description="Bu firmaya ait evrak bulunamadı." size="tab" />
+              <h3 className={CARD_TITLE_PLAIN}>Firma Evraklari</h3>
+              {firmaDocs.length === 0 ? (
+                <EmptyState title="Evrak yok" description="Bu firmaya ait evrak bulunamadi." size="tab" />
               ) : (
                 <div className="space-y-2">
-                  {firmaEvraklar.map((e) => (
+                  {firmaDocs.map((e) => (
                     <div key={e.id} className={`flex items-center justify-between py-2.5 ${LIST_DIVIDER}`}>
                       <div className="min-w-0">
-                        <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{e.evrakAdi}</p>
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{KATEGORI_LABELS[e.kategori as EvrakKategorisi]} {e.gecerlilikTarihi ? `· ${formatDateTR(e.gecerlilikTarihi)}` : ""}</p>
+                        <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{e.name}</p>
+                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{DOCUMENT_CATEGORY_LABELS[e.category]} {e.validity_date ? `\u00b7 ${formatDateTR(e.validity_date)}` : ""}</p>
                       </div>
-                      <StatusBadge status={e.durum} />
+                      <StatusBadge status={e.status} />
                     </div>
                   ))}
                 </div>

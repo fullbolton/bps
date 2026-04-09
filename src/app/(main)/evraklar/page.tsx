@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Upload, AlertTriangle } from "lucide-react";
 import {
@@ -15,11 +16,17 @@ import {
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
 import { UploadDocumentModal, UpdateValidityModal } from "@/components/modals";
-import { MOCK_EVRAKLAR, getEvrakStatusCounts, updateEvraklar } from "@/mocks/evraklar";
 import { MOCK_FIRMALAR } from "@/mocks/firmalar";
-import { KATEGORI_LABELS } from "@/types/batch4";
-import type { MockEvrak } from "@/mocks/evraklar";
-import type { EvrakKategorisi } from "@/types/batch4";
+import { createClient } from "@/lib/supabase/client";
+import {
+  listAllDocuments,
+  createDocument,
+  updateDocumentValidity,
+} from "@/lib/services/documents";
+import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
+import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
+import type { DocumentCategory } from "@/lib/document-categories";
+import type { DocumentRow } from "@/types/database.types";
 import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
 import { clsx } from "clsx";
 import {
@@ -35,6 +42,15 @@ import {
   RADIUS_DEFAULT,
 } from "@/styles/tokens";
 
+// ---------------------------------------------------------------------------
+// Enriched row — extends DocumentRow with resolved firma info
+// ---------------------------------------------------------------------------
+
+interface DocumentListRow extends DocumentRow {
+  firma_name: string;
+  firma_legacy_id: string | null;
+}
+
 // Page-local helpers
 const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
 const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
@@ -44,8 +60,8 @@ const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
 const STATUS_LABELS: Record<string, string> = {
   tam: "Tam",
   eksik: "Eksik",
-  suresi_yaklsiyor: "Süresi Yaklaşıyor",
-  suresi_doldu: "Süresi Doldu",
+  suresi_yaklsiyor: "Suresi Yaklaiyor",
+  suresi_doldu: "Suresi Doldu",
 };
 
 const FILTER_CONFIG: FilterConfig[] = [
@@ -53,68 +69,101 @@ const FILTER_CONFIG: FilterConfig[] = [
     key: "durum",
     label: "Durum",
     type: "select",
-    placeholder: "Tüm durumlar",
+    placeholder: "Tum durumlar",
     options: Object.entries(STATUS_LABELS).map(([v, l]) => ({ value: v, label: l })),
   },
   {
     key: "kategori",
     label: "Kategori",
     type: "select",
-    placeholder: "Tüm kategoriler",
-    options: (Object.keys(KATEGORI_LABELS) as EvrakKategorisi[]).map((k) => ({ value: k, label: KATEGORI_LABELS[k] })),
-  },
-  {
-    key: "firma",
-    label: "Firma",
-    type: "select",
-    placeholder: "Tüm firmalar",
-    options: Array.from(new Set(MOCK_EVRAKLAR.map((e) => e.firmaAdi))).map((n) => ({ label: n, value: n })),
+    placeholder: "Tum kategoriler",
+    options: (Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map((k) => ({ value: k, label: DOCUMENT_CATEGORY_LABELS[k] })),
   },
 ];
 
 /**
- * Columns match PRODUCT_STRUCTURE > Evraklar > Liste kolonları:
- * evrak adı, firma, kategori, geçerlilik tarihi, durum, yükleyen, güncellenme tarihi
+ * Columns match PRODUCT_STRUCTURE > Evraklar > Liste kolonlari:
+ * evrak adi, firma, kategori, gecerlilik tarihi, durum, yukleyen, guncellenme tarihi
  */
-const COLUMNS: ColumnDef<MockEvrak>[] = [
-  { key: "evrakAdi", header: "Evrak Adı", sortable: true },
-  { key: "firmaAdi", header: "Firma", sortable: true },
+const COLUMNS: ColumnDef<DocumentListRow>[] = [
+  { key: "name", header: "Evrak Adi", sortable: true },
+  { key: "firma_name", header: "Firma", sortable: true },
   {
-    key: "kategori",
+    key: "category",
     header: "Kategori",
-    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{KATEGORI_LABELS[val as EvrakKategorisi] ?? String(val)}</span>,
+    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{DOCUMENT_CATEGORY_LABELS[val as DocumentCategory] ?? String(val)}</span>,
   },
   {
-    key: "gecerlilikTarihi",
-    header: "Geçerlilik Tarihi",
+    key: "validity_date",
+    header: "Gecerlilik Tarihi",
     sortable: true,
     render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(val as string)}</span>,
   },
   {
-    key: "durum",
+    key: "status",
     header: "Durum",
     sortable: true,
-    render: (val) => <StatusBadge status={val as MockEvrak["durum"]} />,
+    render: (val) => <StatusBadge status={val as DocumentListRow["status"]} />,
   },
   {
-    key: "yukleyen",
-    header: "Yükleyen",
-    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{(val as string) || "—"}</span>,
+    key: "uploaded_by",
+    header: "Yukleyen",
+    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{(val as string) || "\u2014"}</span>,
   },
-  { key: "guncellenmeTarihi", header: "Güncellenme", sortable: true, render: (val) => formatDateTR(val as string) },
+  {
+    key: "updated_at",
+    header: "Guncellenme",
+    sortable: true,
+    render: (val) => formatDateTR((val as string)?.split("T")[0] ?? ""),
+  },
 ];
 
 export default function EvraklarPage() {
   const { role } = useRole();
-  const [documents, _setDocuments] = useState(MOCK_EVRAKLAR);
-  // Wrap setter to sync shared module state for Dashboard/Company Detail consistency
-  function setDocuments(updater: typeof MOCK_EVRAKLAR | ((prev: typeof MOCK_EVRAKLAR) => typeof MOCK_EVRAKLAR)) {
-    _setDocuments((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      updateEvraklar(next);
-      return next;
-    });
-  }
+  const router = useRouter();
+  const supabase = createClient();
+
+  // ---------------------------------------------------------------------------
+  // Data loading
+  // ---------------------------------------------------------------------------
+  const [documents, setDocuments] = useState<DocumentListRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      setLoadError(null);
+      const allDocs = await listAllDocuments(supabase);
+
+      // Resolve company names
+      const companyIds = [...new Set(allDocs.map((d) => d.company_id))];
+      const { nameById, legacyById } = companyIds.length > 0
+        ? await getCompanyDisplayMapByIds(supabase, companyIds)
+        : { nameById: {} as Record<string, string>, legacyById: {} as Record<string, string> };
+
+      const enriched: DocumentListRow[] = allDocs.map((d) => ({
+        ...d,
+        firma_name: nameById[d.company_id] ?? "Bilinmeyen Firma",
+        firma_legacy_id: legacyById[d.company_id] ?? null,
+      }));
+
+      setDocuments(enriched);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Evraklar yuklenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    let active = true;
+    reload().then(() => { if (!active) return; });
+    return () => { active = false; };
+  }, [reload]);
+
+  // ---------------------------------------------------------------------------
+  // UI state
+  // ---------------------------------------------------------------------------
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({ durum: "", kategori: "", firma: "" });
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -124,19 +173,34 @@ export default function EvraklarPage() {
   const handleSearch = useCallback((val: string) => setSearch(val), []);
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = { tam: 0, eksik: 0, suresi_yaklsiyor: 0, suresi_doldu: 0 };
-    for (const e of documents) c[e.durum] = (c[e.durum] || 0) + 1;
+    for (const e of documents) c[e.status] = (c[e.status] || 0) + 1;
     return c;
+  }, [documents]);
+
+  // Build firma filter options dynamically from loaded data
+  const firmaFilterConfig = useMemo((): FilterConfig[] => {
+    const firmaNames = [...new Set(documents.map((d) => d.firma_name))].sort();
+    return [
+      ...FILTER_CONFIG,
+      {
+        key: "firma",
+        label: "Firma",
+        type: "select" as const,
+        placeholder: "Tum firmalar",
+        options: firmaNames.map((n) => ({ label: n, value: n })),
+      },
+    ];
   }, [documents]);
 
   const filteredData = useMemo(() => {
     return documents.filter((e) => {
       if (search) {
         const q = search.toLowerCase();
-        if (!e.evrakAdi.toLowerCase().includes(q) && !e.firmaAdi.toLowerCase().includes(q)) return false;
+        if (!e.name.toLowerCase().includes(q) && !e.firma_name.toLowerCase().includes(q)) return false;
       }
-      if (filters.durum && e.durum !== filters.durum) return false;
-      if (filters.kategori && e.kategori !== filters.kategori) return false;
-      if (filters.firma && e.firmaAdi !== filters.firma) return false;
+      if (filters.durum && e.status !== filters.durum) return false;
+      if (filters.kategori && e.category !== filters.kategori) return false;
+      if (filters.firma && e.firma_name !== filters.firma) return false;
       return true;
     });
   }, [documents, search, filters]);
@@ -146,16 +210,16 @@ export default function EvraklarPage() {
   // FirmDocumentChecklistPanel: show selected firma's documents
   const firmaEvraklar = useMemo(() => {
     if (!selectedEvrak) return [];
-    return documents.filter((e) => e.firmaId === selectedEvrak.firmaId);
+    return documents.filter((e) => e.company_id === selectedEvrak.company_id);
   }, [documents, selectedEvrak]);
 
   const firmaEvrakCounts = useMemo(() => {
     const c = { tam: 0, eksik: 0, suresiYaklsiyor: 0, suresiDoldu: 0 };
     for (const e of firmaEvraklar) {
-      if (e.durum === "tam") c.tam++;
-      else if (e.durum === "eksik") c.eksik++;
-      else if (e.durum === "suresi_yaklsiyor") c.suresiYaklsiyor++;
-      else if (e.durum === "suresi_doldu") c.suresiDoldu++;
+      if (e.status === "tam") c.tam++;
+      else if (e.status === "eksik") c.eksik++;
+      else if (e.status === "suresi_yaklsiyor") c.suresiYaklsiyor++;
+      else if (e.status === "suresi_doldu") c.suresiDoldu++;
     }
     return c;
   }, [firmaEvraklar]);
@@ -163,10 +227,10 @@ export default function EvraklarPage() {
   const firmaOptions = MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }));
 
   const canMutateEvrak = ["yonetici", "operasyon", "ik"].includes(role);
-  const rowActions: RowAction<MockEvrak>[] = canMutateEvrak ? [
+  const rowActions: RowAction<DocumentListRow>[] = canMutateEvrak ? [
     {
-      label: "Geçerlilik Güncelle",
-      onClick: (row) => setValidityTarget({ open: true, evrakAdi: row.evrakAdi, evrakId: row.id, currentDate: row.gecerlilikTarihi }),
+      label: "Gecerlilik Guncelle",
+      onClick: (row) => setValidityTarget({ open: true, evrakAdi: row.name, evrakId: row.id, currentDate: row.validity_date ?? "" }),
     },
   ] : [];
 
@@ -174,15 +238,33 @@ export default function EvraklarPage() {
     return (
       <>
         <PageHeader title="Evraklar" subtitle="Belge takibi" />
-        <EmptyState title="Erişim kısıtlı" description="Bu ekran görüntüleyici erişiminin dışındadır." size="page" />
+        <EmptyState title="Erisim kisitli" description="Bu ekran goruntleyici erisiminin disindadir." size="page" />
+      </>
+    );
+  }
+
+  if (loading) {
+    return (
+      <>
+        <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" />
+        <p className={`${TYPE_BODY} ${TEXT_SECONDARY} py-8 text-center`}>Yukleniyor...</p>
+      </>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" />
+        <div className={`${RADIUS_DEFAULT} border border-red-200 bg-red-50 p-4 text-sm text-red-700`}>{loadError}</div>
       </>
     );
   }
 
   return (
     <>
-      <PageHeader title="Evraklar" subtitle="Belge ve uygunluk görünürlüğü" actions={canMutateEvrak ? [
-        { label: "Evrak Yükle", onClick: () => setUploadOpen(true), icon: <Upload size={16} /> },
+      <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" actions={canMutateEvrak ? [
+        { label: "Evrak Yukle", onClick: () => setUploadOpen(true), icon: <Upload size={16} /> },
       ] : []} />
 
       <div className="space-y-4">
@@ -193,17 +275,17 @@ export default function EvraklarPage() {
           suresiDoldu={statusCounts["suresi_doldu"] ?? 0}
         />
 
-        {/* Operational billing-risk signal — read-only, driven by document completeness */}
+        {/* Operational billing-risk signal -- read-only, driven by document completeness */}
         {(() => {
           const riskCount = (statusCounts["eksik"] ?? 0) + (statusCounts["suresi_doldu"] ?? 0);
           if (riskCount === 0) return null;
           // group by firma
           const firmaRisk = new Map<string, string[]>();
           for (const e of documents) {
-            if (e.durum === "eksik" || e.durum === "suresi_doldu") {
-              const list = firmaRisk.get(e.firmaAdi) ?? [];
-              list.push(e.evrakAdi);
-              firmaRisk.set(e.firmaAdi, list);
+            if (e.status === "eksik" || e.status === "suresi_doldu") {
+              const list = firmaRisk.get(e.firma_name) ?? [];
+              list.push(e.name);
+              firmaRisk.set(e.firma_name, list);
             }
           }
           return (
@@ -213,7 +295,7 @@ export default function EvraklarPage() {
                 Operasyonel Faturalama Riski
               </h3>
               <p className={`${TYPE_CAPTION} text-amber-700 mb-2`}>
-                {riskCount} evrak eksik veya süresi dolmuş — ilgili firmalarda faturalama süreci etkilenebilir.
+                {riskCount} evrak eksik veya suresi dolmus -- ilgili firmalarda faturalama sureci etkilenebilir.
               </p>
               <div className="space-y-1">
                 {Array.from(firmaRisk.entries()).map(([firma, evraklar]) => (
@@ -237,14 +319,14 @@ export default function EvraklarPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs"><SearchInput placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
-          <FilterBar filters={FILTER_CONFIG} values={filters} onChange={setFilters} />
+          <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
         </div>
 
-        <DataTable<MockEvrak> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle="Evrak bulunamadı" emptyDescription="Arama veya filtre kriterlerinizi değiştirin." />
+        <DataTable<DocumentListRow> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle="Evrak bulunamadi" emptyDescription="Arama veya filtre kriterlerinizi degistirin." />
       </div>
 
       {/* FirmDocumentChecklistPanel */}
-      <RightSidePanel open={!!selectedEvrak} onClose={() => setSelectedId(null)} title={selectedEvrak ? `${selectedEvrak.firmaAdi} — Evrak Durumu` : undefined}>
+      <RightSidePanel open={!!selectedEvrak} onClose={() => setSelectedId(null)} title={selectedEvrak ? `${selectedEvrak.firma_name} -- Evrak Durumu` : undefined}>
         {selectedEvrak && (
           <div className="space-y-4">
             <DocumentsChecklistCard {...firmaEvrakCounts} />
@@ -252,10 +334,10 @@ export default function EvraklarPage() {
               {firmaEvraklar.map((e) => (
                 <div key={e.id} className={`flex items-center justify-between py-2 ${LIST_DIVIDER}`}>
                   <div className="min-w-0">
-                    <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{e.evrakAdi}</p>
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{KATEGORI_LABELS[e.kategori]} {e.gecerlilikTarihi ? `· ${formatDateTR(e.gecerlilikTarihi)}` : ""}</p>
+                    <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{e.name}</p>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{DOCUMENT_CATEGORY_LABELS[e.category]} {e.validity_date ? `\u00b7 ${formatDateTR(e.validity_date)}` : ""}</p>
                   </div>
-                  <StatusBadge status={e.durum} />
+                  <StatusBadge status={e.status} />
                 </div>
               ))}
             </div>
@@ -264,18 +346,22 @@ export default function EvraklarPage() {
       </RightSidePanel>
 
       <UploadDocumentModal open={uploadOpen} onClose={() => setUploadOpen(false)} firmalar={firmaOptions}
-        onSubmit={(p) => {
-          setDocuments((prev) => [{
-            id: `ev-new-${Date.now()}`, evrakAdi: p.evrakAdi, firmaId: p.firmaId, firmaAdi: p.firmaAdi,
-            kategori: p.kategori, gecerlilikTarihi: p.gecerlilikTarihi,
-            durum: p.gecerlilikTarihi ? "tam" : "eksik", yukleyen: "Demo Kullanıcı",
-            guncellenmeTarihi: new Date().toISOString().split("T")[0],
-          }, ...prev]);
+        onSubmit={async (p) => {
+          await createDocument(supabase, {
+            legacyCompanyId: p.firmaId,
+            name: p.evrakAdi,
+            category: p.kategori,
+            validityDate: p.gecerlilikTarihi,
+          });
+          await reload();
+          router.refresh();
         }}
       />
       <UpdateValidityModal open={validityTarget.open} onClose={() => setValidityTarget({ open: false })} evrakAdi={validityTarget.evrakAdi} evrakId={validityTarget.evrakId} currentDate={validityTarget.currentDate}
-        onSubmit={({ evrakId, yeniTarih }) => {
-          setDocuments((prev) => prev.map((e) => e.id === evrakId ? { ...e, gecerlilikTarihi: yeniTarih, durum: "tam" as const, guncellenmeTarihi: new Date().toISOString().split("T")[0] } : e));
+        onSubmit={async ({ evrakId, yeniTarih }) => {
+          await updateDocumentValidity(supabase, evrakId, { validityDate: yeniTarih });
+          await reload();
+          router.refresh();
         }}
       />
     </>

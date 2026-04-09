@@ -3,75 +3,93 @@
 /**
  * Kurumsal Kritik Tarihler — company-wide critical date/deadline visibility.
  * Not firm-scoped. Not document management. Not compliance software.
- * Broad visibility for all roles; create/edit is yönetici-only.
+ * Broad visibility for all roles; create/edit is yonetici-only.
+ *
+ * Phase 4B cutover: reads/writes from real Supabase truth.
+ * Status is DERIVED from deadline_date via `deriveDeadlineStatus` — never stored.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
-import { ArrowLeft, Plus, Pencil, AlertTriangle } from "lucide-react";
-import { PageHeader, StatusBadge, EmptyState } from "@/components/ui";
-import { ModalShell } from "@/components/ui";
+import { ArrowLeft, Plus, Pencil } from "lucide-react";
+import { PageHeader, EmptyState, ModalShell } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { createClient } from "@/lib/supabase/client";
 import {
-  MOCK_KURUMSAL_BELGELER,
-  updateKurumsalBelgeler,
-  BELGE_TURU_LABELS,
-  ONCELIK_LABELS,
-  kalanGunHesapla,
-} from "@/mocks/kurumsal-belgeler";
+  listAllCriticalDates,
+  createCriticalDate,
+  updateCriticalDateRecord,
+} from "@/lib/services/critical-dates";
+import {
+  CRITICAL_DATE_TYPE_LABELS,
+  CRITICAL_DATE_PRIORITY_LABELS,
+  computeRemainingDays,
+  deriveDeadlineStatus,
+} from "@/lib/critical-date-types";
 import type {
-  MockKurumsalBelge,
-  KurumsalBelgeTuru,
-  KurumsalOncelik,
-  KurumsalBelgeDurumu,
-} from "@/mocks/kurumsal-belgeler";
+  CriticalDateType,
+  CriticalDatePriority,
+  CriticalDateStatus,
+} from "@/lib/critical-date-types";
+import type { CriticalDateRow } from "@/types/database.types";
 import {
   SURFACE_PRIMARY,
-  SURFACE_HEADER,
   BORDER_DEFAULT,
   BORDER_SUBTLE,
   RADIUS_DEFAULT,
   RADIUS_SM,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_CARD_TITLE,
   TEXT_PRIMARY,
-  TEXT_BODY,
   TEXT_SECONDARY,
   TEXT_MUTED,
-  TEXT_LINK,
-  BUTTON_PRIMARY,
 } from "@/styles/tokens";
-
-const DURUM_LABELS: Record<KurumsalBelgeDurumu, string> = {
-  aktif: "Aktif",
-  suresi_yaklsiyor: "Yaklaşıyor",
-  suresi_doldu: "Süresi Doldu",
-};
 
 export default function KurumsalTarihlerPage() {
   const router = useRouter();
   const { role } = useRole();
   const isYonetici = role === "yonetici";
+  const supabase = createClient();
 
-  const [belgeler, _setBelgeler] = useState<MockKurumsalBelge[]>(MOCK_KURUMSAL_BELGELER);
-  // Wrap setter to sync shared module state for Dashboard consistency
-  function setBelgeler(updater: MockKurumsalBelge[] | ((prev: MockKurumsalBelge[]) => MockKurumsalBelge[])) {
-    _setBelgeler((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      updateKurumsalBelgeler(next);
-      return next;
-    });
-  }
+  // ---------------------------------------------------------------------------
+  // Data loading
+  // ---------------------------------------------------------------------------
+  const [records, setRecords] = useState<CriticalDateRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      setLoadError(null);
+      const data = await listAllCriticalDates(supabase);
+      setRecords(data);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Veriler yuklenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    let active = true;
+    reload().then(() => { if (!active) return; });
+    return () => { active = false; };
+  }, [reload]);
+
+  // ---------------------------------------------------------------------------
+  // Modal state
+  // ---------------------------------------------------------------------------
   const [modalOpen, setModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<MockKurumsalBelge | null>(null);
+  const [editTarget, setEditTarget] = useState<CriticalDateRow | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Modal form state
+  // Form fields
   const [formBaslik, setFormBaslik] = useState("");
-  const [formTur, setFormTur] = useState<KurumsalBelgeTuru | "">("");
+  const [formTur, setFormTur] = useState<CriticalDateType | "">("");
   const [formBitis, setFormBitis] = useState("");
-  const [formOncelik, setFormOncelik] = useState<KurumsalOncelik>("normal");
+  const [formOncelik, setFormOncelik] = useState<CriticalDatePriority>("normal");
   const [formSorumlu, setFormSorumlu] = useState("");
   const [formNot, setFormNot] = useState("");
 
@@ -83,64 +101,97 @@ export default function KurumsalTarihlerPage() {
     setFormOncelik("normal");
     setFormSorumlu("");
     setFormNot("");
+    setSaving(false);
+    setSubmitError(null);
     setModalOpen(true);
   }
 
-  function openEdit(belge: MockKurumsalBelge) {
+  function openEdit(belge: CriticalDateRow) {
     setEditTarget(belge);
-    setFormBaslik(belge.baslik);
-    setFormTur(belge.tur);
-    setFormBitis(belge.bitisTarihi);
-    setFormOncelik(belge.oncelik);
-    setFormSorumlu(belge.sorumlu);
-    setFormNot(belge.kisaNot ?? "");
+    setFormBaslik(belge.title);
+    setFormTur(belge.date_type);
+    setFormBitis(belge.deadline_date);
+    setFormOncelik(belge.priority);
+    setFormSorumlu(belge.responsible ?? "");
+    setFormNot(belge.note ?? "");
+    setSaving(false);
+    setSubmitError(null);
     setModalOpen(true);
   }
 
-  function handleSubmit() {
-    if (!formBaslik.trim() || !formTur || !formBitis) return;
+  async function handleSubmit() {
+    if (!formBaslik.trim() || !formTur || !formBitis || saving) return;
 
-    const kalanGun = kalanGunHesapla(formBitis);
-    const durum: KurumsalBelgeDurumu = kalanGun < 0 ? "suresi_doldu" : kalanGun <= 30 ? "suresi_yaklsiyor" : "aktif";
-
-    if (editTarget) {
-      setBelgeler((prev) =>
-        prev.map((b) =>
-          b.id === editTarget.id
-            ? { ...b, baslik: formBaslik.trim(), tur: formTur as KurumsalBelgeTuru, bitisTarihi: formBitis, durum, oncelik: formOncelik, sorumlu: formSorumlu.trim(), kisaNot: formNot.trim() || undefined }
-            : b
-        )
-      );
-      console.log("[Kurumsal belge güncellendi]", editTarget.id);
-    } else {
-      const newBelge: MockKurumsalBelge = {
-        id: `kb-new-${Date.now()}`,
-        baslik: formBaslik.trim(),
-        tur: formTur as KurumsalBelgeTuru,
-        bitisTarihi: formBitis,
-        durum,
-        sorumlu: formSorumlu.trim() || "Atanmadı",
-        oncelik: formOncelik,
-        kisaNot: formNot.trim() || undefined,
-      };
-      setBelgeler((prev) => [newBelge, ...prev]);
-      console.log("[Kurumsal belge oluşturuldu]", newBelge);
+    setSaving(true);
+    setSubmitError(null);
+    try {
+      if (editTarget) {
+        await updateCriticalDateRecord(supabase, editTarget.id, {
+          title: formBaslik.trim(),
+          dateType: formTur as CriticalDateType,
+          deadlineDate: formBitis,
+          priority: formOncelik,
+          responsible: formSorumlu.trim() || undefined,
+          note: formNot.trim() || undefined,
+        });
+      } else {
+        await createCriticalDate(supabase, {
+          title: formBaslik.trim(),
+          dateType: formTur as CriticalDateType,
+          deadlineDate: formBitis,
+          priority: formOncelik,
+          responsible: formSorumlu.trim() || undefined,
+          note: formNot.trim() || undefined,
+        });
+      }
+      setModalOpen(false);
+      await reload();
+      router.refresh();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Islem basarisiz.");
+    } finally {
+      setSaving(false);
     }
-    setModalOpen(false);
   }
 
-  const sorted = useMemo(() =>
-    [...belgeler].sort((a, b) => {
-      const durumOrder: Record<KurumsalBelgeDurumu, number> = { suresi_doldu: 0, suresi_yaklsiyor: 1, aktif: 2 };
-      const oncelikOrder: Record<KurumsalOncelik, number> = { kritik: 0, yuksek: 1, normal: 2 };
-      const dCmp = durumOrder[a.durum] - durumOrder[b.durum];
+  // ---------------------------------------------------------------------------
+  // Sorting — derive status then sort by urgency
+  // ---------------------------------------------------------------------------
+  const sorted = useMemo(() => {
+    return [...records].sort((a, b) => {
+      const durumOrder: Record<CriticalDateStatus, number> = { suresi_doldu: 0, suresi_yaklsiyor: 1, aktif: 2 };
+      const oncelikOrder: Record<CriticalDatePriority, number> = { kritik: 0, yuksek: 1, normal: 2 };
+
+      const aDurum = deriveDeadlineStatus(a.deadline_date);
+      const bDurum = deriveDeadlineStatus(b.deadline_date);
+      const dCmp = durumOrder[aDurum] - durumOrder[bDurum];
       if (dCmp !== 0) return dCmp;
-      return oncelikOrder[a.oncelik] - oncelikOrder[b.oncelik];
-    }),
-    [belgeler]
-  );
+      return oncelikOrder[a.priority] - oncelikOrder[b.priority];
+    });
+  }, [records]);
 
   const isFormValid = formBaslik.trim() && formTur && formBitis;
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+  if (loading) {
+    return (
+      <>
+        <PageHeader title="Kurumsal Kritik Tarihler" subtitle="Sirket geneli kritik belge ve son tarihleri" />
+        <p className={`${TYPE_BODY} ${TEXT_SECONDARY} py-8 text-center`}>Yukleniyor...</p>
+      </>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <PageHeader title="Kurumsal Kritik Tarihler" subtitle="Sirket geneli kritik belge ve son tarihleri" />
+        <div className={`${RADIUS_DEFAULT} border border-red-200 bg-red-50 p-4 text-sm text-red-700`}>{loadError}</div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -154,58 +205,59 @@ export default function KurumsalTarihlerPage() {
 
       <PageHeader
         title="Kurumsal Kritik Tarihler"
-        subtitle="Şirket geneli kritik belge ve son tarihleri"
+        subtitle="Sirket geneli kritik belge ve son tarihleri"
         actions={isYonetici ? [
-          { label: "Yeni Kayıt", onClick: openCreate, icon: <Plus size={16} /> },
+          { label: "Yeni Kayit", onClick: openCreate, icon: <Plus size={16} /> },
         ] : []}
       />
 
       <div className="space-y-4">
         {sorted.length === 0 ? (
-          <EmptyState title="Kayıt yok" description="Kurumsal kritik tarih kaydı bulunmuyor." size="page" />
+          <EmptyState title="Kayit yok" description="Kurumsal kritik tarih kaydi bulunmuyor." size="page" />
         ) : (
           <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} overflow-hidden`}>
             {sorted.map((b, idx) => {
-              const kalan = kalanGunHesapla(b.bitisTarihi);
+              const kalan = computeRemainingDays(b.deadline_date);
+              const durum = deriveDeadlineStatus(b.deadline_date);
               return (
                 <div key={b.id} className={`p-4 ${idx < sorted.length - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{b.baslik}</p>
-                        {b.durum === "suresi_doldu" && (
+                        <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{b.title}</p>
+                        {durum === "suresi_doldu" && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20">
-                            Süresi Doldu
+                            Suresi Doldu
                           </span>
                         )}
-                        {b.durum === "suresi_yaklsiyor" && (
+                        {durum === "suresi_yaklsiyor" && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">
-                            Yaklaşıyor
+                            Yaklaiyor
                           </span>
                         )}
-                        {b.durum === "aktif" && (
+                        {durum === "aktif" && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
                             Aktif
                           </span>
                         )}
-                        {b.oncelik === "kritik" && (
+                        {b.priority === "kritik" && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-red-50 text-red-600 ring-1 ring-inset ring-red-500/20">
                             Kritik
                           </span>
                         )}
-                        {b.oncelik === "yuksek" && (
+                        {b.priority === "yuksek" && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-500/20">
-                            Yüksek
+                            Yuksek
                           </span>
                         )}
                       </div>
                       <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-1`}>
-                        {BELGE_TURU_LABELS[b.tur]} · {b.sorumlu} · Son tarih: {formatDateTR(b.bitisTarihi)}
-                        {kalan < 0 && <span className="text-red-600 font-medium ml-1">({Math.abs(kalan)} gün gecikmiş)</span>}
-                        {kalan >= 0 && kalan <= 30 && <span className="text-amber-600 font-medium ml-1">({kalan} gün kaldı)</span>}
+                        {CRITICAL_DATE_TYPE_LABELS[b.date_type]} {"\u00b7"} {b.responsible ?? "Atanmadi"} {"\u00b7"} Son tarih: {formatDateTR(b.deadline_date)}
+                        {kalan < 0 && <span className="text-red-600 font-medium ml-1">({Math.abs(kalan)} gun gecikmis)</span>}
+                        {kalan >= 0 && kalan <= 30 && <span className="text-amber-600 font-medium ml-1">({kalan} gun kaldi)</span>}
                       </p>
-                      {b.kisaNot && (
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>{b.kisaNot}</p>
+                      {b.note && (
+                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>{b.note}</p>
                       )}
                     </div>
                     {isYonetici && (
@@ -224,59 +276,62 @@ export default function KurumsalTarihlerPage() {
         )}
       </div>
 
-      {/* Create/Edit Modal — yönetici-only */}
+      {/* Create/Edit Modal — yonetici-only */}
       <ModalShell
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editTarget ? "Kaydı Düzenle" : "Yeni Kritik Tarih"}
+        title={editTarget ? "Kaydi Duzenle" : "Yeni Kritik Tarih"}
         footer={
           <>
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50">
-              İptal
+            <button onClick={() => setModalOpen(false)} disabled={saving} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40">
+              Iptal
             </button>
-            <button onClick={handleSubmit} disabled={!isFormValid} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
-              {editTarget ? "Güncelle" : "Ekle"}
+            <button onClick={handleSubmit} disabled={!isFormValid || saving} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+              {saving ? "Kaydediliyor..." : editTarget ? "Guncelle" : "Ekle"}
             </button>
           </>
         }
       >
         <div className="space-y-4">
+          {submitError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{submitError}</div>
+          )}
           <div>
-            <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Başlık <span className="text-red-500">*</span></label>
-            <input type="text" value={formBaslik} onChange={(e) => setFormBaslik(e.target.value)} placeholder="ör. İSG Yetki Belgesi" className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+            <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Baslik <span className="text-red-500">*</span></label>
+            <input type="text" value={formBaslik} onChange={(e) => setFormBaslik(e.target.value)} disabled={saving} placeholder="or. ISG Yetki Belgesi" className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Tür <span className="text-red-500">*</span></label>
-              <select value={formTur} onChange={(e) => setFormTur(e.target.value as KurumsalBelgeTuru)} className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white`}>
-                <option value="">Seçin</option>
-                {(Object.entries(BELGE_TURU_LABELS) as [KurumsalBelgeTuru, string][]).map(([k, v]) => (
+              <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Tur <span className="text-red-500">*</span></label>
+              <select value={formTur} onChange={(e) => setFormTur(e.target.value as CriticalDateType)} disabled={saving} className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white`}>
+                <option value="">Secin</option>
+                {(Object.entries(CRITICAL_DATE_TYPE_LABELS) as [CriticalDateType, string][]).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Son Tarih <span className="text-red-500">*</span></label>
-              <input type="date" value={formBitis} onChange={(e) => setFormBitis(e.target.value)} className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+              <input type="date" value={formBitis} onChange={(e) => setFormBitis(e.target.value)} disabled={saving} className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Öncelik</label>
-              <select value={formOncelik} onChange={(e) => setFormOncelik(e.target.value as KurumsalOncelik)} className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white`}>
-                {(Object.entries(ONCELIK_LABELS) as [KurumsalOncelik, string][]).map(([k, v]) => (
+              <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Oncelik</label>
+              <select value={formOncelik} onChange={(e) => setFormOncelik(e.target.value as CriticalDatePriority)} disabled={saving} className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white`}>
+                {(Object.entries(CRITICAL_DATE_PRIORITY_LABELS) as [CriticalDatePriority, string][]).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Sorumlu</label>
-              <input type="text" value={formSorumlu} onChange={(e) => setFormSorumlu(e.target.value)} placeholder="İsim" className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+              <input type="text" value={formSorumlu} onChange={(e) => setFormSorumlu(e.target.value)} disabled={saving} placeholder="Isim" className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
             </div>
           </div>
           <div>
-            <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Kısa Not</label>
-            <input type="text" value={formNot} onChange={(e) => setFormNot(e.target.value)} placeholder="Opsiyonel kısa açıklama" className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+            <label className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>Kisa Not</label>
+            <input type="text" value={formNot} onChange={(e) => setFormNot(e.target.value)} disabled={saving} placeholder="Opsiyonel kisa aciklama" className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
           </div>
         </div>
       </ModalShell>

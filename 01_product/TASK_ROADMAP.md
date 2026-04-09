@@ -69,8 +69,10 @@ Real-data migration state:
 - `Faz 1A — Yetkililer + minimal company identity anchor` -> completed
 - `Faz 1B — Notlar` -> completed
 - `Faz 2 — Sozlesmeler` -> completed
+- `Faz 3 — Talepler + Randevular + Gorevler + Aktif Is Gucu` -> completed
 - validated Phase 2 readers: `Firma Detay > Sozlesmeler`, `Genel Bakis > Aktif Sozlesmeler`, `Sozlesmeler` listesi, `Firmalar` list active-contract count
-- migration order does not change; Faz 3 is not started by this closeout patch
+- validated Phase 3 readers/writers: `Talepler`, `Randevular`, `Gorevler`, `Firma Detay > Talepler`, `Firma Detay > Randevular`, `Firma Detay > Aktif Is Gucu`, `Firmalar` list appointment-derived parity
+- migration order does not change; Faz 4 is not started by this closeout patch
 
 ---
 
