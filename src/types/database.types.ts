@@ -803,6 +803,51 @@ export interface Database {
         };
         Relationships: [];
       };
+      // ---------------------------------------------------------------------
+      // demo_requests — Evre 1B public inbound capture
+      // ---------------------------------------------------------------------
+      demo_requests: {
+        Row: {
+          id: string;
+          full_name: string;
+          company_name: string;
+          email: string;
+          phone: string | null;
+          sector: string | null;
+          company_size: string | null;
+          message: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          company_name: string;
+          email: string;
+          phone?: string | null;
+          sector?: string | null;
+          company_size?: string | null;
+          message?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          company_name?: string;
+          email?: string;
+          phone?: string | null;
+          sector?: string | null;
+          company_size?: string | null;
+          message?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
