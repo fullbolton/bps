@@ -105,7 +105,10 @@ export async function importContacts(
     if (!row.valid) continue;
     const d = row.data;
     const companyId = companyNameToId.get(d.company_name?.trim());
-    if (!companyId) continue;
+    if (!companyId) {
+      errors.push(`Satir ${row.rowIndex}: firma "${d.company_name}" artik bulunamiyor`);
+      continue;
+    }
 
     const { error } = await client.from("contacts").insert({
       company_id: companyId,
@@ -146,7 +149,10 @@ export async function importContracts(
     if (!row.valid) continue;
     const d = row.data;
     const companyId = companyNameToId.get(d.company_name?.trim());
-    if (!companyId) continue;
+    if (!companyId) {
+      errors.push(`Satir ${row.rowIndex}: firma "${d.company_name}" artik bulunamiyor`);
+      continue;
+    }
 
     const { error } = await client.from("contracts").insert({
       company_id: companyId,

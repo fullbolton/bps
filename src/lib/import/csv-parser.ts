@@ -90,6 +90,11 @@ function parseDDMMYYYY(value: string): string | null {
   const m = parseInt(mm, 10);
   const y = parseInt(yyyy, 10);
   if (m < 1 || m > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return null;
+  // Real calendar validation: construct Date and verify it round-trips
+  const dateObj = new Date(y, m - 1, d);
+  if (dateObj.getFullYear() !== y || dateObj.getMonth() !== m - 1 || dateObj.getDate() !== d) {
+    return null; // e.g. 31.02.2026 → Date creates Mar 3 → doesn't round-trip → invalid
+  }
   return `${yyyy}-${mm}-${dd}`;
 }
 
