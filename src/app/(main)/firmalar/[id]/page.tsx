@@ -45,7 +45,8 @@ import { generateYenidenTemasDraft } from "@/lib/draft-yeniden-temas";
 import { hesaplaTeklifBedeli, DEFAULT_KAR_ORANI } from "@/lib/teklif-hesaplayici";
 import { formatDateTR } from "@/lib/format-date";
 import { MOCK_BAHSETMELER } from "@/mocks/bahsetmeler";
-import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
+import { SECTOR_LABELS } from "@/lib/sector-codes";
+import type { SectorCode } from "@/lib/sector-codes";
 import type { Bahsetme } from "@/mocks/bahsetmeler";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
@@ -283,7 +284,7 @@ export default function FirmaDetayPage({
   const firma = companyShell ? {
     id,
     firmaAdi: companyShell.name,
-    sektor: companyShell.sector ?? "—",
+    sektor: companyShell.sector ? (SECTOR_LABELS[companyShell.sector as SectorCode] ?? companyShell.sector) : "—",
     sehir: companyShell.city ?? "—",
     durum: companyShell.status,
     risk: companyShell.risk,
@@ -406,7 +407,7 @@ export default function FirmaDetayPage({
         risk={firma.risk}
         sektor={firma.sektor}
         sehir={firma.sehir}
-        partner={FIRMA_PARTNER_MAP[id]?.partnerAdi}
+        partner={undefined}
         actions={headerActions}
       />
 
