@@ -36,10 +36,11 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Public routes that don't require auth
-  const isLoginPage = request.nextUrl.pathname === "/login";
+  const pathname = request.nextUrl.pathname;
+  const isPublicRoute = pathname === "/login" || pathname === "/";
 
-  // If no user and not on login page, redirect to login with return URL
-  if (!user && !isLoginPage) {
+  // If no user and not on a public route, redirect to login with return URL
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     const returnTo = url.pathname + url.search;
     url.pathname = "/login";
@@ -48,6 +49,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If user is on login page and already authenticated, redirect to dashboard
+  const isLoginPage = pathname === "/login";
   if (user && isLoginPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BPS — Partner Staff",
-  description: "İç ofis operasyon yönetim arayüzü",
+  title: "BPS — B2B Operasyon Platformu",
+  description: "Hizmet firmalari icin firma portfoyu, sozlesme, gorev, evrak ve operasyon yonetimi platformu.",
 };
 
 export default function RootLayout({
