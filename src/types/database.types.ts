@@ -22,12 +22,14 @@ import type { TaskSourceType } from "@/lib/task-sources";
 import type { DocumentCategory } from "@/lib/document-categories";
 import type { CriticalDateType, CriticalDatePriority } from "@/lib/critical-date-types";
 import type {
+  FirmaDurumu,
   SozlesmeDurumu,
   TalepDurumu,
   RandevuDurumu,
   GorevDurumu,
   OncelikSeviyesi,
   EvrakDurumu,
+  RiskSeviyesi,
 } from "@/types/ui";
 
 import type { UserRole } from "@/context/AuthContext";
@@ -157,6 +159,10 @@ export interface Database {
           id: string;
           name: string;
           legacy_mock_id: string | null;
+          sector: string | null;
+          city: string | null;
+          status: FirmaDurumu;
+          risk: RiskSeviyesi;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -165,6 +171,10 @@ export interface Database {
           id?: string;
           name: string;
           legacy_mock_id?: string | null;
+          sector?: string | null;
+          city?: string | null;
+          status?: FirmaDurumu;
+          risk?: RiskSeviyesi;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -173,6 +183,10 @@ export interface Database {
           id?: string;
           name?: string;
           legacy_mock_id?: string | null;
+          sector?: string | null;
+          city?: string | null;
+          status?: FirmaDurumu;
+          risk?: RiskSeviyesi;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;

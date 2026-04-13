@@ -107,6 +107,22 @@ export async function selectCompaniesByLegacyMockIds(
  * Added in Faz 2 (Sözleşmeler) so the Sözleşmeler list page can show
  * the firma name column without doing a per-row join.
  */
+/**
+ * Read every company visible to the caller. RLS-filtered.
+ */
+export async function selectAllCompanies(
+  client: Client,
+): Promise<CompanyRow[]> {
+  const { data, error } = await client
+    .from("companies")
+    .select("*");
+
+  if (error) {
+    throw new Error(`companies select-all failed: ${error.message}`);
+  }
+  return data ?? [];
+}
+
 export async function selectCompaniesByIds(
   client: Client,
   companyIds: string[],
