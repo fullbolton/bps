@@ -35,7 +35,6 @@ import {
   TimelineList,
   StatusBadge,
   RiskBadge,
-  MarginBandBadge,
 } from "@/components/ui";
 import DemandTrendChart from "@/components/ui/DemandTrendChart";
 import { QuickNoteModal, AddContactModal } from "@/components/modals";
@@ -57,9 +56,7 @@ import type { CompanyRow } from "@/types/database.types";
 import { listDocumentsByLegacyCompanyId } from "@/lib/services/documents";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
 import type { DocumentCategory } from "@/lib/document-categories";
-import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI, FIRMA_KESILMEMIS_DAGILIMI } from "@/mocks/finansal-ozet";
-import { getContractMarjBandi, getFirmaTicariKaliteOzeti } from "@/mocks/ticari-kalite";
-import { getAktifInisiyatiflerByFirma } from "@/mocks/inisiyatifler";
+// Mock commercial helpers removed — real financial summary loaded from DB
 import { MOCK_YONLENDIRMELER, birimFromRole } from "@/mocks/yonlendirmeler";
 import type { Yonlendirme } from "@/mocks/yonlendirmeler";
 import { createClient } from "@/lib/supabase/client";
@@ -299,6 +296,28 @@ export default function FirmaDetayPage({
     yaklaşanRandevu: 0,
   } : null;
   const timeline = MOCK_FIRMA_TIMELINE[id] ?? [];
+
+  // Financial summary — real DB, truthful absence state
+  const [firmaFinancial, setFirmaFinancial] = useState<{
+    open_receivable: string | null;
+    unbilled_amount: string | null;
+    is_overdue: boolean;
+  } | null>(null);
+  useEffect(() => {
+    if (!companyShell) return;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("financial_summaries")
+          .select("open_receivable, unbilled_amount, is_overdue")
+          .eq("company_id", companyShell.id)
+          .maybeSingle();
+        setFirmaFinancial(data ?? null);
+      } catch {
+        setFirmaFinancial(null);
+      }
+    })();
+  }, [supabase, companyShell]);
 
   // Sözleşmeler — Faz 2: real Supabase truth via service layer.
   // One fetch feeds both the Sözleşmeler tab (full list) and the
@@ -603,18 +622,28 @@ export default function FirmaDetayPage({
               );
             })()}
 
-            {/* 6. Ticari Özet — hidden for görüntüleyici + ik */}
+            {/* 6. Ticari Ozet — real financial data or honest absence */}
             {!["goruntuleyici", "ik"].includes(role) && (() => {
-              // Use confirmed financial data if available, fall back to static mock
-              const confirmedAlacak = FIRMA_ALACAK_DAGILIMI.find((a) => a.firmaId === id);
-              const confirmedKesilmemis = FIRMA_KESILMEMIS_DAGILIMI.find((k) => k.firmaId === id);
+              if (!firmaFinancial) {
+                return (
+                  <div className={CARD}>
+                    <h3 className={CARD_TITLE}>
+                      <BarChart3 size={14} className={TEXT_MUTED} />
+                      Ticari Ozet
+                    </h3>
+                    <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
+                      Ticari ozet verisi henuz mevcut degil.
+                    </p>
+                  </div>
+                );
+              }
               return (
                 <CommercialSummaryCard
-                  acikBakiye={confirmedAlacak?.acikAlacak ?? firma.acikBakiye}
-                  sonFaturaTarihi={firma.sonFaturaTarihi}
-                  sonFaturaTutari={firma.sonFaturaTutari}
-                  kesilmemisBekleyen={confirmedKesilmemis?.kesilmemisBekleyen ?? firma.kesilmemisBekleyen}
-                  ticariRisk={firma.ticariRisk}
+                  acikBakiye={firmaFinancial.open_receivable ?? "—"}
+                  sonFaturaTarihi={"—"}
+                  sonFaturaTutari={"—"}
+                  kesilmemisBekleyen={firmaFinancial.unbilled_amount ?? "—"}
+                  ticariRisk={firmaFinancial.is_overdue ? "yuksek" : "dusuk"}
                 />
               );
             })()}
@@ -654,23 +683,16 @@ export default function FirmaDetayPage({
               <div className="flex items-center gap-2 mb-3">
                 <RiskBadge risk={firma.risk} size="md" />
               </div>
-              {/* Yönetici inisiyatif cue — extremely subtle */}
-              {role === "yonetici" && (() => {
-                const firmaInisiyatifler = getAktifInisiyatiflerByFirma(id);
-                if (firmaInisiyatifler.length === 0) return null;
-                return (
-                  <p className={`${TYPE_CAPTION} text-blue-600 mb-3 flex items-center gap-1`}>
-                    <span className="w-1 h-1 rounded-full bg-blue-500 flex-shrink-0" />
-                    Yönetici takibinde: {firmaInisiyatifler[0].baslik}
-                  </p>
-                );
-              })()}
               {(() => {
-                const tb = getTicariBaskiByFirma(id);
+                // Real risk signals from financial summary
                 const ticariBullets: string[] = [];
-                if (tb?.gecikmisAlacak) ticariBullets.push(`Ticari: Gecikmiş alacak ${tb.gecikmisAlacak}`);
-                if (tb?.kesilmemisBekleyen) ticariBullets.push(`Ticari: Kesilmemiş bekleyen ${tb.kesilmemisBekleyen}`);
-                const allSignals = firma.riskSinyalleri.length === 0 && ticariBullets.length === 0;
+                if (firmaFinancial?.is_overdue && firmaFinancial?.open_receivable) {
+                  ticariBullets.push(`Ticari: Gecikmis alacak ${firmaFinancial.open_receivable}`);
+                }
+                if (firmaFinancial?.unbilled_amount) {
+                  ticariBullets.push(`Ticari: Kesilmemis bekleyen ${firmaFinancial.unbilled_amount}`);
+                }
+                const allSignals = ticariBullets.length === 0;
 
                 if (allSignals) {
                   return <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Aktif risk sinyali yok.</p>;
@@ -681,12 +703,6 @@ export default function FirmaDetayPage({
                 return (
                   <>
                     <ul className="space-y-1.5">
-                      {firma.riskSinyalleri.map((sinyal, idx) => (
-                        <li key={idx} className={`flex items-start gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
-                          <span className="text-amber-500 mt-0.5">•</span>
-                          {sinyal}
-                        </li>
-                      ))}
                       {ticariBullets.map((sinyal, idx) => (
                         <li key={`ticari-${idx}`} className={`flex items-start gap-2 ${TYPE_BODY} text-amber-600`}>
                           <span className="text-amber-400 mt-0.5">•</span>
@@ -707,51 +723,7 @@ export default function FirmaDetayPage({
               })()}
             </div>}
 
-            {/* 9. Tahmini Ticari Kalite — management assumption visibility */}
-            {(role === "yonetici" || role === "partner") && (() => {
-              const kalite = getFirmaTicariKaliteOzeti(id);
-              const toplam = kalite.saglikli + kalite.dar + kalite.riskli;
-              if (toplam === 0) return null;
-              return (
-                <div className={CARD}>
-                  <h3 className={CARD_TITLE}>
-                    <BarChart3 size={14} className={TEXT_MUTED} />
-                    Tahmini Ticari Kalite
-                  </h3>
-                  <p className={`${TYPE_CAPTION} ${TEXT_MUTED} -mt-2 mb-3`}>Yönetim varsayımı</p>
-                  <div className="space-y-1.5">
-                    {kalite.saglikli > 0 && (
-                      <div className={`flex items-center justify-between ${TYPE_BODY}`}>
-                        <MarginBandBadge band="saglikli" />
-                        <span className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>{kalite.saglikli} sözleşme</span>
-                      </div>
-                    )}
-                    {kalite.dar > 0 && (
-                      <div className={`flex items-center justify-between ${TYPE_BODY}`}>
-                        <MarginBandBadge band="dar" />
-                        <span className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>{kalite.dar} sözleşme</span>
-                      </div>
-                    )}
-                    {kalite.riskli > 0 && (
-                      <div className={`flex items-center justify-between ${TYPE_BODY}`}>
-                        <MarginBandBadge band="riskli" />
-                        <span className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>{kalite.riskli} sözleşme</span>
-                      </div>
-                    )}
-                  </div>
-                  {kalite.enKotuBant === "riskli" && (
-                    <p className={`${TYPE_CAPTION} text-red-600 mt-3`}>
-                      Ticari kalite dikkat gerektiriyor
-                    </p>
-                  )}
-                  {kalite.enKotuBant === "dar" && kalite.riskli === 0 && (
-                    <p className={`${TYPE_CAPTION} text-amber-600 mt-3`}>
-                      Dar marjlı sözleşme mevcut
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
+            {/* 9. Tahmini Ticari Kalite — removed, no real data source */}
           </div>
 
           {/* Ticari Temas — outbound draft helpers, yönetici + partner only */}
@@ -761,7 +733,7 @@ export default function FirmaDetayPage({
               const diff = (new Date().getTime() - new Date(sonGorusmeTarih).getTime()) / (1000 * 60 * 60 * 24);
               return diff > 30;
             })();
-            const tb = getTicariBaskiByFirma(id);
+            const tb = firmaFinancial ? { gecikmisAlacak: firmaFinancial.is_overdue ? (firmaFinancial.open_receivable ?? undefined) : undefined, kesilmemisBekleyen: firmaFinancial.unbilled_amount ?? undefined } : null;
             const hasTicariBaski = !!(tb?.gecikmisAlacak || tb?.kesilmemisBekleyen);
             if (!isStale && !hasTicariBaski) return null;
 
@@ -1287,13 +1259,8 @@ export default function FirmaDetayPage({
                         {(role === "yonetici" || role === "partner") && (() => {
                           // ticari kalite still reads from the static mock id
                           // index — that mock keys by the legacy "s1".."s12"
-                          // ids and is not part of this slice. Real contracts
-                          // (UUID ids) won't have a margin band yet, so the
-                          // badge silently disappears for them. The full
-                          // ticari kalite cutover lives in a later phase.
-                          const band = getContractMarjBandi(s.id);
-                          if (!band) return null;
-                          return <MarginBandBadge band={band} />;
+                          // Ticari kalite / margin band: no real data source yet
+                          return null;
                         })()}
                         {kalanGun !== null && kalanGun <= 30 && (
                           <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
@@ -1808,7 +1775,7 @@ export default function FirmaDetayPage({
               {!paymentDraftText ? (
                 <button
                   onClick={() => {
-                    const tb = getTicariBaskiByFirma(id);
+                    const tb = firmaFinancial ? { gecikmisAlacak: firmaFinancial.is_overdue ? (firmaFinancial.open_receivable ?? undefined) : undefined, kesilmemisBekleyen: firmaFinancial.unbilled_amount ?? undefined } : null;
                     if (!tb) return;
                     setPaymentDraftText(generatePaymentFollowup(firma.firmaAdi, tb));
                     setPaymentCopied(false);
@@ -1879,7 +1846,7 @@ export default function FirmaDetayPage({
                       });
                       setTemasDraftText(draft);
                     } else {
-                      const tb = getTicariBaskiByFirma(id);
+                      const tb = firmaFinancial ? { gecikmisAlacak: firmaFinancial.is_overdue ? (firmaFinancial.open_receivable ?? undefined) : undefined, kesilmemisBekleyen: firmaFinancial.unbilled_amount ?? undefined } : null;
                       if (tb) {
                         setTemasDraftText(generatePaymentFollowup(firma.firmaAdi, tb));
                       }
