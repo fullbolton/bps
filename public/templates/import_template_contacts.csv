@@ -1,0 +1,4 @@
+company_name,full_name,title,phone,email,is_primary,context_note
+Anadolu Lojistik A.S.,Hasan Demir,Genel Mudur,0532 111 2233,hasan@anadolulojistik.com,true,Ana yetkili
+Anadolu Lojistik A.S.,Ayse Yilmaz,Operasyon Muduru,0533 222 3344,,false,
+Baskent Guvenlik Ltd.,Fatma Celik,Genel Mudur,0535 444 5566,fatma@baskentguvenlik.com,true,
