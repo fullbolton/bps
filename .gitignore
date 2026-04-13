@@ -9,6 +9,8 @@ node_modules/
 .DS_Store
 .claude/
 supabase/.temp/
-supabase/.temp/
-supabase/.temp/
-supabase/.temp/
+
+# Local env profiles (never commit secrets)
+.env.prod.local
+.env.demo-app.local
+.env.demo.local
