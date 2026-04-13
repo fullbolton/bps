@@ -20,7 +20,6 @@ import {
   Clock,
   Send,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
 
@@ -233,6 +232,7 @@ function DemoRequestForm() {
   const [sector, setSector] = useState("");
   const [companySize, setCompanySize] = useState("");
   const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -247,18 +247,23 @@ function DemoRequestForm() {
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { error: dbError } = await supabase.from("demo_requests").insert({
-        full_name: fullName.trim(),
-        company_name: companyName.trim(),
-        email: email.trim(),
-        phone: phone.trim() || null,
-        sector: sector || null,
-        company_size: companySize || null,
-        message: message.trim() || null,
+      const res = await fetch("/api/demo-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: fullName.trim(),
+          company_name: companyName.trim(),
+          email: email.trim(),
+          phone: phone.trim() || null,
+          sector: sector || null,
+          company_size: companySize || null,
+          message: message.trim() || null,
+          website, // honeypot — server rejects silently if filled
+        }),
       });
 
-      if (dbError) throw new Error(dbError.message);
+      const data = await res.json();
+      if (!res.ok && data.error) throw new Error(data.error);
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gonderim basarisiz. Lutfen tekrar deneyin.");
@@ -282,6 +287,11 @@ function DemoRequestForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Honeypot — hidden from users, catches bots */}
+      <div style={{ position: "absolute", left: "-9999px" }} aria-hidden="true">
+        <label htmlFor="website">Website</label>
+        <input type="text" id="website" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+      </div>
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
