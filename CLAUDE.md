@@ -1,0 +1,401 @@
+# CLAUDE.md — BPS Agent Steering Primer
+
+> **This file is NOT source-of-truth.** It is a compressed agent entry point.
+> CODEX.md is the authoritative operating entrypoint.
+> When this file and any governance doc conflict, the governance doc wins.
+> See Source-of-Truth Hierarchy below.
+
+---
+
+## Project Identity
+
+**BPS** (Business Process System) — Web-based operations platform for B2B service companies.
+
+Started as an internal tool for Partner Staff (staffing industry) and is transitioning toward a multi-tenant SaaS product serving staffing, security, cleaning, OSGB, consulting, logistics, and facility management companies.
+
+**Stack:** Next.js (App Router) + TypeScript + Tailwind CSS + Supabase (Postgres + Auth + RLS + Storage)
+**Hosting:** Vercel (production: bpsys.net)
+**Language:** Turkish UI, Turkish domain terminology, English code/comments
+
+---
+
+## Current State
+
+- **Evre 0 (Migration) — completed and closed.** 14 Supabase tables, 12+ service files, all mock truth removed, RLS + partner scope enforced everywhere.
+- **Role model:** 6 roles (yonetici, partner, operasyon, ik, muhasebe, goruntuleyici)
+- **Authorization:** `rol + kapsam` (not role-only). Partners see only assigned portfolio companies. RLS enforces this.
+- **Demo environment:** deployed on separate Supabase project, validated for sales readiness.
+
+> **Active workstream is defined by human instruction at session start.** Do not assume the current task from this file — ask or read the opening prompt. Roadmap phases are tracked in `TASK_ROADMAP.md` and `BPS_Revized_5_Phase_Roadmap.md`.
+> Do not infer the current active phase, batch, or implementation target from this file alone. The opening human prompt and the active source-of-truth docs always decide current scope.
+
+---
+
+## Product Center — Non-Negotiable Rules
+
+### The Core Chain
+```
+Dashboard → Firma Detay → Sözleşme / Randevu → Görev → Evrak / Risk / Uyarı
+```
+
+### Module Topology
+- **Current product center:** Companies, Company Detail, Dashboard, Contracts, Appointments, Tasks, Documents, Reports, Settings
+- **Sector-detachable surfaces:** Personel Talepleri, Aktif İş Gücü (positioned for sector-specific gating, not permanent backbone)
+- **Management visibility layer:** Financial Summary (yönetim görünürlüğü, not accounting)
+
+This section describes the current accepted product center for agent steering. It does not override future modularization planning captured in strategy/reference docs.
+
+### Absolute Boundaries
+1. **Company Detail is the center of the product.** Every feature must strengthen it, not bypass it.
+2. **Dashboard is a decision surface**, not a KPI dump or report graveyard.
+3. **Contracts are lifecycle objects**, not stored files.
+4. **Completed appointments require result + next action.** Calendar alone produces no value.
+5. **Active Workforce stays operational** — not personnel/HR detail, not payroll, not HRIS.
+6. **Documents must not degrade into a plain folder system.** Documents have validity, status, and compliance context.
+7. **Financial Summary is management visibility**, not accounting software.
+8. **Tasks must have owners.** Sahipsiz iş yasağı.
+
+### BPS is NOT and must NEVER become:
+- CRM software
+- HRIS / HR software
+- Payroll / bordro software
+- ERP software
+- Accounting / muhasebe software
+- Ticketing / helpdesk system
+- Generic admin panel
+- Email/inbox platform
+
+BPS is an **operational coordination hub** — it connects with external systems rather than replacing them.
+
+### Emerging Design Guardrails
+These are strong steering heuristics, not source-of-truth rules unless later adopted into governance docs.
+- **3 Sinyal Sınırı:** avoid loading the firma card with too many external/module-derived signals; prefer a very small number of high-value signals
+- Prefer explanation over meta-scoring
+- Prefer additive visibility over dashboard inflation
+
+---
+
+## Architecture Rules
+
+### Layer Separation (mandatory)
+```
+UI Layer (shared components + screens)
+  → Application / Domain Layer (business rules, orchestration, visibility decisions)
+    → Supabase Access Layer (data access, storage operations)
+```
+
+Direct UI-to-database access is forbidden. Every data flow passes through the service/domain layer. The exact folder structure may evolve — the layer separation principle is what matters, not specific directory names. See `TECH_STACK_DECISION.md` for the authoritative technical direction.
+
+### Technical Principles
+- Web-first, desktop-first
+- Shared shell first, shared primitives before screen-specific widgets
+- Domain/application layer between UI and Supabase
+- Conservative auth and access
+- No premature ORM or backend layering
+- No realtime-first architecture
+- No generic admin template dependency
+- TypeScript safety everywhere — build must pass without errors
+
+### Tenantization Direction (future planning, not current implementation truth)
+
+> This section captures the currently preferred planning direction. It is not an implementation instruction and must not override active source-of-truth docs.
+
+- Shared DB + `tenant_id` + strict RLS is the current preferred direction
+- Module gating is expected to begin at UI + service visibility level first
+- Sabit 6 rol korunur in the first tenant version
+- `/admin/` separation is a planning direction, not an active structural requirement
+- Event-driven inter-module data flow is a preferred architectural principle for future modularity
+
+---
+
+## Role Model (6 Roles)
+
+| Role | Scope | Core Access |
+|------|-------|-------------|
+| `yonetici` | Global full access | All modules, all companies, management layer, settings |
+| `partner` | Portfolio-scoped admin | Full operations within assigned companies only. Cannot see other partners' data. |
+| `operasyon` | Operational execution | Talep, iş gücü, görev, evrak, randevu. No finance, no settings. |
+| `ik` | Document compliance | Evraklar (full), İş Gücü (read), Görevler (limited). No commercial access. |
+| `muhasebe` | Financial summary maintenance | Finansal Özet (full upload/review/confirm), Ticari Özet (read-only). No operations. |
+| `goruntuleyici` | Bounded read-only | All visible surfaces, zero mutation capability. |
+
+### Authorization Logic
+- `partner` sees ONLY assigned portfolio companies — enforced by RLS
+- `Sınırlı` means: works only within the role's existing accessible context
+- Role boundaries are defined in `ROLE_MATRIX.md` — when in doubt, check there first
+- Yönlendirme resolution: each role resolves own birim, yonetici resolves all
+
+---
+
+## Status Dictionary (key values)
+
+### Firma: `aday` → `aktif` → `pasif`
+### Sözleşme: `taslak` → `imza_bekliyor` → `aktif` → `süresi_doldu` | `feshedildi`
+### Talep: `yeni` → `değerlendiriliyor` → `kısmi_doldu` → `tamamen_doldu` | `beklemede` | `iptal`
+### Randevu: `planlandı` → `tamamlandı` | `iptal` | `ertelendi`
+### Görev: `açık` → `devam_ediyor` → `tamamlandı` | `gecikti` | `iptal`
+### Evrak: `tam` | `eksik` | `süresi_yaklaşıyor` | `süresi_doldu`
+### Risk: `düşük` | `orta` | `yüksek`
+### Öncelik: `düşük` | `normal` | `yüksek` | `kritik`
+
+**Rule:** Before adding any new status, check `STATUS_DICTIONARY.md`. New statuses require explicit approval.
+
+---
+
+## Workflow Rules (critical subset)
+
+1. Every contract belongs to a company. Contracts cannot exist independently.
+2. Contract expiry approaching → 4 renewal signals: bitiş tarihi, görüşme açıldı mı, sorumlu var mı, görev üretildi mi.
+3. Every staffing demand belongs to a company. Demands show talep edilen vs sağlanan vs açık kalan.
+4. Appointments completed → result + next action mandatory.
+5. Tasks should have a source: `manuel` | `randevu` | `sözleşme` | `talep` | `evrak`.
+6. Notes are internal memory, not task replacements. If work needs doing → create a görev.
+7. Critical status changes must leave a trail in the timeline.
+
+Full rules: `WORKFLOW_RULES.md`
+
+---
+
+## Component System
+
+### Shared Primitives (reuse mandatory)
+`PageHeader`, `StatusBadge`, `RiskBadge`, `PriorityBadge`, `DataTable`, `EmptyState`, `TabNavigation`, `SearchInput`, `FilterBar`, `ModalShell`, `CommercialSummaryCard`, `CapacityRiskCard`, `DocumentsChecklistCard`, `RenewalTrackingCard`, `RightSidePanel`
+
+### Rules
+- New component creation must be justified by real reuse or readability gain
+- Components must not absorb domain logic they don't own
+- Badge colors follow `STATUS_DICTIONARY.md` mapping — never invent new color meanings
+- Full component specs: `SCREEN_SPEC.md` and `DESIGN_SYSTEM.md`
+
+---
+
+## AI Behavior Rules
+
+### What AI agents may do:
+- Read, understand, and analyze the codebase
+- Draft code following the architecture layers
+- Suggest changes with clear rationale
+- Flag conflicts with governance documents
+
+### What AI agents must NOT do:
+- Write directly to database without user confirmation
+- Silently expand schema
+- Invent new domains, modules, or screens not in scope
+- Change the role model without explicit approval
+- Bypass RLS or partner scope isolation
+- Weaken Company Detail centrality
+- Push Financial Summary beyond visibility into accounting behavior
+- Add status values not in STATUS_DICTIONARY
+- Create mock data that contradicts real domain rules
+
+### Confidence Pattern (for AI-assisted features)
+```
+Upload → Extract → Review → Confirm → Write
+```
+AI may understand, draft, structure, and suggest. AI may NOT silently commit.
+
+---
+
+## Source-of-Truth Hierarchy
+
+When documents conflict, follow this priority:
+
+1. Current explicit human instruction for the task
+2. `README.md` and `CODEX.md`
+3. `SKILLS.md`
+4. `PRODUCT_STRUCTURE.md`
+5. `SCREEN_SPEC.md`, `TASK_ROADMAP.md`
+6. `WORKFLOW_RULES.md`, `STATUS_DICTIONARY.md`, `ROLE_MATRIX.md`
+7. `ARCHITECTURE.md`, `TECH_STACK_DECISION.md` (synthesis / technical-direction layer only)
+8. `CHANGELOG.md` (historical record only)
+
+If two files in the same tier conflict, follow the read-order defined in `CODEX.md`.
+
+**This `CLAUDE.md` file sits BELOW all of the above.** It is a steering companion, not an authority.
+
+---
+
+## Working Sequence (for every task)
+
+1. Define the problem
+2. Place it in the product structure
+3. Identify impacted modules and screens
+4. Identify impacted shared components
+5. Check workflow, status, role, and review-rule implications
+6. Flag scope-drift or overreach risk
+7. Propose the smallest viable change
+8. Update CHANGELOG when authoritative docs change
+
+---
+
+## Batch Workflow (standard)
+
+```
+Step 1: Scope Framing (human defines problem, target, out-of-scope, domain impact)
+Step 2: Plan + Risk Scan (which domains/flows affected, which files change, acceptance criteria)
+Step 3: Implementation (only from approved plan — SQL, service, component, build, commit)
+Step 4: Review (scope drift? role compliance? workflow rules? Company Detail centrality?)
+Step 5: Live Smoke Test (deploy → real user flow → role-based visibility → blockers?)
+Step 6: Docs Sync Decision (update governance docs only if behavior actually changed)
+```
+
+### Implementation Guardrails
+- Do NOT invent new domains outside the plan
+- Do NOT silently expand schema
+- Do NOT break role model
+- Do NOT weaken Company Detail centrality
+- PRESERVE layer separation (UI → Service → Supabase)
+- PRESERVE TypeScript safety — build must be error-free
+- If ambiguity exists on a structural, role, workflow, or scope-changing issue → stop and ask
+- If ambiguity is minor and bounded → prefer the smallest safe interpretation and state the assumption clearly
+
+### Autonomous Agent Loop (within a single session)
+For well-scoped tasks, the agent can run a self-contained cycle:
+```
+Human kickoff (5-10 min: scope, plan, acceptance criteria)
+  → Agent implements
+    → Agent tests / type-checks
+      → Agent fixes failures
+        → Agent tests again (repeat until clean)
+          → Agent commits + pushes PR
+            → Human reviews final output
+```
+This loop works for chore sessions and well-specced implementation tasks. It does NOT work for ambiguous scope, new domain exploration, or architecture decisions — those require human-in-the-loop throughout.
+
+---
+
+## Multi-Session Orchestration (summary)
+
+BPS development uses parallel Claude Code sessions with git worktree isolation.
+
+### Session Types and Sustainable Limit
+```
+1 implementation (serial, human-tested) + 1-2 planning (parallel, spec-only) + 1 chore (autonomous, low-attention) = 4 max
+```
+
+**Plan parallel, implement serial.** End-to-end human testing cannot be parallelized. Ship one feature cleanly before starting the next.
+
+### Worktree Layout
+```
+bps-main        → production, protected
+bps-hotfix      → dedicated quick-fix tree (branch switches per fix)
+bps-feature-X   → current active feature implementation
+bps-planning    → spec/research workspace (no implementation)
+bps-chores      → docs, tests, quality (low-attention autonomous)
+```
+
+### Agent Roles
+| Tool | Role |
+|------|------|
+| Claude Code (Opus) | Deep reasoning, spec generation, architecture decisions |
+| Claude Code (Sonnet) | Implementation, component work, service layer |
+| ChatGPT Codex | Independent review, alternative perspective, async PR checks |
+
+### Agent Teams (experimental)
+
+Claude Code Agent Teams enable Claude-orchestrated parallelism: one lead spawns teammates with a shared task list and direct messaging. Use for parallel code review, research, or debugging with competing hypotheses. Not for sequential work or schema migrations.
+
+BPS patterns: (1) post-implementation governance review with 3 teammates checking WORKFLOW_RULES / ROLE_MATRIX / DESIGN_SYSTEM, (2) parallel research when planning a new module, (3) debugging with competing hypotheses across RLS / service / component layers.
+
+Setup: set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in `~/.claude/settings.json`. Requires v2.1.32+. Teammates load CLAUDE.md automatically.
+
+For detailed multi-session operating patterns, worktree setup, and infrastructure automation plans, see:
+- `docs/policies/BPS_WORKTREE_POLICY.md` (when and why)
+- `docs/runbooks/git-worktree-setup.md` (how and commands)
+
+---
+
+## AI Instrument Map
+
+Each tool has one role in the chain. Never give the same job to two tools simultaneously.
+
+| Tool | Role | One-line |
+|------|------|----------|
+| **ChatGPT Chat** | CPO — product mind | Frames problems, gates scope, guards roadmap, writes prompts for other tools |
+| **Claude Chat** | Principal Planner / Reviewer | Planning reports, impact analysis, acceptance criteria, post-implementation review |
+| **Claude Code** | Lead Engineer / Builder | Implements approved plans — code, migrations, services, components, build, commit |
+| **ChatGPT Codex** | Independent Technical Reviewer | Second-eye review of Claude Code output, access/type/architecture verification |
+
+### Standard Flow
+```
+New feature / batch:
+  ChatGPT Chat (scope gate) → Claude Chat (plan) → Claude Code (build) → Codex (review) → ChatGPT Chat (sanity check)
+
+Small bug / hygiene:
+  Claude Code (fix) → Codex (quick review)
+
+Strategic planning:
+  ChatGPT Chat → Claude Chat → implementation only if needed
+
+Docs / governance patch:
+  ChatGPT Chat (is this needed?) → Claude Chat (impact) → Claude Code (apply) → Codex (consistency)
+```
+
+### Decision Rule
+- **Ne yapılmalı?** → ChatGPT Chat
+- **Nasıl planlanmalı?** → Claude Chat
+- **Kim uygulamalı?** → Claude Code
+- **Bağımsız teknik kontrol?** → Codex
+
+---
+
+## Conflict Handling
+
+If a request conflicts with BPS rules:
+1. **Stop.**
+2. Name the conflict clearly.
+3. Cite the affected source-of-truth document.
+4. Ask for decision or propose bounded options.
+
+Never silently bypass rules. Never partially comply without flagging the contradiction.
+
+---
+
+## Key Turkish Domain Terms
+
+| Turkish | Meaning |
+|---------|---------|
+| Firma | Company (the central entity) |
+| Sözleşme | Contract (lifecycle object) |
+| Personel Talebi | Staffing Demand (detachable sector module) |
+| Aktif İş Gücü | Active Workforce (detachable sector module) |
+| Randevu | Appointment |
+| Görev | Task |
+| Evrak | Document |
+| Yetkili | Company Contact/Authority |
+| Puantaj | Timesheet/Attendance |
+| Yönlendirme | Cross-unit routing/referral |
+| Bahsetme | @Mention |
+| Finansal Özet | Financial Summary (management visibility) |
+| Ticari Özet | Commercial Summary (per-company) |
+| Açık Alacak | Open Receivable (company-wide label) |
+| Açık Bakiye | Open Balance (per-company label) |
+| Kesilmemiş Bekleyen | Unbilled Pending |
+
+---
+
+## Drift Detection Checklist
+
+Before completing any substantial change, verify:
+- [ ] No scope drift beyond the approved plan
+- [ ] WORKFLOW_RULES compliance maintained
+- [ ] ROLE_MATRIX boundaries respected
+- [ ] Company Detail centrality preserved
+- [ ] Financial Summary stayed as visibility (not accounting)
+- [ ] No CRM drift, no HRIS drift, no ERP drift
+- [ ] STATUS_DICTIONARY terms used correctly
+- [ ] Detachable modules not hardwired into the current product center
+- [ ] TypeScript build passes
+- [ ] Shared components reused (no unnecessary new components)
+
+---
+
+## Infrastructure Automation Horizon
+
+> Target state, not current setup. Implement incrementally.
+
+**Goal:** A single command bootstraps worktree + branch + agent context + environment for any BPS task.
+
+**Sequence:** (1) manual worktree discipline → (2) shell scripts for worktree + `.env.local` → (3) Claude Code slash commands → (4) Supabase MCP for live schema → (5) full CLI with ticket-driven orchestration.
+
+**Environment isolation:** each worktree points to a different Supabase via `.env.local` (production, demo, or feature-specific).
