@@ -346,6 +346,26 @@ Evraklar migration’ında:
 
 Binary/storage sophistication sonraya bırakılabilir.
 
+## 5.10 Klasör Bütünlük Kontrolü
+
+Üç seviyede çalıştırılır:
+
+**Seviye 1 — Her batch sonrası (30 saniye)**
+find ~/Desktop/BPS -maxdepth 3 -name "*.md" -not -path "*/node_modules/*" -not -path "*/.claude/*" -not -path "*/99_archive/*" | wc -l
+Beklenen aktif dosya sayısı: 22 (±1). Sapma varsa neden kontrol edilir.
+
+**Seviye 2 — Haftalık (2 dakika)**
+find ~/Desktop/BPS -maxdepth 3 -name "*.md" -not -path "*/node_modules/*" | sort
+Tam klasör ağacı gözden geçirilir. Yanlış yerde duran, silinmemiş veya eksik dosya aranır.
+
+**Seviye 3 — Büyük batch sonrası (5 dakika)**
+Doküman birleştirme, silme veya yeni klasör oluşturma yapıldıysa:
+- klasör ağacı doğrulanır
+- CODEX read order ile fiili dosyalar karşılaştırılır
+- project knowledge sync durumu kontrol edilir
+
+Kural: Klasörde olmaması gereken dosya project knowledge'da da olmamalı. İkisi senkron tutulır.
+
 ---
 
 ## 6. Paralel Çalışma Modeli
