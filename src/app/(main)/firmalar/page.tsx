@@ -2,10 +2,8 @@
 
 /**
  * Firmalar list — reads company shell from real Supabase truth.
- * Derived columns (anaYetkili, aktifSozlesme, aktifIsGucu, sonGorusme,
- * sonrakiRandevu) resolved from already-migrated domain truths.
- *
- * Phase 7 cutover restored for Excel Import V1 end-to-end story.
+ * Enrichment via UUID-keyed direct queries for all companies.
+ * No mock dependency for enrichment or partner display.
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
@@ -19,18 +17,15 @@ import {
   StatusBadge,
   RiskBadge,
 } from "@/components/ui";
-import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
-import { getPrimaryContactNamesByLegacyIds } from "@/lib/services/contacts";
-import { getActiveContractCountsByLegacyIds } from "@/lib/services/contracts";
-import { getWorkforceSummariesByLegacyIds, deriveOpenGap } from "@/lib/services/workforce-summary";
-import { getAppointmentDatesByLegacyIds } from "@/lib/services/appointments";
-import type { CompanyRow, WorkforceSummaryRow } from "@/types/database.types";
+import { SECTOR_LABELS } from "@/lib/sector-codes";
+import type { SectorCode } from "@/lib/sector-codes";
+import type { CompanyRow } from "@/types/database.types";
 import type { FirmaDurumu, RiskSeviyesi, ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
 
 // ---------------------------------------------------------------------------
-// Enriched row — company shell + derived columns
+// Enriched row
 // ---------------------------------------------------------------------------
 
 interface FirmaListRow {
@@ -40,41 +35,33 @@ interface FirmaListRow {
   sehir: string;
   anaYetkili: string;
   aktifSozlesme: number;
-  aktifIsGucu: number;
-  sonGorusme: string;
-  sonrakiRandevu: string;
   risk: RiskSeviyesi;
   durum: FirmaDurumu;
 }
 
 // ---------------------------------------------------------------------------
-// Column definitions
+// Sector label helper
+// ---------------------------------------------------------------------------
+
+function sectorLabel(code: string | null): string {
+  if (!code) return "—";
+  return SECTOR_LABELS[code as SectorCode] ?? code;
+}
+
+// ---------------------------------------------------------------------------
+// Column definitions — no mock dependency
 // ---------------------------------------------------------------------------
 
 const COLUMNS: ColumnDef<FirmaListRow>[] = [
   { key: "firmaAdi", header: "Firma Adi", sortable: true },
-  { key: "sektor", header: "Sektor", sortable: true },
   {
-    key: "sehir",
-    header: "Sehir",
+    key: "sektor",
+    header: "Sektor",
     sortable: true,
-    render: (val, row) => {
-      const partner = FIRMA_PARTNER_MAP[row.id];
-      return (
-        <div>
-          <span className="text-sm text-slate-700">{val as string}</span>
-          {partner && (
-            <p className="text-xs text-slate-400">{partner.partnerAdi}</p>
-          )}
-        </div>
-      );
-    },
   },
+  { key: "sehir", header: "Sehir", sortable: true },
   { key: "anaYetkili", header: "Ana Yetkili" },
   { key: "aktifSozlesme", header: "Aktif Sozlesme", sortable: true },
-  { key: "aktifIsGucu", header: "Aktif Is Gucu", sortable: true },
-  { key: "sonGorusme", header: "Son Gorusme", sortable: true, render: (val) => formatDateTR(val as string) },
-  { key: "sonrakiRandevu", header: "Sonraki Randevu", sortable: true, render: (val) => formatDateTR(val as string) },
   {
     key: "risk",
     header: "Risk Etiketi",
@@ -94,26 +81,15 @@ export default function FirmalarPage() {
   const supabase = useMemo(() => createClient(), []);
 
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({
-    durum: "",
-    risk: "",
-    sektor: "",
-    sehir: "",
-    partner: "",
-  });
+  const [filters, setFilters] = useState<FilterValues>({ durum: "", risk: "", sektor: "", sehir: "" });
   const handleSearch = useCallback((val: string) => setSearch(val), []);
 
   // ---------------------------------------------------------------------------
-  // Data loading — company shell from real DB + derived columns
+  // Data loading — UUID-keyed enrichment for ALL companies
   // ---------------------------------------------------------------------------
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
-  const [primaryNames, setPrimaryNames] = useState<Record<string, string>>({});
-  const [activeContractCounts, setActiveContractCounts] = useState<Record<string, number>>({});
-  const [workforceByLegacy, setWorkforceByLegacy] = useState<Record<string, WorkforceSummaryRow>>({});
-  const [appointmentDates, setAppointmentDates] = useState<{
-    lastCompleted: Record<string, string>;
-    nextPlanned: Record<string, string>;
-  }>({ lastCompleted: {}, nextPlanned: {} });
+  const [primaryNameById, setPrimaryNameById] = useState<Record<string, string>>({});
+  const [activeContractById, setActiveContractById] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -124,23 +100,30 @@ export default function FirmalarPage() {
         if (!active) return;
         setCompanies(rows);
 
-        const legacyIds = rows
-          .filter((r) => r.legacy_mock_id)
-          .map((r) => r.legacy_mock_id!);
+        const companyIds = rows.map((r) => r.id);
+        if (companyIds.length === 0) { setLoading(false); return; }
 
-        if (legacyIds.length > 0) {
-          const [names, counts, workforce, apptDates] = await Promise.all([
-            getPrimaryContactNamesByLegacyIds(supabase, legacyIds).catch(() => ({})),
-            getActiveContractCountsByLegacyIds(supabase, legacyIds).catch(() => ({})),
-            getWorkforceSummariesByLegacyIds(supabase, legacyIds).catch(() => ({})),
-            getAppointmentDatesByLegacyIds(supabase, legacyIds).catch(() => ({ lastCompleted: {}, nextPlanned: {} })),
-          ]);
-          if (!active) return;
-          setPrimaryNames(names);
-          setActiveContractCounts(counts);
-          setWorkforceByLegacy(workforce);
-          setAppointmentDates(apptDates);
+        // Enrich via UUID — direct queries, works for all companies
+        const [contactsResult, contractsResult] = await Promise.all([
+          supabase.from("contacts").select("company_id, full_name, is_primary").eq("is_primary", true).in("company_id", companyIds),
+          supabase.from("contracts").select("company_id").eq("status", "aktif").in("company_id", companyIds),
+        ]);
+
+        if (!active) return;
+
+        // Primary contact name by company UUID
+        const nameMap: Record<string, string> = {};
+        for (const c of contactsResult.data ?? []) {
+          nameMap[c.company_id] = c.full_name;
         }
+        setPrimaryNameById(nameMap);
+
+        // Active contract count by company UUID
+        const countMap: Record<string, number> = {};
+        for (const c of contractsResult.data ?? []) {
+          countMap[c.company_id] = (countMap[c.company_id] ?? 0) + 1;
+        }
+        setActiveContractById(countMap);
       } finally {
         if (active) setLoading(false);
       }
@@ -149,7 +132,7 @@ export default function FirmalarPage() {
   }, [supabase]);
 
   // ---------------------------------------------------------------------------
-  // Dynamic filter config
+  // Dynamic filter config — no mock dependency
   // ---------------------------------------------------------------------------
   const filterConfig: FilterConfig[] = useMemo(() => [
     {
@@ -170,15 +153,14 @@ export default function FirmalarPage() {
     },
     {
       key: "sektor", label: "Sektor", type: "select" as const, placeholder: "Tum sektorler",
-      options: [...new Set(companies.map((c) => c.sector).filter(Boolean))].sort().map((s) => ({ label: s!, value: s! })),
+      options: [...new Set(companies.map((c) => c.sector).filter(Boolean))].sort().map((s) => ({
+        label: sectorLabel(s!),
+        value: s!,
+      })),
     },
     {
       key: "sehir", label: "Sehir", type: "select" as const, placeholder: "Tum sehirler",
       options: [...new Set(companies.map((c) => c.city).filter(Boolean))].sort().map((s) => ({ label: s!, value: s! })),
-    },
-    {
-      key: "partner", label: "Partner", type: "select" as const, placeholder: "Tum partnerler",
-      options: [...new Set(Object.values(FIRMA_PARTNER_MAP).map((p) => p.partnerAdi))].map((name) => ({ label: name, value: name })),
     },
   ], [companies]);
 
@@ -187,20 +169,14 @@ export default function FirmalarPage() {
   // ---------------------------------------------------------------------------
   const filteredData = useMemo(() => {
     const enriched: FirmaListRow[] = companies.map((c) => {
-      // Use legacy_mock_id for routing and derived column lookups; fall back to UUID for new imports
       const rowId = c.legacy_mock_id ?? c.id;
-      const legId = c.legacy_mock_id ?? "";
-      const wf = workforceByLegacy[legId];
       return {
         id: rowId,
         firmaAdi: c.name,
-        sektor: c.sector ?? "—",
+        sektor: sectorLabel(c.sector),
         sehir: c.city ?? "—",
-        anaYetkili: primaryNames[legId] ?? "—",
-        aktifSozlesme: activeContractCounts[legId] ?? 0,
-        aktifIsGucu: wf?.current_count ?? 0,
-        sonGorusme: appointmentDates.lastCompleted[legId] ?? "—",
-        sonrakiRandevu: appointmentDates.nextPlanned[legId] ?? "—",
+        anaYetkili: primaryNameById[c.id] ?? "—",
+        aktifSozlesme: activeContractById[c.id] ?? 0,
         risk: c.risk,
         durum: c.status,
       };
@@ -220,16 +196,12 @@ export default function FirmalarPage() {
       if (filters.risk && f.risk !== filters.risk) return false;
       if (filters.sektor && f.sektor !== filters.sektor) return false;
       if (filters.sehir && f.sehir !== filters.sehir) return false;
-      if (filters.partner && FIRMA_PARTNER_MAP[f.id]?.partnerAdi !== filters.partner) return false;
       return true;
     });
-  }, [search, filters, companies, primaryNames, activeContractCounts, workforceByLegacy, appointmentDates]);
+  }, [search, filters, companies, primaryNameById, activeContractById]);
 
   const rowActions: RowAction<FirmaListRow>[] = [
-    {
-      label: "Detaya Git",
-      onClick: (row) => router.push(`/firmalar/${row.id}`),
-    },
+    { label: "Detaya Git", onClick: (row) => router.push(`/firmalar/${row.id}`) },
   ];
 
   if (loading) {
@@ -244,22 +216,13 @@ export default function FirmalarPage() {
   return (
     <>
       <PageHeader title="Firmalar" subtitle="Firma portfoyu" />
-
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput
-              placeholder="Firma, yetkili, sektor ara..."
-              onChange={handleSearch}
-            />
+            <SearchInput placeholder="Firma, yetkili, sektor ara..." onChange={handleSearch} />
           </div>
-          <FilterBar
-            filters={filterConfig}
-            values={filters}
-            onChange={setFilters}
-          />
+          <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>
-
         <DataTable<FirmaListRow>
           columns={COLUMNS}
           data={filteredData}
