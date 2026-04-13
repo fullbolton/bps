@@ -161,7 +161,7 @@ export default function AktifIsgucuPage() {
   const enrichedRows: WorkforceListRow[] = useMemo(() => {
     return summaries.map((row) => ({
       ...row,
-      firma_name: companyNameById[row.company_id] ?? "\u2014",
+      firma_name: companyNameById[row.company_id] ?? "—",
       open_gap: deriveOpenGap(row),
       risk_level: deriveRiskLevel(row),
       firma_legacy_id: companyLegacyById[row.company_id] ?? null,
@@ -173,7 +173,7 @@ export default function AktifIsgucuPage() {
     const firmaOptions = Array.from(
       new Set(enrichedRows.map((r) => r.firma_name)),
     )
-      .filter((n) => n !== "\u2014")
+      .filter((n) => n !== "—")
       .map((name) => ({ label: name, value: name }));
 
     return [
@@ -327,7 +327,7 @@ export default function AktifIsgucuPage() {
                 <span className={TYPE_BODY}>{selected.firma_name}</span>
               )}
               <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
-                {selected.location ?? "\u2014"}
+                {selected.location ?? "—"}
               </p>
             </div>
             <CapacityRiskCard

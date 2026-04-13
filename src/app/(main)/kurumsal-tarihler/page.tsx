@@ -252,7 +252,7 @@ export default function KurumsalTarihlerPage() {
                         )}
                       </div>
                       <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-1`}>
-                        {CRITICAL_DATE_TYPE_LABELS[b.date_type]} {"\u00b7"} {b.responsible ?? "Atanmadi"} {"\u00b7"} Son tarih: {formatDateTR(b.deadline_date)}
+                        {CRITICAL_DATE_TYPE_LABELS[b.date_type]} {"·"} {b.responsible ?? "Atanmadi"} {"·"} Son tarih: {formatDateTR(b.deadline_date)}
                         {kalan < 0 && <span className="text-red-600 font-medium ml-1">({Math.abs(kalan)} gun gecikmis)</span>}
                         {kalan >= 0 && kalan <= 30 && <span className="text-amber-600 font-medium ml-1">({kalan} gun kaldi)</span>}
                       </p>

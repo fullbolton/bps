@@ -194,13 +194,13 @@ export default function FirmalarPage() {
       return {
         id: rowId,
         firmaAdi: c.name,
-        sektor: c.sector ?? "\u2014",
-        sehir: c.city ?? "\u2014",
-        anaYetkili: primaryNames[legId] ?? "\u2014",
+        sektor: c.sector ?? "—",
+        sehir: c.city ?? "—",
+        anaYetkili: primaryNames[legId] ?? "—",
         aktifSozlesme: activeContractCounts[legId] ?? 0,
         aktifIsGucu: wf?.current_count ?? 0,
-        sonGorusme: appointmentDates.lastCompleted[legId] ?? "\u2014",
-        sonrakiRandevu: appointmentDates.nextPlanned[legId] ?? "\u2014",
+        sonGorusme: appointmentDates.lastCompleted[legId] ?? "—",
+        sonrakiRandevu: appointmentDates.nextPlanned[legId] ?? "—",
         risk: c.risk,
         durum: c.status,
       };

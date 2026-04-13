@@ -134,7 +134,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
     header: "Gorusme Tipi",
     render: (val) => <span>{APPOINTMENT_TYPE_LABELS[val as AppointmentMeetingType] ?? String(val)}</span>,
   },
-  { key: "attendee", header: "Katilimci", render: (val) => <span>{(val as string) || "\u2014"}</span> },
+  { key: "attendee", header: "Katilimci", render: (val) => <span>{(val as string) || "—"}</span> },
   {
     key: "status",
     header: "Durum",
@@ -146,7 +146,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
     header: "Sonuc",
     render: (val) => (
       <span className={COL_TRUNCATED}>
-        {(val as string) || "\u2014"}
+        {(val as string) || "—"}
       </span>
     ),
   },
@@ -155,7 +155,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
     header: "Sonraki Aksiyon",
     render: (val) => (
       <span className={COL_TRUNCATED}>
-        {(val as string) || "\u2014"}
+        {(val as string) || "—"}
       </span>
     ),
   },
@@ -250,7 +250,7 @@ export default function RandevularPage() {
   const enrichedRows: AppointmentListRow[] = useMemo(() => {
     return appointments.map((a) => ({
       ...a,
-      firma_name: companyNameById[a.company_id] ?? "\u2014",
+      firma_name: companyNameById[a.company_id] ?? "—",
     }));
   }, [appointments, companyNameById]);
 
@@ -413,7 +413,7 @@ export default function RandevularPage() {
             </div>
             <div>
               <dt className={DL_LABEL}>Katilimci</dt>
-              <dd className={DL_VALUE}>{selectedRandevu.attendee || "\u2014"}</dd>
+              <dd className={DL_VALUE}>{selectedRandevu.attendee || "—"}</dd>
             </div>
             <div>
               <dt className={DL_LABEL}>Durum</dt>

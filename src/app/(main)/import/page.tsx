@@ -145,7 +145,7 @@ export default function ImportPage() {
 
   return (
     <>
-      <PageHeader title="Veri Aktarimi" subtitle="CSV Import \u2014 yalnizca yonetici" />
+      <PageHeader title="Veri Aktarimi" subtitle="CSV Import — yalnizca yonetici" />
 
       <div className="space-y-6 max-w-4xl">
 
@@ -270,7 +270,7 @@ export default function ImportPage() {
                             </td>
                             {parseResult.headers.slice(0, 4).map((h) => (
                               <td key={h} className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[180px] truncate`}>
-                                {row.data[h] || "\u2014"}
+                                {row.data[h] || "—"}
                               </td>
                             ))}
                             <td className={`px-3 py-2 ${TYPE_CAPTION} text-red-600`}>

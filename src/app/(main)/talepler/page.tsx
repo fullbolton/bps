@@ -162,7 +162,7 @@ const COLUMNS: ColumnDef<DemandListRow>[] = [
     header: "Lokasyon",
     render: (val) => (
       <span className={`${TYPE_BODY} ${TEXT_BODY}`}>
-        {(val as string | null) ?? "\u2014"}
+        {(val as string | null) ?? "—"}
       </span>
     ),
   },
@@ -189,7 +189,7 @@ const COLUMNS: ColumnDef<DemandListRow>[] = [
     header: "Sorumlu",
     render: (val) => (
       <span className={`${TYPE_BODY} ${TEXT_BODY}`}>
-        {(val as string | null) ?? "\u2014"}
+        {(val as string | null) ?? "—"}
       </span>
     ),
   },
@@ -276,7 +276,7 @@ export default function TaleplerPage() {
   const enrichedRows: DemandListRow[] = useMemo(() => {
     return demands.map((d) => ({
       ...d,
-      firma_name: companyNameById[d.company_id] ?? "\u2014",
+      firma_name: companyNameById[d.company_id] ?? "—",
       open_count: computeOpenCount(d),
     }));
   }, [demands, companyNameById]);
@@ -328,7 +328,7 @@ export default function TaleplerPage() {
       onClick: (row) =>
         setOwnerTarget({
           open: true,
-          talepRef: `${row.position} \u2014 ${row.firma_name}`,
+          talepRef: `${row.position} — ${row.firma_name}`,
           talepId: row.id,
         }),
     },
@@ -516,7 +516,7 @@ export default function TaleplerPage() {
             <div>
               <dt className={DL_LABEL}>Lokasyon</dt>
               <dd className={DL_VALUE}>
-                {selectedTalep.location ?? "\u2014"}
+                {selectedTalep.location ?? "—"}
               </dd>
             </div>
             <div>
@@ -524,13 +524,13 @@ export default function TaleplerPage() {
               <dd className={DL_VALUE}>
                 {selectedTalep.start_date
                   ? formatDateTR(selectedTalep.start_date.slice(0, 10))
-                  : "\u2014"}
+                  : "—"}
               </dd>
             </div>
             <div>
               <dt className={DL_LABEL}>Sorumlu</dt>
               <dd className={DL_VALUE}>
-                {selectedTalep.responsible ?? "\u2014"}
+                {selectedTalep.responsible ?? "—"}
               </dd>
             </div>
           </dl>

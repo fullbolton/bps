@@ -108,7 +108,7 @@ const COLUMNS: ColumnDef<DocumentListRow>[] = [
   {
     key: "uploaded_by",
     header: "Yukleyen",
-    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{(val as string) || "\u2014"}</span>,
+    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{(val as string) || "—"}</span>,
   },
   {
     key: "updated_at",
@@ -335,7 +335,7 @@ export default function EvraklarPage() {
                 <div key={e.id} className={`flex items-center justify-between py-2 ${LIST_DIVIDER}`}>
                   <div className="min-w-0">
                     <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{e.name}</p>
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{DOCUMENT_CATEGORY_LABELS[e.category]} {e.validity_date ? `\u00b7 ${formatDateTR(e.validity_date)}` : ""}</p>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{DOCUMENT_CATEGORY_LABELS[e.category]} {e.validity_date ? `· ${formatDateTR(e.validity_date)}` : ""}</p>
                   </div>
                   <StatusBadge status={e.status} />
                 </div>
