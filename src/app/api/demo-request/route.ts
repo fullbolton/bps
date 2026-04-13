@@ -75,10 +75,24 @@ export async function POST(request: NextRequest) {
   try {
     cleanupRateLimitMap();
 
-    const body = await request.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Gecersiz istek formati." },
+        { status: 400 },
+      );
+    }
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        { success: false, error: "Gecersiz istek formati." },
+        { status: 400 },
+      );
+    }
 
     // 1. Honeypot check — if "website" field is populated, it's a bot
-    if (body.website && String(body.website).trim().length > 0) {
+    if (body.website != null && String(body.website).trim().length > 0) {
       // Fake success — bot thinks submission worked
       return NextResponse.json({ success: true }, { status: 200 });
     }
@@ -113,10 +127,10 @@ export async function POST(request: NextRequest) {
       full_name: fullName,
       company_name: companyName,
       email,
-      phone: body.phone?.trim() || null,
-      sector: body.sector || null,
-      company_size: body.company_size || null,
-      message: body.message?.trim() || null,
+      phone: typeof body.phone === "string" ? body.phone.trim() || null : null,
+      sector: typeof body.sector === "string" ? body.sector || null : null,
+      company_size: typeof body.company_size === "string" ? body.company_size || null : null,
+      message: typeof body.message === "string" ? body.message.trim() || null : null,
     });
 
     if (error) {
