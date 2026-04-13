@@ -49,7 +49,9 @@ import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
 import type { Bahsetme } from "@/mocks/bahsetmeler";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
-import { MOCK_FIRMALAR, MOCK_FIRMA_DETAY, MOCK_FIRMA_TIMELINE } from "@/mocks/firmalar";
+import { MOCK_FIRMA_TIMELINE } from "@/mocks/firmalar";
+import { resolveCompanyByIdOrLegacy } from "@/lib/services/companies";
+import type { CompanyRow } from "@/types/database.types";
 // Phase 4 — documents now read from real Supabase truth:
 import { listDocumentsByLegacyCompanyId } from "@/lib/services/documents";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
@@ -267,7 +269,34 @@ export default function FirmaDetayPage({
   const [hesapServis, setHesapServis] = useState("");
   const [hesapKiyafet, setHesapKiyafet] = useState("");
 
-  const firma = MOCK_FIRMA_DETAY[id];
+  // Real company shell — loaded from DB, handles both legacy IDs and UUIDs
+  const [companyShell, setCompanyShell] = useState<CompanyRow | null>(null);
+  const [companyLoading, setCompanyLoading] = useState(true);
+  useEffect(() => {
+    resolveCompanyByIdOrLegacy(supabase, id)
+      .then(setCompanyShell)
+      .catch(() => setCompanyShell(null))
+      .finally(() => setCompanyLoading(false));
+  }, [supabase, id]);
+
+  // Build firma-compatible object from real company shell for downstream consumers
+  const firma = companyShell ? {
+    id,
+    firmaAdi: companyShell.name,
+    sektor: companyShell.sector ?? "—",
+    sehir: companyShell.city ?? "—",
+    durum: companyShell.status,
+    risk: companyShell.risk,
+    // Placeholders for fields consumed by non-migrated sections
+    telefon: "—", adres: "—", vergiNo: "—", kayitTarihi: "—",
+    acikBakiye: "—", sonFaturaTarihi: "—", sonFaturaTutari: "—",
+    kesilmemisBekleyen: "—", ticariRisk: "dusuk" as const,
+    acikTalep: 0, eksikEvrak: 0,
+    riskSinyalleri: [] as string[], sonNotlar: [] as string[],
+    anaYetkili: "—", aktifSozlesme: 0, aktifIsGucu: 0,
+    sonGorusme: "—", sonrakiRandevu: "—",
+    yaklaşanRandevu: 0,
+  } : null;
   const timeline = MOCK_FIRMA_TIMELINE[id] ?? [];
 
   // Sözleşmeler — Faz 2: real Supabase truth via service layer.
@@ -319,14 +348,18 @@ export default function FirmaDetayPage({
     void reloadDocs();
   }, [reloadDocs]);
 
+  if (companyLoading) {
+    return <p className="text-sm text-slate-500 py-12 text-center">Yukleniyor...</p>;
+  }
+
   if (!firma) {
     return (
       <div className="py-12">
         <EmptyState
-          title="Firma bulunamadı"
-          description="Bu ID ile eşleşen bir firma bulunamadı."
+          title="Firma bulunamadi"
+          description="Bu ID ile eslesen bir firma bulunamadi."
           size="page"
-          action={{ label: "Firmalara Dön", onClick: () => router.push("/firmalar") }}
+          action={{ label: "Firmalara Don", onClick: () => router.push("/firmalar") }}
         />
       </div>
     );

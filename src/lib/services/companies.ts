@@ -86,15 +86,44 @@ export async function getCompanyByLegacyMockId(
  * §3 happens automatically: if RLS hides the firma, this throws and the
  * mutation never reaches the contacts table.
  */
+/**
+ * Resolve a company by legacy mock id OR real UUID.
+ * Tries legacy lookup first, falls back to UUID lookup.
+ * Returns the company row or throws CompanyNotFoundOrOutOfScopeError.
+ *
+ * This enables both legacy-era (f1..f8) and imported (UUID) companies
+ * to be opened in the detail view.
+ */
+export async function resolveCompanyByIdOrLegacy(
+  client: Client,
+  idOrLegacy: string,
+): Promise<CompanyRow> {
+  // Try legacy lookup first
+  const byLegacy = await getCompanyByLegacyMockId(client, idOrLegacy);
+  if (byLegacy) return byLegacy;
+
+  // Try UUID lookup
+  const { selectCompanyById } = await import("@/lib/supabase/companies");
+  const byId = await selectCompanyById(client, idOrLegacy);
+  if (byId) return byId;
+
+  throw new CompanyNotFoundOrOutOfScopeError(idOrLegacy);
+}
+
 export async function requireCompanyByLegacyMockId(
   client: Client,
   legacyMockId: string,
 ): Promise<CompanyRow> {
+  // Try legacy lookup first
   const company = await getCompanyByLegacyMockId(client, legacyMockId);
-  if (!company) {
-    throw new CompanyNotFoundOrOutOfScopeError(legacyMockId);
-  }
-  return company;
+  if (company) return company;
+
+  // Fall back to UUID lookup for imported companies
+  const { selectCompanyById } = await import("@/lib/supabase/companies");
+  const byId = await selectCompanyById(client, legacyMockId);
+  if (byId) return byId;
+
+  throw new CompanyNotFoundOrOutOfScopeError(legacyMockId);
 }
 
 /**
