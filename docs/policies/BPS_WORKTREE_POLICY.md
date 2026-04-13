@@ -274,3 +274,16 @@ BPS uses worktrees to preserve:
 The correct mental model is not: *"more worktrees = more output"*
 
 The correct mental model is: **"one clean writing lane, parallel thinking lanes, and one clean integration lane."**
+
+---
+
+## Tooling Note — workmux
+
+`workmux` may be evaluated later as an optional helper for worktree/session setup and orchestration.
+
+Current status:
+- not adopted as standard BPS workflow tooling
+- not a replacement for this policy
+- evaluate only after manual worktree flow is used long enough to establish a baseline
+- if piloted, start with add/setup convenience only
+- do not use automated merge/cleanup as a default path in early adoption
