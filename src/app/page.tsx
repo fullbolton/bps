@@ -44,9 +44,9 @@ const FAQ_ITEMS = [
   { q: "BPS kimler icin?", a: "B2B hizmet firmalari icin: guvenlik, temizlik, personel temin, OSGB, lojistik, danismanlik, tesis yonetimi ve insaat taseron firmalari." },
   { q: "Muhasebe programi mi?", a: "Hayir. BPS muhasebe yazilimi degildir. Mevcut muhasebe programinizla birlikte calisir. BPS operasyonel takip ve yonetim gorunurlugu saglar." },
   { q: "CRM mi?", a: "Hayir. BPS genel bir CRM degildir. Firma portfoyu, sozlesme yasam dongusu, gorev takibi ve evrak uyumu odakli bir operasyon platformudur." },
-  { q: "Nasil baslanir?", a: "Demo talebinizi gonderin, size ozel bir tanitim gorusmesi ayarlayalim. Mevcut verilerinizi Excel ile kolayca aktarabilirsiniz." },
+  { q: "Nasil baslanir?", a: "Demo talebinizi gonderin, size uygun bir tanitim gorusmesi planlayalim. Mevcut Excel/CSV verilerinizle kontrollu bir baslangic aktarimi yaparak ilerleyebiliriz." },
   { q: "Demo nasil isler?", a: "Canli bir demo ortaminda BPS'i birlikte inceliyoruz. Sektorunuze ozel sablonlarla nasil calisacaginizi gosteriyoruz. Ortalama 30 dakika." },
-  { q: "Verilerimiz guvende mi?", a: "Evet. Verileriniz Avrupa'da barindirilan Supabase altyapisinda saklanir. Rol bazli erisim kontrolu ve firma bazli izolasyon standart olarak uygulanir." },
+  { q: "Verilerimiz guvende mi?", a: "BPS, verileri Avrupa bolgesinde barindirilan altyapi uzerinde calisacak sekilde kuruludur. Erisim rol ve kapsam mantigiyla sinirlandirilir; firma bazli izolasyon temel calisma modelidir." },
 ];
 
 // ---------------------------------------------------------------------------
@@ -132,8 +132,8 @@ export default function LandingPage() {
               evrak uyumunu ve yonetim gorunurlugunu tek platformda birlestiren bir operasyon sistemidir.
             </p>
             <p className="text-base text-slate-600 leading-relaxed mt-3">
-              Kullandiginiz programlari degistirmiyoruz. Birlestiriyoruz.
-              Mevcut Excel verilerinizi yukleyin, sektorunuze ozel sablonlarla baslayin.
+              Mevcut duzeninizi bir anda degistirmek zorunda degilsiniz.
+              BPS ile temel operasyon takibini tek bir merkezde toparlayin; Excel/CSV verilerinizi kontrollu bir baslangic aktarimiyla iceri alin, sektorunuze ozel sablonlarla ilerleyin.
             </p>
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function LandingPage() {
           <div className="max-w-xl mx-auto">
             <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">Demo Talep Edin</h2>
             <p className="text-sm text-slate-600 text-center mb-8">
-              Size ozel bir tanitim gorusmesi ayarlayalim. 30 dakikada BPS'i birlikte kesfedelim.
+              Talebinizi birakin, ekibimiz sizinle iletisime gecip uygun bir tanitim gorusmesi planlasin. Ortalama 30 dakikada BPS'i birlikte kesfedelim.
             </p>
             <DemoRequestForm />
           </div>
@@ -276,8 +276,8 @@ function DemoRequestForm() {
     return (
       <div className="text-center py-8">
         <CheckCircle size={40} className="text-green-600 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">Talebiniz alindi!</h3>
-        <p className="text-sm text-slate-600">En kisa surede sizinle iletisime gececegiz.</p>
+        <h3 className="text-lg font-semibold text-slate-900 mb-2">Demo talebiniz alindi.</h3>
+        <p className="text-sm text-slate-600">Ekibimiz sizinle iletisime gecerek uygun bir tanitim gorusmesi planlayacak.</p>
       </div>
     );
   }

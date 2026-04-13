@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     if (!checkRateLimit(ip)) {
       return NextResponse.json(
-        { success: false, error: "Cok fazla talep gonderdiniz. Lutfen birkac dakika sonra tekrar deneyin." },
+        { success: false, error: "Cok fazla talep gonderdiniz. Lutfen 15 dakika kadar sonra tekrar deneyin." },
         { status: 429 },
       );
     }
