@@ -311,22 +311,39 @@ export default function ImportPage() {
           </div>
         )}
 
-        {/* Step 3: Result */}
-        {importResult && (
+        {/* Step 3: Result — distinguishes full/partial/failed outcomes */}
+        {importResult && (() => {
+          const hasErrors = importResult.errors.length > 0;
+          const hasImported = importResult.imported > 0;
+          const isFullSuccess = hasImported && !hasErrors && importResult.skipped === 0;
+          const isPartial = hasImported && (hasErrors || importResult.skipped > 0);
+          const isFullFailure = !hasImported;
+
+          const Icon = isFullSuccess ? CheckCircle : isPartial ? AlertTriangle : XCircle;
+          const iconColor = isFullSuccess ? "text-green-600" : isPartial ? "text-amber-500" : "text-red-500";
+          const title = isFullSuccess ? "Import Tamamlandi" : isPartial ? "Kismi Basari" : "Import Basarisiz";
+          const borderColor = isFullSuccess ? BORDER_DEFAULT : isPartial ? "border-amber-200" : "border-red-200";
+
+          return (
           <div className="space-y-4">
-            <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-6 text-center`}>
-              <CheckCircle size={32} className="mx-auto text-green-600 mb-3" />
-              <h2 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-2`}>Import Tamamlandi</h2>
-              <p className={`${TYPE_BODY} ${TEXT_BODY}`}>
-                {importResult.imported} kayit basariyla aktarildi
-                {importResult.skipped > 0 && `, ${importResult.skipped} satir atlandi`}
-              </p>
-              {importResult.errors.length > 0 && (
+            <div className={`${SURFACE_PRIMARY} border ${borderColor} ${RADIUS_DEFAULT} p-6 text-center`}>
+              <Icon size={32} className={`mx-auto ${iconColor} mb-3`} />
+              <h2 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-2`}>{title}</h2>
+              <div className={`${TYPE_BODY} ${TEXT_BODY} space-y-1`}>
+                {hasImported && <p>{importResult.imported} kayit basariyla aktarildi</p>}
+                {importResult.skipped > 0 && <p className="text-amber-600">{importResult.skipped} satir onizlemede gecersiz — atlandi</p>}
+                {hasErrors && <p className="text-red-600">{importResult.errors.length} satir yazim sirasinda reddedildi</p>}
+                {isFullFailure && !hasErrors && <p>Aktarilacak gecerli satir bulunamadi.</p>}
+              </div>
+              {hasErrors && (
                 <div className="mt-3 text-left">
-                  <p className={`${TYPE_CAPTION} text-red-600 mb-1`}>Hatalar:</p>
-                  {importResult.errors.map((err, i) => (
+                  <p className={`${TYPE_CAPTION} text-red-600 mb-1`}>Detaylar:</p>
+                  {importResult.errors.slice(0, 10).map((err, i) => (
                     <p key={i} className={`${TYPE_CAPTION} text-red-500`}>{err}</p>
                   ))}
+                  {importResult.errors.length > 10 && (
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>...ve {importResult.errors.length - 10} hata daha</p>
+                  )}
                 </div>
               )}
             </div>
@@ -342,7 +359,8 @@ export default function ImportPage() {
               </a>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Error display */}
         {error && (
