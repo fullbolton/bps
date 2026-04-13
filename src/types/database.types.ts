@@ -747,6 +747,48 @@ export interface Database {
           },
         ];
       };
+      // ---------------------------------------------------------------------
+      // sector_templates — V1 configuration catalog (read-only)
+      // ---------------------------------------------------------------------
+      sector_templates: {
+        Row: {
+          id: string;
+          sector_code: string;
+          label: string;
+          document_types: Json;
+          task_types: Json;
+          contract_types: Json;
+          critical_date_types: Json;
+          risk_criteria: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          sector_code: string;
+          label: string;
+          document_types?: Json;
+          task_types?: Json;
+          contract_types?: Json;
+          critical_date_types?: Json;
+          risk_criteria?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          sector_code?: string;
+          label?: string;
+          document_types?: Json;
+          task_types?: Json;
+          contract_types?: Json;
+          critical_date_types?: Json;
+          risk_criteria?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -818,3 +860,5 @@ export type PartnerCompanyAssignmentInsert =
   Database["public"]["Tables"]["partner_company_assignments"]["Insert"];
 export type PartnerCompanyAssignmentUpdate =
   Database["public"]["Tables"]["partner_company_assignments"]["Update"];
+
+export type SectorTemplateRow = Database["public"]["Tables"]["sector_templates"]["Row"];

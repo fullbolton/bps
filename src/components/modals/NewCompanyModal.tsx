@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ModalShell } from "@/components/ui";
+import { SECTOR_CODES, SECTOR_LABELS } from "@/lib/sector-codes";
+import type { SectorCode } from "@/lib/sector-codes";
 
 interface NewCompanyModalProps {
   open: boolean;
@@ -10,7 +12,7 @@ interface NewCompanyModalProps {
 
 export default function NewCompanyModal({ open, onClose }: NewCompanyModalProps) {
   const [firmaAdi, setFirmaAdi] = useState("");
-  const [sektor, setSektor] = useState("");
+  const [sektor, setSektor] = useState<SectorCode | "">("");
   const [sehir, setSehir] = useState("");
 
   function handleSubmit() {
@@ -65,15 +67,18 @@ export default function NewCompanyModal({ open, onClose }: NewCompanyModalProps)
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Sektör
+            Sektor
           </label>
-          <input
-            type="text"
+          <select
             value={sektor}
-            onChange={(e) => setSektor(e.target.value)}
-            placeholder="Sektör"
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+            onChange={(e) => setSektor(e.target.value as SectorCode | "")}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">Sektor secin (opsiyonel)</option>
+            {SECTOR_CODES.map((code) => (
+              <option key={code} value={code}>{SECTOR_LABELS[code]}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
