@@ -16,7 +16,6 @@ import {
   SOZLESME_TIPLERI,
   EVRAK_KATEGORILERI,
   GOREV_TIPLERI,
-  KULLANICILAR,
   ROLLER,
   SEHIRLER,
   OPERASYON_PARTNERLERI,
@@ -124,6 +123,89 @@ const BIRIM_DISPLAY: Record<string, string> = {
   muhasebe: "Muhasebe",
   diger: "Diğer",
 };
+
+// ---------------------------------------------------------------------------
+// Kullanıcılar Tab — real profiles read (yonetici-only surface)
+// ---------------------------------------------------------------------------
+// Replaces the previous KULLANICILAR mock. The page is already yonetici-gated
+// at the parent; RLS on `profiles` permits yonetici to read all rows. Maps
+// the profile shape into AyarUserEntry so the existing COLUMNS_USERS and
+// DataTable render identically to before. Honest empty state when no rows.
+// ---------------------------------------------------------------------------
+
+const ROL_DISPLAY: Record<string, string> = {
+  yonetici: "Yönetici",
+  partner: "Partner",
+  operasyon: "Operasyon",
+  ik: "İK",
+  muhasebe: "Muhasebe",
+  goruntuleyici: "Görüntüleyici",
+};
+
+function UsersTab() {
+  const [users, setUsers] = useState<AyarUserEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { data, error: fetchError } = await supabase
+        .from("profiles")
+        .select("id, display_name, role, email")
+        .order("display_name", { ascending: true });
+      if (cancelled) return;
+      if (fetchError) {
+        setError("Kullanıcılar yüklenemedi.");
+        setUsers([]);
+      } else {
+        const mapped: AyarUserEntry[] = (data ?? []).map((p) => ({
+          id: p.id,
+          ad: p.display_name,
+          rol: ROL_DISPLAY[p.role] ?? p.role,
+          eposta: p.email,
+        }));
+        setUsers(mapped);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div
+        className={`${SURFACE_HEADER} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} px-4 py-12 text-center`}
+      >
+        <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Yükleniyor…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className={`${SURFACE_HEADER} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} px-4 py-12 text-center`}
+      >
+        <p className={`${TYPE_BODY} text-red-600`} role="alert">
+          {error}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <DataTable<AyarUserEntry>
+      columns={COLUMNS_USERS}
+      data={users}
+      rowKey="id"
+      emptyTitle="Henüz kullanıcı yok"
+    />
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Access Requests Review Component
@@ -331,14 +413,7 @@ export default function AyarlarPage() {
       <div className="space-y-4">
         <TabNavigation tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {activeTab === "kullanicilar" && (
-          <DataTable<AyarUserEntry>
-            columns={COLUMNS_USERS}
-            data={KULLANICILAR}
-            rowKey="id"
-            emptyTitle="Kullanıcı yok"
-          />
-        )}
+        {activeTab === "kullanicilar" && <UsersTab />}
 
         {activeTab === "erisim-talepleri" && (
           <AccessRequestsTab />

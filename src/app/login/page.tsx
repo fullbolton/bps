@@ -112,19 +112,20 @@ function LoginForm() {
 // ---------------------------------------------------------------------------
 // Access request form
 // ---------------------------------------------------------------------------
-
-const BIRIM_OPTIONS = [
-  { label: "Operasyon", value: "operasyon" },
-  { label: "Satış", value: "satis" },
-  { label: "İK", value: "ik" },
-  { label: "Muhasebe", value: "muhasebe" },
-  { label: "Diğer", value: "diger" },
-];
+//
+// Operating model: user submits only Ad Soyad + E-posta. Yönetici assigns
+// role and scope internally from the Ayarlar > Erişim Talepleri tab. Birim
+// is no longer user-selected at this surface.
+//
+// Write-contract compatibility: the access_requests table was created in
+// Phase 2A with a required `birim` column. Rather than widen scope with a
+// schema migration in this batch, a neutral default ("diger") is stamped
+// silently on insert. The existing Ayarlar review flow already maps
+// "diger" → "Diğer", so no review-tab change is required.
 
 function AccessRequestForm({ onBack }: { onBack: () => void }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [birim, setBirim] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -141,7 +142,7 @@ function AccessRequestForm({ onBack }: { onBack: () => void }) {
       .insert({
         full_name: fullName.trim(),
         email: email.trim().toLowerCase(),
-        birim,
+        birim: "diger",
       });
 
     if (insertError) {
@@ -219,24 +220,6 @@ function AccessRequestForm({ onBack }: { onBack: () => void }) {
         />
       </div>
 
-      <div>
-        <label htmlFor="access-birim" className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>
-          Birim
-        </label>
-        <select
-          id="access-birim"
-          value={birim}
-          onChange={(e) => setBirim(e.target.value)}
-          required
-          className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white`}
-        >
-          <option value="">Birim seçin</option>
-          {BIRIM_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
-
       {error && (
         <p className={`${TYPE_CAPTION} text-red-600`}>{error}</p>
       )}
@@ -244,7 +227,7 @@ function AccessRequestForm({ onBack }: { onBack: () => void }) {
       <div className="flex flex-col gap-2 pt-1">
         <button
           type="submit"
-          disabled={loading || !fullName.trim() || !email.trim() || !birim}
+          disabled={loading || !fullName.trim() || !email.trim()}
           className={`w-full py-2.5 ${TYPE_BODY} font-medium ${BUTTON_PRIMARY} ${RADIUS_SM} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           {loading ? "Gönderiliyor..." : "Erişim talebini gönder"}
