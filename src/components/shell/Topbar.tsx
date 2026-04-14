@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Search, Bell, User, LogOut } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Bell, User, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   TYPE_BODY,
@@ -10,7 +10,6 @@ import {
   TEXT_SECONDARY,
   TEXT_MUTED,
   SURFACE_PRIMARY,
-  SURFACE_HEADER,
   BORDER_DEFAULT,
   RADIUS_SM,
   RADIUS_FULL,
@@ -59,22 +58,15 @@ export default function Topbar() {
   return (
     <>
       <header className={`fixed top-0 left-64 right-0 h-14 ${SURFACE_PRIMARY} border-b ${BORDER_DEFAULT} flex items-center px-5 gap-4 ${Z_TOPBAR}`}>
-        {/* Global Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search
-            size={16}
-            className={`absolute left-3 top-1/2 -translate-y-1/2 ${TEXT_MUTED}`}
-          />
-          <input
-            type="text"
-            placeholder="Ara..."
-            className={`w-full pl-9 pr-3 py-1.5 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_HEADER} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-          />
-        </div>
+        {/* Global search removed — the previous input had no wiring
+            (no value/onChange/submit/dropdown) and produced no results,
+            which misled users. A real search surface is out of scope
+            for this batch; honest absence is preferred over a fake
+            interactive control. */}
 
         {/* Turkish date/time utility — desktop only, updates every minute */}
         {dateTimeStr && (
-          <span className={`hidden md:block ${TYPE_CAPTION} ${TEXT_MUTED} whitespace-nowrap`}>
+          <span className={`${TYPE_CAPTION} ${TEXT_MUTED} whitespace-nowrap hidden md:block`}>
             {dateTimeStr}
           </span>
         )}

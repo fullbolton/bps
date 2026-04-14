@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
+import { formatTRY } from "@/lib/format-currency";
 import {
   EmptyState,
   PageHeader,
@@ -209,7 +210,7 @@ export default function SozlesmeDetayPage({
         bitis={contract.end_date ? formatDateTR(contract.end_date.slice(0, 10)) : ""}
         kalanGun={kalanGun}
         sorumlu={contract.responsible ?? "—"}
-        tutar={contract.contract_value ?? undefined}
+        tutar={contract.contract_value ? formatTRY(contract.contract_value) : undefined}
       />
 
       {/* Contract-owned write actions — yonetici / partner only */}
@@ -334,7 +335,7 @@ export default function SozlesmeDetayPage({
                 <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
                   <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Tutar</dt>
                   <dd className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY} mt-0.5`}>
-                    {contract.contract_value}
+                    {formatTRY(contract.contract_value)}
                   </dd>
                 </div>
               )}

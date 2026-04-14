@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
+import { formatTRY } from "@/lib/format-currency";
 import {
   PageHeader,
   SearchInput,
@@ -403,7 +404,7 @@ export default function SozlesmelerPage() {
                 <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
                   <dt className={DL_LABEL}>Tutar</dt>
                   <dd className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY} mt-0.5`}>
-                    {selectedContract.contract_value}
+                    {formatTRY(selectedContract.contract_value)}
                   </dd>
                 </div>
               )}
