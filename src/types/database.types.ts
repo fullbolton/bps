@@ -954,6 +954,10 @@ export interface Database {
         Args: { target_company_id: string };
         Returns: boolean;
       };
+      derive_financial_summaries_from_mizan: {
+        Args: { p_upload_id: string };
+        Returns: number;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

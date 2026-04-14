@@ -147,8 +147,21 @@ export default function LucaImportPage() {
         }
       }
 
-      // Financial summary derivation from snapshot is a separate concern.
-      // V1 stores the confirmed snapshot. Downstream visibility reads from it.
+      // 3. Derive per-company open_receivable from the just-confirmed upload.
+      // Mizan-derived visibility only — overwrites open_receivable while
+      // preserving is_overdue / unbilled_amount set by the muhasebe flow.
+      // Uses the latest confirmed upload only (scoped by upload.id).
+      const { error: deriveErr } = await supabase.rpc(
+        "derive_financial_summaries_from_mizan",
+        { p_upload_id: upload.id },
+      );
+      if (deriveErr) {
+        // Rollback: snapshot without derived financial_summaries would be
+        // inconsistent. Delete the upload (CASCADEs to rows) so the next
+        // retry starts clean.
+        await supabase.from("mizan_uploads").delete().eq("id", upload.id);
+        throw new Error(`Finansal ozet turetilemedi: ${deriveErr.message}. Yukleme geri alindi.`);
+      }
 
       setConfirmed(true);
     } catch (err) {
