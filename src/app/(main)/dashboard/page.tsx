@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDateTR } from "@/lib/format-date";
+import { createClient } from "@/lib/supabase/client";
 import {
   Building2,
   FileText,
@@ -30,10 +31,7 @@ import {
 } from "@/mocks/dashboard";
 import { MOCK_EVRAKLAR } from "@/mocks/evraklar";
 import { MOCK_FIRMALAR } from "@/mocks/firmalar";
-import { MOCK_SOZLESMELER } from "@/mocks/sozlesmeler";
 import { MOCK_TALEPLER } from "@/mocks/talepler";
-import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
-import { MOCK_RANDEVULAR } from "@/mocks/randevular";
 import { MOCK_GOREVLER } from "@/mocks/gorevler";
 import { clsx } from "clsx";
 import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI } from "@/mocks/finansal-ozet";
@@ -91,14 +89,93 @@ export default function DashboardPage() {
   const [iniIlgiliKisi, setIniIlgiliKisi] = useState("");
   const [iniHedefTarih, setIniHedefTarih] = useState("");
   const [iniFirmaId, setIniFirmaId] = useState("");
-  const derivedKpis = {
-    toplamFirma: MOCK_FIRMALAR.length,
-    aktifSozlesme: MOCK_SOZLESMELER.filter((s) => s.durum === "aktif").length,
-    acikTalep: MOCK_TALEPLER.reduce((sum, t) => sum + t.acikKalan, 0),
-    aktifPersonel: MOCK_IS_GUCU.reduce((sum, ig) => sum + ig.aktifKisi, 0),
-    bekleyenGorev: MOCK_GOREVLER.filter((g) => g.durum === "acik" || g.durum === "devam_ediyor" || g.durum === "gecikti").length,
-    yaklasanRandevu: MOCK_RANDEVULAR.filter((r) => r.durum === "planlandi").length,
-  };
+  // KPI top-row — real Supabase truth. Partner scope is enforced by RLS
+  // on each underlying table; no application-level scoping added here.
+  // Null = not yet loaded or query errored → render as honest "—".
+  // 0 = real query returned empty → honest zero.
+  const [kpis, setKpis] = useState<{
+    toplamFirma: number | null;
+    aktifSozlesme: number | null;
+    acikTalep: number | null;
+    aktifPersonel: number | null;
+    bekleyenGorev: number | null;
+    yaklasanRandevu: number | null;
+  }>({
+    toplamFirma: null,
+    aktifSozlesme: null,
+    acikTalep: null,
+    aktifPersonel: null,
+    bekleyenGorev: null,
+    yaklasanRandevu: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const [
+        companiesRes,
+        contractsRes,
+        demandsRes,
+        workforceRes,
+        tasksRes,
+        appointmentsRes,
+      ] = await Promise.all([
+        supabase.from("companies").select("id", { count: "exact", head: true }),
+        supabase
+          .from("contracts")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "aktif"),
+        // Açık Talep = sum of (requested_count - provided_count) over
+        // non-cancelled demands, clamped at 0. Matches the mock's
+        // `acikKalan` semantic without introducing a new column.
+        supabase
+          .from("staffing_demands")
+          .select("requested_count, provided_count")
+          .neq("status", "iptal"),
+        supabase.from("workforce_summary").select("current_count"),
+        supabase
+          .from("tasks")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["acik", "devam_ediyor", "gecikti"]),
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "planlandi"),
+      ]);
+      if (cancelled) return;
+
+      const acikTalep = demandsRes.error
+        ? null
+        : (demandsRes.data ?? []).reduce(
+            (sum, r) =>
+              sum +
+              Math.max(
+                0,
+                (r.requested_count ?? 0) - (r.provided_count ?? 0),
+              ),
+            0,
+          );
+      const aktifPersonel = workforceRes.error
+        ? null
+        : (workforceRes.data ?? []).reduce(
+            (sum, r) => sum + (r.current_count ?? 0),
+            0,
+          );
+
+      setKpis({
+        toplamFirma: companiesRes.error ? null : companiesRes.count ?? 0,
+        aktifSozlesme: contractsRes.error ? null : contractsRes.count ?? 0,
+        acikTalep,
+        aktifPersonel,
+        bekleyenGorev: tasksRes.error ? null : tasksRes.count ?? 0,
+        yaklasanRandevu: appointmentsRes.error ? null : appointmentsRes.count ?? 0,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const derivedOpenDemands = MOCK_TALEPLER
     .filter((t) => t.acikKalan > 0)
     .map((t) => ({ id: t.id, firma: t.firmaAdi, pozisyon: t.pozisyon, adet: t.acikKalan }));
@@ -144,14 +221,14 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <KPIStatCard
             label="Toplam Firma"
-            value={derivedKpis.toplamFirma}
+            value={kpis.toplamFirma ?? "—"}
             icon={<Building2 size={18} />}
             href="/firmalar"
           />
           {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
             <KPIStatCard
               label="Aktif Sözleşme"
-              value={derivedKpis.aktifSozlesme}
+              value={kpis.aktifSozlesme ?? "—"}
               icon={<FileText size={18} />}
               href="/sozlesmeler"
             />
@@ -159,7 +236,7 @@ export default function DashboardPage() {
           {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
             <KPIStatCard
               label="Açık Talep"
-              value={derivedKpis.acikTalep}
+              value={kpis.acikTalep ?? "—"}
               icon={<Users size={18} />}
               href="/talepler"
             />
@@ -167,7 +244,7 @@ export default function DashboardPage() {
           {!["muhasebe", "goruntuleyici"].includes(role) && (
             <KPIStatCard
               label="Aktif Personel"
-              value={derivedKpis.aktifPersonel}
+              value={kpis.aktifPersonel ?? "—"}
               icon={<Briefcase size={18} />}
               href="/aktif-isgucu"
             />
@@ -175,7 +252,7 @@ export default function DashboardPage() {
           {!["muhasebe", "goruntuleyici"].includes(role) && (
             <KPIStatCard
               label="Bekleyen Görev"
-              value={derivedKpis.bekleyenGorev}
+              value={kpis.bekleyenGorev ?? "—"}
               icon={<ListChecks size={18} />}
               href="/gorevler"
             />
@@ -183,7 +260,7 @@ export default function DashboardPage() {
           {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
             <KPIStatCard
               label="Yaklaşan Randevu"
-              value={derivedKpis.yaklasanRandevu}
+              value={kpis.yaklasanRandevu ?? "—"}
               icon={<CalendarCheck size={18} />}
               href="/randevular"
             />
