@@ -72,9 +72,19 @@ export default function LucaImportPage() {
     try {
       const buffer = await file.arrayBuffer();
 
-      // Load BPS companies for matching
-      const { data: companies } = await supabase.from("companies").select("id, name");
-      const companyMap = buildCompanyMatchMap(companies ?? []);
+      // Load BPS companies for matching — fail clearly if load fails
+      const { data: companies, error: companyLoadErr } = await supabase.from("companies").select("id, name");
+      if (companyLoadErr) {
+        setError(`Firma listesi yuklenemedi: ${companyLoadErr.message}. Mizan isleme devam edemez.`);
+        e.target.value = "";
+        return;
+      }
+      if (!companies || companies.length === 0) {
+        setError("BPS'te henuz firma kaydi yok. Once firma ekleyin, sonra mizan yukleyin.");
+        e.target.value = "";
+        return;
+      }
+      const companyMap = buildCompanyMatchMap(companies);
 
       const result = parseMizanExcel(buffer, file.name, companyMap);
       setParseResult(result);
@@ -130,10 +140,14 @@ export default function LucaImportPage() {
 
       if (rowInserts.length > 0) {
         const { error: rowErr } = await supabase.from("mizan_upload_rows").insert(rowInserts);
-        if (rowErr) throw new Error(rowErr.message);
+        if (rowErr) {
+          // Rollback: delete orphan upload metadata since row snapshot failed
+          await supabase.from("mizan_uploads").delete().eq("id", upload.id);
+          throw new Error(`Satir kaydi basarisiz: ${rowErr.message}. Yukleme geri alindi.`);
+        }
       }
 
-      // 3. Financial summary derivation from snapshot is a separate concern.
+      // Financial summary derivation from snapshot is a separate concern.
       // V1 stores the confirmed snapshot. Downstream visibility reads from it.
 
       setConfirmed(true);
@@ -200,7 +214,7 @@ export default function LucaImportPage() {
             )}
 
             {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-3`}>
                 <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Toplam musteri</p>
                 <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{stats.total}</p>
@@ -213,6 +227,12 @@ export default function LucaImportPage() {
                 <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Eslesmeyen</p>
                 <p className={`${TYPE_BODY} font-medium text-amber-600`}>{stats.unmatched}</p>
               </div>
+              {stats.ambiguous > 0 && (
+                <div className={`${SURFACE_PRIMARY} border border-red-200 ${RADIUS_DEFAULT} p-3`}>
+                  <p className={`${TYPE_CAPTION} text-red-600`}>Belirsiz</p>
+                  <p className={`${TYPE_BODY} font-medium text-red-700`}>{stats.ambiguous}</p>
+                </div>
+              )}
               <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-3`}>
                 <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Toplam borc bakiyesi</p>
                 <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{formatCurrency(stats.totalReceivable)}</p>
@@ -288,8 +308,9 @@ export default function LucaImportPage() {
               <h2 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-2`}>Mizan Verisi Kaydedildi</h2>
               <div className={`${TYPE_BODY} ${TEXT_BODY} space-y-1`}>
                 <p>{stats.total} musteri satiri islendi</p>
-                <p className="text-green-700">{stats.matched} firma eslesmesi basarili — alacak gorunumu guncellendi</p>
+                <p className="text-green-700">{stats.matched} firma eslesmesi basarili</p>
                 {stats.unmatched > 0 && <p className="text-amber-600">{stats.unmatched} satir eslesme bulunamadi</p>}
+                {stats.ambiguous > 0 && <p className="text-red-600">{stats.ambiguous} satir belirsiz eslestirme (birden fazla firma adayi)</p>}
               </div>
               <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-3`}>
                 Mizan kaynakli gorunum — resmi muhasebe kaydi yerine gecmez
