@@ -10,8 +10,11 @@ import {
   TEXT_PRIMARY,
   TEXT_BODY,
   TEXT_SECONDARY,
+  TEXT_MUTED,
   BORDER_SUBTLE,
 } from "@/styles/tokens";
+
+export type CommercialSummarySource = "mizan" | "muhasebe";
 
 interface CommercialSummaryCardProps {
   acikBakiye: string;
@@ -19,7 +22,19 @@ interface CommercialSummaryCardProps {
   sonFaturaTutari?: string;
   kesilmemisBekleyen?: string;
   ticariRisk: RiskSeviyesi;
+  /**
+   * Which writer most recently stamped the underlying financial_summaries
+   * row. Rendered as a small muted caption so the user can distinguish
+   * mizan-derived visibility from muhasebe-confirmed visibility. Omitted
+   * or null means no source signal (legacy row) — nothing rendered.
+   */
+  kaynak?: CommercialSummarySource | null;
 }
+
+const KAYNAK_LABEL: Record<CommercialSummarySource, string> = {
+  mizan: "Mizan kaynaklı",
+  muhasebe: "Muhasebe kaynaklı",
+};
 
 /**
  * CommercialSummaryCard — firma-level read-only commercial visibility.
@@ -38,6 +53,7 @@ export default function CommercialSummaryCard({
   sonFaturaTutari,
   kesilmemisBekleyen,
   ticariRisk,
+  kaynak,
 }: CommercialSummaryCardProps) {
   return (
     <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
@@ -66,6 +82,11 @@ export default function CommercialSummaryCard({
           </dd>
         </div>
       </dl>
+      {kaynak && (
+        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-3`}>
+          Kaynak: {KAYNAK_LABEL[kaynak]}
+        </p>
+      )}
     </div>
   );
 }

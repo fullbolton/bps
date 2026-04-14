@@ -297,11 +297,16 @@ export default function FirmaDetayPage({
   } : null;
   const timeline = MOCK_FIRMA_TIMELINE[id] ?? [];
 
-  // Financial summary — real DB, truthful absence state
+  // Financial summary — real DB, truthful absence state.
+  // `last_source` distinguishes mizan-derived visibility from muhasebe
+  // manual-flow visibility so the Ticari Özet card can surface a subtle
+  // source caption. Legacy rows written before the source signal was
+  // added return null and render no caption.
   const [firmaFinancial, setFirmaFinancial] = useState<{
     open_receivable: string | null;
     unbilled_amount: string | null;
     is_overdue: boolean;
+    last_source: "mizan" | "muhasebe" | null;
   } | null>(null);
   useEffect(() => {
     if (!companyShell) return;
@@ -309,10 +314,30 @@ export default function FirmaDetayPage({
       try {
         const { data } = await supabase
           .from("financial_summaries")
-          .select("open_receivable, unbilled_amount, is_overdue")
+          .select("open_receivable, unbilled_amount, is_overdue, last_source")
           .eq("company_id", companyShell.id)
           .maybeSingle();
-        setFirmaFinancial(data ?? null);
+        const row = data as
+          | {
+              open_receivable: string | null;
+              unbilled_amount: string | null;
+              is_overdue: boolean | null;
+              last_source: string | null;
+            }
+          | null;
+        setFirmaFinancial(
+          row
+            ? {
+                open_receivable: row.open_receivable ?? null,
+                unbilled_amount: row.unbilled_amount ?? null,
+                is_overdue: Boolean(row.is_overdue),
+                last_source:
+                  row.last_source === "mizan" || row.last_source === "muhasebe"
+                    ? row.last_source
+                    : null,
+              }
+            : null,
+        );
       } catch {
         setFirmaFinancial(null);
       }
@@ -644,6 +669,7 @@ export default function FirmaDetayPage({
                   sonFaturaTutari={"—"}
                   kesilmemisBekleyen={firmaFinancial.unbilled_amount ?? "—"}
                   ticariRisk={firmaFinancial.is_overdue ? "yuksek" : "dusuk"}
+                  kaynak={firmaFinancial.last_source}
                 />
               );
             })()}
