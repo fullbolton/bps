@@ -86,6 +86,12 @@ Post-migration shipped surfaces:
 - Excel Import V1 (CSV import for companies, contacts, contracts — yonetici-only, direct URL)
 - Luca Mizan Import V1 (mizan Excel parsing, 120.xxx receivable extraction, snapshot storage — yonetici-only)
 - company surface trust polish (real enrichment, no mock-backed commercial confidence, honest absence states)
+- Luca downstream derived visibility (matched mizan rows → per-company `open_receivable` upsert on `financial_summaries` via yonetici-only RPC; preserves muhasebe-flow `is_overdue` / `unbilled_amount` / `created_by`; snapshot and derived write roll back together on failure)
+- Luca source signal on Ticari Özet (minimal `last_source` column on `financial_summaries`, stamped by both writers — `muhasebe` for manual upload/review/confirm, `mizan` for Luca-derived — rendered as a subtle caption on the existing Firma Detay > Ticari Özet card, no layout redesign)
+
+Evre 1 closeout:
+- Evre 1 is closed operationally. Rehearsal result: 6/7 PASS with 1 known WARN (sector-setup limitation affecting new-company button visibility). Demo preview access blocker was deployment/ops-layer and is resolved without code change.
+- The following items are recorded as known later-decision scope only and are not active Evre 1 implementation targets: Luca `is_overdue` / ticari risk coherence, Luca stale carryover between successive uploads, Finansal Özet parity with `financial_summaries`, and the rehearsal sector-setup WARN. None of these are promoted into an active Evre 1.1 workstream by this closeout.
 
 ---
 
