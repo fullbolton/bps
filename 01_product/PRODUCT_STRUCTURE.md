@@ -287,3 +287,31 @@ Dashboard üzerindeki sinyal kartı ile erişilir.
 ### Erişim
 - tüm iç roller görüntüleyebilir
 - yalnızca yönetici oluşturma / düzenleme / yönetme yapabilir
+
+---
+
+## Shipped Bounded Surfaces (Post-Migration)
+
+### Public Landing Page
+- `/` serves a public landing page explaining BPS and offering demo request
+- bounded demo request intake stored in Supabase (not public signup)
+- abuse protection: honeypot + rate limit + server-controlled path
+- authenticated app remains protected behind `/login`
+
+### Admin Import Utility
+- `/import` — CSV import for companies, contacts, contracts
+- yonetici-only, direct URL access
+- template-based, preview/confirm flow
+- controlled starter onboarding, not a broad migration engine
+
+### Luca Mizan Import
+- `/luca-import` — mizan Excel parsing
+- 120.xxx customer receivable extraction with deterministic matching
+- confirmed rows stored as snapshots (mizan_uploads + mizan_upload_rows)
+- management visibility only, not accounting truth
+
+### Sector Templates V1
+- 8-sector read-only catalog (sector_templates table)
+- company create-time sector selection
+- document types, task types, contract types, critical date types, risk criteria per sector
+- configuration catalog, not an automation engine

@@ -58,10 +58,10 @@ Current implementation direction remains:
 - AI and automation stay after core operational surfaces
 - communication stays last
 
-Role-model migration note:
+Role-model note:
 - `partner` replaces `satis` in the final accepted role model
-- authorization is now interpreted as `rol + kapsam`, not role-only
-- real-data migration will require partner -> portfolio / firma mapping so scoped access can be enforced
+- authorization is `rol + kapsam` — enforced via RLS + service layer + UI gates
+- partner-to-portfolio scope mapping is live and enforced (partner_company_assignments table + RLS)
 - `goruntuleyici` remains as the bounded read-only role
 
 Real-data migration state:
@@ -70,9 +70,22 @@ Real-data migration state:
 - `Faz 1B — Notlar` -> completed
 - `Faz 2 — Sozlesmeler` -> completed
 - `Faz 3 — Talepler + Randevular + Gorevler + Aktif Is Gucu` -> completed
-- validated Phase 2 readers: `Firma Detay > Sozlesmeler`, `Genel Bakis > Aktif Sozlesmeler`, `Sozlesmeler` listesi, `Firmalar` list active-contract count
-- validated Phase 3 readers/writers: `Talepler`, `Randevular`, `Gorevler`, `Firma Detay > Talepler`, `Firma Detay > Randevular`, `Firma Detay > Aktif Is Gucu`, `Firmalar` list appointment-derived parity
-- migration order does not change; Faz 4 is not started by this closeout patch
+- `Faz 4 — Evraklar + Kurumsal Kritik Tarihler` -> completed
+- `Faz 5 — Finansal Ozet` -> completed
+- `Faz 6 — Dashboard + Raporlar` -> completed
+- `Faz 7 — Cutover + Mock Temizligi` -> completed
+- real-data migration program is completed
+- all primary domain tables read from real Supabase truth
+- RLS + partner scope enforced across all primary + derived readers
+- `Firmalar` list and `Firma Detay` read from real `companies` table (including imported UUID-backed companies)
+
+Post-migration shipped surfaces:
+- public landing page at `/` with bounded demo request intake (not public signup)
+- demo request abuse protection (honeypot + rate limit + server-controlled path)
+- Sector Templates V1 (8-sector read-only catalog + company create-time sector selection)
+- Excel Import V1 (CSV import for companies, contacts, contracts — yonetici-only, direct URL)
+- Luca Mizan Import V1 (mizan Excel parsing, 120.xxx receivable extraction, snapshot storage — yonetici-only)
+- company surface trust polish (real enrichment, no mock-backed commercial confidence, honest absence states)
 
 ---
 

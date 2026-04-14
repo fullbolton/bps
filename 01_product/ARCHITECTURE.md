@@ -160,7 +160,7 @@ Role shape:
 - `muhasebe` focuses on bounded summary-level financial visibility maintenance — sees Finansal Özet (full including upload-extract-confirm), Company Detail (Ticari Özet read-only + Sözleşmeler read-only + Yönlendirmeler), and Dashboard (narrow financial context only) — does not see operational modules, commercial tools, Ayarlar, or management-layer features
 - `görüntüleyici` is summary-observation only and should not mutate records or access operational-depth surfaces
 
-Real-data migration will require an explicit partner-to-portfolio or partner-to-company mapping so scoped access can be enforced consistently.
+Partner-to-portfolio scope mapping is live and enforced via `partner_company_assignments` table + RLS policies. Partners see only their assigned portfolio companies across all surfaces.
 This is an access-model intent note only; it does not define schema.
 
 Company-wide Financial Summary remains a management-visibility layer. Yönetici is the management owner. Muhasebe participates as a bounded summary-maintenance actor — uploading, reviewing, and confirming summary financial data — but this does not transform Financial Summary into accounting software, ERP, payroll, ledger logic, or reconciliation.
@@ -294,6 +294,16 @@ Future internal-operations request/approval themes are also recognized as later 
 Future geographic-visualization themes are also recognized as later management-visibility enhancements only, not present-scope map-first product commitments.
 The city -> partner ownership-visibility workstream closed through four bounded phases covering the `Ayarlar` structural layer, lightweight list/detail partner visibility, a yönetici-only reporting lens, and a lightweight `Dashboard` concentration signal.
 It remained visibility-oriented and did not drift into org-management, accounting, profitability, or map-first behavior.
+
+### Shipped Post-Migration Surfaces
+
+The following bounded surfaces are live and shipped:
+
+- **Public landing page** (`/`) with demo request intake — not public signup. Authenticated app remains protected.
+- **Demo request abuse protection** — honeypot, rate limit, server-controlled submission path.
+- **Sector Templates V1** — 8-sector read-only catalog, company create-time sector selection.
+- **Excel Import V1** — CSV import for companies, contacts, contracts. Yonetici-only, direct URL (`/import`).
+- **Luca Mizan Import V1** — mizan Excel parsing, 120.xxx customer receivable extraction, snapshot storage. Yonetici-only (`/luca-import`). Management visibility only, not accounting truth.
 
 ### Additive Structural Change Preference
 When architecture evolves, prefer additive refinement over disruptive rewrites, especially once live usage exists.
