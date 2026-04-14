@@ -31,8 +31,6 @@ import {
 } from "@/mocks/dashboard";
 import { MOCK_EVRAKLAR } from "@/mocks/evraklar";
 import { MOCK_FIRMALAR } from "@/mocks/firmalar";
-import { MOCK_TALEPLER } from "@/mocks/talepler";
-import { MOCK_GOREVLER } from "@/mocks/gorevler";
 import { clsx } from "clsx";
 import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI } from "@/mocks/finansal-ozet";
 import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
@@ -109,6 +107,17 @@ export default function DashboardPage() {
     yaklasanRandevu: null,
   });
 
+  // Signal cards paired with the KPIs above. Same RLS / partner-scope
+  // behavior as the KPIs; shape mirrors the previous mock render shape
+  // so the card layout stays byte-identical.
+  const [todayTasks, setTodayTasks] = useState<
+    Array<{ id: string; baslik: string; firma: string; gecikme: boolean }>
+  >([]);
+  const [openDemands, setOpenDemands] = useState<
+    Array<{ id: string; firma: string; pozisyon: string; adet: number }>
+  >([]);
+  const [signalsLoading, setSignalsLoading] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -121,22 +130,30 @@ export default function DashboardPage() {
         tasksRes,
         appointmentsRes,
       ] = await Promise.all([
-        supabase.from("companies").select("id", { count: "exact", head: true }),
+        // companies: fetch id+name so a single query covers both the
+        // Toplam Firma KPI (count via data.length) and the name-lookup
+        // map used by the two signal cards below.
+        supabase.from("companies").select("id, name"),
         supabase
           .from("contracts")
           .select("id", { count: "exact", head: true })
           .eq("status", "aktif"),
-        // Açık Talep = sum of (requested_count - provided_count) over
-        // non-cancelled demands, clamped at 0. Matches the mock's
-        // `acikKalan` semantic without introducing a new column.
+        // staffing_demands: full rows so the same fetch feeds both the
+        // Açık Talep KPI (sum of max(0, requested - provided)) and the
+        // Açık Personel Talepleri signal card (per-row open count).
         supabase
           .from("staffing_demands")
-          .select("requested_count, provided_count")
+          .select(
+            "id, position, company_id, requested_count, provided_count, status",
+          )
           .neq("status", "iptal"),
         supabase.from("workforce_summary").select("current_count"),
+        // tasks: full rows feed both the Bekleyen Görev KPI (count via
+        // data.length) and the Bugünün Görevleri signal card. Same
+        // filter as the KPI — status IN ('acik','devam_ediyor','gecikti').
         supabase
           .from("tasks")
-          .select("id", { count: "exact", head: true })
+          .select("id, title, company_id, status, due_date")
           .in("status", ["acik", "devam_ediyor", "gecikti"]),
         supabase
           .from("appointments")
@@ -164,38 +181,78 @@ export default function DashboardPage() {
           );
 
       setKpis({
-        toplamFirma: companiesRes.error ? null : companiesRes.count ?? 0,
+        toplamFirma: companiesRes.error ? null : companiesRes.data?.length ?? 0,
         aktifSozlesme: contractsRes.error ? null : contractsRes.count ?? 0,
         acikTalep,
         aktifPersonel,
-        bekleyenGorev: tasksRes.error ? null : tasksRes.count ?? 0,
+        bekleyenGorev: tasksRes.error ? null : tasksRes.data?.length ?? 0,
         yaklasanRandevu: appointmentsRes.error ? null : appointmentsRes.count ?? 0,
       });
+
+      // --- Signal-card derivations ---
+      const companyNameById = new Map<string, string>();
+      if (!companiesRes.error) {
+        for (const c of companiesRes.data ?? []) {
+          companyNameById.set(c.id, c.name);
+        }
+      }
+
+      // Bugünün Görevleri — mirrors the prior mock's sort exactly:
+      // gecikti first, then devam_ediyor, then acik; within a status,
+      // earlier due_date first. Row cap preserved at 4.
+      const mappedTasks = tasksRes.error
+        ? []
+        : [...(tasksRes.data ?? [])]
+            .sort((a, b) => {
+              const weight = (s: string) =>
+                s === "gecikti" ? 0 : s === "devam_ediyor" ? 1 : 2;
+              const diff = weight(a.status) - weight(b.status);
+              if (diff !== 0) return diff;
+              const aTime = a.due_date
+                ? new Date(a.due_date).getTime()
+                : Number.MAX_SAFE_INTEGER;
+              const bTime = b.due_date
+                ? new Date(b.due_date).getTime()
+                : Number.MAX_SAFE_INTEGER;
+              return aTime - bTime;
+            })
+            .slice(0, 4)
+            .map((t) => ({
+              id: t.id,
+              baslik: t.title,
+              firma: companyNameById.get(t.company_id) ?? "—",
+              gecikme: t.status === "gecikti",
+            }));
+
+      // Açık Personel Talepleri — row cap 4 (subset view). No new
+      // sorting introduced; preserves Supabase's insertion order, same
+      // as the prior mock card.
+      const mappedDemands = demandsRes.error
+        ? []
+        : (demandsRes.data ?? [])
+            .filter(
+              (d) =>
+                (d.requested_count ?? 0) > (d.provided_count ?? 0),
+            )
+            .slice(0, 4)
+            .map((d) => ({
+              id: d.id,
+              firma: companyNameById.get(d.company_id) ?? "—",
+              pozisyon: d.position,
+              adet: Math.max(
+                0,
+                (d.requested_count ?? 0) - (d.provided_count ?? 0),
+              ),
+            }));
+
+      setTodayTasks(mappedTasks);
+      setOpenDemands(mappedDemands);
+      setSignalsLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
-  const derivedOpenDemands = MOCK_TALEPLER
-    .filter((t) => t.acikKalan > 0)
-    .map((t) => ({ id: t.id, firma: t.firmaAdi, pozisyon: t.pozisyon, adet: t.acikKalan }));
-  const derivedTodayTasks = [...MOCK_GOREVLER]
-    .filter((g) => g.durum === "acik" || g.durum === "devam_ediyor" || g.durum === "gecikti")
-    .sort((a, b) => {
-      const statusWeight = (durum: string) => durum === "gecikti" ? 0 : durum === "devam_ediyor" ? 1 : 2;
-      const statusDiff = statusWeight(a.durum) - statusWeight(b.durum);
-      if (statusDiff !== 0) return statusDiff;
-      const aTime = a.termin && a.termin !== "—" ? new Date(a.termin).getTime() : Number.MAX_SAFE_INTEGER;
-      const bTime = b.termin && b.termin !== "—" ? new Date(b.termin).getTime() : Number.MAX_SAFE_INTEGER;
-      return aTime - bTime;
-    })
-    .slice(0, 4)
-    .map((task) => ({
-      id: task.id,
-      baslik: task.baslik,
-      firma: task.firmaAdi,
-      gecikme: task.durum === "gecikti",
-    }));
 
   function handleGenerateDraft() {
     const ctx = getHotelEmailContext();
@@ -274,18 +331,22 @@ export default function DashboardPage() {
             <h3 className={CARD_TITLE}>
               Bugünün Görevleri
             </h3>
-            {derivedTodayTasks.length === 0 ? (
+            {signalsLoading ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                Yükleniyor…
+              </p>
+            ) : todayTasks.length === 0 ? (
               <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
                 Bugün için görev yok.
               </p>
             ) : (
               <div className="space-y-0">
-                {derivedTodayTasks.map((task, idx) => (
+                {todayTasks.map((task, idx) => (
                   <div
                     key={task.id}
                     className={clsx(
                       "flex items-start gap-2 py-2.5",
-                      idx < derivedTodayTasks.length - 1 && LIST_DIVIDER
+                      idx < todayTasks.length - 1 && LIST_DIVIDER
                     )}
                   >
                     <div className="min-w-0 flex-1">
@@ -323,18 +384,22 @@ export default function DashboardPage() {
               </h3>
               <a href="/talepler" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
             </div>
-            {derivedOpenDemands.length === 0 ? (
+            {signalsLoading ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                Yükleniyor…
+              </p>
+            ) : openDemands.length === 0 ? (
               <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
                 Açık talep yok.
               </p>
             ) : (
               <div className="space-y-0">
-                {derivedOpenDemands.map((d, idx) => (
+                {openDemands.map((d, idx) => (
                   <div
                     key={d.id}
                     className={clsx(
                       "flex items-center justify-between py-2.5",
-                      idx < derivedOpenDemands.length - 1 && LIST_DIVIDER
+                      idx < openDemands.length - 1 && LIST_DIVIDER
                     )}
                   >
                     <div className="min-w-0">
