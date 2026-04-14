@@ -1,5 +1,5 @@
 /**
- * Luca Mizan Export Parser V1
+ * Luca Mizan Export Parser V1 (hardened)
  *
  * Parses a Luca mizan Excel file, extracts 120.xxx customer receivable
  * leaf rows, normalizes Turkish numbers, and performs deterministic
@@ -12,18 +12,26 @@ import * as XLSX from "xlsx";
 import type { LucaMizanRow, LucaMizanUploadMeta, LucaParseResult } from "./types";
 
 // ---------------------------------------------------------------------------
-// Turkish numeric normalization
+// Turkish numeric normalization — explicit failure, no silent zero-coercion
 // ---------------------------------------------------------------------------
 
-function normalizeTurkishNumber(value: unknown): number {
-  if (typeof value === "number") return value;
-  if (value == null || value === "") return 0;
+interface NumericResult {
+  value: number;
+  error: string | null;
+}
+
+function normalizeTurkishNumber(value: unknown, fieldName: string): NumericResult {
+  if (typeof value === "number") return { value, error: null };
+  if (value == null || value === "") return { value: 0, error: null }; // blank = 0 is valid
   const str = String(value).trim();
-  if (!str) return 0;
+  if (!str) return { value: 0, error: null };
   // Remove thousands dots, replace decimal comma with dot
   const normalized = str.replace(/\./g, "").replace(",", ".");
   const num = parseFloat(normalized);
-  return isNaN(num) ? 0 : num;
+  if (isNaN(num)) {
+    return { value: 0, error: `${fieldName} gecersiz sayi: "${String(value)}"` };
+  }
+  return { value: num, error: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -63,7 +71,6 @@ function findHeaderRow(sheet: XLSX.WorkSheet): { headerRowIndex: number; columnM
       rowValues.push(cell ? String(cell.v ?? "").trim().toLocaleUpperCase("tr-TR") : "");
     }
 
-    // Check if this row contains the required headers
     const found = REQUIRED_HEADERS.every((h) =>
       rowValues.some((v) => v.includes(h.toLocaleUpperCase("tr-TR")))
     );
@@ -117,7 +124,7 @@ function extractMetadata(sheet: XLSX.WorkSheet, headerRowIndex: number): { perio
 export function parseMizanExcel(
   buffer: ArrayBuffer,
   fileName: string,
-  companyMap: Map<string, { id: string; name: string }>,
+  companyMap: Map<string, { id: string; name: string }[]>,
 ): LucaParseResult {
   const errors: string[] = [];
 
@@ -155,28 +162,36 @@ export function parseMizanExcel(
     // Filter: only 120.xxx leaf rows
     if (!isCustomerLeafRow(codeVal)) continue;
 
-    const borcTotal = normalizeTurkishNumber(sheet[XLSX.utils.encode_cell({ r, c: columnMap["BORÇ"] })]?.v);
-    const alacakTotal = normalizeTurkishNumber(sheet[XLSX.utils.encode_cell({ r, c: columnMap["ALACAK"] })]?.v);
-    const borcBakiyesi = normalizeTurkishNumber(sheet[XLSX.utils.encode_cell({ r, c: columnMap["BORÇ BAKİYESİ"] })]?.v);
-    const alacakBakiyesi = normalizeTurkishNumber(sheet[XLSX.utils.encode_cell({ r, c: columnMap["ALACAK BAKİYESİ"] })]?.v);
+    // Parse numerics with explicit error tracking
+    const rowLabel = `${codeVal} (${nameVal.slice(0, 30)})`;
+    const borcTotalR = normalizeTurkishNumber(sheet[XLSX.utils.encode_cell({ r, c: columnMap["BORÇ"] })]?.v, "BORC");
+    const alacakTotalR = normalizeTurkishNumber(sheet[XLSX.utils.encode_cell({ r, c: columnMap["ALACAK"] })]?.v, "ALACAK");
+    const borcBakiyesiR = normalizeTurkishNumber(sheet[XLSX.utils.encode_cell({ r, c: columnMap["BORÇ BAKİYESİ"] })]?.v, "BORC_BAKIYESI");
+    const alacakBakiyesiR = normalizeTurkishNumber(sheet[XLSX.utils.encode_cell({ r, c: columnMap["ALACAK BAKİYESİ"] })]?.v, "ALACAK_BAKIYESI");
 
-    // Match against BPS companies
-    const normalizedName = normalizeCompanyName(nameVal);
-    const matches: { id: string; name: string }[] = [];
-    for (const [normKey, company] of companyMap) {
-      if (normKey === normalizedName) matches.push(company);
+    const numericErrors = [borcTotalR, alacakTotalR, borcBakiyesiR, alacakBakiyesiR]
+      .filter((r) => r.error !== null)
+      .map((r) => r.error!);
+
+    if (numericErrors.length > 0) {
+      errors.push(`Satir ${rowLabel}: ${numericErrors.join("; ")}`);
     }
+
+    // Match against BPS companies — preserves ambiguity
+    const normalizedName = normalizeCompanyName(nameVal);
+    const candidates = companyMap.get(normalizedName) ?? [];
 
     let matchStatus: LucaMizanRow["matchStatus"];
     let matchedId: string | null = null;
     let matchedName: string | null = null;
 
-    if (matches.length === 1) {
+    if (candidates.length === 1) {
       matchStatus = "matched";
-      matchedId = matches[0].id;
-      matchedName = matches[0].name;
-    } else if (matches.length > 1) {
+      matchedId = candidates[0].id;
+      matchedName = candidates[0].name;
+    } else if (candidates.length > 1) {
       matchStatus = "ambiguous";
+      // Do NOT assign matchedId/matchedName — ambiguity must not carry a company reference
     } else {
       matchStatus = "unmatched";
     }
@@ -184,17 +199,17 @@ export function parseMizanExcel(
     rows.push({
       accountCode: codeVal,
       accountName: nameVal,
-      borcTotal,
-      alacakTotal,
-      borcBakiyesi,
-      alacakBakiyesi,
+      borcTotal: borcTotalR.value,
+      alacakTotal: alacakTotalR.value,
+      borcBakiyesi: borcBakiyesiR.value,
+      alacakBakiyesi: alacakBakiyesiR.value,
       matchedCompanyId: matchedId,
       matchedCompanyName: matchedName,
       matchStatus,
     });
   }
 
-  if (rows.length === 0) {
+  if (rows.length === 0 && errors.length === 0) {
     errors.push("120.xxx musteri seviyesinde alacak satiri bulunamadi");
   }
 
@@ -218,15 +233,18 @@ export function parseMizanExcel(
 }
 
 // ---------------------------------------------------------------------------
-// Build company name → {id, name} map for matching
+// Build company name → candidates[] map for matching (preserves duplicates)
 // ---------------------------------------------------------------------------
 
 export function buildCompanyMatchMap(
   companies: { id: string; name: string }[],
-): Map<string, { id: string; name: string }> {
-  const map = new Map<string, { id: string; name: string }>();
+): Map<string, { id: string; name: string }[]> {
+  const map = new Map<string, { id: string; name: string }[]>();
   for (const c of companies) {
-    map.set(normalizeCompanyName(c.name), { id: c.id, name: c.name });
+    const key = normalizeCompanyName(c.name);
+    const existing = map.get(key) ?? [];
+    existing.push({ id: c.id, name: c.name });
+    map.set(key, existing);
   }
   return map;
 }
