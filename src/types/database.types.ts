@@ -848,6 +848,101 @@ export interface Database {
         };
         Relationships: [];
       };
+      // ---------------------------------------------------------------------
+      // mizan_uploads — Luca Export Reading V1
+      // ---------------------------------------------------------------------
+      mizan_uploads: {
+        Row: {
+          id: string;
+          file_name: string;
+          report_period: string | null;
+          report_date_range: string | null;
+          total_rows: number;
+          matched_count: number;
+          unmatched_count: number;
+          ambiguous_count: number;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          file_name: string;
+          report_period?: string | null;
+          report_date_range?: string | null;
+          total_rows?: number;
+          matched_count?: number;
+          unmatched_count?: number;
+          ambiguous_count?: number;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          file_name?: string;
+          report_period?: string | null;
+          report_date_range?: string | null;
+          total_rows?: number;
+          matched_count?: number;
+          unmatched_count?: number;
+          ambiguous_count?: number;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "mizan_uploads_uploaded_by_fkey"; columns: ["uploaded_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      // ---------------------------------------------------------------------
+      // mizan_upload_rows — confirmed row snapshots
+      // ---------------------------------------------------------------------
+      mizan_upload_rows: {
+        Row: {
+          id: string;
+          upload_id: string;
+          account_code: string;
+          account_name: string;
+          borc_total: number;
+          alacak_total: number;
+          borc_bakiyesi: number;
+          alacak_bakiyesi: number;
+          matched_company_id: string | null;
+          matched_company_name: string | null;
+          match_status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          upload_id: string;
+          account_code: string;
+          account_name: string;
+          borc_total?: number;
+          alacak_total?: number;
+          borc_bakiyesi?: number;
+          alacak_bakiyesi?: number;
+          matched_company_id?: string | null;
+          matched_company_name?: string | null;
+          match_status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          upload_id?: string;
+          account_code?: string;
+          account_name?: string;
+          borc_total?: number;
+          alacak_total?: number;
+          borc_bakiyesi?: number;
+          alacak_bakiyesi?: number;
+          matched_company_id?: string | null;
+          matched_company_name?: string | null;
+          match_status?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "mizan_upload_rows_upload_id_fkey"; columns: ["upload_id"]; referencedRelation: "mizan_uploads"; referencedColumns: ["id"] },
+          { foreignKeyName: "mizan_upload_rows_matched_company_id_fkey"; columns: ["matched_company_id"]; referencedRelation: "companies"; referencedColumns: ["id"] },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
