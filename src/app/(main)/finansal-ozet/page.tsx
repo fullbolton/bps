@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Upload } from "lucide-react";
 import {
   PageHeader,
@@ -14,7 +14,6 @@ import {
   FIRMA_ALACAK_DAGILIMI,
   FIRMA_KESILMEMIS_DAGILIMI,
   GECIKMIŞ_OZET,
-  updateReceivablesData,
   getTicariBaskiByFirma,
 } from "@/mocks/finansal-ozet";
 import { extractReceivablesSummary } from "@/lib/extract-financials";
@@ -22,6 +21,8 @@ import { MOCK_FIRMALAR } from "@/mocks/firmalar";
 import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
 import { MOCK_TALEPLER } from "@/mocks/talepler";
 import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
+import { createClient } from "@/lib/supabase/client";
+import { selectCompaniesByLegacyMockIds } from "@/lib/supabase/companies";
 import type { ExtractedReceivables } from "@/lib/extract-financials";
 import type { FinansalOzetKPIs, FirmaAlacakEntry, FirmaKesilmemisEntry } from "@/types/batch5-finansal";
 import {
@@ -44,16 +45,150 @@ import {
 
 export default function FinansalOzetPage() {
   const { role } = useRole();
+  const supabase = createClient();
 
-  // Local demo state — initialized from mock data, updated by confirmed uploads
-  const [kpis, setKpis] = useState<FinansalOzetKPIs>(FINANSAL_OZET_KPIS);
-  const [firmaAlacak, setFirmaAlacak] = useState<FirmaAlacakEntry[]>(FIRMA_ALACAK_DAGILIMI);
-  const [firmaKesilmemis, setFirmaKesilmemis] = useState<FirmaKesilmemisEntry[]>(FIRMA_KESILMEMIS_DAGILIMI);
-  const [gecikmisOzet, setGecikmisOzet] = useState(GECIKMIŞ_OZET);
+  // Upload-modal comparison seeds — the modal's "Mevcut" column reads
+  // from these mock constants. They no longer feed the page display
+  // and no longer mutate on confirm (writer parity now persists through
+  // confirm_financial_data below). Kept as useState so modal layout
+  // stays identical if a later batch promotes the comparison column
+  // to real truth.
+  const [kpis] = useState<FinansalOzetKPIs>(FINANSAL_OZET_KPIS);
+  const [firmaAlacak] = useState<FirmaAlacakEntry[]>(FIRMA_ALACAK_DAGILIMI);
+  const [firmaKesilmemis] = useState<FirmaKesilmemisEntry[]>(FIRMA_KESILMEMIS_DAGILIMI);
+  const [gecikmisOzet] = useState(GECIKMIŞ_OZET);
+  void firmaKesilmemis;
+  void gecikmisOzet;
 
   // Upload flow state
   const [uploadOpen, setUploadOpen] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedReceivables | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  // Real truth — portfolio-wide row (company_id IS NULL). Absent = honest
+  // absence (no muhasebe confirm yet). Do NOT substitute mock defaults.
+  const [portfolio, setPortfolio] = useState<{
+    total_open_receivable: string | null;
+    invoiced_this_month: string | null;
+    total_unbilled: string | null;
+    total_overdue: string | null;
+    overdue_company_count: number | null;
+    salary_costs: string | null;
+    fixed_costs: string | null;
+  } | null>(null);
+
+  // Real truth — per-company rows with any financial value. Shape matches
+  // what ReceivablesSummaryCard consumes. is_overdue drives the red dot
+  // on the açık-alacak row; source attribution already lives on Firma
+  // Detay's Ticari Özet card and is intentionally not surfaced here.
+  const [perCompany, setPerCompany] = useState<
+    Array<{
+      firmaId: string;
+      firmaAdi: string;
+      acikAlacak: string | null;
+      kesilmemisBekleyen: string | null;
+      gecikmisMi: boolean;
+    }>
+  >([]);
+
+  // Extracted as a callable so the upload-modal confirm path can refresh
+  // readers immediately after a successful write. React 18 no-ops state
+  // updates on unmounted components, so an explicit cancel flag is not
+  // needed here.
+  const fetchFinancials = useCallback(async () => {
+    try {
+      const [portfolioRes, companiesRes] = await Promise.all([
+        supabase
+          .from("financial_summaries")
+          .select(
+            "total_open_receivable, invoiced_this_month, total_unbilled, total_overdue, overdue_company_count, salary_costs, fixed_costs",
+          )
+          .is("company_id", null)
+          .maybeSingle(),
+        supabase
+          .from("financial_summaries")
+          .select("company_id, open_receivable, unbilled_amount, is_overdue")
+          .not("company_id", "is", null),
+      ]);
+
+      const pRow = portfolioRes.data as
+        | {
+            total_open_receivable: string | null;
+            invoiced_this_month: string | null;
+            total_unbilled: string | null;
+            total_overdue: string | null;
+            overdue_company_count: number | null;
+            salary_costs: string | null;
+            fixed_costs: string | null;
+          }
+        | null;
+      setPortfolio(pRow ?? null);
+
+      const rawRows = (companiesRes.data ?? []) as Array<{
+        company_id: string | null;
+        open_receivable: string | null;
+        unbilled_amount: string | null;
+        is_overdue: boolean | null;
+      }>;
+      const withFinancial = rawRows.filter(
+        (r) =>
+          r.company_id !== null &&
+          (r.open_receivable !== null || r.unbilled_amount !== null),
+      );
+      const companyIds = withFinancial
+        .map((r) => r.company_id)
+        .filter((id): id is string => typeof id === "string");
+
+      let nameById = new Map<string, string>();
+      if (companyIds.length > 0) {
+        const { data: namesData } = await supabase
+          .from("companies")
+          .select("id, name")
+          .in("id", companyIds);
+        nameById = new Map((namesData ?? []).map((c) => [c.id, c.name]));
+      }
+
+      const mapped = withFinancial
+        .map((r) => ({
+          firmaId: r.company_id as string,
+          firmaAdi: nameById.get(r.company_id as string) ?? "—",
+          acikAlacak: r.open_receivable,
+          kesilmemisBekleyen: r.unbilled_amount,
+          gecikmisMi: Boolean(r.is_overdue),
+        }))
+        // Only list companies whose name actually resolved; unresolved
+        // rows would surface "—" placeholders that look broken.
+        .filter((r) => r.firmaAdi !== "—");
+
+      setPerCompany(mapped);
+    } catch {
+      setPortfolio(null);
+      setPerCompany([]);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchFinancials();
+  }, [fetchFinancials]);
+
+  // Derived view data for the real readers
+  const acikAlacakDagilimi: FirmaAlacakEntry[] = perCompany
+    .filter((r) => r.acikAlacak !== null)
+    .map((r) => ({
+      firmaId: r.firmaId,
+      firmaAdi: r.firmaAdi,
+      acikAlacak: r.acikAlacak ?? "—",
+      gecikmisMi: r.gecikmisMi,
+    }));
+  const kesilmemisDagilimi: FirmaKesilmemisEntry[] = perCompany
+    .filter((r) => r.kesilmemisBekleyen !== null)
+    .map((r) => ({
+      firmaId: r.firmaId,
+      firmaAdi: r.firmaAdi,
+      kesilmemisBekleyen: r.kesilmemisBekleyen ?? "—",
+    }));
+  const hasAnyRealData = portfolio !== null || perCompany.length > 0;
 
   if (!["yonetici", "muhasebe"].includes(role)) {
     return (
@@ -69,31 +204,126 @@ export default function FinansalOzetPage() {
   }
 
   function handleExtract() {
+    setConfirmError(null);
     const result = extractReceivablesSummary();
     setExtracted(result);
   }
 
-  function handleConfirm() {
-    if (!extracted) return;
-    // Update local page state
-    setKpis(extracted.kpis);
-    setFirmaAlacak(extracted.firmaAlacakDagilimi);
-    setFirmaKesilmemis(extracted.firmaKesilmemisDagilimi);
-    setGecikmisOzet(extracted.gecikmisOzet);
-    // Update shared module-level data so getTicariBaskiByFirma reflects confirmed values
-    updateReceivablesData(
-      extracted.kpis,
-      extracted.firmaAlacakDagilimi,
-      extracted.firmaKesilmemisDagilimi,
-      extracted.gecikmisOzet,
-    );
-    setExtracted(null);
-    setUploadOpen(false);
+  async function handleConfirm() {
+    if (!extracted || confirming) return;
+    setConfirming(true);
+    setConfirmError(null);
+
+    try {
+      // 1. Merge açık-alacak + kesilmemiş-bekleyen into one row per
+      //    mock firmaId. is_overdue only exists on the açık-alacak
+      //    side; defaults to false for firms that appear only on the
+      //    kesilmemiş list.
+      const merged = new Map<
+        string,
+        {
+          open_receivable: string | null;
+          unbilled_amount: string | null;
+          is_overdue: boolean;
+        }
+      >();
+      for (const e of extracted.firmaAlacakDagilimi) {
+        const prev = merged.get(e.firmaId) ?? {
+          open_receivable: null,
+          unbilled_amount: null,
+          is_overdue: false,
+        };
+        merged.set(e.firmaId, {
+          ...prev,
+          open_receivable: e.acikAlacak,
+          is_overdue: Boolean(e.gecikmisMi),
+        });
+      }
+      for (const e of extracted.firmaKesilmemisDagilimi) {
+        const prev = merged.get(e.firmaId) ?? {
+          open_receivable: null,
+          unbilled_amount: null,
+          is_overdue: false,
+        };
+        merged.set(e.firmaId, {
+          ...prev,
+          unbilled_amount: e.kesilmemisBekleyen,
+        });
+      }
+
+      // 2. Resolve legacy mock firmaIds → real companies.id. Any mock id
+      //    without a matching company is quietly dropped — demo mock
+      //    artifacts may reference companies that do not exist in the
+      //    live DB, and confirm_financial_data hard-fails on unknown
+      //    company_ids. Filtering here keeps the confirm bounded to
+      //    the rows that can actually persist.
+      const mockIds = Array.from(merged.keys());
+      const resolvedCompanies =
+        mockIds.length > 0
+          ? await selectCompaniesByLegacyMockIds(supabase, mockIds)
+          : [];
+      const legacyToUuid = new Map<string, string>();
+      for (const c of resolvedCompanies) {
+        if (c.legacy_mock_id) legacyToUuid.set(c.legacy_mock_id, c.id);
+      }
+
+      const p_company_rows: Array<{
+        company_id: string;
+        open_receivable: string | null;
+        unbilled_amount: string | null;
+        is_overdue: boolean;
+      }> = [];
+      for (const [mockId, values] of merged.entries()) {
+        const uuid = legacyToUuid.get(mockId);
+        if (!uuid) continue;
+        p_company_rows.push({ company_id: uuid, ...values });
+      }
+
+      // 3. Portfolio-wide KPIs. Passed as opaque strings where the schema
+      //    stores strings — no numeric reformatting. overdue_company_count
+      //    is the one numeric field on the portfolio row.
+      const p_portfolio_kpis = {
+        total_open_receivable: extracted.kpis.toplamAcikAlacak,
+        invoiced_this_month: extracted.kpis.buAyKesilenFaturalar,
+        total_unbilled: extracted.kpis.kesilmemisAlacaklar,
+        total_overdue: extracted.kpis.gecikmisAlacaklar,
+        overdue_company_count: extracted.gecikmisOzet.toplamGecikmisFirmaSayisi,
+        salary_costs: extracted.kpis.maasGiderleri,
+        fixed_costs: extracted.kpis.sabitGiderler,
+      };
+
+      const { error: rpcError } = await supabase.rpc("confirm_financial_data", {
+        p_portfolio_kpis,
+        p_company_rows,
+      });
+      if (rpcError) {
+        throw new Error(rpcError.message);
+      }
+
+      // 4. Refresh real readers so the page reflects confirmed truth,
+      //    then close the modal. If refresh throws it is swallowed by
+      //    fetchFinancials itself — the write already landed and user
+      //    will see the new data on next render.
+      await fetchFinancials();
+      setExtracted(null);
+      setUploadOpen(false);
+    } catch (err) {
+      // Keep the modal open, surface the error inline, and let the user
+      // retry or cancel. Do not imply success, do not mutate any local
+      // mock state that would drift from the real DB.
+      setConfirmError(
+        err instanceof Error ? err.message : "Onay sırasında bir hata oluştu.",
+      );
+    } finally {
+      setConfirming(false);
+    }
   }
 
   function handleCancel() {
+    if (confirming) return;
     setExtracted(null);
     setUploadOpen(false);
+    setConfirmError(null);
   }
 
   return (
@@ -155,7 +385,7 @@ export default function FinansalOzetPage() {
                 </div>
                 <div>
                   <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Portföy Alacak Baskısı</span>
-                  <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{kpis.toplamAcikAlacak}</p>
+                  <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{portfolio?.total_open_receivable ?? "—"}</p>
                 </div>
                 {topCity && (
                   <div>
@@ -178,46 +408,67 @@ export default function FinansalOzetPage() {
           Yönetim görünürlüğü — resmi muhasebe kaydı değildir
         </div>
 
-        {/* 6 top-level KPI cards */}
+        {/* 6 top-level KPI cards — read from real financial_summaries
+            portfolio row (company_id IS NULL). Absent row = honest "—". */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <FinancialSummaryCard
             label="Toplam Açık Alacak"
-            value={kpis.toplamAcikAlacak}
+            value={portfolio?.total_open_receivable ?? "—"}
           />
           <FinancialSummaryCard
             label="Bu Ay Kesilen Faturalar"
-            value={kpis.buAyKesilenFaturalar}
+            value={portfolio?.invoiced_this_month ?? "—"}
           />
           <FinancialSummaryCard
             label="Kesilmemiş Alacaklar"
-            value={kpis.kesilmemisAlacaklar}
+            value={portfolio?.total_unbilled ?? "—"}
             subLabel="Faturaya dönüşmemiş bekleyen"
           />
           <FinancialSummaryCard
             label="Gecikmiş Alacaklar"
-            value={kpis.gecikmisAlacaklar}
-            subLabel={`${gecikmisOzet.toplamGecikmisFirmaSayisi} firmada gecikme`}
+            value={portfolio?.total_overdue ?? "—"}
+            subLabel={
+              portfolio?.overdue_company_count != null
+                ? `${portfolio.overdue_company_count} firmada gecikme`
+                : undefined
+            }
           />
           <FinancialSummaryCard
             label="Maaş Giderleri"
-            value={kpis.maasGiderleri}
+            value={portfolio?.salary_costs ?? "—"}
             subLabel="Verilen iş gücü maliyet özeti"
           />
           <FinancialSummaryCard
             label="Sabit Giderler"
-            value={kpis.sabitGiderler}
+            value={portfolio?.fixed_costs ?? "—"}
             subLabel="Operasyonel sabit maliyetler"
           />
         </div>
 
-        {/* Receivables breakdown */}
-        <ReceivablesSummaryCard
-          toplamAlacak={kpis.toplamAcikAlacak}
-          gecikmisAlacak={gecikmisOzet.toplamGecikmisAlacak}
-          gecikmisFirmaSayisi={gecikmisOzet.toplamGecikmisFirmaSayisi}
-          firmaAlacakDagilimi={firmaAlacak}
-          firmaKesilmemisDagilimi={firmaKesilmemis}
-        />
+        {/* Honest absence note when portfolio row has not been confirmed yet */}
+        {portfolio === null && (
+          <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>
+            Portföy özeti için muhasebe onayı bekleniyor.
+          </p>
+        )}
+
+        {/* Receivables breakdown — render only when there is something
+            truthful to show. Mixed state (portfolio absent but per-company
+            rows exist) renders with "—" totals and real distribution. */}
+        {hasAnyRealData ? (
+          <ReceivablesSummaryCard
+            toplamAlacak={portfolio?.total_open_receivable ?? "—"}
+            gecikmisAlacak={portfolio?.total_overdue ?? "—"}
+            gecikmisFirmaSayisi={portfolio?.overdue_company_count ?? 0}
+            firmaAlacakDagilimi={acikAlacakDagilimi}
+            firmaKesilmemisDagilimi={kesilmemisDagilimi}
+          />
+        ) : (
+          <EmptyState
+            title="Alacak dağılımı henüz mevcut değil"
+            description="Muhasebe onayı veya Luca mizan yüklemesi sonrası bu alan gerçek firma bazlı alacak görünümüyle dolacak."
+          />
+        )}
       </div>
 
       {/* Upload → Extract → Review → Confirm modal */}
@@ -323,15 +574,30 @@ export default function FinansalOzetPage() {
             </div>
 
             {/* Footer */}
-            <div className={`px-5 py-3 border-t ${BORDER_DEFAULT} flex justify-end gap-2 flex-shrink-0`}>
-              <button onClick={handleCancel} className={`px-4 py-2 ${TYPE_BODY} font-medium ${TEXT_BODY} ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} hover:bg-slate-50`}>
-                İptal
-              </button>
-              {extracted && (
-                <button onClick={handleConfirm} className={`px-4 py-2 ${TYPE_BODY} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700`}>
-                  Onayla ve Uygula
-                </button>
+            <div className={`px-5 py-3 border-t ${BORDER_DEFAULT} flex-shrink-0 space-y-2`}>
+              {confirmError && (
+                <p className={`${TYPE_CAPTION} text-red-600`} role="alert">
+                  {confirmError}
+                </p>
               )}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleCancel}
+                  disabled={confirming}
+                  className={`px-4 py-2 ${TYPE_BODY} font-medium ${TEXT_BODY} ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed`}
+                >
+                  İptal
+                </button>
+                {extracted && (
+                  <button
+                    onClick={handleConfirm}
+                    disabled={confirming}
+                    className={`px-4 py-2 ${TYPE_BODY} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}
+                  >
+                    {confirming ? "Kaydediliyor..." : "Onayla ve Uygula"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

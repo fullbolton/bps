@@ -958,6 +958,13 @@ export interface Database {
         Args: { p_upload_id: string };
         Returns: number;
       };
+      confirm_financial_data: {
+        Args: {
+          p_portfolio_kpis: Json;
+          p_company_rows: Json;
+        };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
