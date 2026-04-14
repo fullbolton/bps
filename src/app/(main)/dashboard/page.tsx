@@ -25,12 +25,18 @@ import {
   ContractExpiryCard,
 } from "@/components/ui";
 import {
-  MOCK_EXPIRING_CONTRACTS,
   MOCK_RISKY_COMPANIES,
   MOCK_DASHBOARD_ACTIVITY,
 } from "@/mocks/dashboard";
-import { MOCK_EVRAKLAR } from "@/mocks/evraklar";
 import { MOCK_FIRMALAR } from "@/mocks/firmalar";
+import {
+  listAllContracts,
+  computeRemainingDays,
+} from "@/lib/services/contracts";
+import { listAllDocuments } from "@/lib/services/documents";
+import type { ContractRow, DocumentRow } from "@/types/database.types";
+import type { ExpiringContract } from "@/components/ui/ContractExpiryCard";
+import type { EvrakDurumu } from "@/types/ui";
 import { clsx } from "clsx";
 import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI } from "@/mocks/finansal-ozet";
 import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
@@ -116,6 +122,22 @@ export default function DashboardPage() {
   const [openDemands, setOpenDemands] = useState<
     Array<{ id: string; firma: string; pozisyon: string; adet: number }>
   >([]);
+
+  // Yaklaşan Sözleşme Bitişleri — real contracts under RLS. Filter and
+  // ordering mirror the visible mock semantic: active contracts with a
+  // non-past end_date, sorted by soonest expiry, capped at the card's
+  // existing maxItems cap. No new threshold is introduced.
+  const [expiringContracts, setExpiringContracts] = useState<ExpiringContract[]>(
+    [],
+  );
+
+  // Eksik / Süresi Dolan Evraklar — real documents under RLS. Filter
+  // matches the prior mock exactly: any document whose status is not
+  // "tam". No new validity-date derivation.
+  const [eksikEvraklar, setEksikEvraklar] = useState<
+    Array<{ id: string; evrak: string; firma: string; durum: EvrakDurumu }>
+  >([]);
+
   const [signalsLoading, setSignalsLoading] = useState(true);
 
   useEffect(() => {
@@ -129,10 +151,12 @@ export default function DashboardPage() {
         workforceRes,
         tasksRes,
         appointmentsRes,
+        allContractRows,
+        allDocumentRows,
       ] = await Promise.all([
         // companies: fetch id+name so a single query covers both the
         // Toplam Firma KPI (count via data.length) and the name-lookup
-        // map used by the two signal cards below.
+        // map used by the signal cards below.
         supabase.from("companies").select("id, name"),
         supabase
           .from("contracts")
@@ -159,6 +183,12 @@ export default function DashboardPage() {
           .from("appointments")
           .select("id", { count: "exact", head: true })
           .eq("status", "planlandi"),
+        // Yaklaşan Sözleşme Bitişleri — reuse existing service reader.
+        // Errors degrade to empty so one transient failure cannot break
+        // the whole Dashboard reader batch.
+        listAllContracts(supabase).catch(() => [] as ContractRow[]),
+        // Eksik / Süresi Dolan Evraklar — reuse existing service reader.
+        listAllDocuments(supabase).catch(() => [] as DocumentRow[]),
       ]);
       if (cancelled) return;
 
@@ -245,8 +275,46 @@ export default function DashboardPage() {
               ),
             }));
 
+      // Yaklaşan Sözleşme Bitişleri — derive card rows. Only active
+      // contracts with a non-past end_date qualify as "yaklaşan". Order
+      // by soonest expiry; cap at the ContractExpiryCard default (5).
+      const now = new Date();
+      const mappedExpiringContracts: ExpiringContract[] = allContractRows
+        .filter((c) => c.status === "aktif" && c.end_date !== null)
+        .map((c) => ({
+          row: c,
+          kalanGun: computeRemainingDays(c.end_date, now),
+        }))
+        .filter(
+          (x): x is { row: ContractRow; kalanGun: number } =>
+            x.kalanGun !== null && x.kalanGun >= 0,
+        )
+        .sort((a, b) => a.kalanGun - b.kalanGun)
+        .slice(0, 5)
+        .map(({ row, kalanGun }) => ({
+          id: row.id,
+          sozlesmeAdi: row.name,
+          firmaAdi: companyNameById.get(row.company_id) ?? "—",
+          kalanGun,
+          durum: row.status,
+        }));
+
+      // Eksik / Süresi Dolan Evraklar — filter out complete documents.
+      // No new status semantics; preserves the prior mock's filter.
+      const mappedEksikEvraklar = allDocumentRows
+        .filter((d) => d.status !== "tam")
+        .slice(0, 5)
+        .map((d) => ({
+          id: d.id,
+          evrak: d.name,
+          firma: companyNameById.get(d.company_id) ?? "—",
+          durum: d.status,
+        }));
+
       setTodayTasks(mappedTasks);
       setOpenDemands(mappedDemands);
+      setExpiringContracts(mappedExpiringContracts);
+      setEksikEvraklar(mappedEksikEvraklar);
       setSignalsLoading(false);
     })();
     return () => {
@@ -368,12 +436,26 @@ export default function DashboardPage() {
             )}
           </div>}
 
-          {/* Yaklaşan Sözleşme Bitişleri — hidden for ik + muhasebe */}
+          {/* Yaklaşan Sözleşme Bitişleri — hidden for ik + muhasebe.
+              Real contracts under RLS, filtered to active + not-past
+              end_date. Loading state is honest: the component's own
+              empty state would read as "no data" which is misleading
+              during pre-load, so a wrapper card shows "Yükleniyor…"
+              until the fetch resolves. */}
           {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
-            <ContractExpiryCard
-              contracts={MOCK_EXPIRING_CONTRACTS}
-              actionHref="/sozlesmeler"
-            />
+            signalsLoading ? (
+              <div className={CARD}>
+                <h3 className={CARD_TITLE}>Yaklaşan Sözleşme Bitişleri</h3>
+                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                  Yükleniyor…
+                </p>
+              </div>
+            ) : (
+              <ContractExpiryCard
+                contracts={expiringContracts}
+                actionHref="/sozlesmeler"
+              />
+            )
           )}
 
           {/* Açık Talepler — hidden for ik + muhasebe */}
@@ -415,53 +497,48 @@ export default function DashboardPage() {
             )}
           </div>}
 
-          {/* Eksik Evraklar — hidden for muhasebe, derived from shared MOCK_EVRAKLAR */}
-          {!["muhasebe", "goruntuleyici"].includes(role) && (() => {
-            const eksikEvraklar = MOCK_EVRAKLAR
-              .filter((e) => e.durum !== "tam")
-              .map((e) => ({
-                id: e.id,
-                evrak: e.evrakAdi,
-                firma: e.firmaAdi,
-                durum: e.durum,
-              }))
-              .slice(0, 5);
-            return (
-              <div className={CARD}>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>
-                    Eksik / Süresi Dolan Evraklar
-                  </h3>
-                  <a href="/evraklar" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
-                </div>
-                {eksikEvraklar.length === 0 ? (
-                  <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                    Eksik evrak yok.
-                  </p>
-                ) : (
-                  <div className="space-y-0">
-                    {eksikEvraklar.map((doc, idx) => (
-                      <div
-                        key={doc.id}
-                        className={clsx(
-                          "flex items-center justify-between py-2.5",
-                          idx < eksikEvraklar.length - 1 && LIST_DIVIDER
-                        )}
-                      >
-                        <div className="min-w-0">
-                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{doc.evrak}</p>
-                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{doc.firma}</p>
-                        </div>
-                        <span className={`${TYPE_CAPTION} text-red-600 font-medium ml-3 flex-shrink-0`}>
-                          {doc.durum === "eksik" ? "Eksik" : doc.durum === "suresi_doldu" ? "Süresi Doldu" : "Yaklaşıyor"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+          {/* Eksik / Süresi Dolan Evraklar — hidden for muhasebe.
+              Real documents under RLS, filtered to status != "tam"
+              (identical to the prior mock filter). */}
+          {!["muhasebe", "goruntuleyici"].includes(role) && (
+            <div className={CARD}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>
+                  Eksik / Süresi Dolan Evraklar
+                </h3>
+                <a href="/evraklar" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
               </div>
-            );
-          })()}
+              {signalsLoading ? (
+                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                  Yükleniyor…
+                </p>
+              ) : eksikEvraklar.length === 0 ? (
+                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                  Eksik evrak yok.
+                </p>
+              ) : (
+                <div className="space-y-0">
+                  {eksikEvraklar.map((doc, idx) => (
+                    <div
+                      key={doc.id}
+                      className={clsx(
+                        "flex items-center justify-between py-2.5",
+                        idx < eksikEvraklar.length - 1 && LIST_DIVIDER
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{doc.evrak}</p>
+                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{doc.firma}</p>
+                      </div>
+                      <span className={`${TYPE_CAPTION} text-red-600 font-medium ml-3 flex-shrink-0`}>
+                        {doc.durum === "eksik" ? "Eksik" : doc.durum === "suresi_doldu" ? "Süresi Doldu" : "Yaklaşıyor"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Riskli Firmalar */}
           <div className={CARD}>
