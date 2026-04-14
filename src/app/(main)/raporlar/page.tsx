@@ -1,7 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatDateTR } from "@/lib/format-date";
+import { createClient } from "@/lib/supabase/client";
+import {
+  listAllWorkforceSummaries,
+  deriveOpenGap,
+  deriveRiskLevel,
+} from "@/lib/services/workforce-summary";
+import {
+  listAllContracts,
+  computeRemainingDays,
+} from "@/lib/services/contracts";
+import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import {
   PageHeader,
   DataTable,
@@ -15,10 +26,8 @@ import type { ReportOption } from "@/components/ui/ReportSwitcher";
 import { useRole } from "@/context/RoleContext";
 import type { UserRole } from "@/context/RoleContext";
 import {
-  RAPOR_IS_GUCU,
-  RAPOR_SOZLESME_BITIS,
-  getRaporTalepler,
-  getRaporRandevular,
+  // Reports 5 + 6 still mock-backed (composite risk + partner analytics
+  // — explicitly deferred per the Faz 2B planning scope).
   getRaporRiskliFirmalar,
   getRaporPartnerOzet,
 } from "@/mocks/raporlar";
@@ -265,10 +274,139 @@ export default function RaporlarPage() {
     [allowedKeys]
   );
   const [activeKey, setActiveKey] = useState(() => visibleReports[0]?.key ?? "");
-  const raporTalepler = getRaporTalepler();
-  const raporRandevular = getRaporRandevular();
+
+  // Reports 1-4 — real Supabase truth. RLS on each underlying table
+  // enforces partner scope. Null/empty loading is honest; errors fall
+  // to empty with no mock fallback.
+  const [raporIsGucu, setRaporIsGucu] = useState<RaporIsGucuRow[]>([]);
+  const [raporSozlesmeBitis, setRaporSozlesmeBitis] = useState<
+    RaporSozlesmeBitisRow[]
+  >([]);
+  const [raporTalepler, setRaporTalepler] = useState<RaporTalepRow[]>([]);
+  const [raporRandevular, setRaporRandevular] = useState<RaporRandevuRow[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+
+  // Reports 5 + 6 — still mock-backed. Composite risk narrative and
+  // partner × city aggregation are out of scope for this batch.
   const raporRiskliFirmalar = getRaporRiskliFirmalar();
   const raporPartnerOzet = getRaporPartnerOzet();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const [
+        companiesRes,
+        workforceRows,
+        contractRows,
+        demandsRes,
+        appointmentsRes,
+      ] = await Promise.all([
+        // Single companies.select for the batch — feeds firma-name
+        // resolution across all four reports.
+        supabase.from("companies").select("id, name"),
+        // Service readers already used by the destination list pages.
+        listAllWorkforceSummaries(supabase).catch(() => []),
+        listAllContracts(supabase).catch(() => []),
+        // Talep Analizi — per-record grain preserved, same shape as the
+        // destination /talepler page.
+        supabase
+          .from("staffing_demands")
+          .select(
+            "id, company_id, position, requested_count, provided_count, priority, status",
+          ),
+        // Randevu Sonuçları — per-record grain preserved.
+        supabase
+          .from("appointments")
+          .select(
+            "id, company_id, meeting_date, meeting_type, attendee, status, result",
+          ),
+      ]);
+      if (cancelled) return;
+
+      const companyNameById = new Map<string, string>();
+      if (!companiesRes.error) {
+        for (const c of companiesRes.data ?? []) {
+          companyNameById.set(c.id, c.name);
+        }
+      }
+
+      // Report 1 — İş Gücü. Reuses deriveOpenGap + deriveRiskLevel from
+      // the workforce-summary service so the derivation is byte-
+      // identical to the /aktif-isgucu page. No new threshold invented.
+      const isGucuRows: RaporIsGucuRow[] = workforceRows
+        .map((row) => ({
+          firmaId: row.company_id,
+          firmaAdi: companyNameById.get(row.company_id) ?? "—",
+          lokasyon: row.location ?? "—",
+          aktifKisi: row.current_count,
+          hedefKisi: row.target_count,
+          acikFark: deriveOpenGap(row),
+          riskEtiketi: deriveRiskLevel(row),
+        }))
+        .filter((r) => r.firmaAdi !== "—");
+
+      // Report 2 — Sözleşme Bitişleri. Preserve the mock's 90-day
+      // window + kalanGun ASC sort. hazirlikDurumu has no real-schema
+      // equivalent on contracts; render honest "—" per row.
+      const now = new Date();
+      const sozlesmeRows: RaporSozlesmeBitisRow[] = contractRows
+        .map((c) => ({
+          row: c,
+          kalanGun: computeRemainingDays(c.end_date, now),
+        }))
+        .filter(
+          (x): x is { row: (typeof contractRows)[number]; kalanGun: number } =>
+            x.kalanGun !== null && x.kalanGun <= 90,
+        )
+        .sort((a, b) => a.kalanGun - b.kalanGun)
+        .map(({ row, kalanGun }) => ({
+          sozlesmeAdi: row.name,
+          firmaAdi: companyNameById.get(row.company_id) ?? "—",
+          bitis: row.end_date ?? "",
+          kalanGun,
+          sorumlu: row.responsible ?? "—",
+          durum: row.status,
+          hazirlikDurumu: "—",
+        }));
+
+      // Report 3 — Talep Analizi. Per-record, no aggregation.
+      const talepRows: RaporTalepRow[] = demandsRes.error
+        ? []
+        : (demandsRes.data ?? []).map((d) => ({
+            firmaAdi: companyNameById.get(d.company_id) ?? "—",
+            pozisyon: d.position,
+            talepEdilen: d.requested_count,
+            saglanan: d.provided_count,
+            acikKalan: d.requested_count - d.provided_count,
+            oncelik: d.priority,
+            durum: d.status,
+          }));
+
+      // Report 4 — Randevu Sonuçları. Per-record. meeting_type maps
+      // through the existing APPOINTMENT_TYPE_LABELS helper.
+      const randevuRows: RaporRandevuRow[] = appointmentsRes.error
+        ? []
+        : (appointmentsRes.data ?? []).map((a) => ({
+            tarih: a.meeting_date,
+            firmaAdi: companyNameById.get(a.company_id) ?? "—",
+            gorusmeTipiLabel:
+              APPOINTMENT_TYPE_LABELS[a.meeting_type] ?? a.meeting_type,
+            katilimci: a.attendee ?? "—",
+            durum: a.status,
+            sonuc: a.result && a.result.trim() !== "" ? a.result : "—",
+          }));
+
+      setRaporIsGucu(isGucuRows);
+      setRaporSozlesmeBitis(sozlesmeRows);
+      setRaporTalepler(talepRows);
+      setRaporRandevular(randevuRows);
+      setReportsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -284,39 +422,55 @@ export default function RaporlarPage() {
         <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Dönem: Mart 2026</p>
 
         {activeKey === "is-gucu" && (
-          <DataTable<RaporIsGucuRow>
-            columns={COLUMNS_IS_GUCU}
-            data={RAPOR_IS_GUCU}
-            rowKey="firmaId"
-            emptyTitle="İş gücü verisi yok"
-          />
+          reportsLoading ? (
+            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
+          ) : (
+            <DataTable<RaporIsGucuRow>
+              columns={COLUMNS_IS_GUCU}
+              data={raporIsGucu}
+              rowKey="firmaId"
+              emptyTitle="İş gücü verisi yok"
+            />
+          )
         )}
 
         {activeKey === "sozlesme-bitis" && (
-          <DataTable<RaporSozlesmeBitisRow>
-            columns={COLUMNS_SOZLESME_BITIS}
-            data={RAPOR_SOZLESME_BITIS}
-            rowKey="sozlesmeAdi"
-            emptyTitle="Yaklaşan sözleşme yok"
-          />
+          reportsLoading ? (
+            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
+          ) : (
+            <DataTable<RaporSozlesmeBitisRow>
+              columns={COLUMNS_SOZLESME_BITIS}
+              data={raporSozlesmeBitis}
+              rowKey="sozlesmeAdi"
+              emptyTitle="Yaklaşan sözleşme yok"
+            />
+          )
         )}
 
         {activeKey === "talep-analizi" && (
-          <DataTable<RaporTalepRow>
-            columns={COLUMNS_TALEPLER}
-            data={raporTalepler}
-            rowKey="pozisyon"
-            emptyTitle="Talep verisi yok"
-          />
+          reportsLoading ? (
+            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
+          ) : (
+            <DataTable<RaporTalepRow>
+              columns={COLUMNS_TALEPLER}
+              data={raporTalepler}
+              rowKey="pozisyon"
+              emptyTitle="Talep verisi yok"
+            />
+          )
         )}
 
         {activeKey === "randevu-sonuc" && (
-          <DataTable<RaporRandevuRow>
-            columns={COLUMNS_RANDEVULAR}
-            data={raporRandevular}
-            rowKey="tarih"
-            emptyTitle="Randevu verisi yok"
-          />
+          reportsLoading ? (
+            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
+          ) : (
+            <DataTable<RaporRandevuRow>
+              columns={COLUMNS_RANDEVULAR}
+              data={raporRandevular}
+              rowKey="tarih"
+              emptyTitle="Randevu verisi yok"
+            />
+          )
         )}
 
         {activeKey === "riskli-firma" && (
