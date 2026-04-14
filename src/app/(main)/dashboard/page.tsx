@@ -23,11 +23,9 @@ import {
   KPIStatCard,
   ActivityFeed,
   ContractExpiryCard,
+  RiskBadge,
 } from "@/components/ui";
-import {
-  MOCK_RISKY_COMPANIES,
-  MOCK_DASHBOARD_ACTIVITY,
-} from "@/mocks/dashboard";
+import { MOCK_DASHBOARD_ACTIVITY } from "@/mocks/dashboard";
 import { MOCK_FIRMALAR } from "@/mocks/firmalar";
 import {
   listAllContracts,
@@ -38,8 +36,6 @@ import type { ContractRow, DocumentRow } from "@/types/database.types";
 import type { ExpiringContract } from "@/components/ui/ContractExpiryCard";
 import type { EvrakDurumu } from "@/types/ui";
 import { clsx } from "clsx";
-import { getTicariBaskiByFirma, FIRMA_ALACAK_DAGILIMI } from "@/mocks/finansal-ozet";
-import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
 import { MOCK_DUYURULAR } from "@/mocks/duyurular";
 import type { Duyuru } from "@/mocks/duyurular";
 import { MOCK_INISIYATIFLER } from "@/mocks/inisiyatifler";
@@ -138,6 +134,19 @@ export default function DashboardPage() {
     Array<{ id: string; evrak: string; firma: string; durum: EvrakDurumu }>
   >([]);
 
+  // Riskli Firmalar — real companies.risk enum only. Composite risk
+  // narrative (sebep), ticari baskı sub-lines, and partner/city
+  // concentration are intentionally dropped — each would require a
+  // composite risk derivation that is explicitly out of scope.
+  const [riskyCompanies, setRiskyCompanies] = useState<
+    Array<{
+      id: string;
+      firmaAdi: string;
+      risk: "orta" | "yuksek";
+      href: string;
+    }>
+  >([]);
+
   const [signalsLoading, setSignalsLoading] = useState(true);
 
   useEffect(() => {
@@ -154,10 +163,13 @@ export default function DashboardPage() {
         allContractRows,
         allDocumentRows,
       ] = await Promise.all([
-        // companies: fetch id+name so a single query covers both the
-        // Toplam Firma KPI (count via data.length) and the name-lookup
-        // map used by the signal cards below.
-        supabase.from("companies").select("id, name"),
+        // companies: fetch id+name+risk+legacy_mock_id. Single query
+        // covers the Toplam Firma KPI (count via data.length), the
+        // name-lookup map used by the signal cards, and the Riskli
+        // Firmalar derivation (risk enum only — no composite signal).
+        supabase
+          .from("companies")
+          .select("id, name, risk, legacy_mock_id"),
         supabase
           .from("contracts")
           .select("id", { count: "exact", head: true })
@@ -311,10 +323,37 @@ export default function DashboardPage() {
           durum: d.status,
         }));
 
+      // Riskli Firmalar — enum-only filter on the already-fetched
+      // companies rows. Sort yuksek first, then orta, then name ASC.
+      // Cap at 5 rows for subset-view parity with the other signal
+      // cards. Composite sebep, ticari baskı, and geographic
+      // concentration are intentionally omitted.
+      const mappedRiskyCompanies = companiesRes.error
+        ? []
+        : (companiesRes.data ?? [])
+            .filter(
+              (c): c is typeof c & { risk: "orta" | "yuksek" } =>
+                c.risk === "orta" || c.risk === "yuksek",
+            )
+            .sort((a, b) => {
+              if (a.risk !== b.risk) {
+                return a.risk === "yuksek" ? -1 : 1;
+              }
+              return a.name.localeCompare(b.name, "tr-TR");
+            })
+            .slice(0, 5)
+            .map((c) => ({
+              id: c.id,
+              firmaAdi: c.name,
+              risk: c.risk,
+              href: `/firmalar/${c.legacy_mock_id ?? c.id}`,
+            }));
+
       setTodayTasks(mappedTasks);
       setOpenDemands(mappedDemands);
       setExpiringContracts(mappedExpiringContracts);
       setEksikEvraklar(mappedEksikEvraklar);
+      setRiskyCompanies(mappedRiskyCompanies);
       setSignalsLoading(false);
     })();
     return () => {
@@ -540,76 +579,46 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Riskli Firmalar */}
+          {/* Riskli Firmalar — real companies.risk enum only. Composite
+              sebep narrative, ticari baskı sub-lines, and partner/city
+              concentration footer are intentionally dropped — each
+              requires a risk engine that is out of scope for this
+              batch. A later bounded batch can reintroduce composite
+              signals on top of this honest baseline. */}
           <div className={CARD}>
             <h3 className={CARD_TITLE_ICON}>
               <AlertTriangle size={14} className="text-amber-500" />
               Riskli Firmalar
             </h3>
-            {MOCK_RISKY_COMPANIES.length === 0 ? (
+            {signalsLoading ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                Yükleniyor…
+              </p>
+            ) : riskyCompanies.length === 0 ? (
               <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
                 Risk sinyali yok.
               </p>
             ) : (
               <div className="space-y-0">
-                {MOCK_RISKY_COMPANIES.map((company, idx) => (
+                {riskyCompanies.map((company, idx) => (
                   <div
                     key={company.id}
                     className={clsx(
-                      "py-2.5",
-                      idx < MOCK_RISKY_COMPANIES.length - 1 && LIST_DIVIDER
+                      "flex items-center justify-between gap-3 py-2.5",
+                      idx < riskyCompanies.length - 1 && LIST_DIVIDER
                     )}
                   >
                     <a
-                      href={`/firmalar/${company.id}`}
-                      className={`${TYPE_BODY} ${TEXT_LINK} hover:underline font-medium`}
+                      href={company.href}
+                      className={`${TYPE_BODY} ${TEXT_LINK} hover:underline font-medium truncate min-w-0`}
                     >
                       {company.firmaAdi}
                     </a>
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
-                      {company.sebep}
-                    </p>
-                    {/* Ticari baskı sub-signals — hidden for ik (no commercial detail) */}
-                    {role !== "ik" && (() => {
-                      const tb = getTicariBaskiByFirma(company.id);
-                      if (!tb) return null;
-                      const parts = [
-                        tb.gecikmisAlacak && `Gecikmiş: ${tb.gecikmisAlacak}`,
-                        tb.kesilmemisBekleyen && `Kesilmemiş: ${tb.kesilmemisBekleyen}`,
-                      ].filter(Boolean);
-                      if (parts.length === 0) return null;
-                      return (
-                        <p className={`${TYPE_CAPTION} text-amber-600 mt-0.5`}>
-                          Ticari: {parts.join(" · ")}
-                        </p>
-                      );
-                    })()}
+                    <RiskBadge risk={company.risk} size="sm" />
                   </div>
                 ))}
               </div>
             )}
-            {/* Geographic concentration signal */}
-            {MOCK_RISKY_COMPANIES.length > 0 && (() => {
-              const cityCount = new Map<string, { count: number; partner: string }>();
-              for (const c of MOCK_RISKY_COMPANIES) {
-                const firma = MOCK_FIRMALAR.find((f) => f.id === c.id);
-                const partner = FIRMA_PARTNER_MAP[c.id];
-                if (firma) {
-                  const prev = cityCount.get(firma.sehir);
-                  cityCount.set(firma.sehir, {
-                    count: (prev?.count ?? 0) + 1,
-                    partner: partner?.partnerAdi ?? "—",
-                  });
-                }
-              }
-              const top = [...cityCount.entries()].sort((a, b) => b[1].count - a[1].count)[0];
-              if (!top || top[1].count < 2) return null;
-              return (
-                <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-3 pt-2 border-t ${BORDER_SUBTLE}`}>
-                  Yoğunlaşma: {top[1].count} riskli firma {top[0]}'da — Partner: {top[1].partner}
-                </p>
-              );
-            })()}
           </div>
         </div>
 
