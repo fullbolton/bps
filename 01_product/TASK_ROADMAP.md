@@ -88,6 +88,8 @@ Post-migration shipped surfaces:
 - company surface trust polish (real enrichment, no mock-backed commercial confidence, honest absence states)
 - Luca downstream derived visibility (matched mizan rows → per-company `open_receivable` upsert on `financial_summaries` via yonetici-only RPC; preserves muhasebe-flow `is_overdue` / `unbilled_amount` / `created_by`; snapshot and derived write roll back together on failure)
 - Luca source signal on Ticari Özet (minimal `last_source` column on `financial_summaries`, stamped by both writers — `muhasebe` for manual upload/review/confirm, `mizan` for Luca-derived — rendered as a subtle caption on the existing Firma Detay > Ticari Özet card, no layout redesign)
+- Pre-launch mock audit pushdown (Ayarlar Kullanıcılar → real `profiles`; Login Erişim Talebi Birim dropdown removed; Topbar dead global search removed; contract amounts formatted as `₺X.XXX,XX` via `formatTRY` helper — display-only, schema unchanged)
+- Dashboard truth correction (top 6 KPI cards on real Supabase truth; Bugünün Görevleri, Açık Personel Talepleri, Yaklaşan Sözleşme Bitişleri, and Eksik / Süresi Dolan Evraklar signal cards on real truth via existing service readers; Riskli Firmalar / Kurumsal Kritik Tarihler card / HotelEmailDraftHelper / İnisiyatifler / Duyurular / ActivityFeed remain later-decision on this surface)
 
 Evre 1 closeout:
 - Evre 1 is closed operationally. Rehearsal result: 6/7 PASS with 1 known WARN (sector-setup limitation affecting new-company button visibility). Demo preview access blocker was deployment/ops-layer and is resolved without code change.

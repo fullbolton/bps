@@ -73,3 +73,32 @@ Ofis içi kullanım öncesi mock audit ve pre-launch sorun tespiti.
 
 ### Sonraki en doğru adım
 Faz 1A: Ayarlar kullanıcı listesi → real profiles tablosuna bağla
+
+---
+
+## 2026-04-15 — Pre-Launch Mock Audit Pushdown + Dashboard Truth Correction
+
+### Session amacı
+Mock audit'inde planlanan Faz 1A-1C trust patchlerini ve Faz 2A Dashboard truth correction alt fazlarını ofis-içi kullanım öncesi sırayla temizlemek.
+
+### Tamamlanan işler
+1. Faz 1A — Ayarlar > Kullanıcılar → real `profiles`; Login Erişim Talebi Birim dropdown'ı kaldırıldı (schema değişmedi; "diger" neutral default)
+2. Faz 1B — Topbar global arama input'u kaldırıldı (honest absence, no real search built)
+3. Faz 1C — Sözleşme tutarları `₺X.XXX,XX` formatında gösteriliyor (`src/lib/format-currency.ts` helper); storage hala free-text
+4. Faz 2A — Dashboard top 6 KPI card real Supabase truth'a bağlandı: `companies`, `contracts`, `staffing_demands`, `workforce_summary`, `tasks`, `appointments`; loading "—", honest 0, errors fall to "—"
+5. Faz 2A.1 — Bugünün Görevleri + Açık Personel Talepleri real `tasks` / `staffing_demands` + company-name resolution
+6. Faz 2A.2 — Yaklaşan Sözleşme Bitişleri + Eksik / Süresi Dolan Evraklar real `contracts` / `documents` via existing service readers (`listAllContracts`, `listAllDocuments`, `computeRemainingDays`)
+
+### Ortam durumu
+- `main` pushed through `0ab1b11`; all six batches deployed to production
+- Demo preview unchanged
+- RLS + partner scope enforced automatically on all new reads — no application-level scoping added
+
+### Kalan Dashboard mock yüzeyleri (later-decision)
+1. Riskli Firmalar — composite risk signal; needs product-definition
+2. Kurumsal Kritik Tarihler card (Dashboard side; `critical_dates` table exists)
+3. HotelEmailDraftHelper utility overlay
+4. YöneticiInisiyatifleriSection / DuyurularSection / ActivityFeed
+
+### Sonraki en doğru adım
+Sonraki en doğru adım: Riskli Firmalar truth-correction planning
