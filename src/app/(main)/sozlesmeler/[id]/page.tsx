@@ -18,8 +18,9 @@ import { useRole } from "@/context/RoleContext";
 // service layer. Sections that depended on excluded domains are
 // removed in this slice — see the cutover report's "what was
 // implemented" + "unresolved items" sections.
-import { MOCK_FIRMALAR } from "@/mocks/firmalar";
 import { createClient } from "@/lib/supabase/client";
+import { selectAllCompanies } from "@/lib/supabase/companies";
+import type { CompanyRow } from "@/types/database.types";
 import {
   getContractById,
   updateContractContent,
@@ -84,6 +85,31 @@ export default function SozlesmeDetayPage({
   // Faz 3: linked tasks and appointments for this contract
   const [linkedTasks, setLinkedTasks] = useState<TaskRow[]>([]);
   const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRow[]>([]);
+  // Real companies for the edit-modal firma dropdown (partner-scoped
+  // via RLS). Empty on error → honest empty picker.
+  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const rows = await selectAllCompanies(supabase);
+        if (active) setAllCompanies(rows);
+      } catch {
+        if (active) setAllCompanies([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [supabase]);
+
+  const firmaOptions = useMemo(
+    () =>
+      allCompanies.map((c) => ({
+        id: c.legacy_mock_id ?? c.id,
+        ad: c.name,
+      })),
+    [allCompanies],
+  );
 
   const reload = useCallback(async () => {
     setLoadError(null);
@@ -392,7 +418,7 @@ export default function SozlesmeDetayPage({
       <NewContractModal
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        firmalar={MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }))}
+        firmalar={firmaOptions}
         editData={contract}
         onSubmit={async (data) => {
           // Faz 2: persist via service layer. Status changes go through

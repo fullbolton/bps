@@ -16,7 +16,6 @@ import {
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
 import { UploadDocumentModal, UpdateValidityModal } from "@/components/modals";
-import { MOCK_FIRMALAR } from "@/mocks/firmalar";
 import { createClient } from "@/lib/supabase/client";
 import {
   listAllDocuments,
@@ -24,6 +23,8 @@ import {
   updateDocumentValidity,
 } from "@/lib/services/documents";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
+import { selectAllCompanies } from "@/lib/supabase/companies";
+import type { CompanyRow } from "@/types/database.types";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
 import type { DocumentCategory } from "@/lib/document-categories";
 import type { DocumentRow } from "@/types/database.types";
@@ -129,6 +130,11 @@ export default function EvraklarPage() {
   const [documents, setDocuments] = useState<DocumentListRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Real companies for the Upload modal's firma dropdown. RLS-scoped;
+  // modal emits `firmaId` that flows to createDocument as
+  // `legacyCompanyId`, so option id prefers legacy_mock_id and falls
+  // back to the UUID.
+  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
 
   const reload = useCallback(async () => {
     try {
@@ -160,6 +166,21 @@ export default function EvraklarPage() {
     reload().then(() => { if (!active) return; });
     return () => { active = false; };
   }, [reload]);
+
+  // Companies for the firma dropdown — loaded once on mount. Errors
+  // degrade to an empty list so the dropdown is honestly empty.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const rows = await selectAllCompanies(supabase);
+        if (active) setAllCompanies(rows);
+      } catch {
+        if (active) setAllCompanies([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [supabase]);
 
   // ---------------------------------------------------------------------------
   // UI state
@@ -224,7 +245,14 @@ export default function EvraklarPage() {
     return c;
   }, [firmaEvraklar]);
 
-  const firmaOptions = MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }));
+  const firmaOptions = useMemo(
+    () =>
+      allCompanies.map((c) => ({
+        id: c.legacy_mock_id ?? c.id,
+        ad: c.name,
+      })),
+    [allCompanies],
+  );
 
   const canMutateEvrak = ["yonetici", "operasyon", "ik"].includes(role);
   const rowActions: RowAction<DocumentListRow>[] = canMutateEvrak ? [

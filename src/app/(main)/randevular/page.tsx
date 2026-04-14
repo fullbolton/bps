@@ -5,9 +5,9 @@
  *
  * Data source: Supabase `appointments` table via the service layer.
  * Company names are resolved in a single batched round trip via
- * `getCompanyDisplayMapByIds`. MOCK_FIRMALAR is retained only for
- * the firma filter dropdown and the NewTaskModal firma picker, until
- * the full Firmalar migration completes.
+ * `getCompanyDisplayMapByIds`. The firma filter dropdown and the
+ * NewAppointmentModal firma picker now source options from the real
+ * companies table via `selectAllCompanies` (RLS-scoped).
  *
  * The appointment-to-task handoff (completing an appointment and
  * optionally creating a linked task) is delegated to the service
@@ -45,7 +45,8 @@ import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
 import type { AppointmentRow } from "@/types/database.types";
-import { MOCK_FIRMALAR } from "@/mocks/firmalar";
+import { selectAllCompanies } from "@/lib/supabase/companies";
+import type { CompanyRow } from "@/types/database.types";
 import type {
   ColumnDef,
   FilterConfig,
@@ -106,15 +107,6 @@ const FILTER_CONFIG: FilterConfig[] = [
     ],
   },
   {
-    key: "firma",
-    label: "Firma",
-    type: "select",
-    placeholder: "Tum firmalar",
-    options: Array.from(new Set(MOCK_FIRMALAR.map((f) => f.firmaAdi))).map(
-      (name) => ({ label: name, value: name })
-    ),
-  },
-  {
     key: "tip",
     label: "Tip",
     type: "select",
@@ -124,7 +116,22 @@ const FILTER_CONFIG: FilterConfig[] = [
       value: t,
     })),
   },
+  // Note: the "firma" filter is appended at the component level so its
+  // options come from the real companies table (RLS-scoped).
 ];
+
+function buildFirmaFilter(companyNames: string[]): FilterConfig {
+  return {
+    key: "firma",
+    label: "Firma",
+    type: "select",
+    placeholder: "Tum firmalar",
+    options: Array.from(new Set(companyNames)).map((name) => ({
+      label: name,
+      value: name,
+    })),
+  };
+}
 
 const COLUMNS: ColumnDef<AppointmentListRow>[] = [
   { key: "meeting_date", header: "Tarih", sortable: true, render: (val) => formatDateTR(val as string) },
@@ -171,6 +178,8 @@ export default function RandevularPage() {
   const [companyLegacyById, setCompanyLegacyById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Real companies for the firma filter + New Appointment modal.
+  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({
@@ -219,6 +228,20 @@ export default function RandevularPage() {
     setLoading(true);
     void reload();
   }, [reload]);
+
+  // Companies for the firma filter + New Appointment modal.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const rows = await selectAllCompanies(supabase);
+        if (active) setAllCompanies(rows);
+      } catch {
+        if (active) setAllCompanies([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [supabase]);
 
   // ------------------------------------------------------------------
   // Load tasks linked to the selected appointment (for the side panel)
@@ -284,7 +307,22 @@ export default function RandevularPage() {
     [enrichedRows, selectedId]
   );
 
-  const firmaOptions = MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }));
+  const firmaOptions = useMemo(
+    () =>
+      allCompanies.map((c) => ({
+        id: c.legacy_mock_id ?? c.id,
+        ad: c.name,
+      })),
+    [allCompanies],
+  );
+
+  const filterConfig = useMemo<FilterConfig[]>(
+    () => [
+      ...FILTER_CONFIG,
+      buildFirmaFilter(allCompanies.map((c) => c.name)),
+    ],
+    [allCompanies],
+  );
 
   const rowActions: RowAction<AppointmentListRow>[] = [
     {
@@ -361,7 +399,7 @@ export default function RandevularPage() {
           <div className="w-full sm:max-w-xs">
             <SearchInput placeholder="Firma, katilimci ara..." onChange={handleSearch} />
           </div>
-          <FilterBar filters={FILTER_CONFIG} values={filters} onChange={setFilters} />
+          <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>
 
         {loading ? (

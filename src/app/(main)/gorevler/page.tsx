@@ -18,12 +18,13 @@ import {
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
 import { NewTaskModal } from "@/components/modals";
-// Faz 3: Görevler list cutover. Tasks now come from the tasks service
-// layer; MOCK_FIRMALAR is reused only as a UI dictionary so the firma
-// filter dropdown and the New Task modal can offer firma names without
-// touching the full Firmalar migration.
-import { MOCK_FIRMALAR } from "@/mocks/firmalar";
+// Faz 3: Görevler list cutover. Tasks come from the tasks service
+// layer; the firma filter dropdown and New Task modal now source
+// options from the real companies table via selectAllCompanies (RLS-
+// scoped), replacing the earlier MOCK_FIRMALAR UI dictionary.
 import { createClient } from "@/lib/supabase/client";
+import { selectAllCompanies } from "@/lib/supabase/companies";
+import type { CompanyRow } from "@/types/database.types";
 import {
   listAllTasks,
   createTask,
@@ -118,16 +119,22 @@ const FILTER_CONFIG: FilterConfig[] = [
       { label: "Sözleşme", value: "sozlesme" },
     ],
   },
-  {
+  // Note: the "firma" filter is appended at the component level so its
+  // options can come from the real companies table.
+];
+
+function buildFirmaFilter(companyNames: string[]): FilterConfig {
+  return {
     key: "firma",
     label: "Firma",
     type: "select",
     placeholder: "Tüm firmalar",
-    options: Array.from(new Set(MOCK_FIRMALAR.map((f) => f.firmaAdi))).map(
-      (name) => ({ label: name, value: name })
-    ),
-  },
-];
+    options: Array.from(new Set(companyNames)).map((name) => ({
+      label: name,
+      value: name,
+    })),
+  };
+}
 
 /**
  * Columns match PRODUCT_STRUCTURE > Görevler > Liste kolonları:
@@ -183,6 +190,10 @@ export default function GorevlerPage() {
   const [companyLegacyById, setCompanyLegacyById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Real companies for the firma filter + New Task modal dropdown.
+  // RLS-scoped; option id prefers legacy_mock_id so the modal's write
+  // path (createTask → legacyCompanyId) keeps working.
+  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({
@@ -229,6 +240,21 @@ export default function GorevlerPage() {
     setLoading(true);
     void reload();
   }, [reload]);
+
+  // Companies for the firma filter + New Task modal. Errors fall to
+  // an empty list so both surfaces show an honest empty state.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const rows = await selectAllCompanies(supabase);
+        if (active) setAllCompanies(rows);
+      } catch {
+        if (active) setAllCompanies([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [supabase]);
 
   // ------------------------------------------------------------------
   // Enriched rows — add firma_name for display + filtering
@@ -292,7 +318,22 @@ export default function GorevlerPage() {
     setEditAtananKisi(selectedTask.assigned_to ?? "");
   }, [selectedTask]);
 
-  const firmaOptions = MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }));
+  const firmaOptions = useMemo(
+    () =>
+      allCompanies.map((c) => ({
+        id: c.legacy_mock_id ?? c.id,
+        ad: c.name,
+      })),
+    [allCompanies],
+  );
+
+  const filterConfig = useMemo<FilterConfig[]>(
+    () => [
+      ...FILTER_CONFIG,
+      buildFirmaFilter(allCompanies.map((c) => c.name)),
+    ],
+    [allCompanies],
+  );
 
   const rowActions: RowAction<TaskListRow>[] = [
     {
@@ -378,7 +419,7 @@ export default function GorevlerPage() {
               <div className="w-full sm:max-w-xs">
                 <SearchInput placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />
               </div>
-              <FilterBar filters={FILTER_CONFIG} values={filters} onChange={setFilters} />
+              <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
             </div>
 
             <DataTable<TaskListRow>

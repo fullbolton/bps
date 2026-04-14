@@ -17,13 +17,12 @@ import {
 import { useRole } from "@/context/RoleContext";
 import { NewContractModal } from "@/components/modals";
 // Faz 2: Sözleşmeler list cutover. Contracts and the active-count
-// statistics now come from the contracts service layer; the still-mock
-// MOCK_FIRMALAR is reused only as a UI dictionary so the firma filter
-// dropdown and the New Contract modal can offer firma names without
-// touching the full Firmalar migration. The mock contract truth has no
-// reader on this page anymore.
-import { MOCK_FIRMALAR } from "@/mocks/firmalar";
+// statistics come from the contracts service layer. The firma filter
+// dropdown and the New Contract modal now source options from the
+// real companies table via `selectAllCompanies` (RLS-scoped).
 import { createClient } from "@/lib/supabase/client";
+import { selectAllCompanies } from "@/lib/supabase/companies";
+import type { CompanyRow } from "@/types/database.types";
 import {
   listAllContracts,
   createContract,
@@ -66,8 +65,8 @@ const STATUS_LABELS: Record<string, string> = {
 /**
  * Augment the raw `ContractRow` with cached derived values + the firma
  * display name. This is the row shape consumed by the DataTable and the
- * RightSidePanel preview. firma_name is resolved against MOCK_FIRMALAR
- * by `legacy_mock_id` until the full Firmalar migration lands.
+ * RightSidePanel preview. firma_name is resolved via
+ * `getCompanyDisplayMapByIds` against the real companies table.
  */
 interface ContractListRow extends ContractRow {
   firma_name: string;
@@ -88,16 +87,22 @@ const FILTER_CONFIG: FilterConfig[] = [
       { label: "Feshedildi", value: "feshedildi" },
     ],
   },
-  {
+  // Note: the "firma" filter is appended at the component level so its
+  // options come from the real companies table (RLS-scoped).
+];
+
+function buildFirmaFilter(companyNames: string[]): FilterConfig {
+  return {
     key: "firma",
     label: "Firma",
     type: "select",
     placeholder: "Tüm firmalar",
-    options: Array.from(new Set(MOCK_FIRMALAR.map((f) => f.firmaAdi))).map(
-      (name) => ({ label: name, value: name })
-    ),
-  },
-];
+    options: Array.from(new Set(companyNames)).map((name) => ({
+      label: name,
+      value: name,
+    })),
+  };
+}
 
 /**
  * Columns match PRODUCT_STRUCTURE > Sözleşmeler > Liste kolonları exactly:
@@ -152,6 +157,8 @@ export default function SozlesmelerPage() {
   const [companyLegacyById, setCompanyLegacyById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Real companies for the firma filter + New Contract modal.
+  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({
@@ -191,6 +198,37 @@ export default function SozlesmelerPage() {
     setLoading(true);
     void reload();
   }, [reload]);
+
+  // Companies for the firma filter + New Contract modal. RLS-scoped.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const rows = await selectAllCompanies(supabase);
+        if (active) setAllCompanies(rows);
+      } catch {
+        if (active) setAllCompanies([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [supabase]);
+
+  const firmaOptions = useMemo(
+    () =>
+      allCompanies.map((c) => ({
+        id: c.legacy_mock_id ?? c.id,
+        ad: c.name,
+      })),
+    [allCompanies],
+  );
+
+  const filterConfig = useMemo<FilterConfig[]>(
+    () => [
+      ...FILTER_CONFIG,
+      buildFirmaFilter(allCompanies.map((c) => c.name)),
+    ],
+    [allCompanies],
+  );
 
   const enrichedRows: ContractListRow[] = useMemo(() => {
     return contracts.map((c) => ({
@@ -298,7 +336,7 @@ export default function SozlesmelerPage() {
             />
           </div>
           <FilterBar
-            filters={FILTER_CONFIG}
+            filters={filterConfig}
             values={filters}
             onChange={setFilters}
           />
@@ -430,7 +468,7 @@ export default function SozlesmelerPage() {
       <NewContractModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        firmalar={MOCK_FIRMALAR.map((f) => ({ id: f.id, ad: f.firmaAdi }))}
+        firmalar={firmaOptions}
         onSubmit={async (data) => {
           // Faz 2: persist via service layer. The service re-verifies
           // partner scope, validates name + date order + active-dates,

@@ -3,13 +3,11 @@
 /**
  * Personel Talepleri (Staffing Demands) list page.
  *
- * Faz 3A: cut over from mock data to Supabase truth. Demands now come
- * from the staffing-demands service layer; the still-mock MOCK_FIRMALAR
- * is reused only as a UI dictionary so the firma filter dropdown and
- * the NewRequestModal can offer firma names without touching the full
- * Firmalar migration. Company display names for rows fetched from the DB
- * are resolved via `getCompanyDisplayMapByIds` (same pattern as the
- * Sozlesmeler list page, Faz 2).
+ * Faz 3A: cut over from mock data to Supabase truth. Demands come
+ * from the staffing-demands service layer; the firma filter dropdown
+ * and NewRequestModal now source options from real companies (RLS-
+ * scoped) via `selectAllCompanies`. Row-level company display names
+ * are resolved via `getCompanyDisplayMapByIds`.
  *
  * open_count (acik kalan) is DERIVED via `computeOpenCount` and never
  * persisted — the DB has no column for it by design.
@@ -32,8 +30,9 @@ import {
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
 import { NewRequestModal, AssignOwnerModal } from "@/components/modals";
-import { MOCK_FIRMALAR } from "@/mocks/firmalar";
 import { createClient } from "@/lib/supabase/client";
+import { selectAllCompanies } from "@/lib/supabase/companies";
+import type { CompanyRow } from "@/types/database.types";
 import {
   listAllDemands,
   createDemand,
@@ -115,16 +114,22 @@ const FILTER_CONFIG: FilterConfig[] = [
       { label: "Kritik", value: "kritik" },
     ],
   },
-  {
+  // Note: the "firma" filter is appended at the component level so its
+  // options come from the real companies table (RLS-scoped).
+];
+
+function buildFirmaFilter(companyNames: string[]): FilterConfig {
+  return {
     key: "firma",
     label: "Firma",
     type: "select",
     placeholder: "Tum firmalar",
-    options: Array.from(new Set(MOCK_FIRMALAR.map((f) => f.firmaAdi))).map(
-      (name) => ({ label: name, value: name }),
-    ),
-  },
-];
+    options: Array.from(new Set(companyNames)).map((name) => ({
+      label: name,
+      value: name,
+    })),
+  };
+}
 
 /**
  * Columns match PRODUCT_STRUCTURE > Personel Talepleri > Liste kolonlari:
@@ -212,6 +217,8 @@ export default function TaleplerPage() {
   >({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Real companies for the firma filter + New Request modal.
+  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
 
   // ---------------------------------------------------------------------------
   // UI state
@@ -270,6 +277,21 @@ export default function TaleplerPage() {
     void reload();
   }, [reload]);
 
+  // Companies for the firma filter + New Request modal. Errors fall to
+  // an empty list (honest empty state).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const rows = await selectAllCompanies(supabase);
+        if (active) setAllCompanies(rows);
+      } catch {
+        if (active) setAllCompanies([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [supabase]);
+
   // ---------------------------------------------------------------------------
   // Derived / enriched data
   // ---------------------------------------------------------------------------
@@ -317,10 +339,22 @@ export default function TaleplerPage() {
     [enrichedRows, selectedId],
   );
 
-  const firmaOptions = MOCK_FIRMALAR.map((f) => ({
-    id: f.id,
-    ad: f.firmaAdi,
-  }));
+  const firmaOptions = useMemo(
+    () =>
+      allCompanies.map((c) => ({
+        id: c.legacy_mock_id ?? c.id,
+        ad: c.name,
+      })),
+    [allCompanies],
+  );
+
+  const filterConfig = useMemo<FilterConfig[]>(
+    () => [
+      ...FILTER_CONFIG,
+      buildFirmaFilter(allCompanies.map((c) => c.name)),
+    ],
+    [allCompanies],
+  );
 
   const rowActions: RowAction<DemandListRow>[] = [
     {
@@ -417,7 +451,7 @@ export default function TaleplerPage() {
               onChange={handleSearch}
             />
           </div>
-          <FilterBar filters={FILTER_CONFIG} values={filters} onChange={setFilters} />
+          <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>
 
         {loading ? (
