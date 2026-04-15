@@ -339,7 +339,7 @@ export function buildEmail(input: EmailBuildInput): BuiltEmail {
     "",
     `BPS'te görüntüle: ${deepLink}`,
     "",
-    "Bu bildirim BPS'teki sözleşme sorumluluğunuzla ilgilidir.",
+    "Bu bildirim, yaklaşan bitiş tarihi nedeniyle BPS tarafından gönderildi.",
   ]
     .filter((line) => line !== "")
     .join("\n");
@@ -357,7 +357,7 @@ export function buildEmail(input: EmailBuildInput): BuiltEmail {
       : "",
     `</p>`,
     `<p><a href="${escapeHtml(deepLink)}">BPS'te görüntüle</a></p>`,
-    `<p style="color:#666;font-size:12px;">Bu bildirim BPS'teki sözleşme sorumluluğunuzla ilgilidir.</p>`,
+    `<p style="color:#666;font-size:12px;">Bu bildirim, yaklaşan bitiş tarihi nedeniyle BPS tarafından gönderildi.</p>`,
   ].join("");
 
   return { subject, text, html };
