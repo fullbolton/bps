@@ -12,3 +12,21 @@
 body {
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/*
+ * Print mode — used by bounded PDF snapshots (e.g. Finansal Özet PDF export).
+ * Preserves card backgrounds, borders, and badge colors so the snapshot looks
+ * like the on-screen view. Shell chrome and page CTAs opt out via
+ * Tailwind's print:hidden variant at the component level.
+ */
+@media print {
+  body {
+    background: white;
+  }
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
