@@ -164,3 +164,37 @@ Katman 1 — Geçiş ve Güven execution planını açmak:
 - kalan güven-kırıcı mock / preserved surface kararlarını netleştirmek
 - ofis içi pilot başlangıç planını oluşturmak
 - çıktı hattı (PDF / Excel export) ve temel geri çağırma hattını (özellikle email bildirim temeli) önceliklendirmek
+
+---
+
+## 2026-04-15 (Akşam) — Katman 1 Mock Cleanup Tamamlandı + Paralel Worktree Milat
+
+### Session amacı
+Katman 1 Geçiş ve Güven kapsamında kalan tüm mock/preserved yüzeyleri temizlemek. İlk paralel Claude Code development session'ını gerçekleştirmek.
+
+### Tamamlanan işler
+1. Track 1 (BPS 7 Katman 1): Firma filter dropdown'ları 6 sayfa → zaten real (önceki batch'lerde yapılmış). Finansal Özet top block → real aggregate. Raporlar 5 (Riskli Firma) → real companies.risk. Raporlar 6 (Partner Özet) → honest absence. Ayarlar dictionary tab'ları → inline statik config, @/mocks import kaldırıldı.
+2. Track 2 (BPS 7 Katman 2): Dashboard preserved bloklar → honest absence (Kurumsal Kritik Tarihler, Duyurular, İnisiyatifler, ActivityFeed). Firma Detay preserved surfaces → honest absence (Bahsetmeler, Zaman Çizgisi, Yönlendirmeler).
+3. İlk paralel Claude Code session gerçekleştirildi — iki session yan yana, aynı anda çalıştı.
+4. Worktree Policy + Runbook güncellendi (native -w flag, multi-session, Katman 1 exception).
+5. BPS Yapılanma Paketi repo'ya eklendi ve tüm docs hizalandı (README, CODEX, CLAUDE.md, TASK_ROADMAP).
+
+### Mock cleanup sonucu
+- src/app/ altında 0 runtime @/mocks import — tamamen temiz
+- Tek kalan: src/lib/draft-hotel-email.ts (izole demo helper, pilot blocker değil)
+- Session zinciri başında 84 mock referansı vardı → şimdi app yüzeyinde sıfır
+
+### Kararlar
+- BPS tanımı güncellendi: "firma-merkezli service operations platform"
+- Çekirdek prensip: firma-merkezli veri + kişi-merkezli deneyim
+- Paralel development: sonraki turda claude -w ile worktree izolasyonu zorunlu
+- 3+ session açılacaksa: sadece planning/review, üçüncü coding writer yok
+
+### Main commit zinciri
+- ad6eb04 — Track 1: mock readers → real truth (filters, finansal özet, raporlar, ayarlar)
+- 7368d71 — Track 2: preserved surfaces → honest absence (dashboard, firma detay)
+- b64487c — worktree docs güncelleme
+- cccbc65 — Yapılanma Paketi + docs hizalama
+
+### Sonraki en doğru adım
+Ofis içi pilot readiness: kullanıcı hesapları oluştur, ekibi davet et, ilk hafta gözlem planı yap. Paralelde export/PDF ve bildirim motoru planning başlatılabilir.
