@@ -198,3 +198,95 @@ Katman 1 Geçiş ve Güven kapsamında kalan tüm mock/preserved yüzeyleri temi
 
 ### Sonraki en doğru adım
 Ofis içi pilot readiness: kullanıcı hesapları oluştur, ekibi davet et, ilk hafta gözlem planı yap. Paralelde export/PDF ve bildirim motoru planning başlatılabilir.
+
+---
+
+## 2026-04-15 (Gece) — Katman 1 Residual Closeout + Katman 2 İlk Slice'lar
+
+### Session amacı
+Katman 1 Geçiş ve Güven kalan residual'ı kapatmak ve Katman 2 — Geri Çağırma ve Çıktı'nın ilk pratik slice'larını açmak. Çıktı tarafı (PDF export) ve recall tarafı (email) birer bounded slice olarak shipped.
+
+### Tamamlanan işler
+1. Katman 1 residual: `draft-hotel-email.ts` mock dependency kaldırıldı, dashboard'da gerçek workforce verisi fetch ediliyor. `src/app/` altında runtime @/mocks import effectively sıfır.
+2. Finansal Özet PDF Export V1: yonetici-only "PDF Olarak İndir" butonu, snapshot-of-screen disiplini, print-only timestamp, `@media print` mekanizması.
+3. Finansal Özet WARN fix: authorized-role-gated reads — sayfa fetch'i rol doğrulanmadan başlatılmıyor, unauthorized roller için erişim kısıtlama ekranı render ediliyor (review verdict: WARN → PASS).
+4. Kurumsal Kritik Tarihler PDF Export V1: aynı pattern, narrow ikinci surface. +42/-3 tek dosya.
+5. Shared print infrastructure: `globals.css` `@media print` bloğu, `Layout.tsx` shell chrome print:hidden wrapping, `PageHeader.tsx` actions print:hidden — iki PDF slice'ın ortak bağımlılığı olarak main'e landed.
+6. Contract Expiry Email Recall V1 (Katman 2 recall slice): yaklaşan sözleşme bitişi 30-gün eşiği, yönetici + partner-scoped routing, `contracts.responsible` display-only, idempotency `contract_expiry_emails_sent` tablosu, Vercel Cron + Resend REST, feature flag default-disabled.
+
+### Kararlar
+- **Recipient model**: `contracts.responsible` free-text routing için kullanılmaz. V1 kuralı = yonetici globally + partner via `partner_company_assignments`. Body'de `responsible` display-only context olarak görünebilir (recall wording neutralize edildi: "Bu bildirim, yaklaşan bitiş tarihi nedeniyle BPS tarafından gönderildi.").
+- **Weekly Digest**: framed ve 3-block V1 yönüne yakın (4-block değil, staffing-demand anchor zayıfsa eliminate). Implementation opened DEĞİL — event-triggered email'in pilot burn-in'i gerekli.
+- **PDF pattern**: ilk iki slice aynı mekanizmayı (window.print + print CSS + tek tek UI chrome hide) paylaştı. Yeni print mechanism tanıtılmadı.
+- **Commit hijyeni**: Katman 1 residual, her PDF slice, shared print infra ve email recall V1 ayrı ayrı commit'lendi. Closeout push'ları her slice için ayrı yapıldı.
+
+### Canlıya alınmayan / ops-gated
+- Contract Expiry Email V1 **kod olarak shipped ama ops-gated**. Enable koşulları:
+  1. `RESEND_API_KEY` Vercel env (Production + Preview)
+  2. `CRON_SECRET` Vercel env
+  3. `bpsys.net` için DKIM/SPF/DMARC records
+  4. Resend sending domain verification
+  5. Migration `20260415000500_contract_expiry_emails_sent.sql` Supabase production + demo'ya apply
+  6. `BPS_CONTRACT_EXPIRY_EMAIL_ENABLED=true` flip
+- Weekly Digest: design'ı kabul edilmiş ama implementation opened değil. Blocker: event email'in canlı burn-in'i.
+
+### Main commit zinciri
+- f6bcc30 — Katman 1 residual: draft-hotel-email mock removed + dashboard real workforce
+- 0063552 — Finansal Özet role-gate WARN fix (PDF export öncesi auth hardening)
+- 45359d9 — Contract Expiry Email Recall V1 (Katman 2 first recall slice)
+- 24796b2 — Contract Expiry email neutral recall wording
+- c184c34 — Kurumsal Kritik Tarihler PDF Export V1
+- 38146bc — Shared print infrastructure for PDF export slices
+
+### Sonraki en doğru adım
+Contract Expiry Email Recall V1 için ops enablement (env + DNS + migration apply + flag flip). Canlı pilot burn-in başladıktan sonra Weekly Digest implementation batch'i 3-block V1 kapsamında açılabilir. Paralelde Firma Detay PDF (üçüncü PDF slice) ve Raporlar Excel planlama açılabilir.
+
+---
+
+## 2026-04-16 — Yerel Tooling + Contract Expiry Email V1 Ops Enablement
+
+### Session amacı
+Ürün implementation batch'i değil, yerel tooling kurulumu + shipped-ama-dormant Contract Expiry Email Recall V1'in ops enablement turu. Bu session yerel geliştirici disiplinini toparladı ve daha önce kod olarak shipped kapasitenin ops kapılarını kapattı.
+
+### Tamamlanan yerel tooling (local-only, repo'ya taşınmaz)
+1. **Pre-commit TypeScript guard** — `.git/hooks/pre-commit` executable, `npx tsc --noEmit` çalıştırır; type hatasında commit blokelenir. Git hook'u doğası gereği track edilmez.
+2. **Slash command seti** — `.claude/commands/` altında `/bps-review`, `/bps-mock-audit`, `/bps-batch-close`. Proje dizini içinde ama `.gitignore:.claude/` kuralıyla kapsanır, commit edilmez.
+3. **Paralel session koordinasyonu** — `.claude/track-status.md` yerel koordinasyon dosyası oluşturuldu; her paralel Claude Code session'ı STARTING / DONE / BLOCKED kayıtlarını buraya yazar. Local-only.
+4. **MCP kullanım disiplini notu** — `.claude/mcp-usage.md` dosyası yerel çalışma prensiplerini sabitler (demo-only, read-only, docs yerine geçmez, scope açmaz). Source-of-truth değil, yerel rehber.
+
+### Supabase MCP setup (yalnız demo, yalnız read-only)
+- Scope: Claude Code `local` (proje bazlı, kullanıcıya özel, shared değil). `~/.claude.json` altında yaşar.
+- Target: `--project-ref=tiqemcsjuyudahgmqksw` (yalnız demo projesi). Production (`dffdzbmnmnokbftbujsy`) MCP olarak bağlı değildir.
+- Mode: `--read-only` spawn argümanı. Write / migration / mutation yolu yoktur.
+- Repo'da `.mcp.json` yoktur; `git ls-files` MCP ile ilgili hiçbir şey içermez. Shared/team konfigürasyonu yaratılmamıştır.
+- PAT `~/.claude.json` içinde (0600 mode) tutulur; secret repo'ya sızmaz.
+- Amaç: schema / table / constraint / parity inspection. Docs yerine geçmez; çelişki olursa çelişki açıkça bildirilir.
+
+### Contract Expiry Email Recall V1 — ops enablement durumu
+Kod-seviyesi slice bu session'dan ÖNCE shipped idi (commit zinciri: `45359d9` slice, `24796b2` neutral wording). Bu session'da ops tarafındaki kapılar kapatıldı:
+- Feature flag (`BPS_CONTRACT_EXPIRY_EMAIL_ENABLED`) enable edildi.
+- Redeploy tetiklendi / build süreci başladı.
+- İlk beklenen cron çalıştırması ertesi sabah **~08:30 TR** (`30 5 * * *` UTC). Bu ilk çalıştırma henüz gerçekleşmedi; başarı canlı olarak henüz doğrulanmamıştır.
+- İlk çalıştırma, aktif ve `end_date - today ∈ [0, 30]` olan her sözleşme için **catch-up burst** üretecek şekilde tasarlanmıştır. Bu beklenen V1 davranışıdır, bug değildir. İdempotency tablosu (`contract_expiry_emails_sent`) aynı sözleşme × alıcı × 30-gün üçlüsünün tekrar mail almasını yapısal olarak engeller.
+
+### Burn-in gözlem planı (ilk cron sonrası operatörün izleyeceği yüzeyler)
+- **Resend dashboard** — delivery rate, bounce, spam complaints, DKIM/SPF/DMARC alignment.
+- **Vercel function / cron logs** — `/api/cron/contract-expiry` invocation kaydı, aggregate summary satırı (`evaluated= attempted= sent= skipped= failed=`), herhangi bir per-contract hata log'u.
+- **Demo Supabase `contract_expiry_emails_sent`** — idempotency kaydı oluştuğunun doğrulanması; satır sayısı beklenen burst boyutuna uymalı (aktif + end_date 0–30 gün içinde olan sözleşme sayısı × alıcı sayısı).
+- Değişiklik tetikleyicileri (herhangi biri burn-in sayacını sıfırlar): threshold, template / copy, recipient kuralı, sender adresi, cron zamanı.
+
+### Scope guardrail'leri korundu
+Bu session **AÇMAMIŞTIR / GENİŞLETMEMİŞTİR**:
+- Weekly Digest implementation (framed-ama-not-opened durumunda kalır; event email burn-in'i sequencing-blocker)
+- In-app notification merkezi / badge / bell / sidebar item
+- Recipient rule (yonetici global + partner via `partner_company_assignments`; `contracts.responsible` display-only) — değişiklik yok
+- Ürün yüzey redesign'ı — hiçbir page/component/service dokunulmadı
+- Roadmap sıralaması — TASK_ROADMAP sequencing olduğu gibi
+
+### Ortam durumu
+- Kod tarafı: `main` son commit `38146bc` (shared print infra); `45359d9` ve `24796b2` arada. `demo-preview` aynı baş commit.
+- Supabase demo (`tiqemcsjuyudahgmqksw`): MCP son kontrolünde `contract_expiry_emails_sent` tablosu public şemada henüz **GÖRÜLMEMİŞTİ** — ops, migration apply'ını enablement kapısı olarak listelemişti; bu session sonunda migration'ın uygulanıp uygulanmadığı lokal MCP'den doğrulanmadı. İlk cron sonrası Supabase tarafında tabloda kayıt oluşup oluşmadığı birincil doğrulama noktasıdır.
+- Yerel working tree: pre-existing uncommitted notlar (ör. `00_core/CHANGELOG.md`, `00_core/SESSION_HANDOFFS.md` önceki turnlerden) ve `.DS_Store` / `.claude/settings.local.json` / `ayik-adam-mvp-preview/` silinmeleri var; bunlar bu session'da dokunulmadı.
+
+### Sonraki en doğru adım
+Ertesi sabah 08:30 TR cron çalıştırmasının ardından **post-cron burn-in incelemesi**: (1) Vercel function log'unda aggregate satır ve per-contract hata yoğunluğu, (2) Resend dashboard'da delivered/bounce/complaint, (3) demo Supabase `contract_expiry_emails_sent` satır sayısı beklenen burst boyutuyla uyumlu mu. Clean gözlem pencereleri Weekly Digest batch'inin açılma önkoşuludur; kirli sinyaller implementation sırasını değiştirmez, sadece sürenin uzamasına yol açar.
