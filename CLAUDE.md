@@ -9,7 +9,9 @@
 
 ## Project Identity
 
-**BPS** (Business Process System) — Web-based operations platform for B2B service companies.
+**BPS** (Business Process System) — a **firma-merkezli service operations platform** with a **kişi-merkezli daily experience**, built for B2B service companies.
+
+**Çekirdek prensip:** firma-merkezli veri + kişi-merkezli deneyim. The data backbone is company-centered (sözleşme, evrak, alacak, talep, risk firmaya aittir). The daily experience is organized around the user — role, scope, and assignment — so that each person opens the app and sees the work they actually need to move that day.
 
 Started as an internal tool for Partner Staff (staffing industry) and is transitioning toward a multi-tenant SaaS product serving staffing, security, cleaning, OSGB, consulting, logistics, and facility management companies.
 
@@ -56,14 +58,26 @@ This section describes the current accepted product center for agent steering. I
 8. **Tasks must have owners.** Sahipsiz iş yasağı.
 
 ### BPS is NOT and must NEVER become:
-- CRM software
-- HRIS / HR software
+- Generic CRM (deals, stages, pipeline analytics, lead scoring, marketing automation)
+- Generic HRIS / HR software (bordro, özlük, izin yönetimi, shift / vardiya, performance)
 - Payroll / bordro software
-- ERP software
-- Accounting / muhasebe software
+- Generic ERP (stok, üretim, tedarik zinciri)
+- Muhasebe yazılımı / accounting software (fatura kesme, KDV, e-defter, banka mutabakatı)
 - Ticketing / helpdesk system
 - Generic admin panel
-- Email/inbox platform
+- Email / inbox platform
+- Chat / messaging app (thread, reply, DM, real-time chat, inbox)
+- Project-centered PSA clone (BPS is firma-centered, not proje-centered)
+
+### Natural growth areas (do NOT block these)
+
+These are explicitly recognized growth areas per `03_strategy/BPS_YAPILANMA_PAKETI.md`. They do not turn BPS into generic CRM, HRIS, or ERP — the guardrails above still apply:
+
+- **Firma-merkezli time tracking** — firma bazlı operasyonel emek kaydı ("bu firmaya kaç adam-saat harcadık"), NOT personnel payroll, shift management, mesai/fazla mesai calculation.
+- **Firma-bazlı ekonomik görünürlük** — firma bağlamında gelir / maliyet / kârlılık visibility, NOT invoice issuance, KDV, e-defter, banka mutabakatı.
+- **Dar pipeline (aday firma → aktif firma activation)** — firma aktivasyonuna giden dar ticari akış, NOT generic sales CRM with deals, stages, probabilities, or funnel reports.
+
+Scope limits for each growth area are defined in `03_strategy/BPS_YAPILANMA_PAKETI.md`. Until execution-layer docs (TASK_ROADMAP, WORKFLOW_RULES, ROLE_MATRIX, STATUS_DICTIONARY) are explicitly updated to activate a growth area, no implementation work begins on it.
 
 BPS is an **operational coordination hub** — it connects with external systems rather than replacing them.
 
@@ -212,6 +226,8 @@ When documents conflict, follow this priority:
 If two files in the same tier conflict, follow the read-order defined in `CODEX.md`.
 
 **This `CLAUDE.md` file sits BELOW all of the above.** It is a steering companion, not an authority.
+
+`03_strategy/BPS_YAPILANMA_PAKETI.md` is **strategic direction** — it defines the current product framing and growth-area intent. It informs roadmap direction and scope evolution but **does not override** the source-of-truth execution docs above until those docs are explicitly updated to match. When Yapılanma Paketi and an execution-layer doc appear to conflict, the execution-layer doc wins in the current task.
 
 ---
 
