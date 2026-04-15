@@ -22,6 +22,41 @@ A single `.git` repository supports multiple working directories simultaneously.
 
 ---
 
+## Preferred Method: Claude Code Native Worktrees
+
+Claude Code supports a native `-w` flag that replaces most of the manual worktree + branch + session bootstrap in one command.
+
+```bash
+claude -w feature-finansal-ozet-v2
+```
+
+This one command:
+- creates a new worktree under `.claude/worktrees/feature-finansal-ozet-v2`
+- creates a new branch for the session
+- opens a Claude Code session in the new worktree
+- auto-loads repo-root `CLAUDE.md` (shared governance)
+- prompts for cleanup on session end, preserving the worktree if commits exist
+
+For the routine BPS worktree set, this is simpler than the manual `git worktree add` flow below. Use manual setup only when you need more control (specific base branch, custom location outside `.claude/worktrees/`, or an existing branch).
+
+### `.claude/worktrees/` directory
+
+Native worktrees land under `.claude/worktrees/` inside the repo. Ensure this path is excluded from version control — worktree working trees should not be tracked:
+
+```gitignore
+.claude/worktrees/
+```
+
+### Subagent worktree isolation
+
+Subagents can run in their own worktrees via the `isolation: worktree` field in the agent frontmatter. Useful when a subagent should work on an isolated copy of the repo without affecting the parent session's working tree. The worktree is auto-cleaned if the subagent makes no changes; otherwise the path and branch are returned in the result.
+
+### Multi-session support (Desktop app, Max plan)
+
+The Claude Code Desktop app on Max plan supports multiple concurrent sessions — each can target its own worktree without needing separate terminal windows. Writer / planner / chore parallelism no longer requires juggling terminals.
+
+---
+
 ## Naming Convention
 
 ```
@@ -38,7 +73,9 @@ bps-{purpose}[-{topic}]
 
 ---
 
-## Common Commands
+## Alternative: Manual Git Worktrees
+
+The commands below remain fully supported. Use them when native `claude -w` is not the right fit — e.g. a specific base branch other than current HEAD, a custom worktree location outside `.claude/worktrees/`, checking out an existing branch, or integrating with the bootstrap script for env isolation.
 
 ### Create worktrees
 
@@ -155,8 +192,12 @@ cp bps/.env.local.template bps-feature-X/.env.local
 
 ## Claude Code Session per Worktree
 
-Each worktree runs its own Claude Code terminal session:
+Each worktree runs its own Claude Code session. Two ways to open them:
 
+**Desktop app (Max plan) — preferred for multi-session work:**
+Multiple Claude Code sessions can run concurrently in one Desktop app window, each targeting its own worktree. No separate terminal windows required. Use `claude -w name` to spawn fresh worktreed sessions, or open existing worktrees directly from the app.
+
+**Terminal fallback:**
 ```bash
 # Terminal 1: implementation
 cd ~/projects/bps-feature-X && claude
@@ -200,6 +241,8 @@ After finishing a feature/hotfix:
 ---
 
 ## Bootstrap Script (Infrastructure Horizon Step 2)
+
+> **Note:** `claude -w` now replaces most of this script's functionality — worktree creation, branch creation, and Claude Code session startup happen in one step. The script below remains useful primarily for its environment-isolation step (copying the right `.env.local.*` template into the worktree) and for invocations outside the Claude Code CLI. If you use `claude -w`, handle env setup separately or fold only the env-copy step into your shell workflow.
 
 ```bash
 #!/bin/bash

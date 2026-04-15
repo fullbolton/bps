@@ -37,6 +37,20 @@ BPS should not run multiple parallel writing sessions on overlapping product dom
 - parallel schema-changing sessions
 - parallel role/workflow-changing implementation
 
+### 1.1 Preferred Creation Method
+
+Claude Code's native `-w` flag is the preferred way to open a BPS worktree.
+
+```bash
+claude -w feature-name
+```
+
+This auto-creates the worktree + branch + Claude Code session in one step, places the worktree under `.claude/worktrees/`, auto-loads repo-root `CLAUDE.md`, and prompts for cleanup on session end (preserving the worktree if commits exist).
+
+Manual `git worktree add` remains valid and is still supported — use it when you need a specific base branch, a custom location outside `.claude/worktrees/`, or explicit branch setup. For the routine BPS worktree set, `-w` is simpler. See `docs/runbooks/git-worktree-setup.md` for both paths.
+
+This is a tooling preference; the governance principles in this policy are unchanged.
+
 ---
 
 ## 2. Recommended Worktree Set
@@ -112,6 +126,14 @@ Do not exceed:
 - 1 chore session
 
 More sessions create review overload and merge tax.
+
+### Multi-session tooling
+
+The Claude Code Desktop app on Max plan supports multiple concurrent Claude Code sessions — each session can operate in its own worktree without needing separate terminal windows. This is a tooling convenience; the sustainable limit above still applies. More surface for parallel sessions does not change the rule that only one active writer belongs on overlapping product truth at a time.
+
+### Temporary exception — Katman 1 mock cleanup
+
+During Katman 1 (Geçiş ve Güven) mock cleanup only, two parallel writers are permitted **if their file sets do not overlap**. This is a bounded exception to accelerate the transition phase; it is not a permanent policy change. When Katman 1 closes, the default "1 writer" rule resumes. Schema-changing, role/workflow-changing, and overlapping-file work remain single-writer even under this exception.
 
 ---
 
