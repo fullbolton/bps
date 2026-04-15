@@ -21,30 +21,69 @@ import {
   PriorityBadge,
   WorkforceRiskBadge,
   ReportSwitcher,
+  EmptyState,
 } from "@/components/ui";
 import type { ReportOption } from "@/components/ui/ReportSwitcher";
 import { useRole } from "@/context/RoleContext";
 import type { UserRole } from "@/context/RoleContext";
-import {
-  // Report 6 still mock-backed (partner × city analytics — explicitly
-  // deferred per the Faz 2B planning scope).
-  getRaporPartnerOzet,
-} from "@/mocks/raporlar";
-import type {
-  RaporIsGucuRow,
-  RaporSozlesmeBitisRow,
-  RaporTalepRow,
-  RaporRandevuRow,
-  RaporPartnerOzetRow,
-} from "@/mocks/raporlar";
 import type { ColumnDef } from "@/types/ui";
 import type { IsGucuRiskSeviyesi } from "@/types/batch4";
-import type { OncelikSeviyesi, RiskSeviyesi } from "@/types/ui";
+import type {
+  OncelikSeviyesi,
+  RiskSeviyesi,
+  SozlesmeDurumu,
+  TalepDurumu,
+  RandevuDurumu,
+} from "@/types/ui";
+
+// ---------------------------------------------------------------------------
+// Report row shapes — real Supabase readers render into these. Types were
+// previously re-exported from the mocks file; inlined here to keep this
+// page free of any @/mocks dependency.
+// ---------------------------------------------------------------------------
+
+interface RaporIsGucuRow {
+  firmaId: string;
+  firmaAdi: string;
+  lokasyon: string;
+  aktifKisi: number;
+  hedefKisi: number;
+  acikFark: number;
+  riskEtiketi: IsGucuRiskSeviyesi;
+}
+
+interface RaporSozlesmeBitisRow {
+  sozlesmeAdi: string;
+  firmaAdi: string;
+  bitis: string;
+  kalanGun: number;
+  sorumlu: string;
+  durum: SozlesmeDurumu;
+  hazirlikDurumu: string;
+}
+
+interface RaporTalepRow {
+  firmaAdi: string;
+  pozisyon: string;
+  talepEdilen: number;
+  saglanan: number;
+  acikKalan: number;
+  oncelik: OncelikSeviyesi;
+  durum: TalepDurumu;
+}
+
+interface RaporRandevuRow {
+  tarih: string;
+  firmaAdi: string;
+  gorusmeTipiLabel: string;
+  katilimci: string;
+  durum: RandevuDurumu;
+  sonuc: string;
+}
 import { clsx } from "clsx";
 import {
   TYPE_BODY,
   TYPE_CAPTION,
-  TEXT_PRIMARY,
   TEXT_BODY,
   TEXT_SECONDARY,
   TEXT_MUTED,
@@ -210,54 +249,6 @@ const COLUMNS_RISKLI_FIRMA: ColumnDef<RaporRiskliFirmaRow>[] = [
   },
 ];
 
-const COLUMNS_PARTNER_OZET: ColumnDef<RaporPartnerOzetRow>[] = [
-  {
-    key: "partnerAdi",
-    header: "Partner",
-    render: (val, row) => (
-      <span className={clsx(
-        TYPE_BODY,
-        row.rowType === "partner" ? `font-medium ${TEXT_BODY}` : TEXT_MUTED,
-      )}>
-        {(val as string) || ""}
-      </span>
-    ),
-  },
-  {
-    key: "sehir",
-    header: "Şehir",
-    render: (val, row) => (
-      <span className={clsx(
-        TYPE_BODY,
-        row.rowType !== "partner" ? `font-medium ${TEXT_PRIMARY}` : TEXT_BODY,
-      )}>
-        {val as string}
-      </span>
-    ),
-  },
-  { key: "firmaSayisi", header: "Firma" },
-  { key: "isGucu", header: "İş Gücü" },
-  { key: "acikTalep", header: "Açık Talep" },
-  {
-    key: "alacakYogunlugu",
-    header: "Alacak Yoğunluğu",
-    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{val as string}</span>,
-  },
-  {
-    key: "kesilmemisBaski",
-    header: "Kesilmemiş Baskı",
-    render: (val) => <span className={`${TYPE_BODY} text-amber-600`}>{val as string}</span>,
-  },
-  {
-    key: "gecikmisYogunluk",
-    header: "Gecikmiş Firma",
-    render: (val, row) => {
-      const n = val as number;
-      return <span className={clsx(TYPE_BODY, n > 0 ? "text-red-600 font-medium" : TEXT_MUTED)}>{n > 0 ? `${n} firma` : "—"}</span>;
-    },
-  },
-];
-
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -288,9 +279,8 @@ export default function RaporlarPage() {
   // out of scope for this batch. Honest absence > fabricated content.
   const [raporRiskli, setRaporRiskli] = useState<RaporRiskliFirmaRow[]>([]);
 
-  // Report 6 — still mock-backed. Partner × city aggregation is out of
-  // scope for this batch.
-  const raporPartnerOzet = getRaporPartnerOzet();
+  // Report 6 — Partner × city aggregation. Data pipeline not wired yet;
+  // honest absence rather than mock-backed rendering.
 
   useEffect(() => {
     let cancelled = false;
@@ -514,12 +504,10 @@ export default function RaporlarPage() {
         )}
 
         {activeKey === "partner-ozet" && (
-          <DataTable<RaporPartnerOzetRow>
-            columns={COLUMNS_PARTNER_OZET}
-            data={raporPartnerOzet}
-            rowKey="id"
-            emptyTitle="Partner verisi yok"
-            pageSize={30}
+          <EmptyState
+            title="Partner Özeti"
+            description="Bu raporun veri akışı henüz bağlı değil."
+            size="page"
           />
         )}
       </div>

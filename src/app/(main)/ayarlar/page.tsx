@@ -11,22 +11,100 @@ import {
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
-import {
-  FIRMA_ETIKETLERI,
-  SOZLESME_TIPLERI,
-  EVRAK_KATEGORILERI,
-  GOREV_TIPLERI,
-  ROLLER,
-  SEHIRLER,
-  OPERASYON_PARTNERLERI,
-} from "@/mocks/ayarlar";
-import type {
-  AyarDictEntry,
-  AyarUserEntry,
-  AyarRolEntry,
-  AyarPartnerEntry,
-} from "@/mocks/ayarlar";
 import type { TabItem, ColumnDef } from "@/types/ui";
+
+// ---------------------------------------------------------------------------
+// Static configuration dictionaries
+// Inline, not dynamic truth — these are product vocabulary constants.
+// ---------------------------------------------------------------------------
+
+interface AyarDictEntry {
+  id: string;
+  ad: string;
+  durum: "aktif" | "pasif";
+}
+
+interface AyarUserEntry {
+  id: string;
+  ad: string;
+  rol: string;
+  eposta: string;
+}
+
+interface AyarRolEntry {
+  id: string;
+  rolAdi: string;
+  aciklama: string;
+}
+
+interface AyarPartnerEntry {
+  id: string;
+  ad: string;
+  sehir: string;
+  durum: "aktif" | "pasif";
+}
+
+const FIRMA_ETIKETLERI: AyarDictEntry[] = [
+  { id: "fe1", ad: "Lojistik", durum: "aktif" },
+  { id: "fe2", ad: "Temizlik", durum: "aktif" },
+  { id: "fe3", ad: "Güvenlik", durum: "aktif" },
+  { id: "fe4", ad: "İnşaat", durum: "aktif" },
+  { id: "fe5", ad: "Gıda", durum: "aktif" },
+  { id: "fe6", ad: "Turizm", durum: "pasif" },
+  { id: "fe7", ad: "Tekstil", durum: "aktif" },
+  { id: "fe8", ad: "Enerji", durum: "aktif" },
+];
+
+const SOZLESME_TIPLERI: AyarDictEntry[] = [
+  { id: "st1", ad: "Hizmet", durum: "aktif" },
+  { id: "st2", ad: "Ek Protokol", durum: "aktif" },
+];
+
+const EVRAK_KATEGORILERI: AyarDictEntry[] = [
+  { id: "ek1", ad: "Çerçeve Sözleşme", durum: "aktif" },
+  { id: "ek2", ad: "Ek Protokol", durum: "aktif" },
+  { id: "ek3", ad: "Yetki Belgesi", durum: "aktif" },
+  { id: "ek4", ad: "Operasyon Evrakı", durum: "aktif" },
+  { id: "ek5", ad: "Teklif Dosyası", durum: "aktif" },
+  { id: "ek6", ad: "Ziyaret Tutanağı", durum: "aktif" },
+  { id: "ek7", ad: "Diğer", durum: "aktif" },
+];
+
+const GOREV_TIPLERI: AyarDictEntry[] = [
+  { id: "gt1", ad: "Manuel", durum: "aktif" },
+  { id: "gt2", ad: "Randevu", durum: "aktif" },
+  { id: "gt3", ad: "Sözleşme", durum: "aktif" },
+];
+
+const ROLLER: AyarRolEntry[] = [
+  { id: "r1", rolAdi: "Yönetici", aciklama: "Kurumsal görünürlük, kontrol, kritik aksiyon ve yapılandırma yönetimi" },
+  { id: "r2", rolAdi: "Operasyon", aciklama: "Personel talebi, aktif iş gücü, evrak takibi ve operasyonel görev akışı" },
+  { id: "r3", rolAdi: "Satış", aciklama: "Firma ilişkisi, görüşme takibi, yenileme fırsatı ve müşteri teması" },
+  { id: "r4", rolAdi: "İK", aciklama: "Evrak uyumu ve personel belge tamamlama" },
+  { id: "r5", rolAdi: "Muhasebe", aciklama: "Finansal veri girişi, alacak takibi ve faturalama görünürlüğü" },
+  { id: "r6", rolAdi: "Görüntüleyici", aciklama: "Yalnızca okuma — takip ve rapor görünürlüğü" },
+];
+
+const SEHIRLER: AyarDictEntry[] = [
+  { id: "seh1", ad: "İstanbul", durum: "aktif" },
+  { id: "seh2", ad: "İzmir", durum: "aktif" },
+  { id: "seh3", ad: "Ankara", durum: "aktif" },
+  { id: "seh4", ad: "Bursa", durum: "aktif" },
+  { id: "seh5", ad: "Antalya", durum: "pasif" },
+  { id: "seh6", ad: "Trabzon", durum: "aktif" },
+  { id: "seh7", ad: "Edirne", durum: "aktif" },
+  { id: "seh8", ad: "Konya", durum: "aktif" },
+];
+
+const OPERASYON_PARTNERLERI: AyarPartnerEntry[] = [
+  { id: "op1", ad: "Ahmet B.", sehir: "İstanbul", durum: "aktif" },
+  { id: "op2", ad: "Mehmet Y.", sehir: "Ankara", durum: "aktif" },
+  { id: "op3", ad: "Zeynep A.", sehir: "Bursa", durum: "aktif" },
+  { id: "op4", ad: "Burak Ş.", sehir: "İzmir", durum: "aktif" },
+  { id: "op5", ad: "Elif Y.", sehir: "Konya", durum: "aktif" },
+  { id: "op6", ad: "Burak Ş.", sehir: "Edirne", durum: "aktif" },
+  { id: "op7", ad: "Fatma Ç.", sehir: "Trabzon", durum: "aktif" },
+];
 import {
   TYPE_BODY,
   TYPE_CAPTION,

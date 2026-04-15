@@ -9,17 +9,11 @@ import {
   ReceivablesSummaryCard,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
-import {
-  FINANSAL_OZET_KPIS,
-  FIRMA_ALACAK_DAGILIMI,
-  FIRMA_KESILMEMIS_DAGILIMI,
-  GECIKMIŞ_OZET,
-} from "@/mocks/finansal-ozet";
 import { extractReceivablesSummary } from "@/lib/extract-financials";
 import { createClient } from "@/lib/supabase/client";
 import { selectCompaniesByLegacyMockIds } from "@/lib/supabase/companies";
 import type { ExtractedReceivables } from "@/lib/extract-financials";
-import type { FinansalOzetKPIs, FirmaAlacakEntry, FirmaKesilmemisEntry } from "@/types/batch5-finansal";
+import type { FirmaAlacakEntry, FirmaKesilmemisEntry } from "@/types/batch5-finansal";
 import {
   TYPE_BODY,
   TYPE_CAPTION,
@@ -41,19 +35,6 @@ import {
 export default function FinansalOzetPage() {
   const { role } = useRole();
   const supabase = createClient();
-
-  // Upload-modal comparison seeds — the modal's "Mevcut" column reads
-  // from these mock constants. They no longer feed the page display
-  // and no longer mutate on confirm (writer parity now persists through
-  // confirm_financial_data below). Kept as useState so modal layout
-  // stays identical if a later batch promotes the comparison column
-  // to real truth.
-  const [kpis] = useState<FinansalOzetKPIs>(FINANSAL_OZET_KPIS);
-  const [firmaAlacak] = useState<FirmaAlacakEntry[]>(FIRMA_ALACAK_DAGILIMI);
-  const [firmaKesilmemis] = useState<FirmaKesilmemisEntry[]>(FIRMA_KESILMEMIS_DAGILIMI);
-  const [gecikmisOzet] = useState(GECIKMIŞ_OZET);
-  void firmaKesilmemis;
-  void gecikmisOzet;
 
   // Upload flow state
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -565,12 +546,12 @@ export default function FinansalOzetPage() {
                         </thead>
                         <tbody>
                           {([
-                            ["Toplam Açık Alacak", kpis.toplamAcikAlacak, extracted.kpis.toplamAcikAlacak],
-                            ["Bu Ay Kesilen", kpis.buAyKesilenFaturalar, extracted.kpis.buAyKesilenFaturalar],
-                            ["Kesilmemiş", kpis.kesilmemisAlacaklar, extracted.kpis.kesilmemisAlacaklar],
-                            ["Gecikmiş", kpis.gecikmisAlacaklar, extracted.kpis.gecikmisAlacaklar],
-                            ["Maaş Giderleri", kpis.maasGiderleri, extracted.kpis.maasGiderleri],
-                            ["Sabit Giderler", kpis.sabitGiderler, extracted.kpis.sabitGiderler],
+                            ["Toplam Açık Alacak", portfolio?.total_open_receivable ?? "—", extracted.kpis.toplamAcikAlacak],
+                            ["Bu Ay Kesilen", portfolio?.invoiced_this_month ?? "—", extracted.kpis.buAyKesilenFaturalar],
+                            ["Kesilmemiş", portfolio?.total_unbilled ?? "—", extracted.kpis.kesilmemisAlacaklar],
+                            ["Gecikmiş", portfolio?.total_overdue ?? "—", extracted.kpis.gecikmisAlacaklar],
+                            ["Maaş Giderleri", portfolio?.salary_costs ?? "—", extracted.kpis.maasGiderleri],
+                            ["Sabit Giderler", portfolio?.fixed_costs ?? "—", extracted.kpis.sabitGiderler],
                           ] as const).map(([label, current, uploaded], idx) => (
                             <tr key={label} className={idx < 5 ? `border-b ${BORDER_SUBTLE}` : ""}>
                               <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{label}</td>
@@ -598,7 +579,11 @@ export default function FinansalOzetPage() {
                         </thead>
                         <tbody>
                           {extracted.firmaAlacakDagilimi.map((ef, idx) => {
-                            const current = firmaAlacak.find((f) => f.firmaId === ef.firmaId);
+                            // ef.firmaId is a legacy mock id ("f1"..); perCompany
+                            // is keyed by real UUIDs. The lookup will miss for
+                            // demo rows — that's the honest state: render "—"
+                            // rather than a fabricated "Mevcut" value.
+                            const current = perCompany.find((r) => r.firmaId === ef.firmaId);
                             return (
                               <tr key={ef.firmaId} className={idx < extracted.firmaAlacakDagilimi.length - 1 ? `border-b ${BORDER_SUBTLE}` : ""}>
                                 <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{ef.firmaAdi}</td>
