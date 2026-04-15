@@ -42,7 +42,13 @@ import { MOCK_INISIYATIFLER } from "@/mocks/inisiyatifler";
 import type { Inisiyatif } from "@/mocks/inisiyatifler";
 import type { InisiyatifDurumu } from "@/types/inisiyatif";
 import { useRole } from "@/context/RoleContext";
-import { MOCK_KURUMSAL_BELGELER, kalanGunHesapla, BELGE_TURU_LABELS } from "@/mocks/kurumsal-belgeler";
+import { listAllCriticalDates } from "@/lib/services/critical-dates";
+import {
+  CRITICAL_DATE_TYPE_LABELS,
+  computeRemainingDays as computeDeadlineRemaining,
+  deriveDeadlineStatus,
+} from "@/lib/critical-date-types";
+import type { CriticalDateRow } from "@/types/database.types";
 import { getHotelEmailContext, generateHotelEmailDraft } from "@/lib/draft-hotel-email";
 import {
   SURFACE_PRIMARY,
@@ -147,6 +153,13 @@ export default function DashboardPage() {
     }>
   >([]);
 
+  // Kurumsal Kritik Tarihler — real `critical_dates` truth. Broad-read
+  // under RLS (no firm scope, no partner scope). Filter mirrors the
+  // prior mock: derived status "suresi_yaklsiyor" or "suresi_doldu",
+  // capped at 4 rows (subset-view). Order follows the service's
+  // deadline-ascending read so the most urgent items show first.
+  const [criticalDates, setCriticalDates] = useState<CriticalDateRow[]>([]);
+
   const [signalsLoading, setSignalsLoading] = useState(true);
 
   useEffect(() => {
@@ -162,6 +175,7 @@ export default function DashboardPage() {
         appointmentsRes,
         allContractRows,
         allDocumentRows,
+        allCriticalDateRows,
       ] = await Promise.all([
         // companies: fetch id+name+risk+legacy_mock_id. Single query
         // covers the Toplam Firma KPI (count via data.length), the
@@ -201,6 +215,10 @@ export default function DashboardPage() {
         listAllContracts(supabase).catch(() => [] as ContractRow[]),
         // Eksik / Süresi Dolan Evraklar — reuse existing service reader.
         listAllDocuments(supabase).catch(() => [] as DocumentRow[]),
+        // Kurumsal Kritik Tarihler — reuse existing service reader.
+        // Broad-read under RLS; errors degrade to empty so a transient
+        // failure does not break the whole Dashboard reader batch.
+        listAllCriticalDates(supabase).catch(() => [] as CriticalDateRow[]),
       ]);
       if (cancelled) return;
 
@@ -354,6 +372,7 @@ export default function DashboardPage() {
       setExpiringContracts(mappedExpiringContracts);
       setEksikEvraklar(mappedEksikEvraklar);
       setRiskyCompanies(mappedRiskyCompanies);
+      setCriticalDates(allCriticalDateRows);
       setSignalsLoading(false);
     })();
     return () => {
@@ -622,11 +641,34 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Kurumsal Kritik Tarihler — all roles, only when approaching/overdue items exist */}
+        {/* Kurumsal Kritik Tarihler — all roles. Real `critical_dates`
+            truth (broad-read under RLS). Subset-view preserved: card
+            renders only when approaching/overdue items exist post-load.
+            While the fetch is in flight the card wrapper is shown with
+            an honest "Yükleniyor…" state rather than mock-backed rows. */}
         {(() => {
-          const kritikler = MOCK_KURUMSAL_BELGELER.filter(
-            (b) => b.durum === "suresi_yaklsiyor" || b.durum === "suresi_doldu"
-          ).slice(0, 4);
+          if (signalsLoading) {
+            return (
+              <div className={CARD}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className={CARD_TITLE_ICON}>
+                    <Clock size={14} className="text-amber-500" />
+                    Kritik Tarihler
+                  </h3>
+                  <a href="/kurumsal-tarihler" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
+                </div>
+                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
+                  Yükleniyor…
+                </p>
+              </div>
+            );
+          }
+          const kritikler = criticalDates
+            .filter((r) => {
+              const s = deriveDeadlineStatus(r.deadline_date);
+              return s === "suresi_yaklsiyor" || s === "suresi_doldu";
+            })
+            .slice(0, 4);
           if (kritikler.length === 0) return null;
           return (
             <div className={CARD}>
@@ -638,14 +680,17 @@ export default function DashboardPage() {
                 <a href="/kurumsal-tarihler" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
               </div>
               <div className="space-y-0">
-                {kritikler.map((b, idx) => {
-                  const kalan = kalanGunHesapla(b.bitisTarihi);
+                {kritikler.map((r, idx) => {
+                  const kalan = computeDeadlineRemaining(r.deadline_date);
                   return (
-                    <div key={b.id} className={clsx("py-2.5", idx < kritikler.length - 1 && LIST_DIVIDER)}>
+                    <div key={r.id} className={clsx("py-2.5", idx < kritikler.length - 1 && LIST_DIVIDER)}>
                       <div className="flex items-center justify-between">
                         <div className="min-w-0">
-                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{b.baslik}</p>
-                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{BELGE_TURU_LABELS[b.tur]} · {b.sorumlu}</p>
+                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{r.title}</p>
+                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                            {CRITICAL_DATE_TYPE_LABELS[r.date_type]}
+                            {r.responsible ? ` · ${r.responsible}` : ""}
+                          </p>
                         </div>
                         <span className={`${TYPE_CAPTION} font-medium flex-shrink-0 ml-3 ${kalan < 0 ? "text-red-600" : "text-amber-600"}`}>
                           {kalan < 0 ? `${Math.abs(kalan)} gün gecikmiş` : `${kalan} gün`}
