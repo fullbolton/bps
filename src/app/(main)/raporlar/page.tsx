@@ -26,9 +26,8 @@ import type { ReportOption } from "@/components/ui/ReportSwitcher";
 import { useRole } from "@/context/RoleContext";
 import type { UserRole } from "@/context/RoleContext";
 import {
-  // Reports 5 + 6 still mock-backed (composite risk + partner analytics
-  // — explicitly deferred per the Faz 2B planning scope).
-  getRaporRiskliFirmalar,
+  // Report 6 still mock-backed (partner × city analytics — explicitly
+  // deferred per the Faz 2B planning scope).
   getRaporPartnerOzet,
 } from "@/mocks/raporlar";
 import type {
@@ -36,7 +35,6 @@ import type {
   RaporSozlesmeBitisRow,
   RaporTalepRow,
   RaporRandevuRow,
-  RaporRiskliFirmaRow,
   RaporPartnerOzetRow,
 } from "@/mocks/raporlar";
 import type { ColumnDef } from "@/types/ui";
@@ -184,6 +182,15 @@ const COLUMNS_RANDEVULAR: ColumnDef<RaporRandevuRow>[] = [
   },
 ];
 
+// Real-truth row shape for Raporlar 5. Composite signals (ticari baskı,
+// açık talep, eksik evrak) require derivations explicitly out of scope
+// for this batch — only fields sourced directly from `companies` survive.
+interface RaporRiskliFirmaRow {
+  firmaId: string;
+  firmaAdi: string;
+  risk: RiskSeviyesi;
+}
+
 const COLUMNS_RISKLI_FIRMA: ColumnDef<RaporRiskliFirmaRow>[] = [
   {
     key: "firmaAdi",
@@ -201,17 +208,6 @@ const COLUMNS_RISKLI_FIRMA: ColumnDef<RaporRiskliFirmaRow>[] = [
     sortable: true,
     render: (val) => <RiskBadge risk={val as RiskSeviyesi} />,
   },
-  {
-    key: "ticariBaskiOzet",
-    header: "Ticari Baskı",
-    render: (val) => (
-      <span className={`${TYPE_BODY} ${(val as string) !== "—" ? "text-amber-600" : TEXT_SECONDARY}`}>
-        {val as string}
-      </span>
-    ),
-  },
-  { key: "acikTalep", header: "Açık Talep", sortable: true },
-  { key: "eksikEvrak", header: "Eksik Evrak", sortable: true },
 ];
 
 const COLUMNS_PARTNER_OZET: ColumnDef<RaporPartnerOzetRow>[] = [
@@ -286,9 +282,14 @@ export default function RaporlarPage() {
   const [raporRandevular, setRaporRandevular] = useState<RaporRandevuRow[]>([]);
   const [reportsLoading, setReportsLoading] = useState(true);
 
-  // Reports 5 + 6 — still mock-backed. Composite risk narrative and
-  // partner × city aggregation are out of scope for this batch.
-  const raporRiskliFirmalar = getRaporRiskliFirmalar();
+  // Report 5 — Riskli Firma Listesi. Real `companies.risk` enum only.
+  // Composite narrative (sebep, ticari baskı, açık talep, eksik evrak)
+  // is intentionally omitted — each would require derivations explicitly
+  // out of scope for this batch. Honest absence > fabricated content.
+  const [raporRiskli, setRaporRiskli] = useState<RaporRiskliFirmaRow[]>([]);
+
+  // Report 6 — still mock-backed. Partner × city aggregation is out of
+  // scope for this batch.
   const raporPartnerOzet = getRaporPartnerOzet();
 
   useEffect(() => {
@@ -303,8 +304,9 @@ export default function RaporlarPage() {
         appointmentsRes,
       ] = await Promise.all([
         // Single companies.select for the batch — feeds firma-name
-        // resolution across all four reports.
-        supabase.from("companies").select("id, name"),
+        // resolution across reports 1-4 and the Riskli Firma derivation
+        // (risk + legacy_mock_id added for Report 5).
+        supabase.from("companies").select("id, name, risk, legacy_mock_id"),
         // Service readers already used by the destination list pages.
         listAllWorkforceSummaries(supabase).catch(() => []),
         listAllContracts(supabase).catch(() => []),
@@ -397,10 +399,35 @@ export default function RaporlarPage() {
             sonuc: a.result && a.result.trim() !== "" ? a.result : "—",
           }));
 
+      // Report 5 — Riskli Firma Listesi. Filter companies by risk enum,
+      // sort yuksek first then orta then name ASC. Mirrors the Dashboard
+      // Riskli Firmalar pattern. legacy_mock_id ?? id keeps firma-detay
+      // routing aligned with the rest of the app. No subset cap — the
+      // full report shows every matching company.
+      const riskliRows: RaporRiskliFirmaRow[] = companiesRes.error
+        ? []
+        : (companiesRes.data ?? [])
+            .filter(
+              (c): c is typeof c & { risk: "orta" | "yuksek" } =>
+                c.risk === "orta" || c.risk === "yuksek",
+            )
+            .sort((a, b) => {
+              if (a.risk !== b.risk) {
+                return a.risk === "yuksek" ? -1 : 1;
+              }
+              return a.name.localeCompare(b.name, "tr-TR");
+            })
+            .map((c) => ({
+              firmaId: c.legacy_mock_id ?? c.id,
+              firmaAdi: c.name,
+              risk: c.risk,
+            }));
+
       setRaporIsGucu(isGucuRows);
       setRaporSozlesmeBitis(sozlesmeRows);
       setRaporTalepler(talepRows);
       setRaporRandevular(randevuRows);
+      setRaporRiskli(riskliRows);
       setReportsLoading(false);
     })();
     return () => {
@@ -474,12 +501,16 @@ export default function RaporlarPage() {
         )}
 
         {activeKey === "riskli-firma" && (
-          <DataTable<RaporRiskliFirmaRow>
-            columns={COLUMNS_RISKLI_FIRMA}
-            data={raporRiskliFirmalar}
-            rowKey="firmaId"
-            emptyTitle="Riskli firma yok"
-          />
+          reportsLoading ? (
+            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
+          ) : (
+            <DataTable<RaporRiskliFirmaRow>
+              columns={COLUMNS_RISKLI_FIRMA}
+              data={raporRiskli}
+              rowKey="firmaId"
+              emptyTitle="Riskli firma yok"
+            />
+          )
         )}
 
         {activeKey === "partner-ozet" && (
