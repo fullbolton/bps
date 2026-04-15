@@ -97,6 +97,26 @@ Evre 1 closeout:
 
 ---
 
+## Strategic Direction — 5-Layer Framing
+
+Strategic direction is defined in `03_strategy/BPS_YAPILANMA_PAKETI.md`. This section aligns roadmap reading with its 5-layer framing without erasing delivery history below.
+
+- **Completed foundational work** (below) — Batch 1–10 + post-roadmap strategic workstreams + Faz 0–7 real-data migration + Evre 1 operational closeout. This is the firma-merkezli data backbone.
+- **Current transition phase** — mock audit pushdown, pre-launch trust polish, Dashboard / Raporlar truth correction. Goal: honest office-internal usage before widening scope.
+- **Next layer direction** — sequenced per Yapılanma Paketi; no new numbered batches are active from this alignment alone.
+
+Five layers from `03_strategy/BPS_YAPILANMA_PAKETI.md`:
+
+1. **Geçiş ve Güven** — Excel → BPS geçişinin güvenli yapılması. Güven kıran mock temizliği, ofis içi pilot, çıktı üretme (PDF / Excel), ilk bileşik firma sağlık sinyali. Active transition phase.
+2. **Geri Çağırma ve Çıktı** — kullanıcıyı sisteme geri getiren + değeri dışarı taşıyan katman. Bildirim motoru, in-app bildirim, haftalık digest, yönetim rapor PDF'leri, export yüzeyleri.
+3. **Ekonomik Görünürlük** — görünürlükten karar desteğine geçiş. Firma bazlı time tracking (firma bazlı operasyonel emek, not personnel payroll), firma bazlı kârlılık, utilization, kapasite planlama.
+4. **Saha ve Büyüme** — operasyonun sahaya ve büyümeye açılması. Dar pipeline (aday firma → aktif firma activation, not generic sales CRM), mobil / PWA, takvim senkronizasyonu, API / webhook.
+5. **Predictive / Platform** — bugünü göstermekten yarını öngörmeye geçiş. Predictive firma sağlık skoru, churn / renewal tahmini, automation rules 2.0, AI natural language insight, tenantization.
+
+This layer framing informs future-batch sequencing. It does not override the completed batch history below, the workflow / status / role contracts, or the existing source-of-truth hierarchy. Specific batch activation and scope continue to be defined at batch-framing time.
+
+---
+
 ## Completed Batches
 
 ### Batch 1 — Foundation
