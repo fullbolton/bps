@@ -12,7 +12,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
-import { ArrowLeft, Plus, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Download } from "lucide-react";
 import { PageHeader, EmptyState, ModalShell } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
 import { createClient } from "@/lib/supabase/client";
@@ -173,6 +173,30 @@ export default function KurumsalTarihlerPage() {
   const isFormValid = formBaslik.trim() && formTur && formBitis;
 
   // ---------------------------------------------------------------------------
+  // PDF export — bounded snapshot. Reuses the shipped print infrastructure
+  // from the Finansal Ozet slice (globals.css @media print, Layout.tsx
+  // print:hidden chrome wrappers, PageHeader.tsx print:hidden actions).
+  // Timestamp is rendered only in @media print and reflects the moment
+  // the user clicked "PDF Olarak Indir".
+  // ---------------------------------------------------------------------------
+  const [exportTimestamp, setExportTimestamp] = useState<string>("");
+
+  function handleExportPdf() {
+    const now = new Date();
+    const formatted = now.toLocaleString("tr-TR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    setExportTimestamp(formatted);
+    window.requestAnimationFrame(() => {
+      window.print();
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
   if (loading) {
@@ -197,7 +221,7 @@ export default function KurumsalTarihlerPage() {
     <>
       <button
         onClick={() => router.push("/dashboard")}
-        className={`flex items-center gap-1.5 ${TYPE_BODY} ${TEXT_SECONDARY} hover:text-slate-700 mb-4 transition-colors`}
+        className={`flex items-center gap-1.5 ${TYPE_BODY} ${TEXT_SECONDARY} hover:text-slate-700 mb-4 transition-colors print:hidden`}
       >
         <ArrowLeft size={16} />
         <span>Dashboard</span>
@@ -207,9 +231,24 @@ export default function KurumsalTarihlerPage() {
         title="Kurumsal Kritik Tarihler"
         subtitle="Sirket geneli kritik belge ve son tarihleri"
         actions={isYonetici ? [
+          {
+            label: "PDF Olarak Indir",
+            onClick: handleExportPdf,
+            icon: <Download size={16} />,
+            variant: "secondary" as const,
+          },
           { label: "Yeni Kayit", onClick: openCreate, icon: <Plus size={16} /> },
         ] : []}
       />
+
+      {/* Print-only export timestamp — hidden on screen, visible in PDF.
+          Empty until the user clicks "PDF Olarak Indir", which sets the
+          timestamp then triggers window.print(). */}
+      {exportTimestamp && (
+        <div className={`hidden print:block mb-4 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
+          Disa aktarildi: {exportTimestamp}
+        </div>
+      )}
 
       <div className="space-y-4">
         {sorted.length === 0 ? (
@@ -263,7 +302,7 @@ export default function KurumsalTarihlerPage() {
                     {isYonetici && (
                       <button
                         onClick={() => openEdit(b)}
-                        className={`flex-shrink-0 ml-3 p-1.5 ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
+                        className={`flex-shrink-0 ml-3 p-1.5 ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors print:hidden`}
                       >
                         <Pencil size={13} />
                       </button>
