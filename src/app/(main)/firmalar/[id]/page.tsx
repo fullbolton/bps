@@ -32,7 +32,6 @@ import {
   EmptyState,
   FirmaSummaryHeader,
   CommercialSummaryCard,
-  TimelineList,
   StatusBadge,
   RiskBadge,
 } from "@/components/ui";
@@ -43,13 +42,10 @@ import { generatePaymentFollowup } from "@/lib/draft-payment-followup";
 import { generateYenidenTemasDraft } from "@/lib/draft-yeniden-temas";
 import { hesaplaTeklifBedeli, DEFAULT_KAR_ORANI } from "@/lib/teklif-hesaplayici";
 import { formatDateTR } from "@/lib/format-date";
-import { MOCK_BAHSETMELER } from "@/mocks/bahsetmeler";
 import { SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
-import type { Bahsetme } from "@/mocks/bahsetmeler";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
-import { MOCK_FIRMA_TIMELINE } from "@/mocks/firmalar";
 import { resolveCompanyByIdOrLegacy } from "@/lib/services/companies";
 import type { CompanyRow } from "@/types/database.types";
 // Phase 4 — documents now read from real Supabase truth:
@@ -57,8 +53,6 @@ import { listDocumentsByLegacyCompanyId } from "@/lib/services/documents";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
 import type { DocumentCategory } from "@/lib/document-categories";
 // Mock commercial helpers removed — real financial summary loaded from DB
-import { MOCK_YONLENDIRMELER, birimFromRole } from "@/mocks/yonlendirmeler";
-import type { Yonlendirme } from "@/mocks/yonlendirmeler";
 import { createClient } from "@/lib/supabase/client";
 import {
   listContactsByLegacyCompanyId,
@@ -101,8 +95,6 @@ import type {
   WorkforceSummaryRow,
   DocumentRow,
 } from "@/types/database.types";
-import { BIRIM_LABELS } from "@/types/yonlendirme";
-import type { BirimKodu } from "@/types/yonlendirme";
 import type { TabItem } from "@/types/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
@@ -168,18 +160,6 @@ export default function FirmaDetayPage({
   const [paymentDraftOpen, setPaymentDraftOpen] = useState(false);
   const [paymentDraftText, setPaymentDraftText] = useState<string | null>(null);
   const [paymentCopied, setPaymentCopied] = useState(false);
-  // Mention state
-  const [mentions, setMentions] = useState<Bahsetme[]>(() => MOCK_BAHSETMELER.filter((b) => b.firmaId === id));
-  const [mentionOpen, setMentionOpen] = useState(false);
-  const [mentionAlici, setMentionAlici] = useState("");
-  const [mentionMesaj, setMentionMesaj] = useState("");
-  // Yönlendirme state — firma-attached routing between units
-  const [yonlendirmeler, setYonlendirmeler] = useState<Yonlendirme[]>(
-    () => MOCK_YONLENDIRMELER.filter((y) => y.firmaId === id)
-  );
-  const [yonlendirmeOpen, setYonlendirmeOpen] = useState(false);
-  const [yonHedefBirim, setYonHedefBirim] = useState<BirimKodu | "">("");
-  const [yonAciklama, setYonAciklama] = useState("");
   // Notlar state — Faz 1B: real Supabase truth via service layer.
   // One fetch feeds both the Notlar tab (full list, pinned first then
   // chronological) and the Genel Bakış > Son Notlar card (top 3 slice).
@@ -295,7 +275,6 @@ export default function FirmaDetayPage({
     sonGorusme: "—", sonrakiRandevu: "—",
     yaklaşanRandevu: 0,
   } : null;
-  const timeline = MOCK_FIRMA_TIMELINE[id] ?? [];
 
   // Financial summary — real DB, truthful absence state.
   // `last_source` distinguishes mizan-derived visibility from muhasebe
@@ -904,247 +883,36 @@ export default function FirmaDetayPage({
           )}
 
           {/* Son Bahsetmeler — hidden for görüntüleyici + muhasebe */}
-          {!["goruntuleyici", "muhasebe"].includes(role) && <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5`}>
+          {!["goruntuleyici", "muhasebe"].includes(role) && (
+            <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
+              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
                 <AtSign size={12} />
                 Son Bahsetmeler
               </h3>
-              {canCreateNotes && (
-                <button
-                  onClick={() => { setMentionAlici(""); setMentionMesaj(""); setMentionOpen(!mentionOpen); }}
-                  className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
-                >
-                  Bahset
-                </button>
-              )}
+              <EmptyState title="Bahsetme akışı henüz aktif değil." size="card" />
             </div>
-
-            {/* Compose — inline, compact */}
-            {mentionOpen && (
-              <div className={`mb-3 p-3 ${SURFACE_HEADER} ${RADIUS_SM} space-y-2`}>
-                <input
-                  type="text"
-                  value={mentionAlici}
-                  onChange={(e) => setMentionAlici(e.target.value)}
-                  placeholder="Kime? (ör. Mehmet Y.)"
-                  className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                />
-                <input
-                  type="text"
-                  value={mentionMesaj}
-                  onChange={(e) => setMentionMesaj(e.target.value)}
-                  placeholder="Ne hakkında? (kısa not)"
-                  className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                />
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => setMentionOpen(false)} className={`px-2 py-1 ${TYPE_CAPTION} ${TEXT_MUTED} hover:${TEXT_BODY}`}>İptal</button>
-                  <button
-                    onClick={() => {
-                      if (!mentionAlici.trim() || !mentionMesaj.trim()) return;
-                      setMentions((prev) => [{
-                        id: `bhs-new-${Date.now()}`,
-                        firmaId: id,
-                        gonderen: "Demo Kullanıcı",
-                        alici: mentionAlici.trim(),
-                        mesaj: mentionMesaj.trim(),
-                        tarih: "Az önce",
-                      }, ...prev]);
-                      setMentionOpen(false);
-                      setMentionAlici("");
-                      setMentionMesaj("");
-                    }}
-                    disabled={!mentionAlici.trim() || !mentionMesaj.trim()}
-                    className={`px-2 py-1 ${TYPE_CAPTION} text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}
-                  >
-                    Bahset
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Mention list */}
-            {mentions.length === 0 ? (
-              <p className={`${TYPE_CAPTION} ${TEXT_MUTED} text-center py-2`}>Henüz bahsetme yok.</p>
-            ) : (
-              <div className="space-y-0">
-                {mentions.slice(0, 5).map((b, idx) => (
-                  <div key={b.id} className={`py-2 ${idx < Math.min(mentions.length, 5) - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
-                    <p className={TYPE_CAPTION}>
-                      <span className={`font-medium ${TEXT_BODY}`}>{b.gonderen}</span>
-                      <span className={TEXT_MUTED}> → </span>
-                      <span className={`font-medium ${TEXT_BODY}`}>{b.alici}</span>
-                      <span className={TEXT_MUTED}> · {b.tarih}</span>
-                    </p>
-                    <p className={`${TYPE_CAPTION} ${TEXT_BODY} mt-0.5`}>{b.mesaj}</p>
-                    {b.bagliKayit && (
-                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>↳ {b.bagliKayit}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>}
+          )}
 
           {/* Bekleyen Yönlendirmeler — cross-unit routing signals */}
-          {role !== "goruntuleyici" && (() => {
-            const bekleyenler = yonlendirmeler.filter((y) => y.durum === "bekliyor");
-            const tamamlananlar = yonlendirmeler.filter((y) => y.durum === "tamamlandi");
-            const kullaniciBirim = birimFromRole(role);
-            // Each role resolves own birim; yönetici can resolve ALL routings
-            const canResolve = (y: Yonlendirme) =>
-              y.hedefBirim === kullaniciBirim || role === "yonetici";
-
-            return (
-              <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5`}>
-                    <ArrowRightLeft size={12} />
-                    Bekleyen Yönlendirmeler
-                  </h3>
-                  {canCreateRouting && (
-                    <button
-                      onClick={() => { setYonHedefBirim(""); setYonAciklama(""); setYonlendirmeOpen(!yonlendirmeOpen); }}
-                      className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
-                    >
-                      Yönlendir
-                    </button>
-                  )}
-                </div>
-
-                {/* Compose — inline, compact */}
-                {yonlendirmeOpen && (
-                  <div className={`mb-3 p-3 ${SURFACE_HEADER} ${RADIUS_SM} space-y-2`}>
-                    <select
-                      value={yonHedefBirim}
-                      onChange={(e) => setYonHedefBirim(e.target.value as BirimKodu | "")}
-                      className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
-                    >
-                      <option value="">Hedef birim seçin</option>
-                      {(["operasyon", "satis", "muhasebe", "yonetim"] as BirimKodu[])
-                        .filter((b) => b !== kullaniciBirim)
-                        .map((b) => (
-                          <option key={b} value={b}>{BIRIM_LABELS[b]}</option>
-                        ))}
-                    </select>
-                    <input
-                      type="text"
-                      value={yonAciklama}
-                      onChange={(e) => setYonAciklama(e.target.value)}
-                      placeholder="Kısa açıklama (ne bekleniyor?)"
-                      className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => setYonlendirmeOpen(false)} className={`px-2 py-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>İptal</button>
-                      <button
-                        onClick={() => {
-                          if (!yonHedefBirim || !yonAciklama.trim()) return;
-                          const newYon: Yonlendirme = {
-                            id: `yon-new-${Date.now()}`,
-                            firmaId: id,
-                            kaynakBirim: kullaniciBirim,
-                            hedefBirim: yonHedefBirim as BirimKodu,
-                            gonderen: "Demo Kullanıcı",
-                            aciklama: yonAciklama.trim(),
-                            tarih: "Az önce",
-                            durum: "bekliyor",
-                          };
-                          console.log("[Yönlendirme oluşturuldu]", newYon);
-                          setYonlendirmeler((prev) => [newYon, ...prev]);
-                          setYonlendirmeOpen(false);
-                          setYonHedefBirim("");
-                          setYonAciklama("");
-                        }}
-                        disabled={!yonHedefBirim || !yonAciklama.trim()}
-                        className={`px-2 py-1 ${TYPE_CAPTION} text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}
-                      >
-                        Yönlendir
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Pending routings */}
-                {bekleyenler.length === 0 && tamamlananlar.length === 0 ? (
-                  <p className={`${TYPE_CAPTION} ${TEXT_MUTED} text-center py-2`}>Bu firma için yönlendirme yok.</p>
-                ) : (
-                  <div className="space-y-0">
-                    {bekleyenler.map((y, idx) => (
-                      <div key={y.id} className={`py-2 ${idx < bekleyenler.length - 1 || tamamlananlar.length > 0 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
-                        <div className="flex items-center justify-between">
-                          <p className={TYPE_CAPTION}>
-                            <span className={`font-medium ${TEXT_BODY}`}>{BIRIM_LABELS[y.kaynakBirim]}</span>
-                            <span className={TEXT_MUTED}> → </span>
-                            <span className={`font-medium ${TEXT_BODY}`}>{BIRIM_LABELS[y.hedefBirim]}</span>
-                            <span className={TEXT_MUTED}> · {y.tarih}</span>
-                          </p>
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">
-                            <span className="w-1 h-1 rounded-full bg-amber-500" />
-                            Bekliyor
-                          </span>
-                        </div>
-                        <p className={`${TYPE_CAPTION} ${TEXT_BODY} mt-0.5`}>{y.aciklama}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{y.gonderen}</p>
-                          {canResolve(y) && (
-                            <button
-                              onClick={() => {
-                                console.log("[Yönlendirme tamamlandı]", y.id);
-                                setYonlendirmeler((prev) =>
-                                  prev.map((item) =>
-                                    item.id === y.id
-                                      ? { ...item, durum: "tamamlandi" as const, tamamlayanKisi: "Demo Kullanıcı" }
-                                      : item
-                                  )
-                                );
-                              }}
-                              className={`${TYPE_CAPTION} text-green-600 hover:text-green-700 hover:underline`}
-                            >
-                              Tamamlandı
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Recently resolved — compact, faded */}
-                    {tamamlananlar.slice(0, 2).map((y, idx) => (
-                      <div key={y.id} className={`py-2 ${idx < Math.min(tamamlananlar.length, 2) - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
-                        <div className="flex items-center justify-between">
-                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>
-                            {BIRIM_LABELS[y.kaynakBirim]} → {BIRIM_LABELS[y.hedefBirim]} · {y.tarih}
-                          </p>
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
-                            <span className="w-1 h-1 rounded-full bg-green-500" />
-                            Tamamlandı
-                          </span>
-                        </div>
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5 line-through`}>{y.aciklama}</p>
-                        {y.tamamlayanKisi && (
-                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>✓ {y.tamamlayanKisi}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {role !== "goruntuleyici" && (
+            <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
+              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
+                <ArrowRightLeft size={12} />
+                Bekleyen Yönlendirmeler
+              </h3>
+              <EmptyState title="Yönlendirme akışı henüz aktif değil." size="card" />
+            </div>
+          )}
           </>
         )}
 
         {/* Zaman Çizgisi tab */}
         {activeTab === "zaman-cizgisi" && (
           <div className={CARD_LG}>
-            {timeline.length > 0 ? (
-              <TimelineList events={timeline} />
-            ) : (
-              <EmptyState
-                title="Zaman çizgisi boş"
-                description="Bu firma için henüz bir aktivite kaydı yok."
-                size="tab"
-              />
-            )}
+            <EmptyState
+              title="Firma zaman çizgisi henüz aktif değil."
+              size="tab"
+            />
           </div>
         )}
 

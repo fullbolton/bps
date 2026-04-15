@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDateTR } from "@/lib/format-date";
 import { createClient } from "@/lib/supabase/client";
 import {
   Building2,
@@ -14,19 +13,15 @@ import {
   Mail,
   Megaphone,
   Eye,
-  ChevronDown,
-  ChevronUp,
   Clock,
 } from "lucide-react";
 import {
   PageHeader,
   KPIStatCard,
-  ActivityFeed,
   ContractExpiryCard,
   RiskBadge,
+  EmptyState,
 } from "@/components/ui";
-import { MOCK_DASHBOARD_ACTIVITY } from "@/mocks/dashboard";
-import { MOCK_FIRMALAR } from "@/mocks/firmalar";
 import {
   listAllContracts,
   computeRemainingDays,
@@ -36,11 +31,6 @@ import type { ContractRow, DocumentRow } from "@/types/database.types";
 import type { ExpiringContract } from "@/components/ui/ContractExpiryCard";
 import type { EvrakDurumu } from "@/types/ui";
 import { clsx } from "clsx";
-import { MOCK_DUYURULAR } from "@/mocks/duyurular";
-import type { Duyuru } from "@/mocks/duyurular";
-import { MOCK_INISIYATIFLER } from "@/mocks/inisiyatifler";
-import type { Inisiyatif } from "@/mocks/inisiyatifler";
-import type { InisiyatifDurumu } from "@/types/inisiyatif";
 import { useRole } from "@/context/RoleContext";
 import { listAllCriticalDates } from "@/lib/services/critical-dates";
 import {
@@ -78,23 +68,9 @@ const LIST_DIVIDER = `border-b ${BORDER_SUBTLE}`;
 
 export default function DashboardPage() {
   const { role } = useRole();
-  const [announcements, setAnnouncements] = useState<Duyuru[]>(MOCK_DUYURULAR);
-  const [announceOpen, setAnnounceOpen] = useState(false);
-  const [annBaslik, setAnnBaslik] = useState("");
-  const [annIcerik, setAnnIcerik] = useState("");
-  const [annBagliKayit, setAnnBagliKayit] = useState("");
   const [draftOpen, setDraftOpen] = useState(false);
   const [draftText, setDraftText] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  // Yönetici İnisiyatifleri — attention bookmarks
-  const [inisiyatifler, setInisiyatifler] = useState<Inisiyatif[]>(MOCK_INISIYATIFLER);
-  const [iniCreateOpen, setIniCreateOpen] = useState(false);
-  const [iniExpandedId, setIniExpandedId] = useState<string | null>(null);
-  const [iniBaslik, setIniBaslik] = useState("");
-  const [iniAmac, setIniAmac] = useState("");
-  const [iniIlgiliKisi, setIniIlgiliKisi] = useState("");
-  const [iniHedefTarih, setIniHedefTarih] = useState("");
-  const [iniFirmaId, setIniFirmaId] = useState("");
   // KPI top-row — real Supabase truth. Partner scope is enforced by RLS
   // on each underlying table; no application-level scoping added here.
   // Null = not yet loaded or query errored → render as honest "—".
@@ -719,283 +695,26 @@ export default function DashboardPage() {
         )}
 
         {/* Yönetici İnisiyatifleri — attention bookmarks, yönetici-only */}
-        {role === "yonetici" && (() => {
-          const aktifler = inisiyatifler.filter((i) => i.durum === "aktif");
-          const tamamlananlar = inisiyatifler.filter((i) => i.durum !== "aktif").slice(0, 2);
-          const aktiveFirmalar = MOCK_FIRMALAR.filter((f) => f.durum === "aktif");
-
-          function handleIniCreate() {
-            if (!iniBaslik.trim()) return;
-            const firma = aktiveFirmalar.find((f) => f.id === iniFirmaId);
-            const newIni: Inisiyatif = {
-              id: `ini-new-${Date.now()}`,
-              baslik: iniBaslik.trim(),
-              ...(iniAmac.trim() ? { kisaAmac: iniAmac.trim() } : {}),
-              ...(iniIlgiliKisi.trim() ? { ilgiliKisi: iniIlgiliKisi.trim() } : {}),
-              ...(iniHedefTarih ? { hedefTarih: iniHedefTarih } : {}),
-              ...(firma ? { firmaId: firma.id, firmaAdi: firma.firmaAdi } : {}),
-              durum: "aktif",
-            };
-            console.log("[İnisiyatif oluşturuldu]", newIni);
-            setInisiyatifler((prev) => [newIni, ...prev]);
-            setIniCreateOpen(false);
-            setIniBaslik(""); setIniAmac(""); setIniIlgiliKisi(""); setIniHedefTarih(""); setIniFirmaId("");
-          }
-
-          function handleIniStatusChange(id: string, durum: InisiyatifDurumu) {
-            console.log(`[İnisiyatif ${durum}]`, id);
-            setInisiyatifler((prev) =>
-              prev.map((i) => i.id === id ? { ...i, durum } : i)
-            );
-            if (iniExpandedId === id) setIniExpandedId(null);
-          }
-
-          function handleIniNoteUpdate(id: string, note: string) {
-            setInisiyatifler((prev) =>
-              prev.map((i) => i.id === id ? { ...i, yoneticiNotu: note } : i)
-            );
-          }
-
-          return (
-            <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5`}>
-                  <Eye size={12} />
-                  Yönetici İnisiyatifleri
-                </h3>
-                <button
-                  onClick={() => {
-                    setIniBaslik(""); setIniAmac(""); setIniIlgiliKisi(""); setIniHedefTarih(""); setIniFirmaId("");
-                    setIniCreateOpen(!iniCreateOpen);
-                  }}
-                  className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
-                >
-                  Yeni İnisiyatif
-                </button>
-              </div>
-
-              {/* Create form — inline, compact */}
-              {iniCreateOpen && (
-                <div className={`mb-3 p-3 ${SURFACE_HEADER} ${RADIUS_SM} space-y-2`}>
-                  <input
-                    type="text"
-                    value={iniBaslik}
-                    onChange={(e) => setIniBaslik(e.target.value)}
-                    placeholder="Başlık (zorunlu)"
-                    className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                  />
-                  <input
-                    type="text"
-                    value={iniAmac}
-                    onChange={(e) => setIniAmac(e.target.value)}
-                    placeholder="Kısa amaç (opsiyonel)"
-                    className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      value={iniIlgiliKisi}
-                      onChange={(e) => setIniIlgiliKisi(e.target.value)}
-                      placeholder="İlgili kişi (opsiyonel)"
-                      className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                    />
-                    <input
-                      type="date"
-                      value={iniHedefTarih}
-                      onChange={(e) => setIniHedefTarih(e.target.value)}
-                      className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                    />
-                  </div>
-                  <select
-                    value={iniFirmaId}
-                    onChange={(e) => setIniFirmaId(e.target.value)}
-                    className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
-                  >
-                    <option value="">Firma bağlantısı (opsiyonel)</option>
-                    {aktiveFirmalar.map((f) => (
-                      <option key={f.id} value={f.id}>{f.firmaAdi}</option>
-                    ))}
-                  </select>
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => setIniCreateOpen(false)} className={`px-2 py-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>İptal</button>
-                    <button
-                      onClick={handleIniCreate}
-                      disabled={!iniBaslik.trim()}
-                      className={`px-2 py-1 ${TYPE_CAPTION} text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}
-                    >
-                      Oluştur
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Active initiatives list */}
-              {aktifler.length === 0 && tamamlananlar.length === 0 ? (
-                <p className={`${TYPE_CAPTION} ${TEXT_MUTED} text-center py-2`}>Aktif inisiyatif yok.</p>
-              ) : (
-                <div className="space-y-0">
-                  {aktifler.map((ini, idx) => {
-                    const isExpanded = iniExpandedId === ini.id;
-                    return (
-                      <div key={ini.id} className={`py-2.5 ${idx < aktifler.length - 1 || tamamlananlar.length > 0 ? LIST_DIVIDER : ""}`}>
-                        <div
-                          className="flex items-start justify-between cursor-pointer group"
-                          onClick={() => setIniExpandedId(isExpanded ? null : ini.id)}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className={`${TYPE_BODY} font-medium ${TEXT_BODY} group-hover:text-slate-900`}>{ini.baslik}</p>
-                            <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
-                              {ini.ilgiliKisi && <span>İlgili: {ini.ilgiliKisi}</span>}
-                              {ini.ilgiliKisi && ini.hedefTarih && <span> · </span>}
-                              {ini.hedefTarih && <span>Hedef: {formatDateTR(ini.hedefTarih)}</span>}
-                              {(ini.ilgiliKisi || ini.hedefTarih) && ini.firmaAdi && <span> · </span>}
-                              {ini.firmaAdi && <span>↳ {ini.firmaAdi}</span>}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
-                              <span className="w-1 h-1 rounded-full bg-blue-500" />
-                              Aktif
-                            </span>
-                            {isExpanded ? <ChevronUp size={12} className={TEXT_MUTED} /> : <ChevronDown size={12} className={TEXT_MUTED} />}
-                          </div>
-                        </div>
-
-                        {/* Expanded detail — compact inline */}
-                        {isExpanded && (
-                          <div className={`mt-2 p-3 ${SURFACE_HEADER} ${RADIUS_SM} space-y-2`}>
-                            {ini.kisaAmac && (
-                              <p className={`${TYPE_CAPTION} ${TEXT_BODY}`}>{ini.kisaAmac}</p>
-                            )}
-                            <div>
-                              <label className={`${TYPE_CAPTION} ${TEXT_MUTED} block mb-1`}>Yönetici notu</label>
-                              <textarea
-                                value={ini.yoneticiNotu ?? ""}
-                                onChange={(e) => handleIniNoteUpdate(ini.id, e.target.value)}
-                                placeholder="Kısa takip notu..."
-                                rows={2}
-                                className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none`}
-                              />
-                            </div>
-                            <div className="flex gap-2 pt-1">
-                              <button
-                                onClick={() => handleIniStatusChange(ini.id, "tamamlandi")}
-                                className={`px-2 py-1 ${TYPE_CAPTION} text-green-600 hover:text-green-700 hover:underline`}
-                              >
-                                Tamamlandı
-                              </button>
-                              <button
-                                onClick={() => handleIniStatusChange(ini.id, "iptal")}
-                                className={`px-2 py-1 ${TYPE_CAPTION} ${TEXT_MUTED} hover:text-red-600 hover:underline`}
-                              >
-                                İptal
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Recently resolved — muted, capped at 2 */}
-                  {tamamlananlar.map((ini, idx) => (
-                    <div key={ini.id} className={`py-2 ${idx < tamamlananlar.length - 1 ? LIST_DIVIDER : ""}`}>
-                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} line-through`}>{ini.baslik}</p>
-                      <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-slate-100 text-slate-500 ring-1 ring-inset ring-slate-400/20 no-underline">
-                          {ini.durum === "tamamlandi" ? "Tamamlandı" : "İptal"}
-                        </span>
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        {role === "yonetici" && (
+          <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
+            <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
+              <Eye size={12} />
+              Yönetici İnisiyatifleri
+            </h3>
+            <EmptyState title="İnisiyatif takibi henüz aktif değil." size="card" />
+          </div>
+        )}
 
         {/* Duyurular — management priority strip, hidden for muhasebe */}
-        {role !== "muhasebe" && <div className={CARD}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5`}>
+        {role !== "muhasebe" && (
+          <div className={CARD}>
+            <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
               <Megaphone size={12} />
               Duyurular
             </h3>
-            {role === "yonetici" && (
-              <button
-                onClick={() => { setAnnBaslik(""); setAnnIcerik(""); setAnnBagliKayit(""); setAnnounceOpen(!announceOpen); }}
-                className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
-              >
-                Duyuru Ekle
-              </button>
-            )}
+            <EmptyState title="Duyuru akışı henüz bağlı değil." size="card" />
           </div>
-
-          {/* Compose — yönetici only, inline */}
-          {announceOpen && role === "yonetici" && (
-            <div className={`mb-3 p-3 ${SURFACE_HEADER} ${RADIUS_SM} space-y-2`}>
-              <input
-                type="text"
-                value={annBaslik}
-                onChange={(e) => setAnnBaslik(e.target.value)}
-                placeholder="Başlık"
-                className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-              />
-              <textarea
-                value={annIcerik}
-                onChange={(e) => setAnnIcerik(e.target.value)}
-                placeholder="Kısa açıklama (1–2 cümle)"
-                rows={2}
-                className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none`}
-              />
-              <input
-                type="text"
-                value={annBagliKayit}
-                onChange={(e) => setAnnBagliKayit(e.target.value)}
-                placeholder="Bağlı kayıt (opsiyonel, ör. firma adı)"
-                className={`w-full px-2 py-1.5 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-              />
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setAnnounceOpen(false)} className={`px-2 py-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>İptal</button>
-                <button
-                  onClick={() => {
-                    if (!annBaslik.trim() || !annIcerik.trim()) return;
-                    setAnnouncements((prev) => [{
-                      id: `duy-new-${Date.now()}`,
-                      baslik: annBaslik.trim(),
-                      icerik: annIcerik.trim(),
-                      tarih: "Az önce",
-                      ...(annBagliKayit.trim() ? { bagliKayit: annBagliKayit.trim() } : {}),
-                    }, ...prev]);
-                    setAnnounceOpen(false);
-                  }}
-                  disabled={!annBaslik.trim() || !annIcerik.trim()}
-                  className={`px-2 py-1 ${TYPE_CAPTION} text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}
-                >
-                  Yayınla
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Announcement list — capped at 3 */}
-          {announcements.length === 0 ? (
-            <p className={`${TYPE_CAPTION} ${TEXT_MUTED} text-center py-2`}>Henüz duyuru yok.</p>
-          ) : (
-            <div className="space-y-0">
-              {announcements.slice(0, 3).map((d, idx) => (
-                <div key={d.id} className={`py-2.5 ${idx < Math.min(announcements.length, 3) - 1 ? LIST_DIVIDER : ""}`}>
-                  <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{d.baslik}</p>
-                  <p className={`${TYPE_CAPTION} ${TEXT_BODY} mt-0.5`}>{d.icerik}</p>
-                  <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
-                    Yönetici · {d.tarih}
-                    {d.bagliKayit && <span> · ↳ {d.bagliKayit}</span>}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>}
+        )}
 
         {/* Son Aktiviteler — hidden for muhasebe */}
         {role !== "muhasebe" && (
@@ -1003,7 +722,7 @@ export default function DashboardPage() {
             <h3 className={CARD_TITLE}>
               Son Aktiviteler
             </h3>
-            <ActivityFeed events={MOCK_DASHBOARD_ACTIVITY} maxItems={8} />
+            <EmptyState title="Aktivite akışı henüz bağlı değil." size="card" />
           </div>
         )}
       </div>
