@@ -10,9 +10,9 @@ External reference packs may inform document structure or governance style, but 
 ---
 
 ## Project Definition
-BPS is a web-based internal office operations interface.
+BPS is a firma-merkezli service operations platform with a kişi-merkezli daily experience.
 
-It is centered on:
+The data backbone is company-centered:
 - companies
 - contract lifecycle
 - staffing demand
@@ -22,7 +22,7 @@ It is centered on:
 - documents
 - financial summary / management visibility
 
-The product exists to help an internal office team manage company relationships, operational follow-up, staffing execution, document compliance, and management visibility inside one connected internal system.
+The product exists to help service operations teams manage company relationships, operational follow-up, staffing execution, document compliance, and management visibility inside one connected system. The daily experience is organized around the user — role, scope, and assignment — so that each person opens the app and sees the work they actually need to move that day.
 
 ---
 
@@ -36,6 +36,13 @@ BPS is not:
 - a passive document archive
 
 BPS may include company-level commercial visibility and company-wide financial summary visibility, but it must not expand into accounting operations, payroll engines, tax workflows, ledger logic, or banking processes.
+
+Natural growth areas that remain within BPS — these do not turn BPS into generic CRM, HRIS, or ERP:
+- firma-merkezli time tracking (firma bazlı operasyonel emek kaydı, not personnel payroll or shift management)
+- firma bazlı ekonomik görünürlük (gelir / maliyet / kârlılık in company context, not invoice issuance, KDV, or e-defter)
+- narrow pipeline (aday firma → aktif firma activation flow, not generic sales CRM with deals, stages, or funnel analytics)
+
+Scope limits for each growth area are defined in `03_strategy/BPS_YAPILANMA_PAKETI.md`.
 
 ---
 
@@ -71,6 +78,9 @@ Read these conditionally when relevant:
 - `02_rules/REVIEW_STANDARD.md` for execution-batch reviews, design reviews, or closeout checks
 - `02_rules/MIGRATION_SAFETY.md` only when live internal usage and real data exist, and a contract-level change is being evaluated
 - `00_core/CHANGELOG.md` when reconciling recent documentation decisions, and always update it after authoritative documentation changes
+
+Read these strategic-direction files when relevant:
+- `03_strategy/BPS_YAPILANMA_PAKETI.md` — strategic direction. Read when evaluating product scope, roadmap alignment, or boundary evolution. Informs direction; does not override active source-of-truth or execution documents.
 
 ---
 
