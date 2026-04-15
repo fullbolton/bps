@@ -1,26 +1,14 @@
 /**
- * Batch 9 — Morning hotel email draft generator.
- * Template-based. Produces a consolidated daily email draft
- * covering active workforce deployments across all firms.
+ * Morning hotel email draft generator.
+ * Pure formatter — takes a pre-built HotelEmailContext and returns a
+ * plain-text draft. Data fetching is the caller's responsibility so the
+ * helper stays free of both mock and Supabase dependencies.
  */
-
-import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
 
 export interface HotelEmailContext {
   tarih: string;
   firmalar: { firmaAdi: string; lokasyon: string; aktifKisi: number }[];
   toplamKisi: number;
-}
-
-export function getHotelEmailContext(): HotelEmailContext {
-  const today = new Date().toISOString().split("T")[0];
-  const firmalar = MOCK_IS_GUCU.map((ig) => ({
-    firmaAdi: ig.firmaAdi,
-    lokasyon: ig.lokasyon,
-    aktifKisi: ig.aktifKisi,
-  }));
-  const toplamKisi = firmalar.reduce((sum, f) => sum + f.aktifKisi, 0);
-  return { tarih: today, firmalar, toplamKisi };
 }
 
 export function generateHotelEmailDraft(ctx: HotelEmailContext): string {

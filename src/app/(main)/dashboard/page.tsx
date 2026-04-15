@@ -39,7 +39,7 @@ import {
   deriveDeadlineStatus,
 } from "@/lib/critical-date-types";
 import type { CriticalDateRow } from "@/types/database.types";
-import { getHotelEmailContext, generateHotelEmailDraft } from "@/lib/draft-hotel-email";
+import { generateHotelEmailDraft, type HotelEmailContext } from "@/lib/draft-hotel-email";
 import {
   SURFACE_PRIMARY,
   BORDER_DEFAULT,
@@ -356,8 +356,31 @@ export default function DashboardPage() {
     };
   }, []);
 
-  function handleGenerateDraft() {
-    const ctx = getHotelEmailContext();
+  async function handleGenerateDraft() {
+    // Real workforce_summary + companies. RLS on both tables auto-scopes
+    // the result for partner — the draft only ever lists firms the caller
+    // can see elsewhere in the app. Errors degrade to an empty firma list
+    // and the formatter emits the honest "Toplam: 0 kişi" outcome rather
+    // than fabricating rows.
+    const supabase = createClient();
+    const [workforceRes, companiesRes] = await Promise.all([
+      supabase
+        .from("workforce_summary")
+        .select("company_id, location, current_count"),
+      supabase.from("companies").select("id, name"),
+    ]);
+    const nameById = new Map<string, string>();
+    for (const c of companiesRes.data ?? []) nameById.set(c.id, c.name);
+    const firmalar = (workforceRes.data ?? [])
+      .map((r) => ({
+        firmaAdi: nameById.get(r.company_id) ?? "—",
+        lokasyon: r.location ?? "—",
+        aktifKisi: r.current_count ?? 0,
+      }))
+      .filter((r) => r.firmaAdi !== "—");
+    const toplamKisi = firmalar.reduce((sum, f) => sum + f.aktifKisi, 0);
+    const today = new Date().toISOString().split("T")[0];
+    const ctx: HotelEmailContext = { tarih: today, firmalar, toplamKisi };
     setDraftText(generateHotelEmailDraft(ctx));
     setCopied(false);
   }
