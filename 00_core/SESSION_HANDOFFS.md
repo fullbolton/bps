@@ -102,3 +102,65 @@ Mock audit'inde planlanan Faz 1A-1C trust patchlerini ve Faz 2A Dashboard truth 
 
 ### Sonraki en doğru adım
 Sonraki en doğru adım: Riskli Firmalar truth-correction planning
+
+---
+
+## 2026-04-15 (Devam 2) — Yapılanma Paketi + Docs Hizalama + Stratejik Yön Netleşmesi
+
+### Session amacı
+Pazar taraması, benchmark değerlendirmesi ve ürün içi stratejik tartışmalar sonucunda BPS'in yeni yönünü belgelemek; ana governance docs'u bu yönle hizalamak.
+
+### Tamamlanan işler
+1. BPS'in yeni ürün çerçevesi netleştirildi: firma-merkezli veri omurgası + kişi-merkezli günlük deneyim
+2. `03_strategy/BPS_YAPILANMA_PAKETI.md` repo'ya eklendi
+3. Yapılanma Paketi içinde şu stratejik eksenler belgelendi:
+   - güncellenmiş ürün tanımı
+   - 5 katmanlı roadmap iskeleti
+   - mock cleanup karar matrisi
+   - preserved surfaces yaklaşımı
+   - "Benim Günüm" tasarım prensibi
+4. `00_core/README.md` yeni ürün tanımıyla hizalandı
+5. `00_core/CODEX.md` yeni ürün tanımı, doğal genişleme alanları ve strateji-doc okuma sırasıyla hizalandı
+6. `CLAUDE.md` yeni ürün tanımı ve guardrail yorumlarıyla hizalandı
+7. `01_product/TASK_ROADMAP.md` 5 katmanlı stratejik yön ile hizalandı
+8. `CLAUDE.md` agent operating-mode refinement yapıldı:
+   - core principles
+   - anti-patterns
+   - closeout adımı
+   - drift-detection güçlendirmesi
+
+### Ana kararlar
+- BPS artık dar biçimde "iç operasyon görünürlüğü aracı" olarak değil, firma-merkezli service operations platform olarak tanımlanır
+- Çekirdek tasarım ilkesi: firma-merkezli veri + kişi-merkezli günlük deneyim
+- Guardrail yorumu güncellendi:
+  - firma-merkezli time tracking doğal büyüme alanıdır
+  - firma-bazlı ekonomik görünürlük doğal büyüme alanıdır
+  - dar pipeline (aday → aktif firma aktivasyonu) doğal büyüme alanıdır
+- Keskin sınırlar korundu:
+  - pipeline ≠ generic CRM
+  - time tracking ≠ İK puantajı / vardiya
+  - ekonomik görünürlük ≠ muhasebe yazılımı
+- Mock cleanup çerçevesi netleştirildi:
+  - sıfır mock kutsal değil
+  - sıfır güven-kırıcı mock zorunlu
+- "Benim Günüm" yaklaşımı kabul edildi:
+  - üst katman = bugün ne yapmalıyım
+  - alt katman = benim alanım ne durumda
+
+### 5 katmanlı yön iskeleti
+1. Geçiş ve Güven — geçiş, güven, truth, pilot
+2. Geri Çağırma ve Çıktı — bildirim, digest, PDF/export
+3. Ekonomik Görünürlük — time tracking, firma kârlılığı, utilization
+4. Saha ve Büyüme — dar pipeline, mobil, API/webhook
+5. Predictive / Platform — tahminleme, otomasyon 2.0, tenantization
+
+### Belgelerdeki net sonuç
+- `BPS_YAPILANMA_PAKETI.md` artık stratejik yön belgesidir
+- `README.md`, `CODEX.md`, `CLAUDE.md`, `TASK_ROADMAP.md` bu yönle hizalanmıştır
+- Strateji belgesi execution source-of-truth'u override etmez; execution anında aktif source-of-truth docs geçerlidir
+
+### Sonraki en doğru adım
+Katman 1 — Geçiş ve Güven execution planını açmak:
+- kalan güven-kırıcı mock / preserved surface kararlarını netleştirmek
+- ofis içi pilot başlangıç planını oluşturmak
+- çıktı hattı (PDF / Excel export) ve temel geri çağırma hattını (özellikle email bildirim temeli) önceliklendirmek
