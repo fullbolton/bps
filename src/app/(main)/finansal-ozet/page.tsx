@@ -14,13 +14,8 @@ import {
   FIRMA_ALACAK_DAGILIMI,
   FIRMA_KESILMEMIS_DAGILIMI,
   GECIKMIŞ_OZET,
-  getTicariBaskiByFirma,
 } from "@/mocks/finansal-ozet";
 import { extractReceivablesSummary } from "@/lib/extract-financials";
-import { MOCK_FIRMALAR } from "@/mocks/firmalar";
-import { MOCK_IS_GUCU } from "@/mocks/aktif-isgucu";
-import { MOCK_TALEPLER } from "@/mocks/talepler";
-import { FIRMA_PARTNER_MAP } from "@/mocks/ayarlar";
 import { createClient } from "@/lib/supabase/client";
 import { selectCompaniesByLegacyMockIds } from "@/lib/supabase/companies";
 import type { ExtractedReceivables } from "@/lib/extract-financials";
@@ -92,13 +87,28 @@ export default function FinansalOzetPage() {
     }>
   >([]);
 
+  // Portföy Sağlık Özeti top-block scalars — real Supabase reads.
+  // null = loading / error → render "—"; honest 0 shown only on a
+  // successful empty query. No mock fallback. Composite signals
+  // ("En Yoğun", "Ticari baskı") are intentionally omitted.
+  const [aktifFirma, setAktifFirma] = useState<number | null>(null);
+  const [aktifIsGucu, setAktifIsGucu] = useState<number | null>(null);
+  const [acikTalep, setAcikTalep] = useState<number | null>(null);
+  const [kritikFirma, setKritikFirma] = useState<number | null>(null);
+
   // Extracted as a callable so the upload-modal confirm path can refresh
   // readers immediately after a successful write. React 18 no-ops state
   // updates on unmounted components, so an explicit cancel flag is not
   // needed here.
   const fetchFinancials = useCallback(async () => {
     try {
-      const [portfolioRes, companiesRes] = await Promise.all([
+      const [
+        portfolioRes,
+        perCompanyRes,
+        companiesRes,
+        workforceRes,
+        demandsRes,
+      ] = await Promise.all([
         supabase
           .from("financial_summaries")
           .select(
@@ -110,6 +120,19 @@ export default function FinansalOzetPage() {
           .from("financial_summaries")
           .select("company_id, open_receivable, unbilled_amount, is_overdue")
           .not("company_id", "is", null),
+        // Single companies.select — covers both the firma-name lookup
+        // for per-company rows and the Portföy Sağlık Özeti
+        // Aktif Firma / Kritik Firma counts. One round-trip, two uses.
+        supabase.from("companies").select("id, name, status, risk"),
+        // Aktif İş Gücü — same formula as Dashboard Faz 2A (sum of
+        // workforce_summary.current_count).
+        supabase.from("workforce_summary").select("current_count"),
+        // Açık Talep — same formula as Dashboard Faz 2A: sum of
+        // max(0, requested - provided) over non-cancelled demands.
+        supabase
+          .from("staffing_demands")
+          .select("requested_count, provided_count")
+          .neq("status", "iptal"),
       ]);
 
       const pRow = portfolioRes.data as
@@ -125,7 +148,29 @@ export default function FinansalOzetPage() {
         | null;
       setPortfolio(pRow ?? null);
 
-      const rawRows = (companiesRes.data ?? []) as Array<{
+      // Companies name-map + top-block counts. One source of truth.
+      const companyList = (companiesRes.data ?? []) as Array<{
+        id: string;
+        name: string;
+        status: string;
+        risk: string;
+      }>;
+      const nameById = new Map<string, string>(
+        companyList.map((c) => [c.id, c.name]),
+      );
+      setAktifFirma(
+        companiesRes.error
+          ? null
+          : companyList.filter((c) => c.status === "aktif").length,
+      );
+      setKritikFirma(
+        companiesRes.error
+          ? null
+          : companyList.filter((c) => c.risk === "yuksek").length,
+      );
+
+      // Per-company financial_summaries rows — reuse the same name map.
+      const rawRows = (perCompanyRes.data ?? []) as Array<{
         company_id: string | null;
         open_receivable: string | null;
         unbilled_amount: string | null;
@@ -136,18 +181,6 @@ export default function FinansalOzetPage() {
           r.company_id !== null &&
           (r.open_receivable !== null || r.unbilled_amount !== null),
       );
-      const companyIds = withFinancial
-        .map((r) => r.company_id)
-        .filter((id): id is string => typeof id === "string");
-
-      let nameById = new Map<string, string>();
-      if (companyIds.length > 0) {
-        const { data: namesData } = await supabase
-          .from("companies")
-          .select("id, name")
-          .in("id", companyIds);
-        nameById = new Map((namesData ?? []).map((c) => [c.id, c.name]));
-      }
 
       const mapped = withFinancial
         .map((r) => ({
@@ -162,9 +195,39 @@ export default function FinansalOzetPage() {
         .filter((r) => r.firmaAdi !== "—");
 
       setPerCompany(mapped);
+
+      // Aktif İş Gücü — sum of workforce_summary.current_count.
+      setAktifIsGucu(
+        workforceRes.error
+          ? null
+          : (workforceRes.data ?? []).reduce(
+              (sum, r) => sum + (r.current_count ?? 0),
+              0,
+            ),
+      );
+
+      // Açık Talep — sum of max(0, requested - provided) over
+      // non-cancelled staffing_demands.
+      setAcikTalep(
+        demandsRes.error
+          ? null
+          : (demandsRes.data ?? []).reduce(
+              (sum, r) =>
+                sum +
+                Math.max(
+                  0,
+                  (r.requested_count ?? 0) - (r.provided_count ?? 0),
+                ),
+              0,
+            ),
+      );
     } catch {
       setPortfolio(null);
       setPerCompany([]);
+      setAktifFirma(null);
+      setAktifIsGucu(null);
+      setAcikTalep(null);
+      setKritikFirma(null);
     }
   }, [supabase]);
 
@@ -342,66 +405,48 @@ export default function FinansalOzetPage() {
       />
 
       <div className="space-y-6">
-        {/* Portföy Sağlık Özeti — C-level summary, present-state only */}
-        {(() => {
-          const aktifFirma = MOCK_FIRMALAR.filter((f) => f.durum === "aktif").length;
-          const aktifIsGucu = MOCK_IS_GUCU.reduce((s, ig) => s + ig.aktifKisi, 0);
-          const acikTalep = MOCK_TALEPLER.reduce((s, t) => s + t.acikKalan, 0);
-          const kritikFirma = MOCK_FIRMALAR.filter((f) => f.risk === "yuksek").length;
-
-          // City with highest risky-firm concentration
-          const cityRisk = new Map<string, { count: number; partner: string }>();
-          for (const f of MOCK_FIRMALAR.filter((x) => x.risk === "orta" || x.risk === "yuksek")) {
-            const p = FIRMA_PARTNER_MAP[f.id];
-            const prev = cityRisk.get(f.sehir);
-            cityRisk.set(f.sehir, { count: (prev?.count ?? 0) + 1, partner: p?.partnerAdi ?? "—" });
-          }
-          const topCity = [...cityRisk.entries()].sort((a, b) => b[1].count - a[1].count)[0];
-
-          // Firms with active ticari baskı
-          const ticariBaskiFirmalar = MOCK_FIRMALAR
-            .filter((f) => f.durum === "aktif" && getTicariBaskiByFirma(f.id) !== null)
-            .map((f) => f.firmaAdi);
-
-          return (
-            <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-3`}>Portföy Sağlık Özeti</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-                <div>
-                  <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Aktif Firma</span>
-                  <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{aktifFirma}</p>
-                </div>
-                <div>
-                  <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Aktif İş Gücü</span>
-                  <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{aktifIsGucu}</p>
-                </div>
-                <div>
-                  <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Açık Talep</span>
-                  <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{acikTalep}</p>
-                </div>
-                <div>
-                  <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Kritik Firma</span>
-                  <p className={`${TYPE_BODY} font-medium ${kritikFirma > 0 ? "text-red-600" : TEXT_PRIMARY}`}>{kritikFirma}</p>
-                </div>
-                <div>
-                  <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Portföy Alacak Baskısı</span>
-                  <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{portfolio?.total_open_receivable ?? "—"}</p>
-                </div>
-                {topCity && (
-                  <div>
-                    <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>En Yoğun</span>
-                    <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{topCity[0]} — {topCity[1].partner}</p>
-                  </div>
-                )}
-              </div>
-              {ticariBaskiFirmalar.length > 0 && (
-                <p className={`${TYPE_CAPTION} text-amber-600 mt-3 pt-2 border-t ${BORDER_SUBTLE}`}>
-                  Ticari baskı taşıyan: {ticariBaskiFirmalar.join(", ")}
-                </p>
-              )}
+        {/* Portföy Sağlık Özeti — C-level summary, real Supabase truth.
+            Aktif Firma / Kritik Firma come from companies (status + risk
+            enum); Aktif İş Gücü / Açık Talep reuse the exact Dashboard
+            Faz 2A formulas. Portföy Alacak Baskısı stays on the real
+            financial_summaries portfolio row. Composite signals
+            ("En Yoğun" city concentration, "Ticari baskı taşıyan")
+            are intentionally dropped — same discipline applied to
+            Dashboard Riskli Firmalar. A later bounded batch can
+            reintroduce them on top of this honest baseline. */}
+        <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
+          <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-3`}>Portföy Sağlık Özeti</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
+            <div>
+              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Aktif Firma</span>
+              <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{aktifFirma ?? "—"}</p>
             </div>
-          );
-        })()}
+            <div>
+              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Aktif İş Gücü</span>
+              <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{aktifIsGucu ?? "—"}</p>
+            </div>
+            <div>
+              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Açık Talep</span>
+              <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{acikTalep ?? "—"}</p>
+            </div>
+            <div>
+              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Kritik Firma</span>
+              <p
+                className={`${TYPE_BODY} font-medium ${
+                  kritikFirma !== null && kritikFirma > 0
+                    ? "text-red-600"
+                    : TEXT_PRIMARY
+                }`}
+              >
+                {kritikFirma ?? "—"}
+              </p>
+            </div>
+            <div>
+              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Portföy Alacak Baskısı</span>
+              <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{portfolio?.total_open_receivable ?? "—"}</p>
+            </div>
+          </div>
+        </div>
 
         {/* Management-visibility boundary banner */}
         <div className={`${TYPE_CAPTION} ${TEXT_MUTED} border ${BORDER_DEFAULT} ${RADIUS_SM} px-3 py-2`}>
