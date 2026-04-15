@@ -185,11 +185,70 @@ Full rules: `WORKFLOW_RULES.md`
 
 ## AI Behavior Rules
 
+### Core Principles (Karpathy-derived + BPS-tested)
+
+#### 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+#### 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+**The test:** Would a senior engineer say this is overcomplicated? If yes, simplify.
+
+#### 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it — don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+**The test:** Every changed line should trace directly to the user's request.
+
+#### 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
 ### What AI agents may do:
 - Read, understand, and analyze the codebase
 - Draft code following the architecture layers
 - Suggest changes with clear rationale
 - Flag conflicts with governance documents
+- Push back on overcomplicated or out-of-scope requests
 
 ### What AI agents must NOT do:
 - Write directly to database without user confirmation
@@ -201,12 +260,22 @@ Full rules: `WORKFLOW_RULES.md`
 - Push Financial Summary beyond visibility into accounting behavior
 - Add status values not in STATUS_DICTIONARY
 - Create mock data that contradicts real domain rules
+- Silently pick an interpretation when ambiguity exists (Think Before Coding)
+- Add features, abstractions, or configurability beyond what was asked (Simplicity First)
+- Touch adjacent code, comments, or formatting unrelated to the task (Surgical Changes)
+- Remove pre-existing dead code unless explicitly asked (Surgical Changes)
 
 ### Confidence Pattern (for AI-assisted features)
 ```
 Upload → Extract → Review → Confirm → Write
 ```
 AI may understand, draft, structure, and suggest. AI may NOT silently commit.
+
+### How to know these rules are working:
+- Fewer unnecessary changes in diffs — only requested changes appear
+- Fewer rewrites due to overcomplication — code is simple the first time
+- Clarifying questions come before implementation — not after mistakes
+- Clean, minimal PRs — no drive-by refactoring or "improvements"
 
 ---
 
@@ -253,6 +322,7 @@ Step 3: Implementation (only from approved plan — SQL, service, component, bui
 Step 4: Review (scope drift? role compliance? workflow rules? Company Detail centrality?)
 Step 5: Live Smoke Test (deploy → real user flow → role-based visibility → blockers?)
 Step 6: Docs Sync Decision (update governance docs only if behavior actually changed)
+Step 7: Closeout (plan met? review passed? next batch?)
 ```
 
 ### Implementation Guardrails
@@ -264,6 +334,16 @@ Step 6: Docs Sync Decision (update governance docs only if behavior actually cha
 - PRESERVE TypeScript safety — build must be error-free
 - If ambiguity exists on a structural, role, workflow, or scope-changing issue → stop and ask
 - If ambiguity is minor and bounded → prefer the smallest safe interpretation and state the assumption clearly
+
+### Anti-Patterns (learned the hard way)
+1. Giving the same job to two tools in parallel
+2. Closing a batch without review
+3. Starting implementation without a plan
+4. Two writer sessions touching the same file
+5. Letting AI run platform-level destructive commands
+6. Band-aid fixes — let it fail visibly, fix root cause
+7. Half-live ambiguity — either it works or it's invisible
+8. Continuing after merge without build + type check
 
 ### Autonomous Agent Loop (within a single session)
 For well-scoped tasks, the agent can run a self-contained cycle:
@@ -403,6 +483,8 @@ Before completing any substantial change, verify:
 - [ ] Detachable modules not hardwired into the current product center
 - [ ] TypeScript build passes
 - [ ] Shared components reused (no unnecessary new components)
+- [ ] Every changed line traces to the user's request (Surgical Changes test)
+- [ ] Code is minimal — could this be simpler? (Simplicity First test)
 
 ---
 
@@ -415,3 +497,10 @@ Before completing any substantial change, verify:
 **Sequence:** (1) manual worktree discipline → (2) shell scripts for worktree + `.env.local` → (3) Claude Code slash commands → (4) Supabase MCP for live schema → (5) full CLI with ticket-driven orchestration.
 
 **Environment isolation:** each worktree points to a different Supabase via `.env.local` (production, demo, or feature-specific).
+
+---
+
+*Tradeoff note: These guidelines bias toward caution over speed.
+For trivial tasks (typo fixes, obvious one-liners), use judgment —
+not every change needs the full rigor.
+The goal is reducing costly mistakes on non-trivial work.*
