@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Upload } from "lucide-react";
+import { Upload, Download } from "lucide-react";
 import {
   PageHeader,
   EmptyState,
@@ -41,6 +41,11 @@ export default function FinansalOzetPage() {
   const [extracted, setExtracted] = useState<ExtractedReceivables | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  // PDF export — bounded snapshot. Timestamp reflects the moment the user
+  // clicked "PDF Olarak İndir" and is rendered only in @media print.
+  // No DB write, no archive entity; this is a download event only.
+  const [exportTimestamp, setExportTimestamp] = useState<string>("");
 
   // Real truth — portfolio-wide row (company_id IS NULL). Absent = honest
   // absence (no muhasebe confirm yet). Do NOT substitute mock defaults.
@@ -82,6 +87,13 @@ export default function FinansalOzetPage() {
   // updates on unmounted components, so an explicit cancel flag is not
   // needed here.
   const fetchFinancials = useCallback(async () => {
+    // Gate the fetch on role. During the initial render `useRole()` returns
+    // the unresolved default ("goruntuleyici") until AuthContext finishes
+    // loading; without this guard the page would fire financial reads for
+    // any unauthorized role before the access screen had a chance to render.
+    // `role` is in the deps below so the fetch re-fires once auth resolves
+    // to yonetici or muhasebe.
+    if (!["yonetici", "muhasebe"].includes(role)) return;
     try {
       const [
         portfolioRes,
@@ -210,7 +222,7 @@ export default function FinansalOzetPage() {
       setAcikTalep(null);
       setKritikFirma(null);
     }
-  }, [supabase]);
+  }, [supabase, role]);
 
   useEffect(() => {
     fetchFinancials();
@@ -370,20 +382,62 @@ export default function FinansalOzetPage() {
     setConfirmError(null);
   }
 
+  // Bounded PDF export — yonetici-only, snapshot-of-screen. Uses the
+  // browser's native print-to-PDF path so no new dependencies and no new
+  // document/archive entity. Timestamp is committed before print snapshots
+  // the DOM via requestAnimationFrame.
+  function handleExportPdf() {
+    const now = new Date();
+    const formatted = now.toLocaleString("tr-TR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    setExportTimestamp(formatted);
+    window.requestAnimationFrame(() => {
+      window.print();
+    });
+  }
+
+  // Action set — "PDF Olarak İndir" is yonetici-only; "Rapor Yükle" is
+  // unchanged (yonetici + muhasebe). Actions are hidden in @media print.
+  const pageActions = [
+    ...(role === "yonetici"
+      ? [
+          {
+            label: "PDF Olarak İndir",
+            onClick: handleExportPdf,
+            icon: <Download size={16} />,
+            variant: "secondary" as const,
+          },
+        ]
+      : []),
+    {
+      label: "Rapor Yükle",
+      onClick: () => { setExtracted(null); setUploadOpen(true); },
+      icon: <Upload size={16} />,
+      variant: "secondary" as const,
+    },
+  ];
+
   return (
     <>
       <PageHeader
         title="Finansal Özet"
         subtitle="Şirket geneli yönetim görünürlüğü"
-        actions={[
-          {
-            label: "Rapor Yükle",
-            onClick: () => { setExtracted(null); setUploadOpen(true); },
-            icon: <Upload size={16} />,
-            variant: "secondary" as const,
-          },
-        ]}
+        actions={pageActions}
       />
+
+      {/* Print-only export timestamp — hidden on screen, visible in PDF.
+          Empty until the user clicks "PDF Olarak İndir", which sets the
+          timestamp then triggers window.print(). */}
+      {exportTimestamp && (
+        <div className={`hidden print:block mb-4 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
+          Dışa aktarıldı: {exportTimestamp}
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Portföy Sağlık Özeti — C-level summary, real Supabase truth.
@@ -499,7 +553,7 @@ export default function FinansalOzetPage() {
 
       {/* Upload → Extract → Review → Confirm modal */}
       {uploadOpen && (
-        <div className={`fixed inset-0 ${SURFACE_OVERLAY_DARK} flex items-center justify-center ${Z_OVERLAY}`} onClick={handleCancel}>
+        <div className={`fixed inset-0 ${SURFACE_OVERLAY_DARK} flex items-center justify-center ${Z_OVERLAY} print:hidden`} onClick={handleCancel}>
           <div className={`${SURFACE_PRIMARY} ${RADIUS_DEFAULT} shadow-xl w-full max-w-xl mx-4 max-h-[85vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
             <div className={`px-5 py-4 border-b ${BORDER_DEFAULT} flex-shrink-0`}>
               <h2 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>
