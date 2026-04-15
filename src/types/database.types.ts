@@ -943,6 +943,48 @@ export interface Database {
           { foreignKeyName: "mizan_upload_rows_matched_company_id_fkey"; columns: ["matched_company_id"]; referencedRelation: "companies"; referencedColumns: ["id"] },
         ];
       };
+      // ---------------------------------------------------------------------
+      // contract_expiry_emails_sent — Katman 2 recall idempotency state
+      // ---------------------------------------------------------------------
+      // Mirrors `supabase/migrations/20260415000500_contract_expiry_emails_sent.sql`.
+      // One row = "the daily cron already sent this recipient the 30-day
+      // approaching-expiry mail for this contract". Service role only —
+      // RLS enabled, no user policies attached.
+      // ---------------------------------------------------------------------
+      contract_expiry_emails_sent: {
+        Row: {
+          contract_id: string;
+          recipient_profile_id: string;
+          threshold_days: number;
+          sent_at: string;
+        };
+        Insert: {
+          contract_id: string;
+          recipient_profile_id: string;
+          threshold_days?: number;
+          sent_at?: string;
+        };
+        Update: {
+          contract_id?: string;
+          recipient_profile_id?: string;
+          threshold_days?: number;
+          sent_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contract_expiry_emails_sent_contract_id_fkey";
+            columns: ["contract_id"];
+            referencedRelation: "contracts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contract_expiry_emails_sent_recipient_profile_id_fkey";
+            columns: ["recipient_profile_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
