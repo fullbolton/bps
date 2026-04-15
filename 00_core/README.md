@@ -1,6 +1,10 @@
 # Partner Staff — Codex System Pack
 
-Bu klasör, Partner Staff ofis içi operasyon arayüzü için Codex'e verilecek markdown tabanlı yönlendirme sistemidir.
+Bu klasör, BPS için Codex'e verilecek markdown tabanlı yönlendirme sistemidir.
+
+BPS, firma-merkezli veri omurgasına sahip, kişi-merkezli günlük deneyim sunan bir service operations platformudur.
+
+**Çekirdek prensip:** firma-merkezli veri + kişi-merkezli deneyim. Veri firma bağlamında yaşar — sözleşme, evrak, alacak, talep, risk firmaya aittir. Günlük deneyim kullanıcıdan başlar — sabah sisteme giren kişi kendi rolü, portföyü ve atanmış işi için aksiyon arar.
 
 ## Her Oturumda Okunacak Core Docs
 - `README.md` → doküman sistemi özeti ve başlangıç rehberi
