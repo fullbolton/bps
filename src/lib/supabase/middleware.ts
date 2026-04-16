@@ -35,9 +35,20 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Public routes that don't require auth
+  // Public routes that don't require auth.
+  //
+  // /api/cron/* is bypassed here because Vercel Cron invokes these
+  // endpoints with no Supabase session — without this exclusion the
+  // middleware would redirect the cron to /login before the handler
+  // ever runs. The cron routes have their own bearer-auth via
+  // CRON_SECRET (see src/app/api/cron/contract-expiry/route.ts),
+  // so skipping the Supabase redirect here is safe.
   const pathname = request.nextUrl.pathname;
-  const isPublicRoute = pathname === "/login" || pathname === "/" || pathname.startsWith("/api/demo-request");
+  const isPublicRoute =
+    pathname === "/login" ||
+    pathname === "/" ||
+    pathname.startsWith("/api/demo-request") ||
+    pathname.startsWith("/api/cron");
 
   // If no user and not on a public route, redirect to login with return URL
   if (!user && !isPublicRoute) {
