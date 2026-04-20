@@ -290,3 +290,61 @@ Bu session **AÇMAMIŞTIR / GENİŞLETMEMİŞTİR**:
 
 ### Sonraki en doğru adım
 Ertesi sabah 08:30 TR cron çalıştırmasının ardından **post-cron burn-in incelemesi**: (1) Vercel function log'unda aggregate satır ve per-contract hata yoğunluğu, (2) Resend dashboard'da delivered/bounce/complaint, (3) demo Supabase `contract_expiry_emails_sent` satır sayısı beklenen burst boyutuyla uyumlu mu. Clean gözlem pencereleri Weekly Digest batch'inin açılma önkoşuludur; kirli sinyaller implementation sırasını değiştirmez, sadece sürenin uzamasına yol açar.
+
+---
+
+## 2026-04-16 (Akşam) — Contract Expiry Email V1 Ops Enablement Tamamlandı + Auth Hardening
+
+### Session amacı
+Ürün geliştirme değil; ops enablement + güvenlik sıkılaştırma oturumu. Contract Expiry Email V1 pipeline'ını canlıya hazır duruma getirmek ve her iki Supabase projesinde signup'ı kapatmak.
+
+### Contract Expiry Email V1 — operasyonel durum
+Pipeline runtime-ready. Manuel `curl` ile doğrulandı: `200 OK`, `contractsEvaluated:0` (30 gün penceresi içinde aktif sözleşme yok — beklenen davranış).
+
+**5 katmanlı debug zinciri çözüldü:**
+1. Vercel Cron yalnız production'da çalışır — burn-in demo-preview'dan production'a taşındı
+2. Middleware cron endpoint'i `/login`'e 307 redirect yapıyordu — `eff8f42` commit'iyle düzeltildi
+3. `RESEND_API_KEY` yalnız Preview scope'undaydı — Production + Preview olarak genişletildi
+4. `SUPABASE_SERVICE_ROLE_KEY` Production scope'unda eksikti — eklendi
+5. Production DB'de `contract_expiry_emails_sent` migration'ı eksikti — SQL Editor ile uygulandı
+
+İlk zamanlanmış cron çalıştırması yarın **08:30 TR** (`30 5 * * *` UTC) bekleniyor. Burn-in gözlemi pending.
+
+### Auth hardening
+Supabase signup toggle her iki projede kapatıldı:
+- **Production** (dffdzbmnmnokbftbujsy): "Allow new users to sign up" → OFF
+- **Demo** (tiqemcsjuyudahgmqksw): aynı
+
+Doğrulama:
+- Negatif test (demo): signup denemesi → HTTP 422 `signup_disabled` ✓
+- Pozitif test (production): mevcut kullanıcı login → otomatik /dashboard redirect ✓
+- Public access-request yüzeyi: aktif session nedeniyle doğrudan test edilmedi
+
+### Production ortam durumu
+Vercel env scope'ları (güncel):
+| Değişken | Scope |
+|---|---|
+| `BPS_CONTRACT_EXPIRY_EMAIL_ENABLED` | All Environments |
+| `CRON_SECRET` | All Environments |
+| `RESEND_API_KEY` | Production + Preview |
+| `SUPABASE_SERVICE_ROLE_KEY` | Production |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `URL` | ortam bazlı ayrı değerler |
+
+### Scope guardrail'leri korundu
+Bu session açmamıştır / genişletmemiştir:
+- Weekly Digest implementation (event email burn-in sequencing-blocker)
+- Notification center / inbox / badge / bell
+- Recipient rule değişikliği
+- Roadmap sıralaması değişikliği
+- Yeni feature scope
+
+### Sonraki operasyonel odak
+Yarın sabah post-08:30 cron incelemesi:
+- Vercel function / cron log'ları
+- Resend dashboard (delivered / bounce / complaint)
+- Production Supabase `contract_expiry_emails_sent` satır sayısı
+
+### Bekleyen takip maddeleri (bu session'da action alınmadı)
+- `access_requests` formu: honeypot + rate limit (auth hardening follow-up)
+- Resend API key rotation (chat'te expose oldu)
+- Working tree'de untracked landing-page çalışması (ayrı session, bu batch'ten değil)
