@@ -122,11 +122,35 @@ Her madde için şu alanlar doldurulur:
 - JWT payload `role:"service_role"` döndüğünü + tiny RLS-bypass query'yi doğrular mı?
 - CRON_SECRET bearer auth ile kapalı tutulur.
 
-**Durum:** RED (yok)
+**Durum:** GREEN
 **Owner:** Furkan
-**Son kontrol tarihi:** —
-**Kanıt:** Endpoint implement edilmedi.
-**Sonraki aksiyon:** Katman 2 — Claude Code 30 dk turn'ü. ~30 satır route handler.
+**Son kontrol tarihi:** 2026-04-22
+**Kanıt:**
+- Endpoint: `src/app/api/healthz/route.ts` (GET, Node.js runtime, force-dynamic).
+- Bearer auth: `Authorization: Bearer $CRON_SECRET` — yoksa/yanlışsa 401.
+- Checks: `service_role_jwt` (JWT decode + role=`service_role` + ref=supabase url ref), `anon_jwt` (aynı, role=`anon`), `service_role_query` (profiles head-count, JWT sanity secondary), `cron_secret_present` (length ≥ 32), `resend_key_format` (prefix `re_`, length 30–50).
+- Response: `{status, checks[{name, pass, detail}], meta{timestamp, deployment}}`; 200 all-pass, 500 any-fail, 401 auth yok.
+- Curl komut (prod):
+  ```bash
+  curl -H "Authorization: Bearer $CRON_SECRET" https://www.bpsys.net/api/healthz | jq
+  ```
+- Örnek all-green response (local):
+  ```json
+  {
+    "status": "ok",
+    "checks": [
+      {"name":"service_role_jwt","pass":true,"detail":"role=service_role, ref matches url, length=219"},
+      {"name":"anon_jwt","pass":true,"detail":"role=anon, ref matches url, length=209"},
+      {"name":"service_role_query","pass":true,"detail":"profiles head-count ok (count=N)"},
+      {"name":"cron_secret_present","pass":true,"detail":"length=64"},
+      {"name":"resend_key_format","pass":true,"detail":"prefix=re_, length=36"}
+    ],
+    "meta": {"timestamp":"2026-04-22T...","deployment":"dpl_..."}
+  }
+  ```
+- Hijyen: fail detail'lerinde hassas değer yazılmaz (prefix + length only).
+- Middleware public-route listesinde `/api/healthz` var (aynı pattern: cron rotaları).
+**Sonraki aksiyon:** —
 
 ---
 
@@ -293,8 +317,8 @@ Vercel env vars listesindeki "Need To Rotate" badge'leri ikisi için de kayboldu
 # Önceliklendirme Matrisi (updated 2026-04-21)
 
 ## P0 — hemen
-- 🔴 **3.5 healthz runtime self-check** (yeni) — Katman 2
 - 🔴 **7.4 expected_in_window companion log** (yeni) — Katman 2
+- ✅ ~~3.5 healthz runtime self-check~~ (22 Nisan tamamlandı — `/api/healthz`)
 - ✅ ~~Provider-level signup kapalı~~ (1.1)
 - ✅ ~~Cron/auth secrets value-correctness~~ (3.2, 4.1)
 - ✅ ~~Need To Rotate batch~~ (4.4 — 21 Nisan tamamlandı)

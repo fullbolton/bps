@@ -6,6 +6,27 @@ Bu dosya "en son ne olmuştu?" sorusuna cevap verir.
 
 ---
 
+## 2026-04-22 — Healthz Endpoint (SECURITY_CHECKLIST 3.5 RED → GREEN)
+
+### Session amacı
+20 Nisan silent failure incident'ının forward-looking guarantee'sini implement et: deploy sonrası 1-shot curl ile env var value-correctness doğrulayan diagnostic endpoint.
+
+### Verdict
+🟢 **GREEN.** `src/app/api/healthz/route.ts` eklendi. 5 check (service_role_jwt, anon_jwt, service_role_query, cron_secret_present, resend_key_format), bearer auth (CRON_SECRET), side-effect yok. `src/lib/supabase/middleware.ts` public-route listesine `/api/healthz` eklendi (cron rotaları ile aynı pattern). TypeScript clean. SECURITY_CHECKLIST 3.5 RED → GREEN.
+
+### File delta
+- `src/app/api/healthz/route.ts` (yeni, ~120 satır)
+- `src/lib/supabase/middleware.ts` (public-route ekleme, 1 satır değişiklik)
+- `00_core/CHANGELOG.md`, `00_core/SECURITY_CHECKLIST.md`, `00_core/SESSION_HANDOFFS.md`
+
+### Burn-in clock
+🟢 **Korundu.** Sadece observability eklendi; trigger/threshold/template/recipient/sender/cron-time/schema/RLS/env-var dokunulmadı. 20 Nisan 22:57 TR'den itibaren sayıyor.
+
+### Sonraki en doğru adım
+Katman 2 (P0): **7.4 expected_in_window companion log** (Claude Code ~15 dk). Sonra production'da healthz curl ile smoke test.
+
+---
+
 ## 2026-04-22 — Rotation Production Validation (Smoke Test)
 
 ### Session amacı
