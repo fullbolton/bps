@@ -43,19 +43,53 @@ Her madde için şu alanlar doldurulur:
 **Kanıt:** `bpsys.net/login` mevcut user ile 200; 20 Nisan'da same-origin browser check pass.
 **Sonraki aksiyon:** —
 
-## 1.3 Access request yüzeyi
+## 1.3 Access request anti-bot hygiene (REVISED — P2 -> P1)
+
 **Durum:** YELLOW
 **Owner:** Furkan
-**Son kontrol tarihi:** —
-**Kanıt:** İncelenmedi.
-**Sonraki aksiyon:** P1 — ofis içi rollout öncesi honeypot + rate limit spot-check.
+**Son kontrol:** 2026-04-22 (ChatGPT review bulgusuyla P2'den P1'e cikarildi)
 
+**Tespit:** `access_requests` form'u direct anon insert, honeypot yok, rate limit yok. Pre-office-rollout'ta bu operasyonel spam borcu — ilk public gorunurlukte admin queue cop olabilir.
+
+**Sonraki aksiyon (P1, post-burn-in):**
+1. Honeypot field (display:none; bot doldurur -> backend submit reddeder)
+2. Rate limit (basit: IP basina 15min/5 submission, Vercel edge middleware)
+3. Opsiyonel: Turnstile CAPTCHA (decision: `karar-turnstile-captcha-ekleme` — hazir, bounded batch)
+
+Kod surface: < 50 satir, no new dependencies. Claude Code bounded prompt uygun.
+
+**Not:** Bu burn-in clock'u etkiler (form behavior degisir). Weekly Digest unlock'tan **sonra** yapilmali.
 ## 1.4 Auth trigger / profile yaratımı
 **Durum:** YELLOW
 **Owner:** Furkan
 **Son kontrol tarihi:** —
 **Kanıt:** Signup provider-level kapalı olduğu için pratik risk sıfır, ama trigger davranışı doğrulanmadı.
 **Sonraki aksiyon:** P2 — signup açılırsa zorunlu.
+
+## 1.4 Offboarding / stale access (YENİ — 22 Nisan ChatGPT review bulgusu)
+
+**Durum:** RED
+**Owner:** Furkan
+**Son kontrol:** 2026-04-22
+
+**Tespit:** "Yanlış kişiyi içeri almama" auth hardening'i yapıldı (1.1 provider signup kapandı, 1.2 invite-only). Ama **"artık içeride olmaması gerekeni çıkarma"** konusunda tek satır dokümantasyon yok.
+
+Açık sorular (hiçbirine cevap yok):
+- Eski kullanıcı nasıl kapatılıyor? Manuel Supabase Auth UI mi, yoksa runbook mu?
+- `auth.users` + `profiles` + scope assignments (`partner_company_assignments` vb.) birlikte nasıl temizleniyor?
+- Demo kullanıcıları production'dan nasıl izole tutuluyor? Drift riski var mı?
+- Offboarded user'ın sent email history'si (`contract_expiry_emails_sent`) ne oluyor? Hard delete mi, soft (audit için tutulmalı) mi?
+- Responsible olduğu contract'lar ne oluyor? (`contracts.responsible` reassignment gerekir)
+
+**Sonraki aksiyon (P1, pre-office-rollout öncesi):**
+User offboarding runbook (< 1 sayfa doküman, kod değil):
+1. Auth disable (Supabase Auth → user → disable)
+2. Profile soft-delete (yeni kolon mu yoksa `deleted_at`? Schema decision gerekir)
+3. Scope assignments null-out (`partner_company_assignments` ilgili satırlar)
+4. `contracts.responsible` reassignment (yonetici veya başka partner'a devret)
+5. Audit stamp (kim ne zaman offboarded etti, log)
+
+**Not:** Soft-delete vs hard-delete, referential integrity için bir schema decision gerektirebilir. O durumda bu artık bounded batch değildir, ayrı planning ister.
 
 ---
 
@@ -310,6 +344,32 @@ Vercel env vars listesindeki "Need To Rotate" badge'leri ikisi için de kayboldu
 **Durum:** YELLOW
 **Sonraki aksiyon:** Katman 4.
 
+## 8.4 Backup / recovery strategy (YENİ — 22 Nisan ChatGPT review bulgusu)
+
+**Durum:** YELLOW (bilinçli olarak deferred, ama görünür tutulmalı)
+**Owner:** Furkan
+**Son kontrol:** 2026-04-22
+
+**Mevcut durum:**
+- Supabase native PITR (Point-in-Time Recovery) — Free/Pro tier'da 7 gün retention
+- Vercel'de "backup" konsepti yok (stateless deploy, config her zaman git'te)
+- Gerçek recovery drill **hiç yapılmadı**
+- RTO (Recovery Time Objective) / RPO (Recovery Point Objective) tanımsız
+
+**Risk profili:**
+- Pre-office-rollout: düşük (gerçek kullanıcı verisi yok, restore gerekirse seed'den yeniden üretilebilir)
+- Post-office-rollout: yüksek (gerçek contract, gerçek profile, geri dönülemez operational data)
+
+**Sonraki aksiyon (P2, pre-office-rollout öncesi minimum drill):**
+Demo Supabase projesinde (`tiqemcsjuyudahgmqksw`) 1 adet recovery drill:
+1. Rastgele bir `contracts` satırı sil
+2. Supabase Dashboard → Database → Backups → PITR → 5 dakika öncesine restore
+3. Silinen satırın döndüğünü verify
+4. Bu sürecin kaç dakika sürdüğünü ölç (bu sayı ~RTO)
+5. Drill sonucunu `CHANGELOG.md` + `karar-backup-recovery-drill.md` olarak Obsidian'a yaz
+
+**Not:** Kod değişikliği yok, sadece manuel ops drill. Burn-in clock etkilenmez. Pre-office-rollout gate için kritik.
+
 ---
 
 # 9. Tooling ve agent güvenliği
@@ -327,30 +387,54 @@ Vercel env vars listesindeki "Need To Rotate" badge'leri ikisi için de kayboldu
 
 ---
 
-# Önceliklendirme Matrisi (updated 2026-04-21)
+## 8.3 Backup / recovery strategy (YENI — 22 Nisan ChatGPT review bulgusu)
+
+**Durum:** YELLOW (bilincli olarak deferred, ama gorunur tutulmali)
+**Owner:** Furkan
+**Son kontrol:** 2026-04-22
+
+**Mevcut durum:**
+- Supabase native PITR (Point-in-Time Recovery) — Free/Pro tier'da 7 gun retention
+- Vercel'de "backup" konsepti yok (stateless deploy, config her zaman git'te)
+- Gercek recovery drill **hic yapilmadi**
+- RTO (Recovery Time Objective) / RPO (Recovery Point Objective) tanimsiz
+
+**Risk profili:**
+- Pre-office-rollout: dusuk (gercek kullanici verisi yok, restore gerekirse seed'den yeniden uretilebilir)
+- Post-office-rollout: yuksek (gercek contract, gercek profile, geri donulemez operational data)
+
+**Sonraki aksiyon (P2, pre-office-rollout oncesi minimum drill):**
+Demo Supabase projesinde (`tiqemcsjuyudahgmqksw`) 1 adet recovery drill:
+1. Rastgele bir `contracts` satiri sil
+2. Supabase Dashboard -> Database -> Backups -> PITR -> 5 dakika oncesine restore
+3. Silinen satirin dondugunu verify
+4. Bu surecin kac dakika surdugunu olc (bu sayi ~RTO)
+5. Drill sonucunu `CHANGELOG.md` + `karar-backup-recovery-drill.md` olarak Obsidian'a yaz
+
+**Not:** Kod degisikligi yok, sadece manuel ops drill. Burn-in clock etkilenmez. Pre-office-rollout gate icin kritik.
+
+# Onceliklendirme Matrisi (updated 2026-04-22 — ChatGPT review bulgulari dahil)
 
 ## P0 — hemen
-- ✅ ~~7.4 expected_in_window companion log~~ (22 Nisan tamamlandı — cron handler)
-- ✅ ~~3.5 healthz runtime self-check~~ (22 Nisan tamamlandı — `/api/healthz`)
-- ✅ ~~Provider-level signup kapalı~~ (1.1)
-- ✅ ~~Cron/auth secrets value-correctness~~ (3.2, 4.1)
-- ✅ ~~Need To Rotate batch~~ (4.4 — 21 Nisan tamamlandı)
+- KAPALI ~~3.5 healthz endpoint~~ (22 Nisan Ready, production-verified 5/5)
+- KAPALI ~~7.4 expected_in_window companion log~~ (22 Nisan Ready, Cron Run 200 OK)
+- KAPALI ~~4.4 Need To Rotate batch~~ (21 Nisan tamamlandi)
+- KAPALI ~~Provider-level signup kapali~~ (1.1)
+- KAPALI ~~Cron/auth secrets value-correctness~~ (3.2, 4.1)
 
-## P1 — yakın
-- 🟡 6.1 demo vs prod schema parity — Katman 2
-- 🟡 1.3 access request anti-bot — Katman 3
-- 🟡 3.3 email DKIM/SPF/DMARC re-check — Katman 2
-- 🟡 2.1, 2.2 RLS spot-check — Katman 3
+## P1 — yakin (post-burn-in, pre-office-rollout)
+- RED **1.4 Offboarding / stale access** (YENI) — runbook yazilmali
+- YELLOW **1.3 Access request anti-bot** (P2'den terfi) — honeypot + rate limit
+- YELLOW 6.1 demo vs prod schema parity — Katman 2
+- YELLOW 3.3 email DKIM/SPF/DMARC re-check
 
 ## P2 — sonra
+- YELLOW **8.3 Backup/recovery drill** (YENI) — demo'da 1 kez minimum
+- YELLOW 4.5 Sensitive toggle — rotation sonrasi dogal
 - dependency audit
-- backup/recovery drill
+- gitleaks taramasi (4.2)
 - broader abuse dashboards
 - storage hardening review
-- gitleaks taraması (4.2)
-- Production anon key trailing newline temizliği (rotation turunda doğal)
-
----
 
 # Cadence (tetikleyici-tabanlı)
 
