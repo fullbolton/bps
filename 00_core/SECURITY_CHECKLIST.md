@@ -66,7 +66,7 @@ Kod surface: < 50 satir, no new dependencies. Claude Code bounded prompt uygun.
 **Kanıt:** Signup provider-level kapalı olduğu için pratik risk sıfır, ama trigger davranışı doğrulanmadı.
 **Sonraki aksiyon:** P2 — signup açılırsa zorunlu.
 
-## 1.4 Offboarding / stale access (YENİ — 22 Nisan ChatGPT review bulgusu)
+## 1.5 Offboarding / stale access (YENİ — 22 Nisan ChatGPT review bulgusu)
 
 **Durum:** RED
 **Owner:** Furkan
@@ -387,32 +387,6 @@ Demo Supabase projesinde (`tiqemcsjuyudahgmqksw`) 1 adet recovery drill:
 
 ---
 
-## 8.3 Backup / recovery strategy (YENI — 22 Nisan ChatGPT review bulgusu)
-
-**Durum:** YELLOW (bilincli olarak deferred, ama gorunur tutulmali)
-**Owner:** Furkan
-**Son kontrol:** 2026-04-22
-
-**Mevcut durum:**
-- Supabase native PITR (Point-in-Time Recovery) — Free/Pro tier'da 7 gun retention
-- Vercel'de "backup" konsepti yok (stateless deploy, config her zaman git'te)
-- Gercek recovery drill **hic yapilmadi**
-- RTO (Recovery Time Objective) / RPO (Recovery Point Objective) tanimsiz
-
-**Risk profili:**
-- Pre-office-rollout: dusuk (gercek kullanici verisi yok, restore gerekirse seed'den yeniden uretilebilir)
-- Post-office-rollout: yuksek (gercek contract, gercek profile, geri donulemez operational data)
-
-**Sonraki aksiyon (P2, pre-office-rollout oncesi minimum drill):**
-Demo Supabase projesinde (`tiqemcsjuyudahgmqksw`) 1 adet recovery drill:
-1. Rastgele bir `contracts` satiri sil
-2. Supabase Dashboard -> Database -> Backups -> PITR -> 5 dakika oncesine restore
-3. Silinen satirin dondugunu verify
-4. Bu surecin kac dakika surdugunu olc (bu sayi ~RTO)
-5. Drill sonucunu `CHANGELOG.md` + `karar-backup-recovery-drill.md` olarak Obsidian'a yaz
-
-**Not:** Kod degisikligi yok, sadece manuel ops drill. Burn-in clock etkilenmez. Pre-office-rollout gate icin kritik.
-
 # Onceliklendirme Matrisi (updated 2026-04-22 — ChatGPT review bulgulari dahil)
 
 ## P0 — hemen
@@ -423,13 +397,13 @@ Demo Supabase projesinde (`tiqemcsjuyudahgmqksw`) 1 adet recovery drill:
 - KAPALI ~~Cron/auth secrets value-correctness~~ (3.2, 4.1)
 
 ## P1 — yakin (post-burn-in, pre-office-rollout)
-- RED **1.4 Offboarding / stale access** (YENI) — runbook yazilmali
+- RED **1.5 Offboarding / stale access** (YENI) — runbook yazilmali
 - YELLOW **1.3 Access request anti-bot** (P2'den terfi) — honeypot + rate limit
 - YELLOW 6.1 demo vs prod schema parity — Katman 2
 - YELLOW 3.3 email DKIM/SPF/DMARC re-check
 
 ## P2 — sonra
-- YELLOW **8.3 Backup/recovery drill** (YENI) — demo'da 1 kez minimum
+- YELLOW **8.4 Backup/recovery drill** (YENI) — demo'da 1 kez minimum
 - YELLOW 4.5 Sensitive toggle — rotation sonrasi dogal
 - dependency audit
 - gitleaks taramasi (4.2)
