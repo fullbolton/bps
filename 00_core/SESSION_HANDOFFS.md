@@ -6,6 +6,26 @@ Bu dosya "en son ne olmuştu?" sorusuna cevap verir.
 
 ---
 
+## 2026-04-22 — expected_in_window Companion Log (SECURITY_CHECKLIST 7.4 RED → GREEN)
+
+### Session amacı
+Cron handler'a silent-zero disambiguation ekle: eval loop'tan bağımsız COUNT(*) companion + summary log extension + anomaly warning + response field. 20 Nisan incident'ında "pencere boş mu, auth bozuk mu" ayrımı yapılamadığı için.
+
+### Verdict
+🟢 **GREEN.** `src/app/api/cron/contract-expiry/route.ts` +25 satır: companion count, expanded summary log (`expected_in_window=X evaluated_actual=Y ...`), anomaly warning (`Verify via /api/healthz`), response body'ye `expectedInWindow` alanı. Advisory-only — countError abort etmez. TypeScript clean.
+
+### File delta
+- `src/app/api/cron/contract-expiry/route.ts` (109 → 134 satır, +25)
+- `00_core/CHANGELOG.md`, `00_core/SECURITY_CHECKLIST.md` § 7.4 RED → GREEN, P0 listesi güncellendi, `00_core/SESSION_HANDOFFS.md`
+
+### Burn-in clock
+🟢 **Korundu.** Sadece observability; trigger/threshold (30 gün)/template/recipient/sender/cron-time/schema/RLS/env-var dokunulmadı. `evaluated`/`attempted`/`sent`/`skippedIdempotent`/`failed` semantics aynı. 20 Nisan 22:57 TR'den itibaren sayıyor.
+
+### Sonraki en doğru adım
+Katman 2 kapandı (3.5 + 7.4). Burn-in observation 23 Nisan 22:57 TR'ye kadar devam. Production'da healthz curl ile smoke test ve yarın sabah 08:30 TR cron'undan sonra yeni log formatının Vercel Functions log'unda görünüp görünmediğini doğrula.
+
+---
+
 ## 2026-04-22 — Healthz Endpoint (SECURITY_CHECKLIST 3.5 RED → GREEN)
 
 ### Session amacı

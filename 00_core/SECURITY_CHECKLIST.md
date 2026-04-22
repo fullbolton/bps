@@ -279,9 +279,22 @@ Vercel env vars listesindeki "Need To Rotate" badge'leri ikisi için de kayboldu
 - Handler companion `SELECT count(*)` atıp `expected_in_window` log'lar mı?
 - `evaluated != expected_in_window` otomatik anomaly?
 
-**Durum:** RED (yok)
+**Durum:** GREEN
 **Owner:** Furkan
-**Sonraki aksiyon:** Katman 2 — Claude Code 15 dk turn'ü.
+**Son kontrol tarihi:** 2026-04-22
+**Kanıt:**
+- Handler: `src/app/api/cron/contract-expiry/route.ts` eval loop'tan ÖNCE bağımsız `SELECT count(*) FROM contracts WHERE status='aktif' AND end_date BETWEEN today AND today+30` sorgusu atıyor (service_role ile, RLS-bypass). Tarih sınırları `computeRemainingDays` UTC-stable semantics ile aynı ([0, 30] günlük pencere).
+- Summary log formatı (before → after):
+  - **Before:** `[cron/contract-expiry] evaluated=N attempted=... sent=... skipped=... failed=...`
+  - **After:** `[cron/contract-expiry] expected_in_window=M evaluated_actual=N attempted=... sent=... skipped=... failed=...`
+- Anomaly warning (expected ≠ evaluated):
+  ```
+  [cron/contract-expiry] ANOMALY: expected_in_window=3 != evaluated_actual=0. Potential RLS/auth misconfiguration. Verify SUPABASE_SERVICE_ROLE_KEY via /api/healthz.
+  ```
+- Response body: `expectedInWindow` alanı eklendi (curl-test için görünürlük).
+- Advisory-only: companion query error olursa console.error log'lanır, handler devam eder (eval davranışı aynen korunur).
+- Cross-reference: 3.5 healthz endpoint ile birlikte env var slot mismatch'i hem deploy-time (healthz) hem runtime (per-invocation expected_in_window diff) görünür.
+**Sonraki aksiyon:** —
 
 ---
 
@@ -317,7 +330,7 @@ Vercel env vars listesindeki "Need To Rotate" badge'leri ikisi için de kayboldu
 # Önceliklendirme Matrisi (updated 2026-04-21)
 
 ## P0 — hemen
-- 🔴 **7.4 expected_in_window companion log** (yeni) — Katman 2
+- ✅ ~~7.4 expected_in_window companion log~~ (22 Nisan tamamlandı — cron handler)
 - ✅ ~~3.5 healthz runtime self-check~~ (22 Nisan tamamlandı — `/api/healthz`)
 - ✅ ~~Provider-level signup kapalı~~ (1.1)
 - ✅ ~~Cron/auth secrets value-correctness~~ (3.2, 4.1)
