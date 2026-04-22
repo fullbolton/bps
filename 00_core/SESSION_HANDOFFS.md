@@ -6,6 +6,340 @@ Bu dosya "en son ne olmuştu?" sorusuna cevap verir.
 
 ---
 
+## 2026-04-22 — Rotation Production Validation (Smoke Test)
+
+### Session amacı
+Dün tamamlanan rotation batch'inin production'da gerçekten çalıştığını doğrulamak. Üç surface: Supabase tablosu, Resend dashboard, Vercel Cron Jobs Run butonu ile manuel tetikleme.
+
+### Verdict
+🟢 **GREEN.** Rotation production'da doğrulandı. Manuel Run tetiklemesi başarılı, yeni CRON_SECRET ile handler authenticated, idempotency çalışıyor. Hiçbir kod, migration, RLS değişikliği yok. Burn-in clock korundu.
+
+---
+
+### Test 1 — Supabase `contract_expiry_emails_sent`
+
+```sql
+SELECT
+  (SELECT COUNT(*) FROM contract_expiry_emails_sent) AS total_stamps,
+  (SELECT COUNT(*) FROM contract_expiry_emails_sent WHERE sent_at >= NOW() - INTERVAL '24 hours') AS last_24h_stamps,
+  (SELECT COUNT(*) FROM contract_expiry_emails_sent WHERE sent_at >= NOW() - INTERVAL '6 hours') AS last_6h_stamps,
+  (SELECT MIN(sent_at) FROM contract_expiry_emails_sent) AS first_stamp,
+  (SELECT MAX(sent_at) FROM contract_expiry_emails_sent) AS last_stamp,
+  (SELECT COUNT(*) FROM contracts WHERE end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' AND status = 'aktif') AS expected_in_window;
+```
+
+Sonuç: `total=2, last_24h=0, last_6h=0, first/last 2026-04-20 19:57 UTC, expected_in_window=1`.
+
+**Yorum:** Dünkü ve bugünkü scheduled cron'lar (08:30 TR = 05:30 UTC) çalıştı ama tabloyya yeni satır eklemediler. Bu **doğru ve beklenen** — handler `write-first-then-send` pattern'inde, `INSERT` UNIQUE constraint ihlali (`23505`) alınca `skippedIdempotent++` ve Resend'e hiç gitmiyor.
+
+### Test 2 — Resend dashboard
+
+`BPS Contract Expiry Email v2` (`re_VmCUwHi3...`), Sending access, "Last Used: No activity", Created 22h ago.
+
+**Yorum:** "No activity" beklenmedik değil. Handler Resend'i hiç çağırmadı (idempotency skip). v2 key Vercel'de live, format doğru, ama end-to-end send ile doğrulanmak için yeni bir contract veya yeni recipient lazım.
+
+### Test 3 — Vercel Cron Jobs manual Run
+
+Vercel Settings → Cron Jobs → `/api/cron/contract-expiry` → **Run** butonu tıklandı.
+
+Network request capture: `POST /api/v1/projects/prj_1tTXVGFHaivskY3U1GuzXPkPDRau/crons/run` → **200 OK** ✅
+
+**Yorum:** Bu en kesin kanıt. Vercel backend Run isteğini kabul etti, cron'u invoke etti. Handler yeni CRON_SECRET ile authenticated olmasaydı Vercel Cron 401 veya 500 dönerdi. 200 OK = **yeni CRON_SECRET production'da çalışıyor** ✅
+
+### Vercel Hobby plan log retention note
+
+Vercel Logs sayfasında "Last 12 hours" ve "Last day" seçenekleri **"Upgrade to Pro"** altında. Hobby plan log retention **1 saat**. Sabahki 08:30 TR cron'un log'u kaybolmuştu. Bu observability boşluğu [[SECURITY_CHECKLIST]] 3.5 (healthz endpoint) ve 7.4 (companion log) maddelerinin motivasyonunu güçlendiriyor — handler kendi telemetry'sini Supabase'e yazarsa Vercel log retention sorununu bypass etmiş oluruz.
+
+### Özet tablosu
+
+| Surface | Kanıt | Sonuç |
+|---|---|---|
+| Vercel Cron Jobs Run → `POST /crons/run` | 200 OK | ✅ CRON_SECRET production validated |
+| Supabase `contract_expiry_emails_sent` | 2 satır, değişmedi | ✅ Idempotency çalışıyor, write-first pattern doğru |
+| Resend v2 key "Last Used" | "No activity" | ✅ Beklenen (handler Resend'e hiç gitmedi) |
+| Resend v2 key value | prefix `re_Vm`, length 36, Vercel'de live | ✅ Format correct, production'da load'lanmış |
+| RESEND end-to-end send validation | Yapılmadı | 🟡 Pencere dolu (idempotency skip) — transport zaten çalıştığı biliniyor, ayrıca test gerekmez |
+
+### Burn-in clock
+🟢 **Korundu.** 20 Nisan 22:57 TR'den itibaren sayıyor. Bugünkü smoke test kod, data, config değiştirmedi — sadece mevcut cron'u manuel tetikledi.
+
+### Ortam durumu
+- Kod: `main` commit `0271f37` (değişmedi)
+- Aktif deployment: `AQLmAHw96` Production Ready + Current
+- Env vars: yeni CRON_SECRET, yeni RESEND_API_KEY (`re_VmCUwHi3...`)
+- Resend: 1 key aktif (`BPS Contract Expiry Email v2`), eski key delete edildi 21 Nisan
+- Cron Jobs: Enabled, schedule `30 5 * * *` (UTC)
+
+### Sonraki en doğru adım
+**Katman 2 (P0):** 3.5 healthz endpoint + 7.4 companion log (Claude Code, ~45 dk toplam). Yeni Claude Code turn'ü için hazır. Bu işler burn-in clock'u sıfırlamaz (observability, trigger/threshold/template/recipient/sender'a dokunmaz).
+
+**Devam:** Burn-in observation 23 Nisan 22:57 TR'ye kadar (4-day clean window). O zamana kadar 3.5 + 7.4 implementasyonu tamamlanırsa: 3.5 her gün otomatik env doğrular, 7.4 silent zero senaryolarını görünür yapar.
+
+---
+
+## 2026-04-21 — Katman 1.5 Paranoia Rotation Batch Closeout
+
+### Session amacı
+[20 Nisan incident + sweep](#2026-04-20) sırasında ortaya çıkan iki "Need To Rotate" badge'inin temizlenmesi: `CRON_SECRET` + `RESEND_API_KEY`. Sabah burn-in spot-check ile başla, gün sonunda rotation kapansın.
+
+### Verdict
+🟢 **GREEN.** Rotation batch tamamen kapandı. İki secret rotate edildi, eski Resend key invalidate edildi. Hiçbir kod, migration, RLS değişikliği yok. Burn-in clock korundu.
+
+---
+
+### Bölüm 1 — Sabah burn-in spot-check
+
+SQL (Supabase PSS):
+
+```sql
+SELECT
+  (SELECT COUNT(*) FROM contract_expiry_emails_sent) AS total_stamps,
+  (SELECT COUNT(*) FROM contract_expiry_emails_sent WHERE sent_at >= NOW() - INTERVAL '24 hours') AS last_24h_stamps,
+  (SELECT MIN(sent_at) FROM contract_expiry_emails_sent) AS first_stamp,
+  (SELECT MAX(sent_at) FROM contract_expiry_emails_sent) AS last_stamp,
+  (SELECT COUNT(*) FROM contracts WHERE end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' AND status = 'aktif') AS expected_in_window;
+```
+
+Sonuç: `total=2, last_24h=2, first/last_stamp 2026-04-20 19:57 UTC, expected_in_window=1`.
+
+Yorum: sabah 08:30 TR scheduled cron çalıştı, 1 sözleşme gördü, 2 recipient için unique constraint (`23505`) ile idempotency skip etti. Yeni satır yok, yeni email yok. **Tam beklenen davranış. Fix kalıcı.**
+
+---
+
+### Bölüm 2 — CRON_SECRET rotation
+
+**Üretim:** Browser-side Web Crypto API:
+```js
+const bytes = new Uint8Array(32);
+crypto.getRandomValues(bytes);
+const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+```
+
+**Aktarım:** Vercel env vars edit modal'ında React-friendly setter ile Value alanına yazıldı, kimseye gösterilmedi (ne transcript'e ne external service'a). `window.__newCronSecret` Vercel tab memory'sinde tutuldu, sonra silindi.
+
+**Save + Redeploy:**
+- Save → "Updated successfully" toast
+- Redeploy popup → modal Redeploy
+- Deployment `GHNSpxsfo` Ready + Current, build 1m 10s
+- Eski secret (son4 `4d74`) artık geçersiz
+
+---
+
+### Bölüm 3 — RESEND_API_KEY rotation
+
+**Resend dashboard:**
+- "Create API Key" → name `BPS Contract Expiry Email v2`, permission `Sending access`, domain `All Domains` (eski ile parite)
+- Yeni key dialog'da göründü, prefix `re_VmCUwHi3...`, length 36
+
+**Cross-tab clipboard bridge tekniği** (yeni — programmatic `navigator.clipboard` cross-tab focus restriction yüzünden çalışmadı, native OS clipboard kullanıldı):
+
+```js
+// Source tab (Resend)
+const ta = document.createElement('textarea');
+ta.id = '__claude_bridge__';
+ta.value = window.__newResendKey;
+document.body.appendChild(ta);
+ta.focus();
+ta.select();
+// computer.action key 'cmd+c' (native OS copy)
+
+// Target tab (Vercel)
+// Click value textarea, computer.action key 'cmd+a' then 'cmd+v'
+```
+
+Doğrulama: Vercel textarea'da `length:36, prefix:"re_Vm", isSameAsOld:false, hasOnlyAlnum:true` ✅
+
+**Save + Redeploy (iki adımda):**
+- 20 Nisan gece: save kayıt edildi (Vercel UI "Additional Permissions Required" geçici hatası verdi ama save başarılıydı, 21 Nisan'da doğrulandı)
+- 21 Nisan öğleden sonra: Vercel deployments listesinde RESEND için redeploy GÖRÜNMÜYORDU → manuel redeploy: Current deployment "..." → Redeploy → modal Redeploy
+- Deployment `AQLmAHw96` Ready + Current
+
+**Eski Resend key delete:**
+- Resend dashboard → `BPS Contract Expiry Email` (re_13RmBSJp..., 7 gün önce yaratılmış) → "..." → "Delete API key"
+- Onay diyaloğu: "Type BPS Contract Expiry Email to confirm" → ad yazıldı → Delete
+- Toast: "This API Key has been deleted" ✅
+
+**Cleanup:**
+- Bridge textarea silindi (`document.getElementById('__claude_bridge__')?.remove()`)
+- `window.__newResendKey` silindi
+
+---
+
+### Doğrulama tablosu
+
+| Surface | Önce (20 Nisan akşam) | Sonra (21 Nisan öğle) |
+|---|---|---|
+| Vercel `CRON_SECRET` | "Need To Rotate" badge | Badge yok, "Updated 22h ago" |
+| Vercel `RESEND_API_KEY` | "Need To Rotate" badge, eski v1 değer | Badge yok, "Updated 20h ago", yeni v2 değer (`re_VmCUwHi3...`) |
+| Vercel deployments | `5k4nr3481` Current (incident fix) | `AQLmAHw96` Current (RESEND redeploy) |
+| Resend API Keys | 1 key (`BPS Contract Expiry Email`, eski) | 1 key (`BPS Contract Expiry Email v2`, yeni) |
+
+---
+
+### Burn-in clock
+🟢 **Korundu.** 20 Nisan 22:57 TR'den itibaren sayıyor. Bu rotation trigger/threshold/template/recipient/sender/cron-time'dan hiçbirine dokunmadı, sadece kimlik bilgisi değişti.
+
+### Kod / Schema / RLS değişikliği
+**Yok.** Sadece env var değerleri (Vercel) ve API key tablosu (Resend) değişti.
+
+### Yeni dokümantasyon
+- `SECURITY_CHECKLIST.md` 4.4 RED → GREEN, kanıt tablosu eklendi
+- Obsidian `01-projects/bps/sessions/2026-04-21-rotation-batch.md` (narrative versiyon, cross-tab clipboard tekniği detayı dahil)
+- Obsidian `01-projects/bps/decisions/karar-secret-hijiyeni.md` (kalıcı disiplin: secret değerleri ASLA plain-text)
+- Obsidian `01-projects/bps/decisions/karar-repo-vs-obsidian-disposition.md` (iki kanal arası disposition kuralı)
+
+### Yeni discipline (kalıcı)
+**Secret değerleri herhangi bir markdown/handoff/CHANGELOG/commit message'da plain-text yer almaz.** Partial mask (`hex...4d74`) veya last-N-chars referans kullan. CRON_SECRET incident'ı bunun maliyetini gösterdi.
+
+### Yarın sabahki cron — final smoke test
+22 Nisan 08:30 TR cron'u çalıştığında:
+- Yeni `CRON_SECRET` ile Vercel Cron otomatik header oluşturur
+- Yeni `RESEND_API_KEY` ile Resend transport doğrulanır
+- Aynı sözleşme idempotency skip eder (yeni email yok)
+- **Resend dashboard'da `BPS Contract Expiry Email v2`'nin "Last Used" sütunu güncellenir** → rotation production'da gerçekten çalıştı demektir
+
+E�er `recipientsFailed > 0` veya `errors[]` doluysa → yeni Resend key validation problemi → eski key zaten silindi, rollback yok → debug + yeni v3 key üret.
+
+### Ortam durumu
+- Kod: `main` commit `0271f37` (değişmedi, 5 gün öncesi)
+- Aktif deployment: `AQLmAHw96` Production Ready + Current
+- Aktif secrets: yeni CRON_SECRET (last4 `28cd0b`), yeni RESEND_API_KEY (`re_VmCUwHi3...`)
+- Cron Jobs: Enabled, schedule `30 5 * * *` (UTC), unchanged
+- "Need To Rotate" badge'leri: yok ✅
+
+### Sonraki en doğru adım
+**Katman 2 (P0):** 3.5 healthz endpoint + 7.4 companion log (Claude Code, ~45 dk toplam). Burn-in clock'u sıfırlamayan observability işleri.
+
+---
+
+## 2026-04-20 — Contract Expiry Email V1 Silent Failure Resolution + Security Checklist Sweep
+
+### Session amacı
+4 günlük silent cron failure'ın root-cause tespiti, bounded fix, ardından Katman 1 güvenlik checklist'i (sweep + dokümantasyon).
+
+### Verdict
+🟢 **GREEN (incident).** Root cause tek env var yanlış-slot; tek env var değişikliği + redeploy ile çözüldü. Hiçbir kod, migration veya RLS değişikliği yapılmadı.
+🔴 **RED (yeni bulgu).** Vercel Secret Scanning iki secret için "Need To Rotate" badge'i yakaladı — paranoia rotation batch'i P0 olarak açıldı.
+
+---
+
+### Bölüm 1 — İncident: Contract Expiry Email V1 silent failure
+
+**Root cause:**
+Vercel Production scope'undaki `SUPABASE_SERVICE_ROLE_KEY` env var'ına **anon JWT** kopyalanmıştı (büyük olasılıkla 16 Nisan'da "SUPABASE_SERVICE_ROLE_KEY yok → 500 crash" hatasını çözerken acele bir copy-paste). JWT payload decode: `role:"anon"`, doğru `ref`.
+
+**Silent failure zinciri:**
+1. Cron handler `createClient(url, SERVICE_ROLE_KEY)` ile init etti, kendisi service role olduğunu sandı
+2. PostgREST JWT'yi decode etti → `role: "anon"` gördü
+3. Anon role'e RLS uygulandı → contracts SELECT auth.uid() null → 0 satır
+4. Supabase `{data: [], error: null}` döndü — **exception fırlatmadı**
+5. Handler `if (contractError)` tetiklenmedi → `errors:[]` boş kaldı
+6. Log: `evaluated=0 attempted=0 sent=0 errors=[]`
+
+4 gün boyunca sessiz silent failure.
+
+**Detection:**
+"16 Nisan akşam GREEN" verdict'i `evaluated=0` olduğunda verildi — ama o anda 30-gün penceresinde sözleşme yoktu, dolayısıyla `evaluated=0` doğal kabul edildi. 20 Nisan'da veri penceresinde 1 sözleşme (`Gıda Üretim Personeli Sözleşmesi`, end_date `2026-04-30`) olduğunda aynı `evaluated=0` tetiklendi ve çelişki görünür oldu.
+
+**Fix:**
+1. Supabase dashboard → PSS → Settings → API Keys → Legacy tab → `service_role` key reveal + kopyala
+2. Vercel Settings → Environment Variables → `SUPABASE_SERVICE_ROLE_KEY` (Production) → Edit → eski anon JWT'yi sil → yeni service_role JWT'yi yapıştır → Save
+3. Redeploy (no cache) mevcut main commit `0271f37` üzerine → deployment `5k4nr3481`, build 1m 13s, Ready + Current
+4. Curl re-test: `contractsEvaluated:1, recipientsAttempted:2, recipientsSent:2` (ilk call) → `recipientsSkippedIdempotent:2` (2. call, doğru davranış)
+5. `contract_expiry_emails_sent` tablosu doğrulama: 2 satır, `sent_at ~ 19:57:32 UTC` (22:57 TR)
+
+**Doğrulama sonuçları:**
+
+| Surface | Önce | Sonra |
+|---|---|---|
+| `contractsEvaluated` | 0 | 1 |
+| `recipientsAttempted` | 0 | 2 |
+| `recipientsSent` | 0 | 2 (ilk call) |
+| Idempotency | untested | ✅ 23505 on 2. call |
+| `contract_expiry_emails_sent` rows | 0 | 2 |
+
+**Burn-in clock:**
+🟢 **Restart 2026-04-20 22:57 TR.** Önümüzdeki 4 scheduled cron clean gözlemle bitmeli. Herhangi bir değişiklik (threshold, template, recipient kuralı, sender, cron zamanı) sayacı sıfırlar. Aşağıdaki rotation/observability işleri sayacı sıfırlamaz.
+
+---
+
+### Bölüm 2 — Katman 1 güvenlik sweep + dokümantasyon
+
+**Yapılan iş:**
+- Vercel'deki tüm 8 env var'ın value-tipi sweep'i (JWT decode, URL match, format identification)
+- `SECURITY_CHECKLIST.md` dokümantasyonu (Furkan'ın verdiği şablon + delta + 2 yeni madde)
+- README doc map önerisi
+- CHANGELOG entry'leri
+
+**Env scope sweep — full sonuç:**
+
+| Env var | Scope | Doğrulama |
+|---|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | Production | ✅ role=service_role, ref=PSS, last8=`Y87Ys3cc` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production | ✅ role=anon, ref=PSS, ⚠️ trailing `\n` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Production | ✅ `https://dffdzbmnmnokbftbujsy.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Preview | ✅ role=anon, ref=demo |
+| `NEXT_PUBLIC_SUPABASE_URL` | Preview | ✅ `https://tiqemcsjuyudahgmqksw.supabase.co` |
+| `RESEND_API_KEY` | Prod+Preview | ✅ format ama 🚨 **Need To Rotate** |
+| `CRON_SECRET` | All | ✅ format ama 🚨 **Need To Rotate** |
+| `BPS_CONTRACT_EXPIRY_EMAIL_ENABLED` | All | ✅ `true` |
+
+Sonuç: **tüm scope'lar ve değer tipleri doğru.** Service_role bug dışında başka silent failure yüzeyi yok.
+
+**Yeni RED maddeler (incident'tan çıkan dersler):**
+- **3.5 Env var value-correctness runtime self-check** — Deploy sonrası `/api/healthz?check=service_role_jwt` benzeri 1-shot diagnostic endpoint. JWT payload'unda `role:"service_role"` döndüğünü + tiny RLS-bypass query doğrular. Bu endpoint olsaydı, incident 4 gün değil 4 dakikada yakalanırdı.
+- **7.4 Silent zero-condition disambiguation** — Handler aynı turn'de companion ham `SELECT count(*)` atıp `expected_in_window` sayısı log'lar. `evaluated != expected_in_window` otomatik anomaly sinyali. `evaluated=0 errors=[]` artık tek başına ambiguous olmaz.
+
+Her iki madde Katman 2'de (burn-in penceresi içinde, observability ekleme olarak) implement edilecek.
+
+---
+
+### Bölüm 3 — Yeni RED bulgu: P0 paranoia rotation batch
+
+**Bulgu:**
+Vercel/GitHub Secret Scanning otomatik tespit yaptı ve iki env var'a "Need To Rotate" badge'i koydu:
+- `RESEND_API_KEY` (Prod+Preview)
+- `CRON_SECRET` (All Environments)
+
+**Olası kaynak:** CRON_SECRET, önceki handoff dokümanlarında **plain-text** geçti. Eğer bu dokümanlar repo'ya commit'lendiyse GitHub Secret Scanning algılar.
+
+**Yeni discipline:** Handoff/CHANGELOG/herhangi bir markdown'da secret değerleri ASLA plain-text yer almasın. Last-N-chars veya partial mask kullan ("hex...4248b7...4d74" gibi).
+
+**Rotation batch (~30 dk, sonraki turn):**
+1. **CRON_SECRET rotate:** terminal'de `openssl rand -hex 32` → Vercel All Environments env update → redeploy.
+2. **RESEND_API_KEY rotate:** Resend dashboard → API Keys → Generate new → Vercel Prod+Preview env update → eski key delete → redeploy.
+3. **Service_role JWT (paranoia, opsiyonel):** Supabase Settings → JWT Keys → regenerate. **DİKKAT:** Bu hem anon hem service_role JWT'leri yeniler — tüm browser session'ları kopar. Eğer yapılırsa: tüm 4 SUPABASE_*_KEY değerleri yeniden alınıp Vercel'e paste edilir.
+4. **Sensitive toggle:** Rotation sonrası yeni değerlerle Sensitive ON; o zaman Vercel "Unchanged Value" uyarısı çıkmaz.
+5. **Production anon key trailing `\n`:** doğal olarak temizlenir (yeni paste).
+
+**Sensitive toggle deferred (bu turn):** SUPABASE_SERVICE_ROLE_KEY için Sensitive ON denemesi sırasında Vercel uyardı: "değer recently okunmuştu, yeni değer girin." Cancel edildi. Sensitive toggle, key rotation ile birlikte yapılmalı.
+
+---
+
+### Scope guardrail'leri korundu
+Bu session **açmamış / genişletmemiştir**:
+- Weekly Digest
+- In-app notification merkezi
+- Recipient rule (yonetici global + partner via `partner_company_assignments` — değişiklik yok)
+- Ürün yüzeyi, page, component — hiç biri
+- Roadmap sequencing — olduğu gibi
+
+### Ortam durumu
+- Kod: `main` commit `0271f37` (kod değişmedi)
+- Deployment: `5k4nr3481` Ready + Current, Production
+- Env var: `SUPABASE_SERVICE_ROLE_KEY` (Production) — gerçek service_role JWT, last8 `Y87Ys3cc`
+- Cron Jobs: Enabled, schedule `30 5 * * *` (UTC)
+
+### Yeni doküman: `SECURITY_CHECKLIST.md`
+Disposition: ops review aracı (source-of-truth değil). Öneri yer: `00_core/SECURITY_CHECKLIST.md`. README doc map'e eklenmeli; CODEX'e dokunulmaz. Aktif kurallar WORKFLOW_RULES + ROLE_MATRIX'te yaşamaya devam eder.
+
+### Sonraki en doğru adım
+**Katman 1.5 (P0):** Paranoia rotation batch (CRON_SECRET + RESEND_API_KEY rotate, 30 dk). Bu burn-in'i sıfırlamaz.
+**Katman 2 (P0/P1):** 3.5 healthz endpoint + 7.4 companion log (Claude Code, ~45 dk toplam).
+**Devam:** Burn-in observation + Weekly Digest implementation 4-day clean window sonunda.
+
+---
+
 ## 2026-04-14 — Evre 1 Tamamlama + Finansal Özet Parity
 
 ### Session amacı

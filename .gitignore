@@ -14,3 +14,8 @@ supabase/.temp/
 .env.prod.local
 .env.demo-app.local
 .env.demo.local
+
+# Patch applier auto-backups
+00_core/*.backup-*
+00_core/*.bak-*
+apply_patches.py

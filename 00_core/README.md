@@ -35,6 +35,7 @@ BPS, firma-merkezli veri omurgasına sahip, kişi-merkezli günlük deneyim suna
 - `WORKFLOWS_PROMPT.md` → tekrar kullanılabilir standart workflow prompt kütüphanesi; ürün/rol/workflow kuralı tanımlamaz
 - `REVIEW_STANDARD.md` → batch review ve kapanış kontrol standardı
 - `MIGRATION_SAFETY.md` → yalnızca canlı kullanım ve gerçek veri olduğunda aktive edilen güvenlik ilkeleri
+- `SECURITY_CHECKLIST.md` -> guvenlik ve ops review araci; source-of-truth degildir (active rules WORKFLOW_RULES ve ROLE_MATRIX icinde yasar)
 
 ## Önerilen Kullanım
 Yeni bir Codex oturumunda canonical okuma sırası şu olmalıdır:
