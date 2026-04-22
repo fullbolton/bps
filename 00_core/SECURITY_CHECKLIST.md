@@ -68,6 +68,20 @@ Kod surface: < 50 satir, no new dependencies. Claude Code bounded prompt uygun.
 
 ## 1.5 Offboarding / stale access (YENİ — 22 Nisan ChatGPT review bulgusu)
 
+**Güncelleme 2026-04-22 akşam:** Runbook yazıldı, **durum RED → YELLOW**.
+
+**Kanıt:** `docs/runbooks/user-offboarding.md` (5-adım prosedür, ~237 satır prose).
+
+**Schema dependency:** `profiles` soft-delete kolonu (örn. `deleted_at`) henüz yok. Runbook'ta adım 2 "pending" olarak flag'li. Gerekirse ayrı bounded batch açılır (migration + downstream reader güncellemeleri).
+
+**Kalan iş:**
+- İlk gerçek offboarding yaşandığında runbook'u test et, boşlukları raporla
+- Schema decision (soft-delete kolonu) — ayrı batch'e ertelendi
+
+---
+
+**Orijinal Tespit (2026-04-22):**
+
 **Durum:** RED
 **Owner:** Furkan
 **Son kontrol:** 2026-04-22

@@ -6,6 +6,35 @@ Bu dosya "en son ne olmuştu?" sorusuna cevap verir.
 
 ---
 
+## 2026-04-22 (akşam) — User Offboarding Runbook
+
+### Session amacı
+ChatGPT review P1 batch: offboarding / stale access prosedürü yazılı hale getirilsin. Pre-office-rollout öncesi hazır olsun.
+
+### Verdict
+🟢 GREEN. Runbook yazıldı, SECURITY_CHECKLIST §1.5 YELLOW'a geçti. Burn-in clock korundu (prose-only, kod değil).
+
+### Yapılan
+- Yeni dosya: `docs/runbooks/user-offboarding.md` (237 satır prose)
+- 5-adım prose prosedür: auth disable → profile soft-delete (pending) → scope null-out → contracts.responsible reassign → Obsidian audit stamp
+- 4 prensip: disable-not-delete, historical data preservation, scope kesimi, display reference reassign
+- Schema dependency (profile soft-delete kolonu) explicit flag'li, ayrı batch'e ertelendi
+
+### Kod / Schema / RLS değişikliği
+Yok. Sadece prose dokümantasyon. Burn-in clock korundu.
+
+### Ortam durumu
+- Kod: `main` commit `11e0576`
+- Production: `FpLnxGyym` Ready + Current
+- Cron Jobs: Enabled, schedule unchanged
+
+### Sonraki
+- Yarın sabah 09:00-09:30 TR: ilk scheduled cron observation (3.5 + 7.4 live)
+- İlk gerçek offboarding → runbook drill
+- Access request anti-bot (honeypot + rate limit) — P1 listesinde 2. sıra
+
+---
+
 ## 2026-04-22 — expected_in_window Companion Log (SECURITY_CHECKLIST 7.4 RED → GREEN)
 
 ### Session amacı
