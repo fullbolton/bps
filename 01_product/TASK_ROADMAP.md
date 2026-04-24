@@ -125,6 +125,15 @@ Evre 1 closeout:
 - MODULE_SYSTEM_SPEC.md first draft
 
 ### DEFER → Hafta 2
+
+**RoleResolutionRefactor** (Hafta 2-3 aday batch)
+
+AuthContext şu an role'ü `auth.users.raw_user_meta_data.role` JWT claim'inden okuyor, `public.profiles.role` tablosundan değil. Hidden coupling — yeni hesap yaratırken iki ayrı SQL adım (profile insert + user_metadata update) + logout/login şart. Multi-tenant geçişinde tenant başına admin user oluştururken çığ etkisi riski.
+
+Doğru yaklaşım: AuthContext profile tablosunu primary source yapsın, user_metadata.role fallback olsun. Profile değişikliğinin session'a yansıması için refreshSession() pattern'i.
+
+Kaynak: `Vault77/01-projects/bps/notes/debt-authcontext-role-resolution.md`
+
 - MULTI_TENANT_MIGRATION_PLAN.md first draft (tenant çekirdek kararın çıktısına bağlı)
 
 ### Operasyonel kurallar
