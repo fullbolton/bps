@@ -104,6 +104,26 @@ The changelog records decisions but does not override active source-of-truth doc
 
 ---
 
+## Obsidian ↔ Repo Sync
+
+BPS uses a two-layer documentation system:
+
+- **Obsidian** (Vault77/01-projects/bps/) — thinking lab: reasoning, alternatives, session notes, early signals, half-decisions, adoption insights
+- **Repo** (this file tree) — operational source-of-truth: accepted decisions, implementation boundaries, roadmap sequencing, canlı davranışı etkileyen kurallar
+
+Obsidian feeds repo; never replaces it.
+
+**Sync rule (hard):** Any Obsidian note marked `APPROVED`, `CURRENT PLAN`, or `GATE` must have either:
+
+1. A repo representation (single correct surface: `CHANGELOG`, `TASK_ROADMAP`, or relevant SoT doc), or
+2. Explicit `OBSIDIAN_ONLY` tag
+
+No third option.
+
+**Batch closeout question (mandatory):** _Bu batch sırasında Obsidian'da kabul edilmiş ama repo'ya yansımamış karar var mı?_
+
+Full rule: `Vault77/01-projects/bps/decisions/karar-obsidian-repo-sync-rule.md`
+
 ## Core Product Rules
 - Company Detail is the center of the product.
 - Dashboard is a decision surface, not a KPI dump.
