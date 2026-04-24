@@ -752,3 +752,31 @@ Yarın sabah post-08:30 cron incelemesi:
 - `access_requests` formu: honeypot + rate limit (auth hardening follow-up)
 - Resend API key rotation (chat'te expose oldu)
 - Working tree'de untracked landing-page çalışması (ayrı session, bu batch'ten değil)
+## 2026-04-22 (Gece) — Hafta 1 Triage + Operasyonel Gate'ler
+
+### Session amacı
+8-10 hafta master plan'ın Hafta 1'ini somut triage'a çevirmek. ChatGPT paralel review ile testing infra ve Track B scheduling kurallarını kilitlemek. Doc senkronizasyon kuralını netleştirmek.
+
+### Kararlar
+1. Hafta 1 = 7 madde, MUST/SHOULD/DEFER etiketli (Triage tablo Vault'ta)
+2. Testing Infra Gate yazıldı: 4 çıktı (tool + scope + 5 senaryo + 1 smoke path), Hafta 2 foundation öncesi şart
+3. Track B Scheduling Gate yazıldı: Pazar 27 Nisan gece slot lock, Pazartesi 12:00 kontrol, slot yoksa SHOULD düşer
+4. Düşme sırası önceden tanımlandı: #4 (MODULE_SYSTEM_SPEC) → #3 (Consulting scope). MUST düşemez. #9 (smoke path) düşmez.
+5. Doc senkronizasyon kuralı: her decision için CHANGELOG + ilgili source-of-truth + Vault detay (üç katman). Repo "ne aktif", Vault "neden + nasıl".
+
+### Bağlam (özetle)
+- 8-10 hafta master plan resmi oldu (`Vault77/.../decisions/karar-bps-8-hafta-revize-plan.md`)
+- 8 mimari karar dondurulmuş halde (Engagement Pattern B, Opsiyon B+ rollout, subdomain tenant resolution, ayrı admin subdomain + ayrı session, testing infra multi-tenant öncesi, Consulting v1 4 entity, Vercel Pro multi-tenant öncesi, Stripe v1'de yok)
+- Track B haftada 2 görüşme zorunlu (saat metriği değil)
+- ChatGPT'nin sert hükmü plana yedirildi: ana risk teknik kalite değil pazar kanıtının geride kalması
+
+### Aksiyonlar (yazılan)
+- `Vault77/01-projects/bps/haftalik/hafta-1-prioritization.md`
+- `01_product/TASK_ROADMAP.md` Active Workstream — Hafta 1 bölümü
+- `00_core/CHANGELOG.md` tek satır
+
+### Sonraki adımlar
+- 23 Nisan sabah 09:00-09:30: Scheduled cron observation #1 (template hazır: `Vault77/.../sessions/2026-04-23-scheduled-observation-1.md`)
+- 23 Nisan öğleden sonra: B&P domain keşif egzersizi (30-45 dk paper exercise)
+- Bu hafta içi: Track B görüşme listesi doldurma + PDF upload Claude Code prompt'u → implementation
+- 27 Nisan Pazar gece: Track B 2 görüşme slot lock + Hafta 1 review (6-satır format)

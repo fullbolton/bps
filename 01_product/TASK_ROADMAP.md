@@ -107,6 +107,42 @@ Evre 1 closeout:
 
 ---
 
+## Active Workstream — Hafta 1 (25 Nisan - 1 Mayıs 2026)
+
+> **Master plan:** `Vault77/01-projects/bps/decisions/karar-bps-8-hafta-revize-plan.md` (8-10 hafta, iki track)
+> **Detay:** `Vault77/01-projects/bps/haftalik/hafta-1-prioritization.md`
+> **Review:** 27 Nisan Pazar gece, `Vault77/01-projects/bps/haftalik/hafta-1-review.md`
+
+### MUST
+- PDF upload V1 ship (sekreter sinyali kaynak; mevcut `documents` tablosu, hard caps: max 200 satır, 3 dosya, 1 commit, 2-3 saat)
+- Tenant çekirdek karar (subdomain + auth model + email sender — yazılı dondurma)
+- Vercel Pro upgrade (Hobby 1h log retention production blocker)
+- Track B: 2 dış görüşme **yapılmış** (Pazar 27 Nisan gece slot lock, Pazartesi 12:00 kontrol)
+- Testing Infra Gate (chosen tool + test scope + 5 critical scenarios + 1 executable smoke path)
+
+### SHOULD
+- Consulting Module v1 scope yazılı dondur (4 entity: `consulting_engagements`, `consultants`, `time_entries`, `milestones` + anti-goals)
+- MODULE_SYSTEM_SPEC.md first draft
+
+### DEFER → Hafta 2
+- MULTI_TENANT_MIGRATION_PLAN.md first draft (tenant çekirdek kararın çıktısına bağlı)
+
+### Operasyonel kurallar
+- **Düşme sırası önceden tanımlı:** #4 MODULE_SYSTEM_SPEC → #3 Consulting scope (anlık karar yasak)
+- **Hiçbir MUST düşemez;** düşerse hafta başarısız sayılır
+- **Sessiz düşürme yok;** gerekçe `Vault77/.../hafta-1-prioritization.md` "Düşme kayıtları" bölümüne yazılır
+- **Track B metrik:** saat değil görüşme sayısı (haftada 2 dış görüşme zorunlu)
+
+### Anti-pattern hatırlatıcı (8 haftalık plan red flag listesi — özet)
+1. "Önce tam sağlam olsun, sonra kullanıcı"
+2. "B&P/PS kullanıyorsa market de kullanır"
+3. "Görüşme yapıyoruz ama ödeme konuşmuyoruz"
+4. "Landing page güzelleştirdik, validation ilerledi"
+5. "Multi-tenant diye admin paneli büyüttük"
+6. "Consulting için çok genel yapı kuralım"
+7. "Security/ops hardening'i her modülde framework'e çevirelim"
+
+---
 ## Strategic Direction — 5-Layer Framing
 
 Strategic direction is defined in `03_strategy/BPS_YAPILANMA_PAKETI.md`. This section aligns roadmap reading with its 5-layer framing without erasing delivery history below.
