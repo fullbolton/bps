@@ -254,13 +254,36 @@ export default function EvraklarPage() {
     [allCompanies],
   );
 
-  const canMutateEvrak = ["yonetici", "operasyon", "ik"].includes(role);
-  const rowActions: RowAction<DocumentListRow>[] = canMutateEvrak ? [
-    {
+  // Partner'ın evrak yükleme hakkı ROLE_MATRIX §5.7 ve documents RLS
+  // INSERT policy'sinde "Portföyünde Evet" olarak kayıtlıdır. Mevcut
+  // UI bu hakkı gizliyordu — bu batch'te UI kaynağa hizalandı (raporda
+  // "Partner UI drift correction" olarak belirtildi). Partner scope
+  // zaten RLS + storage.objects INSERT policy'sinde enforce edilir.
+  const canMutateEvrak = ["yonetici", "partner", "operasyon", "ik"].includes(role);
+
+  async function handleDownload(row: DocumentListRow) {
+    if (!row.storage_path) return;
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(row.storage_path, 60);
+    if (error || !data?.signedUrl) {
+      setLoadError(`Indirme baglantisi olusturulamadi: ${error?.message ?? "bilinmeyen hata"}`);
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
+  const rowActions: RowAction<DocumentListRow>[] = [
+    ...(canMutateEvrak ? [{
       label: "Gecerlilik Guncelle",
-      onClick: (row) => setValidityTarget({ open: true, evrakAdi: row.name, evrakId: row.id, currentDate: row.validity_date ?? "" }),
+      onClick: (row: DocumentListRow) => setValidityTarget({ open: true, evrakAdi: row.name, evrakId: row.id, currentDate: row.validity_date ?? "" }),
+    }] : []),
+    {
+      label: "Indir",
+      onClick: (row: DocumentListRow) => { void handleDownload(row); },
+      isDisabled: (row: DocumentListRow) => !row.storage_path,
     },
-  ] : [];
+  ];
 
   if (["goruntuleyici", "muhasebe"].includes(role)) {
     return (
@@ -375,11 +398,39 @@ export default function EvraklarPage() {
 
       <UploadDocumentModal open={uploadOpen} onClose={() => setUploadOpen(false)} firmalar={firmaOptions}
         onSubmit={async (p) => {
+          // Resolve real company UUID from the dropdown id (which is
+          // legacy_mock_id when present, else the real UUID). This is
+          // a pragmatic batch-local lookup against already-loaded
+          // allCompanies — kept here to preserve storage-first order
+          // without reshaping the documents service signature. See
+          // report > "Page-level company_id lookup note".
+          const company = allCompanies.find(
+            (c) => (c.legacy_mock_id ?? c.id) === p.firmaId,
+          );
+          if (!company) {
+            throw new Error("Firma bulunamadi veya erisim yetkiniz yok.");
+          }
+          const path = `${company.id}/${crypto.randomUUID()}.pdf`;
+
+          // Storage first — fake storage_path rows must not exist.
+          const up = await supabase.storage
+            .from("documents")
+            .upload(path, p.file, {
+              contentType: "application/pdf",
+              upsert: false,
+            });
+          if (up.error) {
+            throw new Error(`Dosya yuklenemedi: ${up.error.message}`);
+          }
+
+          // DB second. If this throws, the storage object becomes
+          // orphaned — see report > "Blockers or unresolved risks".
           await createDocument(supabase, {
             legacyCompanyId: p.firmaId,
             name: p.evrakAdi,
             category: p.kategori,
             validityDate: p.gecerlilikTarihi,
+            storagePath: path,
           });
           await reload();
           router.refresh();

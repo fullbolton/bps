@@ -11,6 +11,7 @@ export interface UploadDocumentSubmitData {
   evrakAdi: string;
   kategori: DocumentCategory;
   gecerlilikTarihi: string;
+  file: File;
 }
 
 interface UploadDocumentModalProps {
@@ -20,11 +21,15 @@ interface UploadDocumentModalProps {
   onSubmit: (payload: UploadDocumentSubmitData) => Promise<void> | void;
 }
 
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
 export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit }: UploadDocumentModalProps) {
   const [firmaId, setFirmaId] = useState("");
   const [evrakAdi, setEvrakAdi] = useState("");
   const [kategori, setKategori] = useState<DocumentCategory>("diger");
   const [gecerlilik, setGecerlilik] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -35,13 +40,36 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
       setEvrakAdi("");
       setKategori("diger");
       setGecerlilik("");
+      setFile(null);
+      setFileError(null);
       setSaving(false);
       setSubmitError(null);
     }
   }, [open]);
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0] ?? null;
+    if (!picked) {
+      setFile(null);
+      setFileError(null);
+      return;
+    }
+    if (picked.type !== "application/pdf") {
+      setFile(null);
+      setFileError("Sadece PDF dosyasi yuklenebilir.");
+      return;
+    }
+    if (picked.size > MAX_FILE_BYTES) {
+      setFile(null);
+      setFileError("Dosya boyutu 10 MB'dan buyuk olamaz.");
+      return;
+    }
+    setFile(picked);
+    setFileError(null);
+  }
+
   async function handleSubmit() {
-    if (!firmaId || !evrakAdi.trim() || saving) return;
+    if (!firmaId || !evrakAdi.trim() || !file || saving) return;
     const firma = firmalar.find((f) => f.id === firmaId);
     const payload: UploadDocumentSubmitData = {
       firmaId,
@@ -49,6 +77,7 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
       evrakAdi: evrakAdi.trim(),
       kategori,
       gecerlilikTarihi: gecerlilik,
+      file,
     };
     setSaving(true);
     setSubmitError(null);
@@ -66,7 +95,7 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
     <ModalShell open={open} onClose={onClose} title="Evrak Yukle" footer={
       <>
         <button onClick={onClose} disabled={saving} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40">Iptal</button>
-        <button onClick={handleSubmit} disabled={!firmaId || !evrakAdi.trim() || saving} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+        <button onClick={handleSubmit} disabled={!firmaId || !evrakAdi.trim() || !file || saving} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? "Kaydediliyor..." : "Yukle"}
         </button>
       </>
@@ -81,6 +110,17 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
             <option value="">Firma secin</option>
             {firmalar.map((f) => <option key={f.id} value={f.id}>{f.ad}</option>)}
           </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Dosya (PDF) <span className="text-red-500">*</span></label>
+          <input type="file" accept="application/pdf" onChange={handleFileChange} disabled={saving} className="w-full text-sm text-slate-700 file:mr-3 file:px-3 file:py-1.5 file:text-sm file:font-medium file:bg-slate-50 file:border file:border-slate-200 file:rounded-md file:text-slate-700 hover:file:bg-slate-100 disabled:opacity-40" />
+          {file && !fileError && (
+            <p className="mt-1 text-xs text-slate-500">{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</p>
+          )}
+          {fileError && (
+            <p className="mt-1 text-xs text-red-600">{fileError}</p>
+          )}
+          <p className="mt-1 text-xs text-slate-500">Maksimum 10 MB, sadece PDF.</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Evrak Adi <span className="text-red-500">*</span></label>
