@@ -6,6 +6,35 @@ Bu dosya "en son ne olmuştu?" sorusuna cevap verir.
 
 ---
 
+## 2026-04-25 — Documents Read Boundary Trust Alignment (ROLE_MATRIX §4:307)
+
+### Session amacı
+ROLE_MATRIX §4 row 307 "Evrak görüntüleme: muhasebe=Hayır, görüntüleyici=Hayır" diyor; backend `documents_select` ve `documents_bucket_select` ise bu iki rolü allowed listede tutuyordu. UI zaten kaynağa uyumluydu (EmptyState), backend hizalansın.
+
+### Verdict
+- **Trust alignment patch: GREEN**
+- **Post-apply runtime verification: required**
+- **Known follow-up: UX/read-denied vs zero-data clarity**
+
+### File delta
+- `supabase/migrations/20260425000100_documents_read_boundary_alignment.sql` (YENİ, 50 satır) — DROP + CREATE for `documents_select` (public.documents) ve `documents_bucket_select` (storage.objects). INSERT/UPDATE/DELETE policy'leri verbatim, path-format CASE guard verbatim.
+- UI dokunulmadı; CHANGELOG bir satır eklendi.
+
+### Apply durumu
+Migration dosya olarak working tree'de; Supabase SQL Editor'da run edilmesi senin tarafında. Ben apply edemem (Dashboard erişimim yok). Apply sonrası 5 dk smoke test:
+- `yonetici JWT → SELECT count(*) FROM documents` > 0
+- `muhasebe JWT → SELECT count(*) FROM documents` = 0
+- `görüntüleyici JWT → SELECT count(*) FROM documents` = 0
+- `partner JWT → SELECT count(*) FROM documents` = portföy satır sayısı
+
+### Burn-in clock
+🟢 **Korundu.** Sadece RLS read-boundary; trigger/threshold/template/recipient/sender/cron-time/upload/write/delete/schema dokunulmadı.
+
+### Sonraki en doğru adım
+Apply + 4-curl smoke (yukarıda). Sonra UX follow-up: muhasebe/görüntüleyici Firmalar list compliance kolonu / Firma Detay Evrak sekmesinde "0 evrak" mı "erişim kısıtlı" mı gösterilmeli kararı (ayrı küçük UX batch). Bu read-side artık doğru filtre uyguluyor; UX cilası ayrı sıraya alınabilir.
+
+---
+
 ## 2026-04-22 (akşam) — User Offboarding Runbook
 
 ### Session amacı

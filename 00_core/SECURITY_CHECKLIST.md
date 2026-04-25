@@ -112,9 +112,12 @@ User offboarding runbook (< 1 sayfa doküman, kod değil):
 ## 2.1 RLS kapsaması
 **Durum:** YELLOW
 **Owner:** Furkan
-**Son kontrol tarihi:** 2026-04-12
+**Son kontrol tarihi:** 2026-04-12 (genel) · 2026-04-25 (documents domain narrow audit)
 **Kanıt:** Apr 12 demo rehearsal PASS (yonetici 9 firma, Partner A 3, Partner B 4, Viewer 3 menü). O tarihten sonra schema değişimi audit edilmedi.
-**Sonraki aksiyon:** Katman 3 — 3 tablo spot-check.
+
+**2026-04-25 narrow audit (documents domain only):** ROLE_MATRIX §4:307 ile `documents_select` + `documents_bucket_select` arasında muhasebe + görüntüleyici drift'i tespit edildi ve `20260425000100_documents_read_boundary_alignment.sql` ile kapatıldı. Trust alignment patch: GREEN; post-apply runtime verification: required (4-curl smoke). Diğer tablolar (contacts, contracts, tasks, appointments, staffing_demands, workforce_summary, critical_dates) bu turn audit edilmedi — Katman 3 spot-check'te kapsanır.
+
+**Sonraki aksiyon:** Katman 3 — kalan tabloların spot-check audit'i (documents tamam).
 
 ## 2.2 Rol modeli sızıntısı
 **Durum:** YELLOW (2.1 ile aynı)
