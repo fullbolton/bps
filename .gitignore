@@ -19,3 +19,10 @@ supabase/.temp/
 00_core/*.backup-*
 00_core/*.bak-*
 apply_patches.py
+
+# 24 Nis cleanup
+*.bak.*
+.env.local.bak.*
+BPS./
+BPS/
+bps-vault/
