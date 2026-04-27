@@ -148,6 +148,7 @@ export default function FirmaDetayPage({
   const { id } = use(params);
   const router = useRouter();
   const { role } = useRole();
+  const documentsAccessRestricted = role === "muhasebe" || role === "goruntuleyici";
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("genel");
   const [noteOpen, setNoteOpen] = useState(false);
@@ -610,7 +611,9 @@ export default function FirmaDetayPage({
                     </span>
                     <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>eksik / suresi dolan evrak</span>
                   </div>
-                  {eksikler.length === 0 ? (
+                  {documentsAccessRestricted ? (
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Erişim kısıtlı — bu rolde evrak görüntülenemez.</p>
+                  ) : eksikler.length === 0 ? (
                     <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Tum evraklar tamam.</p>
                   ) : (
                     <div className="space-y-1.5 mt-2">
@@ -1172,7 +1175,9 @@ export default function FirmaDetayPage({
           return (
             <div className={CARD_LG}>
               <h3 className={CARD_TITLE_PLAIN}>Firma Evraklari</h3>
-              {firmaDocs.length === 0 ? (
+              {documentsAccessRestricted ? (
+                <EmptyState title="Erişim kısıtlı" description="Bu rolde evrak görüntülenemez." size="tab" />
+              ) : firmaDocs.length === 0 ? (
                 <EmptyState title="Evrak yok" description="Bu firmaya ait evrak bulunamadi." size="tab" />
               ) : (
                 <div className="space-y-2">
