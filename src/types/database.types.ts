@@ -623,6 +623,7 @@ export interface Database {
         Row: {
           id: string;
           company_id: string;
+          contract_id: string | null;
           name: string;
           category: DocumentCategory;
           status: EvrakDurumu;
@@ -636,6 +637,7 @@ export interface Database {
         Insert: {
           id?: string;
           company_id: string;
+          contract_id?: string | null;
           name: string;
           category?: DocumentCategory;
           status?: EvrakDurumu;
@@ -649,6 +651,7 @@ export interface Database {
         Update: {
           id?: string;
           company_id?: string;
+          contract_id?: string | null;
           name?: string;
           category?: DocumentCategory;
           status?: EvrakDurumu;
@@ -661,6 +664,7 @@ export interface Database {
         };
         Relationships: [
           { foreignKeyName: "documents_company_id_fkey"; columns: ["company_id"]; referencedRelation: "companies"; referencedColumns: ["id"] },
+          { foreignKeyName: "documents_contract_id_fkey"; columns: ["contract_id"]; referencedRelation: "contracts"; referencedColumns: ["id"] },
           { foreignKeyName: "documents_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };

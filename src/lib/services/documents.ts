@@ -69,6 +69,7 @@ export interface DocumentCreateInput {
   category?: DocumentCategory;
   validityDate?: string;
   storagePath?: string;
+  contractId?: string;
 }
 
 export interface DocumentValidityUpdateInput {
@@ -210,6 +211,7 @@ export async function createDocument(
 
   const payload: DocumentInsert = {
     company_id: company.id,
+    contract_id: input.contractId ?? null,
     name,
     category: input.category ?? "diger",
     status,
@@ -220,6 +222,62 @@ export async function createDocument(
   };
 
   return insertDocument(client, payload);
+}
+
+// ---------------------------------------------------------------------------
+// Reads / writes -- contract PDF attachment (Hafta 2 batch)
+// ---------------------------------------------------------------------------
+
+/**
+ * Look up the single active contract document, if any.
+ *
+ * One row per contract is enforced at the DB layer by a partial unique
+ * index on `documents.contract_id` (`WHERE contract_id IS NOT NULL`).
+ * The query is small and only used by `/sozlesmeler/[id]`, so it is
+ * intentionally inlined here rather than added to the raw layer to
+ * keep this batch within its 3-code-file cap. Documented as a micro
+ * layer-break in the closeout report.
+ */
+export async function getActiveContractDocument(
+  client: Client,
+  contractId: string,
+): Promise<DocumentRow | null> {
+  const { data, error } = await client
+    .from("documents")
+    .select("*")
+    .eq("contract_id", contractId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`active contract document fetch failed: ${error.message}`);
+  }
+  return data ?? null;
+}
+
+/**
+ * Replace-flow update for a contract PDF document row.
+ *
+ * The caller (contract detail page) has already uploaded the new
+ * storage object and is now patching the existing row to point at it.
+ * Old storage object is intentionally not deleted here — orphan risk
+ * is consistent with the Storage Foundation pattern (see closeout
+ * report). DELETE on storage.objects is yonetici-only by RLS, so
+ * partner-replace would fail cleanup anyway; skipping cleanup keeps
+ * the code path uniform across roles.
+ */
+export async function updateContractDocumentFile(
+  client: Client,
+  documentId: string,
+  patch: { name: string; storagePath: string; uploadedBy: string | null },
+): Promise<DocumentRow> {
+  const trimmed = ensureNonBlankName(patch.name);
+  const dbPatch: DocumentUpdate = {
+    name: trimmed,
+    storage_path: patch.storagePath,
+    status: "tam",
+    uploaded_by: patch.uploadedBy,
+    updated_at: new Date().toISOString(),
+  };
+  return updateDocument(client, documentId, dbPatch);
 }
 
 // ---------------------------------------------------------------------------

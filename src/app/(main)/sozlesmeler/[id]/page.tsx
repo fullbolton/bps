@@ -33,8 +33,13 @@ import {
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
 import { listTasksByContractId } from "@/lib/services/tasks";
 import { listAppointmentsByContractId } from "@/lib/services/appointments";
+import {
+  createDocument,
+  getActiveContractDocument,
+  updateContractDocumentFile,
+} from "@/lib/services/documents";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
-import type { ContractRow, TaskRow, AppointmentRow } from "@/types/database.types";
+import type { ContractRow, TaskRow, AppointmentRow, DocumentRow } from "@/types/database.types";
 import type { SozlesmeDurumu } from "@/types/ui";
 import {
   SURFACE_PRIMARY,
@@ -85,6 +90,10 @@ export default function SozlesmeDetayPage({
   // Faz 3: linked tasks and appointments for this contract
   const [linkedTasks, setLinkedTasks] = useState<TaskRow[]>([]);
   const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRow[]>([]);
+  // Hafta 2: single active contract PDF document (null when none yet).
+  const [contractDoc, setContractDoc] = useState<DocumentRow | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   // Real companies for the edit-modal firma dropdown (partner-scoped
   // via RLS). Empty on error → honest empty picker.
   const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
@@ -125,11 +134,14 @@ export default function SozlesmeDetayPage({
           .then(setLinkedTasks).catch(() => setLinkedTasks([]));
         void listAppointmentsByContractId(supabase, row.id)
           .then(setLinkedAppointments).catch(() => setLinkedAppointments([]));
+        void getActiveContractDocument(supabase, row.id)
+          .then(setContractDoc).catch(() => setContractDoc(null));
       } else {
         setFirmaName("");
         setFirmaLegacyId(null);
         setLinkedTasks([]);
         setLinkedAppointments([]);
+        setContractDoc(null);
       }
     } catch (err) {
       setContract(null);
@@ -215,6 +227,92 @@ export default function SozlesmeDetayPage({
     }
   }
 
+  // Hafta 2: Sözleşme PDF upload / replace orchestration.
+  // Storage-first → DB-second; replace path updates the existing
+  // documents row in place (single-active truth enforced by partial
+  // unique index). Old storage object is intentionally not deleted —
+  // see closeout report's orphan-risk note.
+  async function handlePdfFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0] ?? null;
+    // Reset so the same file can be re-picked after a failure.
+    e.target.value = "";
+    if (!picked || !contract) return;
+
+    if (picked.type !== "application/pdf") {
+      setPdfError("Sadece PDF dosyası yüklenebilir.");
+      return;
+    }
+    if (picked.size > 10 * 1024 * 1024) {
+      setPdfError("Dosya boyutu 10 MB'dan büyük olamaz.");
+      return;
+    }
+
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const path = `${contract.company_id}/${crypto.randomUUID()}.pdf`;
+      const up = await supabase.storage
+        .from("documents")
+        .upload(path, picked, { contentType: "application/pdf", upsert: false });
+      if (up.error) {
+        throw new Error(`Dosya yüklenemedi: ${up.error.message}`);
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const uploadedBy =
+        (user?.user_metadata?.display_name as string | undefined) ??
+        user?.email ??
+        null;
+
+      if (contractDoc) {
+        await updateContractDocumentFile(supabase, contractDoc.id, {
+          name: picked.name,
+          storagePath: path,
+          uploadedBy,
+        });
+      } else {
+        await createDocument(supabase, {
+          legacyCompanyId: firmaLegacyId ?? contract.company_id,
+          contractId: contract.id,
+          name: picked.name,
+          category: "cerceve_sozlesme",
+          storagePath: path,
+        });
+      }
+
+      const next = await getActiveContractDocument(supabase, contract.id);
+      setContractDoc(next);
+      router.refresh();
+    } catch (err) {
+      setPdfError(err instanceof Error ? err.message : "PDF işlenemedi.");
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
+  function triggerPdfUpload() {
+    setPdfError(null);
+    document.getElementById("contract-pdf-input")?.click();
+  }
+
+  function triggerPdfReplace() {
+    if (!confirm("Mevcut PDF değiştirilecek. Devam edilsin mi?")) return;
+    triggerPdfUpload();
+  }
+
+  async function handlePdfDownload() {
+    if (!contractDoc?.storage_path) return;
+    setPdfError(null);
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(contractDoc.storage_path, 60);
+    if (error || !data?.signedUrl) {
+      setPdfError(`İndirme bağlantısı oluşturulamadı: ${error?.message ?? "bilinmeyen hata"}`);
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <>
       {/* Back navigation */}
@@ -274,6 +372,80 @@ export default function SozlesmeDetayPage({
       )}
 
       <div className="space-y-6">
+        {/* Sözleşme PDF'i — Hafta 2: imzalı PDF artefaktı bu sözleşmede yaşar.
+            Tek aktif PDF (DB-level partial unique on contract_id). Upload/replace
+            sadece canEdit (yonetici + partner). Operasyon görür ve indirir. */}
+        <section className={SECTION}>
+          <h2 className={SECTION_TITLE}>Sözleşme PDF&apos;i</h2>
+          <input
+            id="contract-pdf-input"
+            type="file"
+            accept="application/pdf"
+            onChange={handlePdfFileChange}
+            disabled={pdfBusy}
+            hidden
+          />
+          {contractDoc ? (
+            <div className="space-y-2">
+              <dl className="space-y-1.5">
+                <div className="flex items-baseline gap-2">
+                  <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY} w-32 shrink-0`}>Dosya</dt>
+                  <dd className={`${TYPE_BODY} ${TEXT_BODY}`}>{contractDoc.name}</dd>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY} w-32 shrink-0`}>Yüklenme</dt>
+                  <dd className={`${TYPE_BODY} ${TEXT_BODY}`}>
+                    {formatDateTR(contractDoc.updated_at?.split("T")[0] ?? "")}
+                  </dd>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY} w-32 shrink-0`}>Yükleyen</dt>
+                  <dd className={`${TYPE_BODY} ${TEXT_BODY}`}>{contractDoc.uploaded_by ?? "—"}</dd>
+                </div>
+              </dl>
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { void handlePdfDownload(); }}
+                  disabled={pdfBusy}
+                  className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
+                >
+                  İndir
+                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={triggerPdfReplace}
+                    disabled={pdfBusy}
+                    className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
+                  >
+                    {pdfBusy ? "İşleniyor…" : "Değiştir"}
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>PDF yüklenmemiş.</p>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={triggerPdfUpload}
+                  disabled={pdfBusy}
+                  className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
+                >
+                  {pdfBusy ? "Yükleniyor…" : "PDF Yükle"}
+                </button>
+              )}
+            </div>
+          )}
+          {pdfError && (
+            <p className={`${TYPE_CAPTION} text-red-600 mt-2`} role="alert" aria-live="polite">
+              {pdfError}
+            </p>
+          )}
+        </section>
+
         {/* Kritik Maddeler Özeti — real DB column */}
         <section className={SECTION}>
           <h2 className={SECTION_TITLE}>Kritik Maddeler Özeti</h2>
