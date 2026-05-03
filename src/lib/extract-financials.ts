@@ -62,6 +62,12 @@ export const MOCK_ACCOUNTANT_ARTIFACT: ExtractedReceivables = {
  * Simulates extracting receivables data from an uploaded accountant report.
  * In production: this would parse a real file with AI assistance.
  * In demo: returns the pre-structured mock artifact.
+ *
+ * **DEMO ONLY — DO NOT FEED INTO PRODUCTION WRITES.**
+ * The result of this function MUST NOT reach the `confirm_financial_data`
+ * RPC (or any other write path) until a real parser exists. Consuming UI
+ * keeps the confirm action permanently disabled with honest copy. See
+ * `src/app/(main)/finansal-ozet/page.tsx` > `handleConfirm`.
  */
 export function extractReceivablesSummary(): ExtractedReceivables {
   return MOCK_ACCOUNTANT_ARTIFACT;

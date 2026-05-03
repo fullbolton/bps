@@ -11,7 +11,6 @@ import {
 import { useRole } from "@/context/RoleContext";
 import { extractReceivablesSummary } from "@/lib/extract-financials";
 import { createClient } from "@/lib/supabase/client";
-import { selectCompaniesByLegacyMockIds } from "@/lib/supabase/companies";
 import type { ExtractedReceivables } from "@/lib/extract-financials";
 import type { FirmaAlacakEntry, FirmaKesilmemisEntry } from "@/types/batch5-finansal";
 import {
@@ -266,113 +265,20 @@ export default function FinansalOzetPage() {
   }
 
   async function handleConfirm() {
-    if (!extracted || confirming) return;
-    setConfirming(true);
-    setConfirmError(null);
-
-    try {
-      // 1. Merge açık-alacak + kesilmemiş-bekleyen into one row per
-      //    mock firmaId. is_overdue only exists on the açık-alacak
-      //    side; defaults to false for firms that appear only on the
-      //    kesilmemiş list.
-      const merged = new Map<
-        string,
-        {
-          open_receivable: string | null;
-          unbilled_amount: string | null;
-          is_overdue: boolean;
-        }
-      >();
-      for (const e of extracted.firmaAlacakDagilimi) {
-        const prev = merged.get(e.firmaId) ?? {
-          open_receivable: null,
-          unbilled_amount: null,
-          is_overdue: false,
-        };
-        merged.set(e.firmaId, {
-          ...prev,
-          open_receivable: e.acikAlacak,
-          is_overdue: Boolean(e.gecikmisMi),
-        });
-      }
-      for (const e of extracted.firmaKesilmemisDagilimi) {
-        const prev = merged.get(e.firmaId) ?? {
-          open_receivable: null,
-          unbilled_amount: null,
-          is_overdue: false,
-        };
-        merged.set(e.firmaId, {
-          ...prev,
-          unbilled_amount: e.kesilmemisBekleyen,
-        });
-      }
-
-      // 2. Resolve legacy mock firmaIds → real companies.id. Any mock id
-      //    without a matching company is quietly dropped — demo mock
-      //    artifacts may reference companies that do not exist in the
-      //    live DB, and confirm_financial_data hard-fails on unknown
-      //    company_ids. Filtering here keeps the confirm bounded to
-      //    the rows that can actually persist.
-      const mockIds = Array.from(merged.keys());
-      const resolvedCompanies =
-        mockIds.length > 0
-          ? await selectCompaniesByLegacyMockIds(supabase, mockIds)
-          : [];
-      const legacyToUuid = new Map<string, string>();
-      for (const c of resolvedCompanies) {
-        if (c.legacy_mock_id) legacyToUuid.set(c.legacy_mock_id, c.id);
-      }
-
-      const p_company_rows: Array<{
-        company_id: string;
-        open_receivable: string | null;
-        unbilled_amount: string | null;
-        is_overdue: boolean;
-      }> = [];
-      for (const [mockId, values] of merged.entries()) {
-        const uuid = legacyToUuid.get(mockId);
-        if (!uuid) continue;
-        p_company_rows.push({ company_id: uuid, ...values });
-      }
-
-      // 3. Portfolio-wide KPIs. Passed as opaque strings where the schema
-      //    stores strings — no numeric reformatting. overdue_company_count
-      //    is the one numeric field on the portfolio row.
-      const p_portfolio_kpis = {
-        total_open_receivable: extracted.kpis.toplamAcikAlacak,
-        invoiced_this_month: extracted.kpis.buAyKesilenFaturalar,
-        total_unbilled: extracted.kpis.kesilmemisAlacaklar,
-        total_overdue: extracted.kpis.gecikmisAlacaklar,
-        overdue_company_count: extracted.gecikmisOzet.toplamGecikmisFirmaSayisi,
-        salary_costs: extracted.kpis.maasGiderleri,
-        fixed_costs: extracted.kpis.sabitGiderler,
-      };
-
-      const { error: rpcError } = await supabase.rpc("confirm_financial_data", {
-        p_portfolio_kpis,
-        p_company_rows,
-      });
-      if (rpcError) {
-        throw new Error(rpcError.message);
-      }
-
-      // 4. Refresh real readers so the page reflects confirmed truth,
-      //    then close the modal. If refresh throws it is swallowed by
-      //    fetchFinancials itself — the write already landed and user
-      //    will see the new data on next render.
-      await fetchFinancials();
-      setExtracted(null);
-      setUploadOpen(false);
-    } catch (err) {
-      // Keep the modal open, surface the error inline, and let the user
-      // retry or cancel. Do not imply success, do not mutate any local
-      // mock state that would drift from the real DB.
-      setConfirmError(
-        err instanceof Error ? err.message : "Onay sırasında bir hata oluştu.",
-      );
-    } finally {
-      setConfirming(false);
-    }
+    // Pre-cutover blocker fix (May 2026): the extractor in
+    // `src/lib/extract-financials.ts` is entirely mock-backed and was
+    // previously able to feed `confirm_financial_data` with demo
+    // values. Until a real parser exists, this path is hard-gated —
+    // the UI button is permanently disabled, and this handler bails
+    // out before any write so a programmatic invocation cannot leak
+    // mock values into `financial_summaries`. The original write body
+    // (merge → legacy-uuid resolve → confirm_financial_data RPC →
+    // refetch) lives in git history; restore it behind a real-vs-demo
+    // gate once a parser ships. `setConfirming` is intentionally not
+    // touched — there is no async work to await.
+    setConfirmError(
+      "Demo verisi üretime yazılamaz. Gerçek dosya parser entegrasyonu gelene kadar onay devre dışıdır.",
+    );
   }
 
   function handleCancel() {
@@ -557,12 +463,12 @@ export default function FinansalOzetPage() {
           <div className={`${SURFACE_PRIMARY} ${RADIUS_DEFAULT} shadow-xl w-full max-w-xl mx-4 max-h-[85vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
             <div className={`px-5 py-4 border-b ${BORDER_DEFAULT} flex-shrink-0`}>
               <h2 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>
-                {extracted ? "Alacak Verileri — İnceleme" : "Muhasebe Raporu Yükle"}
+                {extracted ? "Demo Önizleme — Alacak Verileri" : "Demo Önizleme — Muhasebe Raporu"}
               </h2>
               <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>
                 {extracted
-                  ? "Yüklenen rapordaki alacak verilerini mevcut değerlerle karşılaştırın."
-                  : "Muhasebenizin ürettiği alacak raporunu yükleyin."
+                  ? "Bu önizleme demo amaçlıdır; gerçek dosya parser entegrasyonu gelene kadar üretime yazılamaz."
+                  : "Bu modül şu anda demo amaçlıdır — gerçek dosya yüklemesi yoktur ve üretime yazma kapalıdır."
                 }
               </p>
             </div>
@@ -580,12 +486,23 @@ export default function FinansalOzetPage() {
                     <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>PDF, Excel veya CSV formatında alacak raporu</p>
                   </div>
                   <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>
-                    Demo: tıklandığında örnek muhasebe raporu otomatik yüklenir.
+                    Demo: tıklandığında örnek muhasebe çıktısı gösterilir. Gerçek dosya yüklenmez ve üretime yazma kapalıdır.
                   </p>
                 </div>
               ) : (
                 /* Review phase — section-level comparison */
                 <div className="space-y-5">
+                  {/* DEMO warning — pre-cutover blocker fix (May 2026).
+                      The extractor is mock-backed; the confirm action is
+                      hard-disabled. Banner makes the non-applicability
+                      explicit so reviewers do not mistake the demo values
+                      for real accounting output. */}
+                  <div className={`border border-amber-300 bg-amber-50 ${RADIUS_SM} px-3 py-2`}>
+                    <p className={`${TYPE_CAPTION} text-amber-800`}>
+                      <strong>Demo önizleme.</strong> Aşağıdaki değerler örnek bir muhasebe çıktısından gelmektedir; gerçek muhasebe verisi değildir ve üretime yazılamaz.
+                    </p>
+                  </div>
+
                   {/* KPI comparison */}
                   <div>
                     <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-2`}>Özet Karşılaştırma</h3>
@@ -674,11 +591,13 @@ export default function FinansalOzetPage() {
                 </button>
                 {extracted && (
                   <button
+                    type="button"
                     onClick={handleConfirm}
-                    disabled={confirming}
-                    className={`px-4 py-2 ${TYPE_BODY} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}
+                    disabled
+                    title="Demo verisi üretime yazılamaz. Gerçek dosya parser entegrasyonu gelene kadar onay devre dışıdır."
+                    className={`px-4 py-2 ${TYPE_BODY} font-medium text-white bg-blue-600 ${RADIUS_SM} disabled:opacity-40 disabled:cursor-not-allowed`}
                   >
-                    {confirming ? "Kaydediliyor..." : "Onayla ve Uygula"}
+                    Onaylanamaz — Demo
                   </button>
                 )}
               </div>
