@@ -37,13 +37,6 @@ interface AyarRolEntry {
   aciklama: string;
 }
 
-interface AyarPartnerEntry {
-  id: string;
-  ad: string;
-  sehir: string;
-  durum: "aktif" | "pasif";
-}
-
 const FIRMA_ETIKETLERI: AyarDictEntry[] = [
   { id: "fe1", ad: "Lojistik", durum: "aktif" },
   { id: "fe2", ad: "Temizlik", durum: "aktif" },
@@ -70,16 +63,25 @@ const EVRAK_KATEGORILERI: AyarDictEntry[] = [
   { id: "ek7", ad: "Diğer", durum: "aktif" },
 ];
 
+// Task source vocabulary per WORKFLOW_RULES — five accepted values
+// (manuel | randevu | sözleşme | talep | evrak). Reference-only.
 const GOREV_TIPLERI: AyarDictEntry[] = [
   { id: "gt1", ad: "Manuel", durum: "aktif" },
   { id: "gt2", ad: "Randevu", durum: "aktif" },
   { id: "gt3", ad: "Sözleşme", durum: "aktif" },
+  { id: "gt4", ad: "Talep", durum: "aktif" },
+  { id: "gt5", ad: "Evrak", durum: "aktif" },
 ];
 
+// Canonical 6-role BPS model. Order + slugs match the real role enum
+// (yonetici, partner, operasyon, ik, muhasebe, goruntuleyici) used by
+// RoleContext / migrations / ROLE_MATRIX. This array is reference
+// material only — surfaced under a non-truth banner. Role management
+// is not built here; ROLE_MATRIX.md is the source of truth.
 const ROLLER: AyarRolEntry[] = [
   { id: "r1", rolAdi: "Yönetici", aciklama: "Kurumsal görünürlük, kontrol, kritik aksiyon ve yapılandırma yönetimi" },
-  { id: "r2", rolAdi: "Operasyon", aciklama: "Personel talebi, aktif iş gücü, evrak takibi ve operasyonel görev akışı" },
-  { id: "r3", rolAdi: "Satış", aciklama: "Firma ilişkisi, görüşme takibi, yenileme fırsatı ve müşteri teması" },
+  { id: "r2", rolAdi: "Partner", aciklama: "Atanmış portföyünde firma, sözleşme ve operasyonel takip" },
+  { id: "r3", rolAdi: "Operasyon", aciklama: "Personel talebi, aktif iş gücü, evrak takibi ve operasyonel görev akışı" },
   { id: "r4", rolAdi: "İK", aciklama: "Evrak uyumu ve personel belge tamamlama" },
   { id: "r5", rolAdi: "Muhasebe", aciklama: "Finansal veri girişi, alacak takibi ve faturalama görünürlüğü" },
   { id: "r6", rolAdi: "Görüntüleyici", aciklama: "Yalnızca okuma — takip ve rapor görünürlüğü" },
@@ -96,15 +98,12 @@ const SEHIRLER: AyarDictEntry[] = [
   { id: "seh8", ad: "Konya", durum: "aktif" },
 ];
 
-const OPERASYON_PARTNERLERI: AyarPartnerEntry[] = [
-  { id: "op1", ad: "Ahmet B.", sehir: "İstanbul", durum: "aktif" },
-  { id: "op2", ad: "Mehmet Y.", sehir: "Ankara", durum: "aktif" },
-  { id: "op3", ad: "Zeynep A.", sehir: "Bursa", durum: "aktif" },
-  { id: "op4", ad: "Burak Ş.", sehir: "İzmir", durum: "aktif" },
-  { id: "op5", ad: "Elif Y.", sehir: "Konya", durum: "aktif" },
-  { id: "op6", ad: "Burak Ş.", sehir: "Edirne", durum: "aktif" },
-  { id: "op7", ad: "Fatma Ç.", sehir: "Trabzon", durum: "aktif" },
-];
+// Operasyon Partnerleri tab is intentionally left without a backing
+// data array. The previous fake human roster (Ahmet B., Mehmet Y., …)
+// looked like operational truth but wasn't; per the 2026-05-04 truth
+// sweep it now renders an honest empty state until a real
+// partner-roster feature is built.
+
 import {
   TYPE_BODY,
   TYPE_CAPTION,
@@ -168,16 +167,25 @@ const COLUMNS_ROLES: ColumnDef<AyarRolEntry>[] = [
   },
 ];
 
-const COLUMNS_PARTNERS: ColumnDef<AyarPartnerEntry>[] = [
-  { key: "ad", header: "Partner Adı", sortable: true },
-  { key: "sehir", header: "Şehir", sortable: true },
-  {
-    key: "durum",
-    header: "Durum",
-    sortable: true,
-    render: (val) => <StatusBadge status={val as "aktif" | "pasif"} />,
-  },
-];
+// ---------------------------------------------------------------------------
+// ReferenceListBanner — page-local non-truth label.
+// Sits above hard-coded reference dictionaries (Roller, Firma Etiketleri,
+// Sözleşme Tipleri, Evrak Kategorileri, Görev Tipleri, Şehirler) so the
+// admin reads them as setup guidance rather than operational truth.
+// Visual matches the Finansal Özet management-visibility banner. Stays
+// inline in this file — not extracted to components/ — because it is
+// settings-page copy, not a reusable primitive.
+// ---------------------------------------------------------------------------
+function ReferenceListBanner() {
+  return (
+    <div
+      className={`${TYPE_CAPTION} ${TEXT_MUTED} border ${BORDER_DEFAULT} ${RADIUS_SM} px-3 py-2 mb-3`}
+      role="note"
+    >
+      Statik yapılandırma sözlüğü — operasyonel kayıt değil
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Access request types
@@ -498,65 +506,85 @@ export default function AyarlarPage() {
         )}
 
         {activeTab === "roller" && (
-          <DataTable<AyarRolEntry>
-            columns={COLUMNS_ROLES}
-            data={ROLLER}
-            rowKey="id"
-            emptyTitle="Rol tanımı yok"
-          />
+          <>
+            <ReferenceListBanner />
+            <DataTable<AyarRolEntry>
+              columns={COLUMNS_ROLES}
+              data={ROLLER}
+              rowKey="id"
+              emptyTitle="Rol tanımı yok"
+            />
+          </>
         )}
 
         {activeTab === "firma-etiketleri" && (
-          <DataTable<AyarDictEntry>
-            columns={COLUMNS_DICT}
-            data={FIRMA_ETIKETLERI}
-            rowKey="id"
-            emptyTitle="Firma etiketi yok"
-          />
+          <>
+            <ReferenceListBanner />
+            <DataTable<AyarDictEntry>
+              columns={COLUMNS_DICT}
+              data={FIRMA_ETIKETLERI}
+              rowKey="id"
+              emptyTitle="Firma etiketi yok"
+            />
+          </>
         )}
 
         {activeTab === "sozlesme-tipleri" && (
-          <DataTable<AyarDictEntry>
-            columns={COLUMNS_DICT}
-            data={SOZLESME_TIPLERI}
-            rowKey="id"
-            emptyTitle="Sözleşme tipi yok"
-          />
+          <>
+            <ReferenceListBanner />
+            <DataTable<AyarDictEntry>
+              columns={COLUMNS_DICT}
+              data={SOZLESME_TIPLERI}
+              rowKey="id"
+              emptyTitle="Sözleşme tipi yok"
+            />
+          </>
         )}
 
         {activeTab === "evrak-kategorileri" && (
-          <DataTable<AyarDictEntry>
-            columns={COLUMNS_DICT}
-            data={EVRAK_KATEGORILERI}
-            rowKey="id"
-            emptyTitle="Evrak kategorisi yok"
-          />
+          <>
+            <ReferenceListBanner />
+            <DataTable<AyarDictEntry>
+              columns={COLUMNS_DICT}
+              data={EVRAK_KATEGORILERI}
+              rowKey="id"
+              emptyTitle="Evrak kategorisi yok"
+            />
+          </>
         )}
 
         {activeTab === "gorev-tipleri" && (
-          <DataTable<AyarDictEntry>
-            columns={COLUMNS_DICT}
-            data={GOREV_TIPLERI}
-            rowKey="id"
-            emptyTitle="Görev tipi yok"
-          />
+          <>
+            <ReferenceListBanner />
+            <DataTable<AyarDictEntry>
+              columns={COLUMNS_DICT}
+              data={GOREV_TIPLERI}
+              rowKey="id"
+              emptyTitle="Görev tipi yok"
+            />
+          </>
         )}
 
         {activeTab === "sehirler" && (
-          <DataTable<AyarDictEntry>
-            columns={COLUMNS_DICT}
-            data={SEHIRLER}
-            rowKey="id"
-            emptyTitle="Şehir yok"
-          />
+          <>
+            <ReferenceListBanner />
+            <DataTable<AyarDictEntry>
+              columns={COLUMNS_DICT}
+              data={SEHIRLER}
+              rowKey="id"
+              emptyTitle="Şehir yok"
+            />
+          </>
         )}
 
+        {/* DOWNGRADE-EMPTY (2026-05-04 truth sweep): the previous fake
+            human roster has been removed. Honest empty state until a
+            real partner-roster feature is built. */}
         {activeTab === "operasyon-partnerleri" && (
-          <DataTable<AyarPartnerEntry>
-            columns={COLUMNS_PARTNERS}
-            data={OPERASYON_PARTNERLERI}
-            rowKey="id"
-            emptyTitle="Operasyon partneri yok"
+          <EmptyState
+            title="Henüz tanımlı operasyonel kayıt yok."
+            description="Bu bölüm gerçek operasyonel kayıtlar tanımlandığında doldurulacak."
+            size="tab"
           />
         )}
 
