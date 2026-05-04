@@ -23,6 +23,7 @@ import {
   ReportSwitcher,
   EmptyState,
 } from "@/components/ui";
+import AsyncSection from "@/components/ui/AsyncSection";
 import type { ReportOption } from "@/components/ui/ReportSwitcher";
 import { useRole } from "@/context/RoleContext";
 import type { UserRole } from "@/context/RoleContext";
@@ -282,8 +283,30 @@ export default function RaporlarPage() {
   // Report 6 — Partner × city aggregation. Data pipeline not wired yet;
   // honest absence rather than mock-backed rendering.
 
+  // Per-report error flags. Replaces the previous silent
+  // `catch(() => [])` / `error ? []` pattern that rendered reader
+  // failures as healthy-empty (e.g., "İş gücü verisi yok").
+  const [reportErrors, setReportErrors] = useState<{
+    isGucu: boolean;
+    sozlesmeBitis: boolean;
+    talepler: boolean;
+    randevular: boolean;
+    riskli: boolean;
+  }>({
+    isGucu: false,
+    sozlesmeBitis: false,
+    talepler: false,
+    randevular: false,
+    riskli: false,
+  });
+  // Bumped by the "Tekrar dene" button to re-fire the load useEffect.
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
+    setReportsLoading(true);
+    let workforceCatchError = false;
+    let contractsCatchError = false;
     (async () => {
       const supabase = createClient();
       const [
@@ -298,8 +321,17 @@ export default function RaporlarPage() {
         // (risk + legacy_mock_id added for Report 5).
         supabase.from("companies").select("id, name, risk, legacy_mock_id"),
         // Service readers already used by the destination list pages.
-        listAllWorkforceSummaries(supabase).catch(() => []),
-        listAllContracts(supabase).catch(() => []),
+        // Reader failures are now captured (was silent `() => []`).
+        listAllWorkforceSummaries(supabase).catch((err) => {
+          console.error("[raporlar] listAllWorkforceSummaries:", err);
+          workforceCatchError = true;
+          return [];
+        }),
+        listAllContracts(supabase).catch((err) => {
+          console.error("[raporlar] listAllContracts:", err);
+          contractsCatchError = true;
+          return [];
+        }),
         // Talep Analizi — per-record grain preserved, same shape as the
         // destination /talepler page.
         supabase
@@ -418,12 +450,22 @@ export default function RaporlarPage() {
       setRaporTalepler(talepRows);
       setRaporRandevular(randevuRows);
       setRaporRiskli(riskliRows);
+      setReportErrors({
+        isGucu: workforceCatchError,
+        sozlesmeBitis: contractsCatchError,
+        talepler: demandsRes.error !== null,
+        randevular: appointmentsRes.error !== null,
+        riskli: companiesRes.error !== null,
+      });
       setReportsLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
+
+  // Single retry handler shared by every report's error branch.
+  const handleRetry = () => setRefreshKey((k) => k + 1);
 
   return (
     <>
@@ -439,68 +481,78 @@ export default function RaporlarPage() {
         <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Dönem: Mart 2026</p>
 
         {activeKey === "is-gucu" && (
-          reportsLoading ? (
-            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-          ) : (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.isGucu}
+            onRetry={handleRetry}
+          >
             <DataTable<RaporIsGucuRow>
               columns={COLUMNS_IS_GUCU}
               data={raporIsGucu}
               rowKey="firmaId"
               emptyTitle="İş gücü verisi yok"
             />
-          )
+          </AsyncSection>
         )}
 
         {activeKey === "sozlesme-bitis" && (
-          reportsLoading ? (
-            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-          ) : (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.sozlesmeBitis}
+            onRetry={handleRetry}
+          >
             <DataTable<RaporSozlesmeBitisRow>
               columns={COLUMNS_SOZLESME_BITIS}
               data={raporSozlesmeBitis}
               rowKey="sozlesmeAdi"
               emptyTitle="Yaklaşan sözleşme yok"
             />
-          )
+          </AsyncSection>
         )}
 
         {activeKey === "talep-analizi" && (
-          reportsLoading ? (
-            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-          ) : (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.talepler}
+            onRetry={handleRetry}
+          >
             <DataTable<RaporTalepRow>
               columns={COLUMNS_TALEPLER}
               data={raporTalepler}
               rowKey="pozisyon"
               emptyTitle="Talep verisi yok"
             />
-          )
+          </AsyncSection>
         )}
 
         {activeKey === "randevu-sonuc" && (
-          reportsLoading ? (
-            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-          ) : (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.randevular}
+            onRetry={handleRetry}
+          >
             <DataTable<RaporRandevuRow>
               columns={COLUMNS_RANDEVULAR}
               data={raporRandevular}
               rowKey="tarih"
               emptyTitle="Randevu verisi yok"
             />
-          )
+          </AsyncSection>
         )}
 
         {activeKey === "riskli-firma" && (
-          reportsLoading ? (
-            <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-          ) : (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.riskli}
+            onRetry={handleRetry}
+          >
             <DataTable<RaporRiskliFirmaRow>
               columns={COLUMNS_RISKLI_FIRMA}
               data={raporRiskli}
               rowKey="firmaId"
               emptyTitle="Riskli firma yok"
             />
-          )
+          </AsyncSection>
         )}
 
         {activeKey === "partner-ozet" && (

@@ -22,6 +22,7 @@ import {
   RiskBadge,
   EmptyState,
 } from "@/components/ui";
+import AsyncSection from "@/components/ui/AsyncSection";
 import {
   listAllContracts,
   computeRemainingDays,
@@ -138,8 +139,40 @@ export default function DashboardPage() {
 
   const [signalsLoading, setSignalsLoading] = useState(true);
 
+  // Per-section error flags. Replaces the previous silent
+  // `catch(() => [])` / `error ? []` pattern that rendered reader
+  // failures as healthy-empty. Each flag corresponds to one signal
+  // card; the JSX renders an explicit "Veri yüklenemedi" branch when
+  // its flag is set.
+  const [signalErrors, setSignalErrors] = useState<{
+    tasks: boolean;
+    demands: boolean;
+    contracts: boolean;
+    documents: boolean;
+    riskyCompanies: boolean;
+    criticalDates: boolean;
+  }>({
+    tasks: false,
+    demands: false,
+    contracts: false,
+    documents: false,
+    riskyCompanies: false,
+    criticalDates: false,
+  });
+
+  // Bumped by the "Tekrar dene" button in the error branch to re-fire
+  // the data-loading useEffect without restructuring the fetch.
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
+    setSignalsLoading(true);
+    // Service-reader error capture: the `.catch` arms below set these
+    // outer flags so the useEffect body can build a single
+    // setSignalErrors call after Promise.all settles.
+    let contractsCatchError = false;
+    let documentsCatchError = false;
+    let criticalDatesCatchError = false;
     (async () => {
       const supabase = createClient();
       const [
@@ -186,15 +219,27 @@ export default function DashboardPage() {
           .select("id", { count: "exact", head: true })
           .eq("status", "planlandi"),
         // Yaklaşan Sözleşme Bitişleri — reuse existing service reader.
-        // Errors degrade to empty so one transient failure cannot break
-        // the whole Dashboard reader batch.
-        listAllContracts(supabase).catch(() => [] as ContractRow[]),
+        // Reader failures used to degrade silently to empty; now we
+        // capture the failure so the JSX can show a real error state.
+        listAllContracts(supabase).catch((err) => {
+          console.error("[dashboard] listAllContracts:", err);
+          contractsCatchError = true;
+          return [] as ContractRow[];
+        }),
         // Eksik / Süresi Dolan Evraklar — reuse existing service reader.
-        listAllDocuments(supabase).catch(() => [] as DocumentRow[]),
+        listAllDocuments(supabase).catch((err) => {
+          console.error("[dashboard] listAllDocuments:", err);
+          documentsCatchError = true;
+          return [] as DocumentRow[];
+        }),
         // Kurumsal Kritik Tarihler — reuse existing service reader.
-        // Broad-read under RLS; errors degrade to empty so a transient
-        // failure does not break the whole Dashboard reader batch.
-        listAllCriticalDates(supabase).catch(() => [] as CriticalDateRow[]),
+        // Broad-read under RLS; reader failure surfaces as the
+        // "Veri yüklenemedi" branch on the Kritik Tarihler card.
+        listAllCriticalDates(supabase).catch((err) => {
+          console.error("[dashboard] listAllCriticalDates:", err);
+          criticalDatesCatchError = true;
+          return [] as CriticalDateRow[];
+        }),
       ]);
       if (cancelled) return;
 
@@ -349,12 +394,28 @@ export default function DashboardPage() {
       setEksikEvraklar(mappedEksikEvraklar);
       setRiskyCompanies(mappedRiskyCompanies);
       setCriticalDates(allCriticalDateRows);
+      // Surface per-section reader failures explicitly. Supabase
+      // direct queries expose `.error` on the response object; service
+      // readers were instrumented above with their `.catch` arm.
+      setSignalErrors({
+        tasks: tasksRes.error !== null,
+        demands: demandsRes.error !== null,
+        contracts: contractsCatchError,
+        documents: documentsCatchError,
+        riskyCompanies: companiesRes.error !== null,
+        criticalDates: criticalDatesCatchError,
+      });
       setSignalsLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
+
+  // Single retry handler shared by every signal card's error branch.
+  // Re-fires the load `useEffect` by bumping the dependency. Cheap and
+  // consistent across cards; no per-card refetch wiring.
+  const handleRetry = () => setRefreshKey((k) => k + 1);
 
   async function handleGenerateDraft() {
     // Real workforce_summary + companies. RLS on both tables auto-scopes
@@ -456,15 +517,13 @@ export default function DashboardPage() {
             <h3 className={CARD_TITLE}>
               Bugünün Görevleri
             </h3>
-            {signalsLoading ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                Yükleniyor…
-              </p>
-            ) : todayTasks.length === 0 ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                Bugün için görev yok.
-              </p>
-            ) : (
+            <AsyncSection
+              isLoading={signalsLoading}
+              hasError={signalErrors.tasks}
+              isEmpty={todayTasks.length === 0}
+              emptyText="Bugün için görev yok."
+              onRetry={handleRetry}
+            >
               <div className="space-y-0">
                 {todayTasks.map((task, idx) => (
                   <div
@@ -490,7 +549,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            )}
+            </AsyncSection>
           </div>}
 
           {/* Yaklaşan Sözleşme Bitişleri — hidden for ik + muhasebe.
@@ -500,12 +559,16 @@ export default function DashboardPage() {
               during pre-load, so a wrapper card shows "Yükleniyor…"
               until the fetch resolves. */}
           {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
-            signalsLoading ? (
+            signalsLoading || signalErrors.contracts ? (
               <div className={CARD}>
                 <h3 className={CARD_TITLE}>Yaklaşan Sözleşme Bitişleri</h3>
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                  Yükleniyor…
-                </p>
+                <AsyncSection
+                  isLoading={signalsLoading}
+                  hasError={signalErrors.contracts}
+                  onRetry={handleRetry}
+                >
+                  {null}
+                </AsyncSection>
               </div>
             ) : (
               <ContractExpiryCard
@@ -523,15 +586,13 @@ export default function DashboardPage() {
               </h3>
               <a href="/talepler" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
             </div>
-            {signalsLoading ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                Yükleniyor…
-              </p>
-            ) : openDemands.length === 0 ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                Açık talep yok.
-              </p>
-            ) : (
+            <AsyncSection
+              isLoading={signalsLoading}
+              hasError={signalErrors.demands}
+              isEmpty={openDemands.length === 0}
+              emptyText="Açık talep yok."
+              onRetry={handleRetry}
+            >
               <div className="space-y-0">
                 {openDemands.map((d, idx) => (
                   <div
@@ -551,7 +612,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            )}
+            </AsyncSection>
           </div>}
 
           {/* Eksik / Süresi Dolan Evraklar — hidden for muhasebe.
@@ -565,15 +626,13 @@ export default function DashboardPage() {
                 </h3>
                 <a href="/evraklar" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
               </div>
-              {signalsLoading ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                  Yükleniyor…
-                </p>
-              ) : eksikEvraklar.length === 0 ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                  Eksik evrak yok.
-                </p>
-              ) : (
+              <AsyncSection
+                isLoading={signalsLoading}
+                hasError={signalErrors.documents}
+                isEmpty={eksikEvraklar.length === 0}
+                emptyText="Eksik evrak yok."
+                onRetry={handleRetry}
+              >
                 <div className="space-y-0">
                   {eksikEvraklar.map((doc, idx) => (
                     <div
@@ -593,7 +652,7 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              )}
+              </AsyncSection>
             </div>
           )}
 
@@ -608,15 +667,13 @@ export default function DashboardPage() {
               <AlertTriangle size={14} className="text-amber-500" />
               Riskli Firmalar
             </h3>
-            {signalsLoading ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                Yükleniyor…
-              </p>
-            ) : riskyCompanies.length === 0 ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                Risk sinyali yok.
-              </p>
-            ) : (
+            <AsyncSection
+              isLoading={signalsLoading}
+              hasError={signalErrors.riskyCompanies}
+              isEmpty={riskyCompanies.length === 0}
+              emptyText="Risk sinyali yok."
+              onRetry={handleRetry}
+            >
               <div className="space-y-0">
                 {riskyCompanies.map((company, idx) => (
                   <div
@@ -636,7 +693,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            )}
+            </AsyncSection>
           </div>
         </div>
 
@@ -646,7 +703,7 @@ export default function DashboardPage() {
             While the fetch is in flight the card wrapper is shown with
             an honest "Yükleniyor…" state rather than mock-backed rows. */}
         {(() => {
-          if (signalsLoading) {
+          if (signalsLoading || signalErrors.criticalDates) {
             return (
               <div className={CARD}>
                 <div className="flex items-center justify-between mb-3">
@@ -656,9 +713,13 @@ export default function DashboardPage() {
                   </h3>
                   <a href="/kurumsal-tarihler" className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}>Tümünü Gör</a>
                 </div>
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-4`}>
-                  Yükleniyor…
-                </p>
+                <AsyncSection
+                  isLoading={signalsLoading}
+                  hasError={signalErrors.criticalDates}
+                  onRetry={handleRetry}
+                >
+                  {null}
+                </AsyncSection>
               </div>
             );
           }
