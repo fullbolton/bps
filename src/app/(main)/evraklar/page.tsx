@@ -190,6 +190,13 @@ export default function EvraklarPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [validityTarget, setValidityTarget] = useState<{ open: boolean; evrakAdi?: string; evrakId?: string; currentDate?: string }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Per-row signed-URL failures. A failure here used to flow into the
+  // page-level `loadError` and collapse the whole page; now it stays
+  // item-level so the row remains visible with a degraded "Indir"
+  // action. Cleared on page reload (full mount = new Set).
+  const [signedUrlErrorIds, setSignedUrlErrorIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
   const statusCounts = useMemo(() => {
@@ -263,14 +270,27 @@ export default function EvraklarPage() {
 
   async function handleDownload(row: DocumentListRow) {
     if (!row.storage_path) return;
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .createSignedUrl(row.storage_path, 60);
-    if (error || !data?.signedUrl) {
-      setLoadError(`Indirme baglantisi olusturulamadi: ${error?.message ?? "bilinmeyen hata"}`);
-      return;
+    try {
+      const { data, error } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(row.storage_path, 60);
+      if (error || !data?.signedUrl) {
+        throw error ?? new Error("signed URL bos dondu");
+      }
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      // Per-row failure must NOT collapse the page (was: setLoadError(...)).
+      // Mark the row so its "Indir" action goes disabled and the inline
+      // banner above the table explains the reason. Full error context
+      // stays in the console for ops; UI never surfaces raw messages.
+      console.error(`[evraklar] signed URL failed for row ${row.id}:`, err);
+      setSignedUrlErrorIds((prev) => {
+        if (prev.has(row.id)) return prev;
+        const next = new Set(prev);
+        next.add(row.id);
+        return next;
+      });
     }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
   const rowActions: RowAction<DocumentListRow>[] = [
@@ -281,7 +301,10 @@ export default function EvraklarPage() {
     {
       label: "Indir",
       onClick: (row: DocumentListRow) => { void handleDownload(row); },
-      isDisabled: (row: DocumentListRow) => !row.storage_path,
+      // Disabled when (a) row has no storage_path (existing behavior)
+      // or (b) a prior signed-URL attempt for this row failed.
+      isDisabled: (row: DocumentListRow) =>
+        !row.storage_path || signedUrlErrorIds.has(row.id),
     },
   ];
 
@@ -372,6 +395,25 @@ export default function EvraklarPage() {
           <div className="w-full sm:max-w-xs"><SearchInput placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
           <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
         </div>
+
+        {/* Per-row signed-URL failure banner. Visible only when at least
+            one "Indir" attempt has failed in this session. Item-level UX:
+            those rows' Indir actions are already disabled via isDisabled;
+            this banner explains the reason without page collapse. Matches
+            existing amber visual language used by the operational risk
+            card above. Cleared on full page reload. */}
+        {signedUrlErrorIds.size > 0 && (
+          <div
+            className={`${RADIUS_DEFAULT} border border-amber-200 bg-amber-50 p-3`}
+            role="status"
+            aria-live="polite"
+          >
+            <p className={`${TYPE_CAPTION} text-amber-700 flex items-center gap-1.5`}>
+              <AlertTriangle size={14} />
+              Bazi belgelerin baglantisi olusturulamadi. Sayfayi yenileyerek tekrar deneyin.
+            </p>
+          </div>
+        )}
 
         <DataTable<DocumentListRow> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle="Evrak bulunamadi" emptyDescription="Arama veya filtre kriterlerinizi degistirin." />
       </div>
