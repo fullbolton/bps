@@ -28,6 +28,7 @@ import {
   Plus,
   Upload,
   Download,
+  Trash2,
 } from "lucide-react";
 import {
   TabNavigation,
@@ -57,6 +58,7 @@ import type { DocumentCategory } from "@/lib/document-categories";
 import {
   uploadCompanyDocumentAction,
   getCompanyDocumentDownloadUrlAction,
+  deleteCompanyDocumentAction,
 } from "./actions";
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
@@ -384,6 +386,10 @@ export default function FirmaDetayPage({
   const [evrakUploadOpen, setEvrakUploadOpen] = useState(false);
   const [evrakUploadError, setEvrakUploadError] = useState<string | null>(null);
   const [evrakDownloadError, setEvrakDownloadError] = useState<string | null>(null);
+  // Delete feedback (error or orphan warning) — surfaced inline above
+  // the table, never collapses the tab.
+  const [evrakDeleteMessage, setEvrakDeleteMessage] = useState<string | null>(null);
+  const [evrakDeletingId, setEvrakDeletingId] = useState<string | null>(null);
 
   if (companyLoading) {
     return <p className="text-sm text-slate-500 py-12 text-center">Yukleniyor...</p>;
@@ -1197,6 +1203,9 @@ export default function FirmaDetayPage({
           // yonetici + partner-scope + operasyon + ik. Partner scope is
           // enforced at the DB layer by the documents INSERT policy.
           const canMutateDocs = ["yonetici", "partner", "operasyon", "ik"].includes(role);
+          // Delete is yonetici-only — mirrors the documents + storage.objects
+          // DELETE RLS policies. Same gate the server action enforces.
+          const canDeleteDocs = role === "yonetici";
           const contractLabelById = new Map(firmaSozlesmeler.map((c) => [c.id, c.name]));
 
           async function handleEvrakDownload(documentId: string) {
@@ -1208,6 +1217,31 @@ export default function FirmaDetayPage({
             }
             // Per-row failure stays item-level — page chrome unaffected.
             setEvrakDownloadError(result.error);
+          }
+
+          async function handleEvrakDelete(documentId: string) {
+            // Hard delete (Faz 1). Mandatory confirm — no delete without it.
+            if (!window.confirm("Bu belgeyi kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
+              return;
+            }
+            setEvrakDeleteMessage(null);
+            setEvrakDeletingId(documentId);
+            try {
+              const result = await deleteCompanyDocumentAction(documentId);
+              if (result.ok) {
+                // Orphan warning (DB gone, storage remove failed) is still
+                // a success for the row — surface it but refresh the list.
+                if (result.warning) setEvrakDeleteMessage(result.warning);
+                await reloadDocs();
+                router.refresh();
+              } else {
+                setEvrakDeleteMessage(result.error);
+              }
+            } catch (err) {
+              setEvrakDeleteMessage(err instanceof Error ? err.message : "Belge silinemedi.");
+            } finally {
+              setEvrakDeletingId(null);
+            }
           }
 
           return (
@@ -1229,6 +1263,12 @@ export default function FirmaDetayPage({
               {evrakDownloadError && (
                 <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
                   {evrakDownloadError}
+                </p>
+              )}
+
+              {evrakDeleteMessage && (
+                <p className={`${TYPE_CAPTION} text-amber-700 mb-3`} role="alert" aria-live="polite">
+                  {evrakDeleteMessage}
                 </p>
               )}
 
@@ -1260,16 +1300,30 @@ export default function FirmaDetayPage({
                           <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[160px] truncate`}>{d.uploaded_by ?? "—"}</td>
                           <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(d.updated_at.slice(0, 10))}</td>
                           <td className="px-3 py-2 text-right">
-                            <button
-                              type="button"
-                              onClick={() => { void handleEvrakDownload(d.id); }}
-                              disabled={!d.storage_path}
-                              className={`inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
-                              title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
-                            >
-                              <Download size={12} />
-                              İndir
-                            </button>
+                            <div className="inline-flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => { void handleEvrakDownload(d.id); }}
+                                disabled={!d.storage_path}
+                                className={`inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                                title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
+                              >
+                                <Download size={12} />
+                                İndir
+                              </button>
+                              {canDeleteDocs && (
+                                <button
+                                  type="button"
+                                  onClick={() => { void handleEvrakDelete(d.id); }}
+                                  disabled={evrakDeletingId === d.id}
+                                  className={`inline-flex items-center gap-1 ${TYPE_CAPTION} text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                                  title="Belgeyi kalıcı olarak sil"
+                                >
+                                  <Trash2 size={12} />
+                                  {evrakDeletingId === d.id ? "Siliniyor..." : "Sil"}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}

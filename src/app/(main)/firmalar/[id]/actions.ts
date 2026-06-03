@@ -88,6 +88,10 @@ export type DownloadResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
+export type DeleteResult =
+  | { ok: true; warning?: string }
+  | { ok: false; error: string };
+
 function deriveStatus(validityDate: string | null): EvrakDurumu {
   // A file is being attached, so the row will not be `eksik`. The
   // expiry buckets only matter when validity_date is set; missing dates
@@ -291,4 +295,89 @@ export async function getCompanyDocumentDownloadUrlAction(
   }
 
   return { ok: true, url: signed.data.signedUrl };
+}
+
+/**
+ * Hard-delete a single document (Faz 1 — no trash, no soft-delete).
+ *
+ * yonetici-only at three layers: the app role guard below, the
+ * documents DELETE RLS policy, and the storage.objects DELETE policy
+ * (both yonetici-only). service_role is never used.
+ *
+ * Order: DB row first → storage object second.
+ *   - If the DB delete fails (RLS reject / error), storage is left
+ *     untouched and the action fails. This avoids deleting the file
+ *     while the row still points at it.
+ *   - If the DB delete succeeds but the storage remove fails, the row
+ *     is already gone; we return ok:true with an explicit `warning`
+ *     naming the orphaned object path. No silent hiding.
+ *
+ * Idempotency: if the row does not exist (already deleted / never
+ * existed / RLS-hidden), the action returns ok:true as a no-op —
+ * re-clicking delete on a stale UI row does not surface an error.
+ */
+export async function deleteCompanyDocumentAction(
+  documentId: string,
+): Promise<DeleteResult> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
+  }
+
+  if (!documentId || typeof documentId !== "string") {
+    return { ok: false, error: "Belge kimliği geçersiz." };
+  }
+
+  // Role guard via DB truth. Delete is yonetici-only (mirrors the
+  // documents + storage.objects DELETE RLS policies).
+  const { data: roleData, error: roleError } = await supabase.rpc(
+    "current_user_role",
+  );
+  if (roleError || roleData !== "yonetici") {
+    return { ok: false, error: "Yetkisiz: belge silme yalnızca yöneticiye açıktır." };
+  }
+
+  // Read the row first to obtain storage_path. RLS-bounded: a hidden
+  // row returns null → treat as idempotent no-op success.
+  const { data: doc, error: fetchError } = await supabase
+    .from("documents")
+    .select("storage_path")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (fetchError) {
+    return { ok: false, error: "Belge bilgisi alınamadı." };
+  }
+  if (!doc) {
+    // Already gone or not visible — idempotent success.
+    return { ok: true };
+  }
+
+  // DB-first delete. RLS enforces yonetici. If it fails, do NOT touch
+  // storage — the row would otherwise be left pointing at a deleted
+  // file.
+  const del = await supabase.from("documents").delete().eq("id", documentId);
+  if (del.error) {
+    return {
+      ok: false,
+      error: `Belge silinemedi: ${del.error.message}`,
+    };
+  }
+
+  // Storage remove — second. DB row is already gone at this point.
+  if (doc.storage_path) {
+    const remove = await supabase.storage
+      .from("documents")
+      .remove([doc.storage_path]);
+    if (remove.error) {
+      return {
+        ok: true,
+        warning: `DB kaydı silindi, storage dosyası silinemedi (orphan): ${doc.storage_path}`,
+      };
+    }
+  }
+
+  return { ok: true };
 }
