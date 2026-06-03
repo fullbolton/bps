@@ -34,10 +34,10 @@ import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
 import { listTasksByContractId } from "@/lib/services/tasks";
 import { listAppointmentsByContractId } from "@/lib/services/appointments";
 import {
-  createDocument,
   getActiveContractDocument,
   updateContractDocumentFile,
 } from "@/lib/services/documents";
+import { uploadCompanyDocumentAction } from "../../firmalar/[id]/actions";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { ContractRow, TaskRow, AppointmentRow, DocumentRow } from "@/types/database.types";
 import type { SozlesmeDurumu } from "@/types/ui";
@@ -250,34 +250,44 @@ export default function SozlesmeDetayPage({
     setPdfBusy(true);
     setPdfError(null);
     try {
-      const path = `${contract.company_id}/${crypto.randomUUID()}.pdf`;
-      const up = await supabase.storage
-        .from("documents")
-        .upload(path, picked, { contentType: "application/pdf", upsert: false });
-      if (up.error) {
-        throw new Error(`Dosya yüklenemedi: ${up.error.message}`);
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      const uploadedBy =
-        (user?.user_metadata?.display_name as string | undefined) ??
-        user?.email ??
-        null;
-
       if (contractDoc) {
+        // Replace: browser storage upload + UPDATE of the existing row.
+        // An UPDATE does not insert tenant_id (the row already carries
+        // it), so this path is not the Codex tenant-less-insert blocker.
+        const path = `${contract.company_id}/${crypto.randomUUID()}.pdf`;
+        const up = await supabase.storage
+          .from("documents")
+          .upload(path, picked, { contentType: "application/pdf", upsert: false });
+        if (up.error) {
+          throw new Error(`Dosya yüklenemedi: ${up.error.message}`);
+        }
+        const { data: { user } } = await supabase.auth.getUser();
+        const uploadedBy =
+          (user?.user_metadata?.display_name as string | undefined) ??
+          user?.email ??
+          null;
         await updateContractDocumentFile(supabase, contractDoc.id, {
           name: picked.name,
           storagePath: path,
           uploadedBy,
         });
       } else {
-        await createDocument(supabase, {
-          legacyCompanyId: firmaLegacyId ?? contract.company_id,
-          contractId: contract.id,
-          name: picked.name,
-          category: "cerceve_sozlesme",
-          storagePath: path,
-        });
+        // First-time create: route through the tenant-aware server
+        // action. It sets tenant_id (RPC) / company_id / created_by /
+        // uploaded_by / storage_path server-side, role-guards, and
+        // verifies contract↔company binding. Replaces the previous
+        // browser-context storage upload + tenant-less createDocument
+        // (Codex must-fix).
+        const fd = new FormData();
+        fd.set("company_id", contract.company_id);
+        fd.set("name", picked.name);
+        fd.set("category", "cerceve_sozlesme");
+        fd.set("contract_id", contract.id);
+        fd.set("file", picked);
+        const result = await uploadCompanyDocumentAction(fd);
+        if (!result.ok) {
+          throw new Error(result.error);
+        }
       }
 
       const next = await getActiveContractDocument(supabase, contract.id);

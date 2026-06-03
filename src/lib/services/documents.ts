@@ -181,47 +181,27 @@ export async function getDocumentComplianceByLegacyIds(
 // ---------------------------------------------------------------------------
 
 /**
- * Create a new document for the firma identified by a legacy mock id.
+ * DISABLED (Codex must-fix, 2026-05).
  *
- * Behavior:
- *   - Re-verifies partner scope via `requireCompanyByLegacyMockId`.
- *   - Validates name (non-blank).
- *   - Defaults category to 'diger', status to 'eksik' (or 'tam' if
- *     validity date is provided).
- *   - Stamps created_by from the auth session.
+ * This browser-context creator inserted a `documents` row WITHOUT the
+ * production-required `tenant_id`, and did its storage upload + insert
+ * outside any server-side role guard — a tenant-less-insert + orphan
+ * risk. All real callers now route through the tenant-aware server
+ * action `uploadCompanyDocumentAction` (src/app/(main)/firmalar/[id]/
+ * actions.ts), which sets tenant_id from `current_user_active_tenant()`
+ * and stamps the other server-controlled fields.
+ *
+ * Kept as a fail-closed stub so that any future caller wired to this
+ * path fails loudly instead of silently creating an invalid row. To
+ * restore document creation, call the server action.
  */
 export async function createDocument(
-  client: Client,
-  input: DocumentCreateInput,
+  _client: Client,
+  _input: DocumentCreateInput,
 ): Promise<DocumentRow> {
-  const company = await requireCompanyByLegacyMockId(
-    client,
-    input.legacyCompanyId,
+  throw new Error(
+    "createDocument devre dışı: belge oluşturma tenant-aware server action (uploadCompanyDocumentAction) üzerinden yapılmalıdır.",
   );
-
-  const name = ensureNonBlankName(input.name);
-  const validityDate = nullableTrim(input.validityDate);
-
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-
-  // Determine initial status
-  const status: EvrakDurumu = validityDate ? "tam" : "eksik";
-
-  const payload: DocumentInsert = {
-    company_id: company.id,
-    contract_id: input.contractId ?? null,
-    name,
-    category: input.category ?? "diger",
-    status,
-    validity_date: validityDate,
-    storage_path: nullableTrim(input.storagePath),
-    uploaded_by: user?.user_metadata?.display_name ?? user?.email ?? null,
-    created_by: user?.id ?? null,
-  };
-
-  return insertDocument(client, payload);
 }
 
 // ---------------------------------------------------------------------------

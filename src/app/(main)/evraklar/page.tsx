@@ -19,9 +19,9 @@ import { UploadDocumentModal, UpdateValidityModal } from "@/components/modals";
 import { createClient } from "@/lib/supabase/client";
 import {
   listAllDocuments,
-  createDocument,
   updateDocumentValidity,
 } from "@/lib/services/documents";
+import { uploadCompanyDocumentAction } from "../firmalar/[id]/actions";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
 import { selectAllCompanies } from "@/lib/supabase/companies";
 import type { CompanyRow } from "@/types/database.types";
@@ -440,40 +440,32 @@ export default function EvraklarPage() {
 
       <UploadDocumentModal open={uploadOpen} onClose={() => setUploadOpen(false)} firmalar={firmaOptions}
         onSubmit={async (p) => {
-          // Resolve real company UUID from the dropdown id (which is
-          // legacy_mock_id when present, else the real UUID). This is
-          // a pragmatic batch-local lookup against already-loaded
-          // allCompanies — kept here to preserve storage-first order
-          // without reshaping the documents service signature. See
-          // report > "Page-level company_id lookup note".
+          // Resolve real company UUID from the dropdown id (legacy_mock_id
+          // when present, else the real UUID). The tenant-aware server
+          // action needs the real company UUID.
           const company = allCompanies.find(
             (c) => (c.legacy_mock_id ?? c.id) === p.firmaId,
           );
           if (!company) {
             throw new Error("Firma bulunamadi veya erisim yetkiniz yok.");
           }
-          const path = `${company.id}/${crypto.randomUUID()}.pdf`;
 
-          // Storage first — fake storage_path rows must not exist.
-          const up = await supabase.storage
-            .from("documents")
-            .upload(path, p.file, {
-              contentType: "application/pdf",
-              upsert: false,
-            });
-          if (up.error) {
-            throw new Error(`Dosya yuklenemedi: ${up.error.message}`);
+          // Route through the tenant-aware server action: it sets
+          // tenant_id (RPC) / company_id / created_by / uploaded_by /
+          // storage_path server-side, role-guards, and does the storage
+          // upload + DB insert. Replaces the previous browser-context
+          // storage upload + tenant-less createDocument (Codex must-fix).
+          const fd = new FormData();
+          fd.set("company_id", company.id);
+          fd.set("name", p.evrakAdi);
+          fd.set("category", p.kategori);
+          if (p.gecerlilikTarihi) fd.set("validity_date", p.gecerlilikTarihi);
+          fd.set("file", p.file);
+
+          const result = await uploadCompanyDocumentAction(fd);
+          if (!result.ok) {
+            throw new Error(result.error);
           }
-
-          // DB second. If this throws, the storage object becomes
-          // orphaned — see report > "Blockers or unresolved risks".
-          await createDocument(supabase, {
-            legacyCompanyId: p.firmaId,
-            name: p.evrakAdi,
-            category: p.kategori,
-            validityDate: p.gecerlilikTarihi,
-            storagePath: path,
-          });
           await reload();
           router.refresh();
         }}

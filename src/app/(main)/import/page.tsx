@@ -20,8 +20,6 @@ import {
 import type { ImportType, ParseResult } from "@/lib/import/csv-parser";
 import {
   buildCompanyNameMap,
-  importContacts,
-  importContracts,
 } from "@/lib/import/import-service";
 import { importCompaniesAction } from "./actions";
 import type { ImportResult } from "@/lib/import/import-service";
@@ -114,22 +112,23 @@ export default function ImportPage() {
     setError(null);
 
     try {
-      let result: ImportResult;
-
-      if (selectedType === "companies") {
-        // Server-Action hardening (sprint sweep): companies INSERT runs
-        // server-side under the authenticated user's cookie session.
-        // The browser `supabase` client is no longer used for this path.
-        // See `./actions.ts` for the role guard + allow-list sanitizer.
-        result = await importCompaniesAction(validRows);
-      } else {
-        const companyMap = await buildCompanyNameMap(supabase);
-        if (selectedType === "contacts") {
-          result = await importContacts(supabase, validRows, companyMap);
-        } else {
-          result = await importContracts(supabase, validRows, companyMap);
-        }
+      // Only companies import has a hardened server-action path. The
+      // contacts/contracts confirm writes still ran browser-side,
+      // bypassing the import-specific yonetici-only guard + server
+      // validation (Codex must-fix). They are disabled until migrated
+      // to their own server actions; companies stays active.
+      if (selectedType !== "companies") {
+        setError(
+          "Yetkili kişi ve sözleşme içe aktarımı geçici olarak devre dışı. Bu sürümde yalnızca Firma içe aktarımı kullanılabilir.",
+        );
+        setImporting(false);
+        return;
       }
+
+      // Server-Action hardening: companies INSERT runs server-side under
+      // the authenticated user's cookie session (role guard + allow-list
+      // + server-set tenant_id). The browser client is not used here.
+      const result: ImportResult = await importCompaniesAction(validRows);
 
       setImportResult(result);
       setParseResult(null);

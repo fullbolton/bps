@@ -192,11 +192,34 @@ export async function uploadCompanyDocumentAction(
     return { ok: false, error: "Dosya 10 MB'dan büyük olamaz." };
   }
 
-  // 5. Build storage path. The storage RLS policy parses the company
+  // 5. Contract↔company binding check. If a contract_id is supplied,
+  //    verify it actually belongs to this company — never trust the
+  //    client-submitted relationship. Done BEFORE the storage upload so
+  //    a mismatched payload cannot orphan an object. RLS also scopes
+  //    this read, so an out-of-scope contract returns no row.
+  if (contractId) {
+    const { data: contractRow, error: contractError } = await supabase
+      .from("contracts")
+      .select("id")
+      .eq("id", contractId)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (contractError) {
+      return { ok: false, error: "Sözleşme doğrulanamadı." };
+    }
+    if (!contractRow) {
+      return {
+        ok: false,
+        error: "Seçilen sözleşme bu firmaya ait değil.",
+      };
+    }
+  }
+
+  // 6. Build storage path. The storage RLS policy parses the company
   //    UUID from the first path segment, so this format is required.
   const storagePath = `${companyId}/${crypto.randomUUID()}.pdf`;
 
-  // 6. Storage upload — first. If this fails, no DB row is created.
+  // 7. Storage upload. If this fails, no DB row is created.
   const upload = await supabase.storage
     .from("documents")
     .upload(storagePath, fileEntry, {
@@ -210,7 +233,7 @@ export async function uploadCompanyDocumentAction(
     };
   }
 
-  // 7. DB row insert — second. tenant_id, company_id, contract_id,
+  // 8. DB row insert. tenant_id, company_id, contract_id,
   //    storage_path are server-controlled; created_by / uploaded_by
   //    derive from auth. If this fails, the storage object is orphaned
   //    and we surface that explicitly (no silent failure).
@@ -355,10 +378,16 @@ export async function deleteCompanyDocumentAction(
     return { ok: true };
   }
 
-  // DB-first delete. RLS enforces yonetici. If it fails, do NOT touch
-  // storage — the row would otherwise be left pointing at a deleted
-  // file.
-  const del = await supabase.from("documents").delete().eq("id", documentId);
+  // DB-first delete with RETURNING. RLS enforces yonetici. `.select()`
+  // returns the rows actually deleted, so we can confirm a row was
+  // removed before touching storage — guards against a concurrent
+  // delete or RLS-filtered zero-row outcome between the read above and
+  // this delete. If it errors, do NOT touch storage.
+  const del = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", documentId)
+    .select("storage_path");
   if (del.error) {
     return {
       ok: false,
@@ -366,15 +395,25 @@ export async function deleteCompanyDocumentAction(
     };
   }
 
-  // Storage remove — second. DB row is already gone at this point.
-  if (doc.storage_path) {
+  const deletedRows = del.data ?? [];
+  if (deletedRows.length === 0) {
+    // Nothing was actually deleted (already gone / concurrent delete /
+    // RLS-filtered). Idempotent no-op — storage is NOT touched.
+    return { ok: true };
+  }
+
+  // Storage remove — second. Use the path from the row that was
+  // actually deleted (not the earlier read), in case the row's path
+  // changed concurrently. DB row is confirmed gone at this point.
+  const deletedPath = deletedRows[0].storage_path;
+  if (deletedPath) {
     const remove = await supabase.storage
       .from("documents")
-      .remove([doc.storage_path]);
+      .remove([deletedPath]);
     if (remove.error) {
       return {
         ok: true,
-        warning: `DB kaydı silindi, storage dosyası silinemedi (orphan): ${doc.storage_path}`,
+        warning: `DB kaydı silindi, storage dosyası silinemedi (orphan): ${deletedPath}`,
       };
     }
   }
