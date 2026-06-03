@@ -58,6 +58,7 @@ export async function buildCompanyNameMap(
 export async function importCompanies(
   client: Client,
   validRows: ParsedRow[],
+  options: { tenantId: string },
 ): Promise<ImportResult> {
   let imported = 0;
   const errors: string[] = [];
@@ -69,6 +70,8 @@ export async function importCompanies(
     const d = row.data;
 
     const { error } = await client.from("companies").insert({
+      // tenant_id is server-set by the action; never read from row.data.
+      tenant_id: options.tenantId,
       name: d.name.trim(),
       sector: d.sector?.trim() || null,
       city: d.city?.trim() || null,

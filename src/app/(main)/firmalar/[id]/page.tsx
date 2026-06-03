@@ -26,6 +26,8 @@ import {
   Pencil,
   Pin,
   Plus,
+  Upload,
+  Download,
 } from "lucide-react";
 import {
   TabNavigation,
@@ -52,6 +54,10 @@ import type { CompanyRow } from "@/types/database.types";
 import { listDocumentsByLegacyCompanyId } from "@/lib/services/documents";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
 import type { DocumentCategory } from "@/lib/document-categories";
+import {
+  uploadCompanyDocumentAction,
+  getCompanyDocumentDownloadUrlAction,
+} from "./actions";
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -372,6 +378,12 @@ export default function FirmaDetayPage({
   useEffect(() => {
     void reloadDocs();
   }, [reloadDocs]);
+
+  // Document upload modal + per-row download error (item-level — never
+  // collapses the tab; matches the Evraklar page resilience pattern).
+  const [evrakUploadOpen, setEvrakUploadOpen] = useState(false);
+  const [evrakUploadError, setEvrakUploadError] = useState<string | null>(null);
+  const [evrakDownloadError, setEvrakDownloadError] = useState<string | null>(null);
 
   if (companyLoading) {
     return <p className="text-sm text-slate-500 py-12 text-center">Yukleniyor...</p>;
@@ -1172,24 +1184,97 @@ export default function FirmaDetayPage({
 
         {/* Evraklar tab — firm's documents (real Supabase truth) */}
         {activeTab === "evraklar" && (() => {
+          if (documentsAccessRestricted) {
+            return (
+              <div className={CARD_LG}>
+                <h3 className={CARD_TITLE_PLAIN}>Firma Evraklari</h3>
+                <EmptyState title="Erişim kısıtlı" description="Bu rolde evrak görüntülenemez." size="tab" />
+              </div>
+            );
+          }
+
+          // Upload boundary matches ROLE_MATRIX row 308 (Evrak yükleme):
+          // yonetici + partner-scope + operasyon + ik. Partner scope is
+          // enforced at the DB layer by the documents INSERT policy.
+          const canMutateDocs = ["yonetici", "partner", "operasyon", "ik"].includes(role);
+          const contractLabelById = new Map(firmaSozlesmeler.map((c) => [c.id, c.name]));
+
+          async function handleEvrakDownload(documentId: string) {
+            setEvrakDownloadError(null);
+            const result = await getCompanyDocumentDownloadUrlAction(documentId);
+            if (result.ok) {
+              window.open(result.url, "_blank", "noopener,noreferrer");
+              return;
+            }
+            // Per-row failure stays item-level — page chrome unaffected.
+            setEvrakDownloadError(result.error);
+          }
+
           return (
             <div className={CARD_LG}>
-              <h3 className={CARD_TITLE_PLAIN}>Firma Evraklari</h3>
-              {documentsAccessRestricted ? (
-                <EmptyState title="Erişim kısıtlı" description="Bu rolde evrak görüntülenemez." size="tab" />
-              ) : firmaDocs.length === 0 ? (
-                <EmptyState title="Evrak yok" description="Bu firmaya ait evrak bulunamadi." size="tab" />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={CARD_TITLE_PLAIN + " mb-0"}>Firma Evraklari</h3>
+                {canMutateDocs && firma && (
+                  <button
+                    type="button"
+                    onClick={() => { setEvrakUploadError(null); setEvrakUploadOpen(true); }}
+                    className={`flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
+                  >
+                    <Upload size={13} />
+                    Belge Yükle
+                  </button>
+                )}
+              </div>
+
+              {evrakDownloadError && (
+                <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
+                  {evrakDownloadError}
+                </p>
+              )}
+
+              {firmaDocs.length === 0 ? (
+                <EmptyState title="Belge yok" description="Bu firmaya ait belge bulunmuyor." size="tab" />
               ) : (
-                <div className="space-y-2">
-                  {firmaDocs.map((e) => (
-                    <div key={e.id} className={`flex items-center justify-between py-2.5 ${LIST_DIVIDER}`}>
-                      <div className="min-w-0">
-                        <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{e.name}</p>
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{DOCUMENT_CATEGORY_LABELS[e.category]} {e.validity_date ? `· ${formatDateTR(e.validity_date)}` : ""}</p>
-                      </div>
-                      <StatusBadge status={e.status} />
-                    </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className={`bg-slate-50 ${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium">Belge</th>
+                        <th className="px-3 py-2 text-left font-medium">Kategori</th>
+                        <th className="px-3 py-2 text-left font-medium">Durum</th>
+                        <th className="px-3 py-2 text-left font-medium">Geçerlilik</th>
+                        <th className="px-3 py-2 text-left font-medium">Sözleşme</th>
+                        <th className="px-3 py-2 text-left font-medium">Yükleyen</th>
+                        <th className="px-3 py-2 text-left font-medium">Güncellenme</th>
+                        <th className="px-3 py-2 text-right font-medium" aria-label="aksiyon"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {firmaDocs.map((d) => (
+                        <tr key={d.id} className={`border-t ${BORDER_SUBTLE}`}>
+                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[220px] truncate`}>{d.name}</td>
+                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{DOCUMENT_CATEGORY_LABELS[d.category]}</td>
+                          <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
+                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{d.validity_date ? formatDateTR(d.validity_date) : "—"}</td>
+                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[180px] truncate`}>{d.contract_id ? (contractLabelById.get(d.contract_id) ?? "—") : "—"}</td>
+                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[160px] truncate`}>{d.uploaded_by ?? "—"}</td>
+                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(d.updated_at.slice(0, 10))}</td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => { void handleEvrakDownload(d.id); }}
+                              disabled={!d.storage_path}
+                              className={`inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                              title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
+                            >
+                              <Download size={12} />
+                              İndir
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1670,6 +1755,179 @@ export default function FirmaDetayPage({
           </div>
         </div>
       )}
+
+      {/* Evrak upload modal — server-action backed, PDF-only, server-set
+          tenant_id/company_id/created_by/uploaded_by/storage_path. The
+          companyId here is the REAL DB UUID from `companyShell`, never
+          the route param (which may be a legacy_mock_id). The storage
+          policy parses the first path segment as a company UUID. */}
+      {evrakUploadOpen && companyShell && (
+        <EvrakUploadModal
+          companyId={companyShell.id}
+          companyName={companyShell.name}
+          contracts={firmaSozlesmeler.map((c) => ({ id: c.id, name: c.name }))}
+          submitError={evrakUploadError}
+          onClose={() => { setEvrakUploadOpen(false); setEvrakUploadError(null); }}
+          onSubmitError={setEvrakUploadError}
+          onSuccess={async () => {
+            setEvrakUploadOpen(false);
+            setEvrakUploadError(null);
+            await reloadDocs();
+            router.refresh();
+          }}
+        />
+      )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// EvrakUploadModal — page-local upload form.
+//
+// Server-action backed (see `./actions.ts > uploadCompanyDocumentAction`).
+// The component itself only collects inputs and forwards them as
+// FormData; identity / tenant / company / audit fields are set by the
+// action against the cookie-derived session. The browser never sees a
+// signed URL it can persist, never sees a service-role client, and
+// never writes directly to `documents`.
+// ---------------------------------------------------------------------------
+
+interface EvrakUploadModalProps {
+  companyId: string;
+  companyName: string;
+  contracts: { id: string; name: string }[];
+  submitError: string | null;
+  onClose: () => void;
+  onSubmitError: (err: string) => void;
+  onSuccess: () => Promise<void> | void;
+}
+
+function EvrakUploadModal({
+  companyId,
+  companyName,
+  contracts,
+  submitError,
+  onClose,
+  onSubmitError,
+  onSuccess,
+}: EvrakUploadModalProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState<DocumentCategory>("diger");
+  const [contractId, setContractId] = useState("");
+  const [validityDate, setValidityDate] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const MAX_BYTES = 10 * 1024 * 1024;
+  const canSubmit = !!file && name.trim().length > 0 && !submitting;
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0] ?? null;
+    if (!picked) { setFile(null); setFileError(null); return; }
+    if (picked.type !== "application/pdf") {
+      setFile(null); setFileError("Sadece PDF dosyası yüklenebilir."); return;
+    }
+    if (picked.size > MAX_BYTES) {
+      setFile(null); setFileError("Dosya boyutu 10 MB'dan büyük olamaz."); return;
+    }
+    setFile(picked); setFileError(null);
+  }
+
+  async function handleSubmit() {
+    if (!canSubmit || !file) return;
+    setSubmitting(true);
+    const fd = new FormData();
+    fd.set("company_id", companyId);
+    fd.set("name", name.trim());
+    fd.set("category", category);
+    if (contractId) fd.set("contract_id", contractId);
+    if (validityDate) fd.set("validity_date", validityDate);
+    fd.set("file", file);
+
+    try {
+      const result = await uploadCompanyDocumentAction(fd);
+      if (result.ok) {
+        await onSuccess();
+      } else {
+        onSubmitError(result.error);
+      }
+    } catch (err) {
+      onSubmitError(err instanceof Error ? err.message : "Belge yüklenemedi.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className={`fixed inset-0 ${Z_OVERLAY} flex items-center justify-center p-4 ${SURFACE_OVERLAY_DARK}`} role="dialog" aria-modal="true">
+      <div className={`${SURFACE_PRIMARY} ${RADIUS_DEFAULT} shadow-xl w-full max-w-md p-5 space-y-4`}>
+        <div>
+          <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>Belge Yükle</h3>
+          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{companyName}</p>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Dosya (PDF) <span className="text-red-500">*</span></label>
+            <input type="file" accept="application/pdf" onChange={handleFileChange} disabled={submitting}
+              className={`w-full ${TYPE_CAPTION} file:mr-3 file:px-3 file:py-1.5 file:text-sm file:font-medium file:bg-slate-50 file:border file:border-slate-200 file:rounded-md file:text-slate-700 hover:file:bg-slate-100 disabled:opacity-40`} />
+            {file && !fileError && (
+              <p className={`mt-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</p>
+            )}
+            {fileError && (<p className={`mt-1 ${TYPE_CAPTION} text-red-600`}>{fileError}</p>)}
+            <p className={`mt-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>Maksimum 10 MB, sadece PDF.</p>
+          </div>
+
+          <div>
+            <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Belge Adı <span className="text-red-500">*</span></label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={submitting}
+              placeholder="Belge adını girin"
+              className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Kategori</label>
+              <select value={category} onChange={(e) => setCategory(e.target.value as DocumentCategory)} disabled={submitting}
+                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} bg-white focus:outline-none focus:ring-2 focus:ring-blue-500`}>
+                {(Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map((k) => (
+                  <option key={k} value={k}>{DOCUMENT_CATEGORY_LABELS[k]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Geçerlilik (ops.)</label>
+              <input type="date" value={validityDate} onChange={(e) => setValidityDate(e.target.value)} disabled={submitting}
+                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+            </div>
+          </div>
+
+          {contracts.length > 0 && (
+            <div>
+              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Bağlı Sözleşme (ops.)</label>
+              <select value={contractId} onChange={(e) => setContractId(e.target.value)} disabled={submitting}
+                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} bg-white focus:outline-none focus:ring-2 focus:ring-blue-500`}>
+                <option value="">— bağlama —</option>
+                {contracts.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {submitError && (<p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">{submitError}</p>)}
+
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose} disabled={submitting}
+            className={`px-4 py-2 ${TYPE_CAPTION} font-medium ${TEXT_BODY} bg-white border ${BORDER_DEFAULT} ${RADIUS_SM} hover:bg-slate-50 disabled:opacity-40`}>
+            İptal
+          </button>
+          <button type="button" onClick={handleSubmit} disabled={!canSubmit}
+            className={`px-4 py-2 ${TYPE_CAPTION} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}>
+            {submitting ? "Yükleniyor..." : "Yükle"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

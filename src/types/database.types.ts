@@ -157,6 +157,12 @@ export interface Database {
       companies: {
         Row: {
           id: string;
+          // tenant_id is `NOT NULL` in production and is the column the
+          // companies SELECT policy filters on. Adding it here aligns
+          // the type surface with reality (the migration that introduced
+          // it lives outside this repo). Server-set only — never read
+          // from client payloads.
+          tenant_id: string;
           name: string;
           legacy_mock_id: string | null;
           sector: string | null;
@@ -169,6 +175,10 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // Required on Insert — every new row must carry the active
+          // tenant. The server action is the single chokepoint that
+          // resolves and supplies this value.
+          tenant_id: string;
           name: string;
           legacy_mock_id?: string | null;
           sector?: string | null;
@@ -181,6 +191,10 @@ export interface Database {
         };
         Update: {
           id?: string;
+          // Update flow does not currently exist; keeping optional so a
+          // future surface can keep tenant_id stable without needing a
+          // type change here.
+          tenant_id?: string;
           name?: string;
           legacy_mock_id?: string | null;
           sector?: string | null;
@@ -622,6 +636,10 @@ export interface Database {
       documents: {
         Row: {
           id: string;
+          // tenant_id is `NOT NULL` in production; the documents RLS
+          // chain (SELECT/INSERT/DELETE) filters on it. Server-set
+          // only — never read from client payloads.
+          tenant_id: string;
           company_id: string;
           contract_id: string | null;
           name: string;
@@ -636,6 +654,17 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // Production schema requires NOT NULL on this column. Marked
+          // optional here only because the existing browser-side
+          // `createDocument` callers (evraklar/page.tsx,
+          // sozlesmeler/[id]/page.tsx) predate this lifecycle column
+          // and would force an unrelated refactor to update — explicitly
+          // out of scope of the upload/download implementation patch.
+          // Server actions in this patch always supply tenant_id; the
+          // CSV-importer hardening pattern is the precedent. The other
+          // browser-side write paths remain functionally broken against
+          // production until they are updated in a separate batch.
+          tenant_id?: string;
           company_id: string;
           contract_id?: string | null;
           name: string;
@@ -650,6 +679,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          tenant_id?: string;
           company_id?: string;
           contract_id?: string | null;
           name?: string;
@@ -999,6 +1029,15 @@ export interface Database {
       current_user_has_company_scope: {
         Args: { target_company_id: string };
         Returns: boolean;
+      };
+      // Returns the calling user's active tenant. Defined in production
+      // outside this repo's migrations (introduced alongside the
+      // tenant_id columns and SELECT policies). The server action falls
+      // back to the JWT `app_metadata.active_tenant_id` claim if this
+      // RPC is unavailable from the application context.
+      current_user_active_tenant: {
+        Args: Record<string, never>;
+        Returns: string;
       };
       derive_financial_summaries_from_mizan: {
         Args: { p_upload_id: string };

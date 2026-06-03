@@ -20,10 +20,10 @@ import {
 import type { ImportType, ParseResult } from "@/lib/import/csv-parser";
 import {
   buildCompanyNameMap,
-  importCompanies,
   importContacts,
   importContracts,
 } from "@/lib/import/import-service";
+import { importCompaniesAction } from "./actions";
 import type { ImportResult } from "@/lib/import/import-service";
 import {
   SURFACE_PRIMARY,
@@ -117,7 +117,11 @@ export default function ImportPage() {
       let result: ImportResult;
 
       if (selectedType === "companies") {
-        result = await importCompanies(supabase, validRows);
+        // Server-Action hardening (sprint sweep): companies INSERT runs
+        // server-side under the authenticated user's cookie session.
+        // The browser `supabase` client is no longer used for this path.
+        // See `./actions.ts` for the role guard + allow-list sanitizer.
+        result = await importCompaniesAction(validRows);
       } else {
         const companyMap = await buildCompanyNameMap(supabase);
         if (selectedType === "contacts") {
