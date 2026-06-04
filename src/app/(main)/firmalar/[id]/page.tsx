@@ -342,6 +342,13 @@ export default function FirmaDetayPage({
     yaklaşanRandevu: 0,
   } : null;
 
+  // UI-only passive guard (E + UI-only). When the company is pasif, new
+  // operation-creation actions are disabled (Not Ekle/Önerisi stay open
+  // for closure/audit notes; all viewing stays open). NOT a security
+  // boundary — server-side guard is a future DELTA; this is UX only.
+  const isPassiveCompany = firma?.durum === "pasif";
+  const PASSIVE_BLOCK_TITLE = "Firma pasif olduğu için yeni işlem oluşturulamaz.";
+
   // Financial summary — real DB, truthful absence state.
   // `last_source` distinguishes mizan-derived visibility from muhasebe
   // manual-flow visibility so the Ticari Özet card can surface a subtle
@@ -1019,7 +1026,9 @@ export default function FirmaDetayPage({
                   <button
                     type="button"
                     onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setContactModalOpen(true); }}
-                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 ${TYPE_CAPTION} font-medium ${TEXT_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} hover:bg-slate-50 transition-colors`}
+                    disabled={isPassiveCompany}
+                    title={isPassiveCompany ? PASSIVE_BLOCK_TITLE : undefined}
+                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 ${TYPE_CAPTION} font-medium ${TEXT_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
                   >
                     <UserPlus size={14} strokeWidth={1.8} />
                     Yetkili Ekle
@@ -1340,7 +1349,9 @@ export default function FirmaDetayPage({
                   <button
                     type="button"
                     onClick={() => { setEvrakUploadError(null); setEvrakUploadOpen(true); }}
-                    className={`flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
+                    disabled={isPassiveCompany}
+                    title={isPassiveCompany ? PASSIVE_BLOCK_TITLE : undefined}
+                    className={`flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline`}
                   >
                     <Upload size={13} />
                     Belge Yükle
