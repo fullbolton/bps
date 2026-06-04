@@ -1,49 +1,47 @@
 "use server";
 
 /**
- * BPS Company Detail — Documents Server Actions
+ * BPS Company Detail — Server Actions
  *
- * Two server-side entry points for the firma evrak lifecycle:
+ * Server-side entry points reached from the firma detail surface. Every
+ * action runs in server context: the Supabase client is always built via
+ * `createServerSupabaseClient()` (anon key + cookie session) — there is
+ * NO service_role usage anywhere in this file — and authorization comes
+ * from the same DB source RLS uses (`current_user_role()`), with
+ * `current_user_active_tenant()` resolving the tenant where needed.
  *
- *   1. `uploadCompanyDocumentAction(formData)`
- *      Authenticated user uploads a PDF for a given firma. The action
- *      runs in server context, so:
- *        - Identity comes from the cookie session, not from the client.
- *        - Role guard reads `current_user_role()` (same source as RLS).
- *        - `tenant_id` is resolved server-side via
- *          `current_user_active_tenant()` — same source as RLS.
- *        - `company_id` is taken from the action payload (the page knows
- *          which firma the user is on); RLS still enforces the user can
- *          insert under that company per the documents INSERT policy.
- *        - `created_by` / `uploaded_by` are stamped from auth, never
- *          read from client payload.
- *        - `storage_path` is built server-side as `{company_id}/{uuid}.pdf`
- *          and only set after the storage upload succeeds.
- *        - The client payload allow-list is strictly
- *          `{file, name, category, contract_id?, validity_date?}`.
+ *   1. `uploadCompanyDocumentAction(formData)` — upload a PDF for a firma.
+ *      Client allow-list `{file, name, category, contract_id?,
+ *      validity_date?}`; server sets tenant_id / company_id / created_by
+ *      / uploaded_by / storage_path. Verifies contract↔company binding
+ *      before upload. Storage first → DB row second; a DB failure after
+ *      a successful upload returns a clear orphan-warning error (orphan
+ *      cleanup is out of scope).
  *
- *      Order: storage upload first → DB row second. If the DB insert
- *      fails after storage upload succeeded, the storage object is
- *      orphaned. We return a clear error rather than silently hiding
- *      this — orphan cleanup is explicitly out of this task's scope.
+ *   2. `getCompanyDocumentDownloadUrlAction(documentId)` — short-lived
+ *      (60s) signed URL for an existing document. RLS-bounded lookup; no
+ *      public URL, `storage_path` never exposed.
  *
- *   2. `getCompanyDocumentDownloadUrlAction(documentId)`
- *      Returns a short-lived signed URL (60s) for an existing document
- *      row. The query runs through RLS, so an unauthorized user (or a
- *      partner outside scope) gets `null` back from the lookup and the
- *      action surfaces a clean "not found / no access" error. No public
- *      URL is ever generated; `storage_path` is never exposed.
+ *   3. `deleteCompanyDocumentAction(documentId)` — hard delete a document
+ *      (yonetici-only). DB-first delete + RETURNING guard, then storage
+ *      remove of the actually-deleted row's path.
  *
- * No service_role usage anywhere in this file. The Supabase client is
- * always built via `createServerSupabaseClient()` (anon key + cookie
- * session); RLS is fully enforced.
+ *   4. `deleteContactAction(contactId)` — hard delete a contact
+ *      (yonetici-only; app guard narrower than the partner-capable
+ *      contacts DELETE RLS). DB-first delete + RETURNING guard, no storage.
  *
- * Scope discipline (implementation pass):
- *   - Upload + download lifecycle only.
- *   - No update / no replace / no hard delete.
- *   - No bulk upload.
- *   - No backfill or orphan cleanup.
- *   - No DB migration / policy change.
+ *   5. `passivateCompanyAction(companyId)` — set company status='pasif'
+ *      and NOTHING else (yonetici-only). The update payload is the literal
+ *      `{ status: "pasif" }`; the only client input is companyId (WHERE).
+ *      See that action's own header for the field-discipline rationale.
+ *
+ * Guards shared by the mutating actions: yonetici-only role check, and a
+ * RETURNING/returned-row guard so a zero-row outcome is an idempotent
+ * no-op rather than a misleading success. RLS is the final boundary in
+ * every case.
+ *
+ * Not in scope: reactivate, company delete, bulk operations, storage
+ * backfill/cleanup, DB migration or policy change.
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";

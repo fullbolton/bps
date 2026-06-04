@@ -3,43 +3,36 @@
 /**
  * BPS CSV Import — Server Actions
  *
- * Hardens the companies INSERT path in two layers:
+ * The three confirm-time import writes — companies, contacts, contracts —
+ * all run server-side here (`importCompaniesAction`,
+ * `importContactsAction`, `importContractsAction`). None uses the browser
+ * write path any more; the page only previews client-side and delegates
+ * the final write to these actions. No service_role anywhere — the client
+ * is always `createServerSupabaseClient()` (anon key + cookie session),
+ * RLS enforced.
  *
  *   1. Identity & authorization come from the same DB source RLS uses.
- *      - Role: `current_user_role()` via supabase.rpc. This function
- *        reads `profiles.role` keyed by `auth.uid()` — exactly what
- *        the policies on companies / contacts / contracts inspect.
- *        The previous `user.user_metadata.role` check is gone; that
- *        path can drift from the profiles truth and let the app and
- *        the DB disagree about who is allowed to write.
- *      - Active tenant: `current_user_active_tenant()` via supabase.rpc
- *        is the SINGLE source of truth. The DB helper reads the active
- *        tenant claim from the top-level JWT, and the SELECT policy
- *        chain uses the same helper. There is no second resolution
- *        path: a fallback that reads a different location than the
- *        helper would either re-introduce the two-truths drift this
- *        whole hardening pass removed or silently mask an RPC outage.
- *        If the RPC returns null / empty / errors, the action fails
- *        closed with `ImportResult.errors[0]` set; no insert attempted.
+ *      - Role: `current_user_role()` (reads `profiles.role` by
+ *        `auth.uid()`) — yonetici-only for every import action, narrower
+ *        than the partner-capable contacts/contracts INSERT RLS.
+ *        `user.user_metadata.role` is intentionally never consulted.
+ *      - Active tenant: `current_user_active_tenant()` is the SINGLE
+ *        source. Used to set companies/contracts `tenant_id` and as a
+ *        fail-closed gate. NOTE: contacts has no tenant_id column — its
+ *        tenant scope is enforced by RLS via company_id → companies, so
+ *        the contacts action does not write tenant_id.
  *
- *   2. Payload control. Only `{name, sector, city, status, risk}` from
- *      `row.data` reach the insert. Every other key the client may have
- *      placed on the payload is dropped — explicitly including:
- *        - `id` → DB `gen_random_uuid()` default
- *        - `tenant_id` → server-resolved per (1)
- *        - `created_by` → stamped server-side from `auth.getUser()`
- *          inside `importCompanies` against the server client
- *        - `created_at`, `updated_at` → DB `now()` defaults
- *        - `legacy_mock_id` → never set on new rows; remains NULL
+ *   2. Payload control. Each action strips `row.data` to a per-entity
+ *      allow-list and re-validates against the DB CHECK constraints
+ *      (status/risk whitelists, contacts phone-or-email, contracts date
+ *      rules). Client-supplied id / tenant_id / created_by / created_at /
+ *      updated_at / legacy_mock_id are never written; created_by is
+ *      stamped server-side and tenant_id is server-resolved. Company
+ *      name → id resolution runs server-side via `buildCompanyNameMap`.
  *
- * Scope discipline (sprint hardening pass):
- *   - Companies INSERT only. Contacts and contracts continue to use
- *     the browser path; they were not flagged by the audit.
- *   - No UPDATE / UPSERT / DELETE actions added.
- *   - No DB migration, no RLS / policy change. The eventual
- *     `companies_insert_yonetici` policy is a separate, later gate.
- *     Until that lands, the action will surface RLS-deny errors via
- *     `ImportResult.errors[]` (rendered by the existing import UI).
+ * RLS is the final write boundary; any rejection surfaces per-row in
+ * `ImportResult.errors[]` (rendered by the import UI). No UPDATE / UPSERT
+ * / DELETE, no DB migration or policy change here.
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";

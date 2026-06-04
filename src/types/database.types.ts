@@ -664,16 +664,14 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          // Production schema requires NOT NULL on this column. Marked
-          // optional here only because the existing browser-side
-          // `createDocument` callers (evraklar/page.tsx,
-          // sozlesmeler/[id]/page.tsx) predate this lifecycle column
-          // and would force an unrelated refactor to update — explicitly
-          // out of scope of the upload/download implementation patch.
-          // Server actions in this patch always supply tenant_id; the
-          // CSV-importer hardening pattern is the precedent. The other
-          // browser-side write paths remain functionally broken against
-          // production until they are updated in a separate batch.
+          // Production schema requires NOT NULL on this column. Kept
+          // optional in the TS Insert shape so internal update/replace
+          // helpers that only touch existing rows do not need to restate
+          // it. Document creation goes exclusively through the server
+          // action `uploadCompanyDocumentAction`, which always supplies a
+          // server-resolved tenant_id; the legacy `createDocument` is a
+          // fail-closed stub and inserts nothing. RLS / NOT NULL enforce
+          // at runtime.
           tenant_id?: string;
           company_id: string;
           contract_id?: string | null;

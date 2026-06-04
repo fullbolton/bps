@@ -131,9 +131,9 @@ export default function EvraklarPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   // Real companies for the Upload modal's firma dropdown. RLS-scoped;
-  // modal emits `firmaId` that flows to createDocument as
-  // `legacyCompanyId`, so option id prefers legacy_mock_id and falls
-  // back to the UUID.
+  // the modal emits `firmaId` (option id prefers legacy_mock_id, falls
+  // back to the UUID). The submit handler resolves it to the real
+  // company UUID and routes the write through uploadCompanyDocumentAction.
   const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
 
   const reload = useCallback(async () => {
