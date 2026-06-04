@@ -200,6 +200,15 @@ export function validateContractRow(
     }
   }
 
+  // Mirror the server (`sanitizeContractRow`): a supplied but malformed
+  // renewal_target_date must surface in preview too, otherwise it shows a
+  // green tick here but is rejected at confirm. Empty stays valid.
+  if (row.renewal_target_date?.trim()) {
+    if (!parseDDMMYYYY(row.renewal_target_date.trim())) {
+      errors.push(`renewal_target_date gecersiz format: "${row.renewal_target_date}" (DD.MM.YYYY olmali)`);
+    }
+  }
+
   if (row.status?.trim() && !VALID_CONTRACT_STATUSES.has(row.status.trim())) {
     errors.push(`status gecersiz: "${row.status}"`);
   }
