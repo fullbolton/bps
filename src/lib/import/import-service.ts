@@ -114,6 +114,9 @@ export async function importContacts(
     }
 
     const { error } = await client.from("contacts").insert({
+      // No tenant_id column on contacts — tenant scope is enforced by
+      // RLS via company_id → companies.tenant_id. company_id is resolved
+      // server-side from the company name map.
       company_id: companyId,
       full_name: d.full_name.trim(),
       title: d.title?.trim() || null,
@@ -142,6 +145,7 @@ export async function importContracts(
   client: Client,
   validRows: ParsedRow[],
   companyNameToId: Map<string, string>,
+  options: { tenantId: string },
 ): Promise<ImportResult> {
   let imported = 0;
   const errors: string[] = [];
@@ -158,6 +162,8 @@ export async function importContracts(
     }
 
     const { error } = await client.from("contracts").insert({
+      // tenant_id is server-resolved by the action; never from payload.
+      tenant_id: options.tenantId,
       company_id: companyId,
       name: d.name.trim(),
       contract_type: d.contract_type?.trim() || null,

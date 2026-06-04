@@ -287,6 +287,11 @@ export interface Database {
       contracts: {
         Row: {
           id: string;
+          // tenant_id mirrors the companies/documents tenant-scoping;
+          // contracts belong to a company and carry the same tenant.
+          // Server-set on insert (import server action), never from
+          // client payload.
+          tenant_id: string;
           company_id: string;
           name: string;
           contract_type: string | null;
@@ -308,6 +313,10 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // Optional here only so pre-existing callers compile; the
+          // import server action always supplies it from
+          // current_user_active_tenant(). RLS / NOT NULL enforce at runtime.
+          tenant_id?: string;
           company_id: string;
           name: string;
           contract_type?: string | null;
@@ -329,6 +338,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          tenant_id?: string;
           company_id?: string;
           name?: string;
           contract_type?: string | null;

@@ -21,7 +21,11 @@ import type { ImportType, ParseResult } from "@/lib/import/csv-parser";
 import {
   buildCompanyNameMap,
 } from "@/lib/import/import-service";
-import { importCompaniesAction } from "./actions";
+import {
+  importCompaniesAction,
+  importContactsAction,
+  importContractsAction,
+} from "./actions";
 import type { ImportResult } from "@/lib/import/import-service";
 import {
   SURFACE_PRIMARY,
@@ -112,23 +116,19 @@ export default function ImportPage() {
     setError(null);
 
     try {
-      // Only companies import has a hardened server-action path. The
-      // contacts/contracts confirm writes still ran browser-side,
-      // bypassing the import-specific yonetici-only guard + server
-      // validation (Codex must-fix). They are disabled until migrated
-      // to their own server actions; companies stays active.
-      if (selectedType !== "companies") {
-        setError(
-          "Yetkili kişi ve sözleşme içe aktarımı geçici olarak devre dışı. Bu sürümde yalnızca Firma içe aktarımı kullanılabilir.",
-        );
-        setImporting(false);
-        return;
+      // All three imports run server-side. Each action carries the same
+      // hardening: cookie-session auth, current_user_role() yonetici-only
+      // guard, server-resolved tenant_id, allow-list + DB-CHECK-aligned
+      // validation, and server-side company name → id resolution. The
+      // browser `supabase` client is not used for any final write.
+      let result: ImportResult;
+      if (selectedType === "companies") {
+        result = await importCompaniesAction(validRows);
+      } else if (selectedType === "contacts") {
+        result = await importContactsAction(validRows);
+      } else {
+        result = await importContractsAction(validRows);
       }
-
-      // Server-Action hardening: companies INSERT runs server-side under
-      // the authenticated user's cookie session (role guard + allow-list
-      // + server-set tenant_id). The browser client is not used here.
-      const result: ImportResult = await importCompaniesAction(validRows);
 
       setImportResult(result);
       setParseResult(null);
