@@ -179,3 +179,34 @@ export async function getCompanyDisplayMapByIds(
   }
   return { nameById, legacyById };
 }
+
+// ---------------------------------------------------------------------------
+// Passive-company guard (read-only) — shared by the new-operation server
+// actions (document upload, contact create). Reads the company's status
+// tenant-scoped (id + tenant_id) and fails closed when the row is absent
+// (out of scope / not found) or the company is `pasif`. No write. Callers
+// MUST invoke this BEFORE any side-effecting step so a pasif company
+// cannot produce a row or a storage object.
+// ---------------------------------------------------------------------------
+export async function assertCompanyIsActiveForNewOperation(
+  client: Client,
+  companyId: string,
+  tenantId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await client
+    .from("companies")
+    .select("status")
+    .eq("id", companyId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (error) {
+    return { ok: false, error: "Firma durumu doğrulanamadı." };
+  }
+  if (!data) {
+    return { ok: false, error: "Firma bulunamadı veya erişim yok." };
+  }
+  if (data.status === "pasif") {
+    return { ok: false, error: "Firma pasif olduğu için yeni işlem oluşturulamaz." };
+  }
+  return { ok: true };
+}

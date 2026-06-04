@@ -211,8 +211,14 @@ export async function getPrimaryContactNamesByLegacyIds(
 /**
  * Create a new yetkili for a firma identified by legacy mock id.
  *
- * Behavior:
- *   - Re-verifies partner scope via the company resolver (throws on miss).
+ * Lower-level service: relies on the caller-supplied Supabase client and
+ * RLS for authorization/scope — it does not encode a role decision. The
+ * active app create path is guarded by `createContactAction` (currently
+ * yonetici-only at the app level). Company scope is resolved here and
+ * ultimately enforced by RLS.
+ *
+ * Service-level validations (unchanged):
+ *   - Resolves the company via the company resolver (throws on miss).
  *   - Enforces the max-5-per-firma rule with a count read before insert.
  *   - Enforces phone-or-email at the application layer.
  *   - When `isPrimary` is true, demotes any existing primary in the same

@@ -45,6 +45,9 @@
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { assertCompanyIsActiveForNewOperation } from "@/lib/services/companies";
+import { createContact } from "@/lib/services/contacts";
+import type { ContactCreateInput } from "@/lib/services/contacts";
 import type { EvrakDurumu } from "@/types/ui";
 import type { DocumentCategory } from "@/lib/document-categories";
 
@@ -127,38 +130,6 @@ function readString(formData: FormData, key: string): string {
 function readOptionalString(formData: FormData, key: string): string | null {
   const v = readString(formData, key);
   return v.length > 0 ? v : null;
-}
-
-/**
- * Read-only passive-company guard for new-operation server actions.
- * Reads the company's status (tenant-scoped: id + tenant_id) and fails
- * closed when the row is absent (out of scope / not found) or when the
- * company is `pasif`. No write. Callers must invoke this BEFORE any
- * side-effecting step (e.g. storage upload) so a pasif company cannot
- * produce an orphan or a row.
- */
-async function assertCompanyIsActiveForNewOperation(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
-  companyId: string,
-  tenantId: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { data, error } = await supabase
-    .from("companies")
-    .select("status")
-    .eq("id", companyId)
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
-  if (error) {
-    return { ok: false, error: "Firma durumu doğrulanamadı." };
-  }
-  if (!data) {
-    // Row not found / outside tenant scope — fail closed.
-    return { ok: false, error: "Firma bulunamadı veya erişim yok." };
-  }
-  if (data.status === "pasif") {
-    return { ok: false, error: "Firma pasif olduğu için yeni işlem oluşturulamaz." };
-  }
-  return { ok: true };
 }
 
 export async function uploadCompanyDocumentAction(
@@ -674,4 +645,86 @@ export async function reactivateCompanyAction(
   }
 
   return { ok: true, name: rows[0].name };
+}
+
+export type ContactCreateResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Create a contact for a company via a server action (Patch 2 — Option
+ * 2a). Replaces the previous browser-context `createContact` call path,
+ * which ran RLS-only and — because the contacts INSERT RLS is status-
+ * blind — allowed new contacts on a pasif company. This action adds the
+ * server-side passive-company guard the browser path could not.
+ *
+ * Order: cookie auth → current_user_role() guard (yonetici-only) →
+ * current_user_active_tenant() → passive-company guard (fail-closed on
+ * pasif) → delegate to the existing `createContact` service with the
+ * SERVER client. The service preserves the max-5 / phone-or-email /
+ * single-primary validation and resolves companyId (UUID) via
+ * requireCompanyByLegacyMockId. RLS stays the final boundary.
+ *
+ * Contact create is currently yonetici-only by app-level product
+ * decision; partner role boundary is pending follow-up.
+ *
+ * Edit/delete contact paths are unchanged — this is the create path only.
+ * service_role is never used.
+ */
+export async function createContactAction(
+  companyId: string,
+  input: ContactCreateInput,
+): Promise<ContactCreateResult> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
+  }
+
+  if (!companyId || typeof companyId !== "string") {
+    return { ok: false, error: "Firma kimliği geçersiz." };
+  }
+
+  // yonetici-only (app-level product decision; partner is HOLD / pending
+  // follow-up — see ROLE_MATRIX refresh, not edited in this patch).
+  const { data: roleData, error: roleError } = await supabase.rpc(
+    "current_user_role",
+  );
+  if (roleError || roleData !== "yonetici") {
+    return {
+      ok: false,
+      error: "Yetkisiz: yetkili kişi ekleme yetkiniz yok.",
+    };
+  }
+
+  const { data: tenantId, error: tenantError } = await supabase.rpc(
+    "current_user_active_tenant",
+  );
+  if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
+    return { ok: false, error: "Aktif kiracı çözümlenemedi." };
+  }
+
+  // Passive-company guard — BEFORE any insert.
+  const activeCheck = await assertCompanyIsActiveForNewOperation(
+    supabase,
+    companyId,
+    tenantId,
+  );
+  if (!activeCheck.ok) {
+    return activeCheck;
+  }
+
+  // Delegate to the existing service (server client). Preserves
+  // max-5 / phone-or-email / single-primary validation.
+  try {
+    await createContact(supabase, companyId, input);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Yetkili kişi eklenemedi.",
+    };
+  }
 }

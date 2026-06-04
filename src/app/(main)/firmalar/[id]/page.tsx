@@ -64,12 +64,12 @@ import {
   deleteContactAction,
   passivateCompanyAction,
   reactivateCompanyAction,
+  createContactAction,
 } from "./actions";
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
 import {
   listContactsByLegacyCompanyId,
-  createContact,
   updateContactFull,
   updateContactPhoneEmail,
 } from "@/lib/services/contacts";
@@ -1067,7 +1067,10 @@ export default function FirmaDetayPage({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <h3 className={CARD_TITLE_PLAIN}>Yetkili Kişiler</h3>
               <div className="flex flex-shrink-0 items-center gap-2 sm:justify-end">
-                {(role === "yonetici" || role === "partner") && yetkililer.length < 5 && (
+                {/* Yetkili Ekle (create) — yonetici-only by app-level
+                    product decision; partner is HOLD / pending follow-up.
+                    Passive-company guard (disabled + tooltip) preserved. */}
+                {role === "yonetici" && yetkililer.length < 5 && (
                   <button
                     type="button"
                     onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setContactModalOpen(true); }}
@@ -1744,7 +1747,14 @@ export default function FirmaDetayPage({
               });
             }
           } else {
-            await createContact(supabase, id, {
+            // Create runs through the server action (Patch 2): cookie-auth,
+            // role + tenant + passive-company guard, then delegates to the
+            // contacts service. The real company UUID (companyShell.id) is
+            // required — never the route param, which may be a legacy id.
+            if (!companyShell) {
+              throw new Error("Firma yüklenmedi.");
+            }
+            const result = await createContactAction(companyShell.id, {
               fullName: data.fullName,
               title: data.title,
               phone: data.phone,
@@ -1752,6 +1762,9 @@ export default function FirmaDetayPage({
               isPrimary: data.isPrimary,
               contextNote: data.contextNote,
             });
+            if (!result.ok) {
+              throw new Error(result.error);
+            }
           }
           await reloadYetkililer();
           // Invalidate the entire client Router Cache so /firmalar
