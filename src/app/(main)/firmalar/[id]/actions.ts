@@ -92,6 +92,10 @@ export type DeleteResult =
   | { ok: true; warning?: string }
   | { ok: false; error: string };
 
+export type ContactDeleteResult =
+  | { ok: true; deletedName?: string }
+  | { ok: false; error: string };
+
 function deriveStatus(validityDate: string | null): EvrakDurumu {
   // A file is being attached, so the row will not be `eksik`. The
   // expiry buckets only matter when validity_date is set; missing dates
@@ -419,4 +423,60 @@ export async function deleteCompanyDocumentAction(
   }
 
   return { ok: true };
+}
+
+/**
+ * Hard-delete a single contact (Faz 1 — no trash, no soft-delete).
+ * contacts has no soft-state column, so hard delete is the only path.
+ *
+ * yonetici-only at the app layer (rpc current_user_role). The contacts
+ * DELETE RLS also permits partner company-scope, but this action is
+ * deliberately narrower — only yonetici. service_role is never used.
+ *
+ * DB-first delete with RETURNING so we confirm a row was actually
+ * removed (returned-row guard). Zero rows (already gone / RLS-hidden /
+ * concurrent delete) is an idempotent no-op success — no misleading
+ * "deleted" feedback for a row that wasn't there. No storage involved.
+ */
+export async function deleteContactAction(
+  contactId: string,
+): Promise<ContactDeleteResult> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
+  }
+
+  if (!contactId || typeof contactId !== "string") {
+    return { ok: false, error: "Yetkili kimliği geçersiz." };
+  }
+
+  const { data: roleData, error: roleError } = await supabase.rpc(
+    "current_user_role",
+  );
+  if (roleError || roleData !== "yonetici") {
+    return {
+      ok: false,
+      error: "Yetkisiz: yetkili kişi silme yalnızca yöneticiye açıktır.",
+    };
+  }
+
+  const del = await supabase
+    .from("contacts")
+    .delete()
+    .eq("id", contactId)
+    .select("id, full_name");
+  if (del.error) {
+    return { ok: false, error: `Yetkili silinemedi: ${del.error.message}` };
+  }
+
+  const deletedRows = del.data ?? [];
+  if (deletedRows.length === 0) {
+    // Already gone / not visible — idempotent no-op success.
+    return { ok: true };
+  }
+
+  return { ok: true, deletedName: deletedRows[0].full_name };
 }

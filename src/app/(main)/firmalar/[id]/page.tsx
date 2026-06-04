@@ -59,6 +59,7 @@ import {
   uploadCompanyDocumentAction,
   getCompanyDocumentDownloadUrlAction,
   deleteCompanyDocumentAction,
+  deleteContactAction,
 } from "./actions";
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
@@ -242,6 +243,30 @@ export default function FirmaDetayPage({
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [editPhoneEmailOnly, setEditPhoneEmailOnly] = useState(false);
+  // Contact hard-delete (yonetici-only) — busy flag per row; errors
+  // surface on the existing Yetkililer inline error line.
+  const [contactDeletingId, setContactDeletingId] = useState<string | null>(null);
+
+  async function handleContactDelete(ytk: ContactRow) {
+    if (!window.confirm("Bu yetkili kişiyi kalıcı olarak silmek üzeresiniz. Bu işlem geri alınamaz.")) {
+      return;
+    }
+    setYetkililerError(null);
+    setContactDeletingId(ytk.id);
+    try {
+      const result = await deleteContactAction(ytk.id);
+      if (result.ok) {
+        await reloadYetkililer();
+        router.refresh();
+      } else {
+        setYetkililerError(result.error);
+      }
+    } catch (err) {
+      setYetkililerError(err instanceof Error ? err.message : "Yetkili silinemedi.");
+    } finally {
+      setContactDeletingId(null);
+    }
+  }
   // Ticari Temas — outbound draft helpers
   const [temasType, setTemasType] = useState<"yeniden_temas" | "odeme_takibi" | null>(null);
   const [temasDraftText, setTemasDraftText] = useState<string | null>(null);
@@ -1015,21 +1040,37 @@ export default function FirmaDetayPage({
                           <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>{ytk.context_note}</p>
                         )}
                       </div>
-                      {/* Edit action — role-gated */}
-                      {(role === "yonetici" || role === "partner" || role === "operasyon") && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingContact(ytk);
-                            setEditPhoneEmailOnly(role === "operasyon");
-                            setContactModalOpen(true);
-                          }}
-                          className={`flex-shrink-0 ml-3 p-1.5 ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
-                          aria-label={`${ytk.full_name} — düzenle`}
-                        >
-                          <Pencil size={13} aria-hidden />
-                        </button>
-                      )}
+                      {/* Edit + delete actions — role-gated. Edit:
+                          yonetici/partner/operasyon. Delete: yonetici-only
+                          (hard delete; mirrors the contacts DELETE app guard). */}
+                      <div className="flex-shrink-0 ml-3 flex items-center">
+                        {(role === "yonetici" || role === "partner" || role === "operasyon") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingContact(ytk);
+                              setEditPhoneEmailOnly(role === "operasyon");
+                              setContactModalOpen(true);
+                            }}
+                            className={`p-1.5 ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
+                            aria-label={`${ytk.full_name} — düzenle`}
+                          >
+                            <Pencil size={13} aria-hidden />
+                          </button>
+                        )}
+                        {role === "yonetici" && (
+                          <button
+                            type="button"
+                            onClick={() => { void handleContactDelete(ytk); }}
+                            disabled={contactDeletingId === ytk.id}
+                            className={`p-1.5 ${TEXT_MUTED} hover:text-red-600 hover:bg-red-50 ${RADIUS_SM} transition-colors disabled:opacity-40 disabled:cursor-not-allowed`}
+                            aria-label={`${ytk.full_name} — kalıcı olarak sil`}
+                            title="Yetkili kişiyi kalıcı olarak sil"
+                          >
+                            <Trash2 size={13} aria-hidden />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

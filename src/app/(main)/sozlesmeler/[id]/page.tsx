@@ -2,7 +2,7 @@
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
 import { formatTRY } from "@/lib/format-currency";
 import {
@@ -38,6 +38,7 @@ import {
   updateContractDocumentFile,
 } from "@/lib/services/documents";
 import { uploadCompanyDocumentAction } from "../../firmalar/[id]/actions";
+import { deleteContractAction } from "./actions";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { ContractRow, TaskRow, AppointmentRow, DocumentRow } from "@/types/database.types";
 import type { SozlesmeDurumu } from "@/types/ui";
@@ -87,6 +88,8 @@ export default function SozlesmeDetayPage({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  // Contract hard-delete (yonetici-only). Errors surface on actionError.
+  const [contractDeleting, setContractDeleting] = useState(false);
   // Faz 3: linked tasks and appointments for this contract
   const [linkedTasks, setLinkedTasks] = useState<TaskRow[]>([]);
   const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRow[]>([]);
@@ -204,6 +207,30 @@ export default function SozlesmeDetayPage({
       setActionError(
         err instanceof Error ? err.message : "Durum değiştirilemedi.",
       );
+    }
+  }
+
+  async function handleContractDelete() {
+    if (!contract) return;
+    // Strong confirm — hard delete affects operational/commercial history.
+    if (!window.confirm("Bu sözleşmeyi kalıcı olarak silmek üzeresiniz. Bu işlem geri alınamaz ve operasyonel/ticari geçmiş görünürlüğünü etkileyebilir.")) {
+      return;
+    }
+    setActionError(null);
+    setContractDeleting(true);
+    try {
+      const result = await deleteContractAction(contract.id);
+      if (result.ok) {
+        // Row gone (or already absent) — leave the detail page.
+        router.push("/sozlesmeler");
+        router.refresh();
+      } else {
+        setActionError(result.error);
+        setContractDeleting(false);
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Sözleşme silinemedi.");
+      setContractDeleting(false);
     }
   }
 
@@ -595,6 +622,26 @@ export default function SozlesmeDetayPage({
             </div>
           )}
         </section>
+
+        {/* Kalıcı silme — yonetici-only. Hard delete (Faz 1), güçlü
+            onay zorunlu. contracts DELETE RLS de yonetici-only. */}
+        {role === "yonetici" && (
+          <section className={`${SURFACE_PRIMARY} border border-red-200 ${RADIUS_DEFAULT} p-5`}>
+            <h2 className={`${TYPE_CARD_TITLE} text-red-700 mb-1`}>Sözleşmeyi Sil</h2>
+            <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mb-3`}>
+              Bu işlem geri alınamaz. Sözleşme ve onunla ilişkili görünürlük kalıcı olarak kaldırılır.
+            </p>
+            <button
+              type="button"
+              onClick={() => { void handleContractDelete(); }}
+              disabled={contractDeleting}
+              className={`${BUTTON_BASE} inline-flex items-center gap-1.5 text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              <Trash2 size={14} />
+              {contractDeleting ? "Siliniyor…" : "Sözleşmeyi Kalıcı Olarak Sil"}
+            </button>
+          </section>
+        )}
       </div>
 
       <NewContractModal
