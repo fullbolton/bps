@@ -129,6 +129,38 @@ function readOptionalString(formData: FormData, key: string): string | null {
   return v.length > 0 ? v : null;
 }
 
+/**
+ * Read-only passive-company guard for new-operation server actions.
+ * Reads the company's status (tenant-scoped: id + tenant_id) and fails
+ * closed when the row is absent (out of scope / not found) or when the
+ * company is `pasif`. No write. Callers must invoke this BEFORE any
+ * side-effecting step (e.g. storage upload) so a pasif company cannot
+ * produce an orphan or a row.
+ */
+async function assertCompanyIsActiveForNewOperation(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  companyId: string,
+  tenantId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await supabase
+    .from("companies")
+    .select("status")
+    .eq("id", companyId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (error) {
+    return { ok: false, error: "Firma durumu doğrulanamadı." };
+  }
+  if (!data) {
+    // Row not found / outside tenant scope — fail closed.
+    return { ok: false, error: "Firma bulunamadı veya erişim yok." };
+  }
+  if (data.status === "pasif") {
+    return { ok: false, error: "Firma pasif olduğu için yeni işlem oluşturulamaz." };
+  }
+  return { ok: true };
+}
+
 export async function uploadCompanyDocumentAction(
   formData: FormData,
 ): Promise<UploadResult> {
@@ -221,11 +253,24 @@ export async function uploadCompanyDocumentAction(
     }
   }
 
-  // 6. Build storage path. The storage RLS policy parses the company
+  // 6. Passive-company guard. A pasif firma cannot receive new
+  //    documents. Done BEFORE the storage upload so a rejected attempt
+  //    creates neither a storage object nor a DB row. Tenant-scoped and
+  //    fail-closed (absent row → error).
+  const activeCheck = await assertCompanyIsActiveForNewOperation(
+    supabase,
+    companyId,
+    tenantId,
+  );
+  if (!activeCheck.ok) {
+    return activeCheck;
+  }
+
+  // 7. Build storage path. The storage RLS policy parses the company
   //    UUID from the first path segment, so this format is required.
   const storagePath = `${companyId}/${crypto.randomUUID()}.pdf`;
 
-  // 7. Storage upload. If this fails, no DB row is created.
+  // 8. Storage upload. If this fails, no DB row is created.
   const upload = await supabase.storage
     .from("documents")
     .upload(storagePath, fileEntry, {
@@ -239,7 +284,7 @@ export async function uploadCompanyDocumentAction(
     };
   }
 
-  // 8. DB row insert. tenant_id, company_id, contract_id,
+  // 9. DB row insert. tenant_id, company_id, contract_id,
   //    storage_path are server-controlled; created_by / uploaded_by
   //    derive from auth. If this fails, the storage object is orphaned
   //    and we surface that explicitly (no silent failure).
