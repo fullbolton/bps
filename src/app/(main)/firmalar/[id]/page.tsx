@@ -6,6 +6,7 @@ import {
   StickyNote,
   CalendarCheck,
   Archive,
+  ArchiveRestore,
   ArrowLeft,
   AlertTriangle,
   FileText,
@@ -62,6 +63,7 @@ import {
   deleteCompanyDocumentAction,
   deleteContactAction,
   passivateCompanyAction,
+  reactivateCompanyAction,
 } from "./actions";
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
@@ -323,6 +325,34 @@ export default function FirmaDetayPage({
     }
   }
 
+  // Reactivate (yonetici-only) — the mirror of passivate. Completes the
+  // aktif↔pasif lifecycle; success lifts the passive UI guard automatically.
+  const [reactivating, setReactivating] = useState(false);
+  const [reactivateError, setReactivateError] = useState<string | null>(null);
+
+  async function handleReactivate() {
+    if (!companyShell) return;
+    if (!window.confirm("Bu firmayı tekrar aktife almak üzeresiniz. Aktif firmalarda yeni işlemler yeniden oluşturulabilir.")) {
+      return;
+    }
+    setReactivateError(null);
+    setReactivating(true);
+    try {
+      const result = await reactivateCompanyAction(companyShell.id);
+      if (result.ok) {
+        const updated = await resolveCompanyByIdOrLegacy(supabase, id).catch(() => null);
+        if (updated) setCompanyShell(updated);
+        router.refresh();
+      } else {
+        setReactivateError(result.error);
+      }
+    } catch (err) {
+      setReactivateError(err instanceof Error ? err.message : "Firma aktife alınamadı.");
+    } finally {
+      setReactivating(false);
+    }
+  }
+
   // Build firma-compatible object from real company shell for downstream consumers
   const firma = companyShell ? {
     id,
@@ -494,13 +524,22 @@ export default function FirmaDetayPage({
       icon: <CalendarCheck size={16} />,
       disabled: true,
     },
-    // Passivate — yonetici-only, hidden once already pasif (no reactivate).
+    // Passivate — yonetici-only, only on an aktif/aday firma.
     ...(role === "yonetici" && firma && firma.durum !== "pasif" ? [
       {
         label: passivating ? "Pasife alınıyor…" : "Pasife Al",
         onClick: () => { void handlePassivate(); },
         icon: <Archive size={16} />,
         disabled: passivating,
+      },
+    ] : []),
+    // Reactivate — yonetici-only, only on a pasif firma (mirror of passivate).
+    ...(role === "yonetici" && firma && firma.durum === "pasif" ? [
+      {
+        label: reactivating ? "Aktife alınıyor…" : "Aktife Al",
+        onClick: () => { void handleReactivate(); },
+        icon: <ArchiveRestore size={16} />,
+        disabled: reactivating,
       },
     ] : []),
   ];
@@ -529,6 +568,12 @@ export default function FirmaDetayPage({
       {passivateError && (
         <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
           {passivateError}
+        </p>
+      )}
+
+      {reactivateError && (
+        <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
+          {reactivateError}
         </p>
       )}
 

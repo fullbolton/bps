@@ -562,3 +562,71 @@ export async function passivateCompanyAction(
 
   return { ok: true, name: rows[0].name };
 }
+
+/**
+ * Reactivate a company — set status='aktif' and NOTHING else. The exact
+ * mirror of `passivateCompanyAction`; completes the aktif↔pasif
+ * lifecycle. No new DB policy/grant is needed — the existing
+ * companies_update_yonetici policy + GRANT UPDATE(status) already cover
+ * a status flip in either direction.
+ *
+ * Same field discipline: the update payload is the literal
+ * `{ status: "aktif" }`; the only client input is companyId (WHERE).
+ * name / risk / sector / city / tenant_id / id / created_by /
+ * legacy_mock_id are never written. yonetici-only, tenant-guarded,
+ * RETURNING/returned-row guard, zero-row idempotent no-op. service_role
+ * is never used.
+ */
+export async function reactivateCompanyAction(
+  companyId: string,
+): Promise<PassivateResult> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
+  }
+
+  if (!companyId || typeof companyId !== "string") {
+    return { ok: false, error: "Firma kimliği geçersiz." };
+  }
+
+  const { data: roleData, error: roleError } = await supabase.rpc(
+    "current_user_role",
+  );
+  if (roleError || roleData !== "yonetici") {
+    return {
+      ok: false,
+      error: "Yetkisiz: firma aktife alma yalnızca yöneticiye açıktır.",
+    };
+  }
+
+  const { data: tenantId, error: tenantError } = await supabase.rpc(
+    "current_user_active_tenant",
+  );
+  if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
+    return { ok: false, error: "Aktif kiracı çözümlenemedi." };
+  }
+
+  // FIELD DISCIPLINE — payload is EXACTLY { status: "aktif" }. Do not
+  // add any other key to this object.
+  const upd = await supabase
+    .from("companies")
+    .update({ status: "aktif" })
+    .eq("id", companyId)
+    .eq("tenant_id", tenantId)
+    .select("id, name, status");
+  if (upd.error) {
+    return { ok: false, error: `Firma aktife alınamadı: ${upd.error.message}` };
+  }
+
+  const rows = upd.data ?? [];
+  if (rows.length === 0) {
+    // No row matched id+tenant (absent / wrong tenant / RLS-filtered).
+    // Idempotent no-op — nothing was changed.
+    return { ok: true };
+  }
+
+  return { ok: true, name: rows[0].name };
+}
