@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   StickyNote,
   CalendarCheck,
+  Archive,
   ArrowLeft,
   AlertTriangle,
   FileText,
@@ -60,6 +61,7 @@ import {
   getCompanyDocumentDownloadUrlAction,
   deleteCompanyDocumentAction,
   deleteContactAction,
+  passivateCompanyAction,
 } from "./actions";
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
@@ -291,6 +293,36 @@ export default function FirmaDetayPage({
       .finally(() => setCompanyLoading(false));
   }, [supabase, id]);
 
+  // Company passivate (yonetici-only). Error surfaces inline below the
+  // summary header; success re-fetches the shell so the Pasif badge shows.
+  const [passivating, setPassivating] = useState(false);
+  const [passivateError, setPassivateError] = useState<string | null>(null);
+
+  async function handlePassivate() {
+    if (!companyShell) return;
+    if (!window.confirm("Bu firmayı pasife almak üzeresiniz. Pasif firmalar aktif listede görünmez.")) {
+      return;
+    }
+    setPassivateError(null);
+    setPassivating(true);
+    try {
+      // Pass the REAL company UUID (companyShell.id), never the route
+      // param (which may be a legacy_mock_id).
+      const result = await passivateCompanyAction(companyShell.id);
+      if (result.ok) {
+        const updated = await resolveCompanyByIdOrLegacy(supabase, id).catch(() => null);
+        if (updated) setCompanyShell(updated);
+        router.refresh();
+      } else {
+        setPassivateError(result.error);
+      }
+    } catch (err) {
+      setPassivateError(err instanceof Error ? err.message : "Firma pasife alınamadı.");
+    } finally {
+      setPassivating(false);
+    }
+  }
+
   // Build firma-compatible object from real company shell for downstream consumers
   const firma = companyShell ? {
     id,
@@ -455,6 +487,15 @@ export default function FirmaDetayPage({
       icon: <CalendarCheck size={16} />,
       disabled: true,
     },
+    // Passivate — yonetici-only, hidden once already pasif (no reactivate).
+    ...(role === "yonetici" && firma && firma.durum !== "pasif" ? [
+      {
+        label: passivating ? "Pasife alınıyor…" : "Pasife Al",
+        onClick: () => { void handlePassivate(); },
+        icon: <Archive size={16} />,
+        disabled: passivating,
+      },
+    ] : []),
   ];
 
   return (
@@ -477,6 +518,12 @@ export default function FirmaDetayPage({
         partner={undefined}
         actions={headerActions}
       />
+
+      {passivateError && (
+        <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
+          {passivateError}
+        </p>
+      )}
 
       <TabNavigation
         tabs={
