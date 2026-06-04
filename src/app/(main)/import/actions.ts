@@ -185,6 +185,28 @@ function sanitizeContractRow(row: ParsedRow): ParsedRow {
     errors.push(`status reddedildi: "${allowed.status}"`);
   }
 
+  // Per-field date validation. A date the user actually supplied must
+  // parse via the existing CSV convention (DD.MM.YYYY → ISO); otherwise
+  // the row is invalid. This closes the silent-null gap where a present
+  // but malformed start/end/renewal date used to fall through to
+  // `convertDateForDB(...) === null` at insert time and import as NULL.
+  // Empty date fields are absent from `allowed`, so they pass here and
+  // are only required where the status demands them (checked below).
+  const startIso = allowed.start_date ? convertDateForDB(allowed.start_date) : null;
+  const endIso = allowed.end_date ? convertDateForDB(allowed.end_date) : null;
+
+  if (allowed.start_date && !startIso) {
+    errors.push("başlangıç tarihi formatı geçersiz (server, GG.AA.YYYY bekleniyor)");
+  }
+  if (allowed.end_date && !endIso) {
+    errors.push("bitiş tarihi formatı geçersiz (server, GG.AA.YYYY bekleniyor)");
+  }
+  if (allowed.renewal_target_date && !convertDateForDB(allowed.renewal_target_date)) {
+    errors.push("yenileme hedef tarihi formatı geçersiz (server, GG.AA.YYYY bekleniyor)");
+  }
+
+  // status aktif/imza_bekliyor → start_date and end_date are required.
+  // (When present they must also parse — already enforced above.)
   const needsDates =
     effectiveStatus === "aktif" || effectiveStatus === "imza_bekliyor";
   if (needsDates && (!allowed.start_date || !allowed.end_date)) {
@@ -193,17 +215,10 @@ function sanitizeContractRow(row: ParsedRow): ParsedRow {
     );
   }
 
-  // If both dates are supplied, parse via the existing CSV convention
-  // (DD.MM.YYYY → ISO) and enforce end_date >= start_date. ISO strings
-  // (yyyy-mm-dd) compare correctly lexicographically.
-  if (allowed.start_date && allowed.end_date) {
-    const startIso = convertDateForDB(allowed.start_date);
-    const endIso = convertDateForDB(allowed.end_date);
-    if (!startIso || !endIso) {
-      errors.push("tarih formatı geçersiz (server, GG.AA.YYYY bekleniyor)");
-    } else if (endIso < startIso) {
-      errors.push("bitiş tarihi başlangıç tarihinden önce olamaz (server)");
-    }
+  // end_date >= start_date — only when both parsed to valid ISO. ISO
+  // strings (yyyy-mm-dd) compare correctly lexicographically.
+  if (startIso && endIso && endIso < startIso) {
+    errors.push("bitiş tarihi başlangıç tarihinden önce olamaz (server)");
   }
 
   return {
