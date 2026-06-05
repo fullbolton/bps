@@ -1,0 +1,33 @@
+{
+  "_note": "BPS QA Mini Harness V1 — canonical state baseline. This is NOT a hardcoded FAIL oracle. No harness script reads this; a human runs qa/state.sql in the Supabase SQL editor and diffs the output against these values. After any intentional seed/import/cleanup, UPDATE this file to match the new truth.",
+  "_asOf": "2026-06-04 (post passive-guard + lifecycle work)",
+  "companies": {
+    "total": 2,
+    "byStatus": {
+      "aktif": 1,
+      "pasif": 1
+    },
+    "expectedRows": [
+      { "name": "Ege", "status": "aktif", "_note": "active demo firma; confirm exact name in SQL output" },
+      { "name": "BPS_SMOKE_IMPORT_2026_06_04", "status": "pasif" }
+    ]
+  },
+  "contacts": {
+    "total": 0
+  },
+  "contracts": {
+    "total": 2,
+    "_note": "names/statuses are seed-dependent; confirm against SQL output"
+  },
+  "documents": {
+    "total": 0
+  },
+  "mustBeAbsent": [
+    "BPS_NEG_*   (companies / contacts / contracts)",
+    "BPS_SMOKE_CONTACT*  (contacts)",
+    "BPS_SMOKE_CONTRACT*  (contracts)"
+  ],
+  "knownWarnings": [
+    "~491KB object in the `documents` storage bucket has no documents row (DB-unlinked orphan). WARN, not FAIL — pre-existing, out of V1 cleanup scope."
+  ]
+}
