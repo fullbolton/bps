@@ -7,6 +7,8 @@ Amaç, ilk sürümde rol mantığını gereksiz karmaşıklaştırmadan yetki ka
 
 Bu dosya güvenlik implementasyonu tarif etmez. Ürün seviyesi yetki mantığını tanımlar.
 
+> **Status (2026-06-04):** Bu matris güncel ürün kararına göre uzlaştırılıyor. **Partner = FROZEN/HOLD.** Partner mutation yetkileri aktif source-of-truth **değildir**; mutation davranışının source-of-truth'u **koddur** (örn. contact create = yönetici-only, Patch 2 `dace43d`). Partner mutation satırları stale/HOLD. Eski partner yetkileri şimdilik yönetici'de toplanır; yeni bir role devredilmemiştir.
+
 ---
 
 ## 1. Rol tasarım ilkeleri
@@ -30,13 +32,15 @@ Aktif rol modeli 6 rolden oluşur:
 5. `muhasebe`
 6. `görüntüleyici`
 
-Temel operasyon rol seti `yönetici`, `partner`, `operasyon` ve `görüntüleyici` etrafındadır.
+> **`partner` = FROZEN/HOLD (2026-06-04) — aktif mutation rolü değildir.** Yeni partner kullanıcısına mutation yetkisi verilmez ve mevcut partner mutation yetkileri kod tarafında uygulanmaz. Aşağıdaki rol-set ve `rol + kapsam` ifadeleri partner için tarihsel/stale referanstır.
+
+Temel operasyon rol seti (partner donduruldu) `yönetici`, `operasyon` ve `görüntüleyici` etrafındadır.
 `ik` rolü sınırlı kapsamlı bir rol genişletme aşamasıyla eklenmiştir.
 `muhasebe` rolü sınırlı kapsamlı bir finansal-bakım rol genişletme aşamasıyla eklenmiştir.
 
 Yetkilendirme artık yalnızca rol değil, `rol + kapsam` mantığıyla okunmalıdır:
 - `yönetici` global tam erişim taşır,
-- `partner` yalnızca atanmış portföy içinde yönetici-benzeri tam operasyon yetkisi taşır,
+- `partner` **FROZEN/HOLD** — eski tanım (atanmış portföy içinde yönetici-benzeri tam operasyon yetkisi) **stale**; aktif değildir,
 - `partner`, diğer partnerlerin firmalarını, finansallarını veya operasyonel truth'ünü göremez,
 - `görüntüleyici` bounded read-only roldür; mutasyon yapmaz.
 
@@ -115,9 +119,13 @@ Personel talebi, aktif iş gücü, evrak takibi ve operasyonel görev akışın�
 ### 3.3 Partner
 
 #### Rol amacı
-Atanmış portföy içinde firma, sözleşme, operasyon ve bağlamsal ticari görünürlüğü uçtan uca yönetmek.
+
+_(**Tarihsel / stale — Partner FROZEN/HOLD.**)_ Bu bölüm, önceki partner portföy-yönetimi tasarımının tarihsel referansıdır ve yalnızca dondurulmuş partner sınırını açıklamak için tutulur. Güncel ürün kararında partner rolü **FROZEN/HOLD** durumundadır ve **aktif mutation/management rolü değildir**; eski "atanmış portföyü uçtan uca yönetme" tanımı artık geçerli değildir.
 
 #### Ana odak
+
+_(Aşağıdaki odak listesi de tarihsel/stale'dir — Partner FROZEN; aktif yetki veya sorumluluk anlatmaz.)_
+
 - atanmış portföy firmaları,
 - yetkililer,
 - randevular,
@@ -129,17 +137,20 @@ Atanmış portföy içinde firma, sözleşme, operasyon ve bağlamsal ticari gö
 - portföyüyle sınırlı yönetim görünürlüğü.
 
 #### Bu rol ne yapabilmeli
-- atanmış portföyündeki firmaları görüntüleme ve yönetme,
-- atanmış portföyünde firma oluşturma ve pasife alma,
-- firma notu ekleme,
-- yetkili ekleme/düzenleme ve ana yetkili yönetimi,
-- randevu oluşturma, sonuç ve sonraki aksiyon girme,
-- sözleşme oluşturma, görüntüleme ve durum yönetimi,
-- personel talebi oluşturma ve güncelleme,
-- görev oluşturma, atama ve yeniden atama,
-- evrak yükleme ve güncelleme,
-- firma detay ticari özetini görüntüleme,
-- portföyüyle sınırlı finansal ve rapor görünürlüğünü okuma.
+
+> **HOLD (2026-06-04):** Partner aktif mutation rolü **değildir**. Aşağıdaki yetkiler **dondurulmuştur**, yeni partner kullanıcısına verilmez ve kod tarafında uygulanmaz. Eski yetkiler **yönetici'de toplanmıştır**. Liste tarihsel/stale referanstır — current truth değildir.
+
+- ~~atanmış portföyündeki firmaları görüntüleme ve yönetme~~ (HOLD),
+- ~~atanmış portföyünde firma oluşturma ve pasife alma~~ (HOLD),
+- ~~firma notu ekleme~~ (HOLD),
+- ~~yetkili ekleme/düzenleme ve ana yetkili yönetimi~~ (HOLD — current truth: yönetici-only),
+- ~~randevu oluşturma, sonuç ve sonraki aksiyon girme~~ (HOLD),
+- ~~sözleşme oluşturma, görüntüleme ve durum yönetimi~~ (HOLD),
+- ~~personel talebi oluşturma ve güncelleme~~ (HOLD),
+- ~~görev oluşturma, atama ve yeniden atama~~ (HOLD),
+- ~~evrak yükleme ve güncelleme~~ (HOLD),
+- ~~firma detay ticari özetini görüntüleme~~ (HOLD — read-only kalırsa Faz B kararı),
+- ~~portföyüyle sınırlı finansal ve rapor görünürlüğünü okuma~~ (HOLD — read-only kalırsa Faz B kararı).
 
 #### Bu rol neyi yapmamalı
 - başka partnerlerin portföy firmalarını görüntüleme,
@@ -278,80 +289,82 @@ Aşağıdaki tablo ürün seviyesinde önerilen başlangıç yetkilerini göster
 
 | Alan / Aksiyon | Yönetici | Partner | Operasyon | İK | Muhasebe | Görüntüleyici |
 |---|---:|---:|---:|---:|---:|---:|
-| Dashboard görüntüleme | Evet | Portföyünde Evet | Evet | Evet (filtrelenmiş) | Evet (dar/ikincil) | Evet |
-| Firma listesi görüntüleme | Evet | Portföyünde Evet | Evet | Evet | Evet | Evet |
-| Firma oluşturma | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Firma düzenleme | Evet | Portföyünde Evet | Sınırlı | Hayır | Hayır | Hayır |
-| Firma pasife alma | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Yetkililer sekmesi görüntüleme | Evet | Portföyünde Evet | Evet | Hayır | Hayır | Hayır |
-| Yetkili kişi ekleme | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Yetkili kişi tam düzenleme | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Yetkili kişi telefon/eposta düzenleme | Evet | Portföyünde Evet | Evet | Hayır | Hayır | Hayır |
-| Ana yetkili değiştirme | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Sözleşme görüntüleme | Evet | Portföyünde Evet | Evet | Hayır | Firma bağlamında salt okunur | Hayır |
-| Sözleşme oluşturma | Evet | Portföyünde Evet | Sınırlı | Hayır | Hayır | Hayır |
-| Sözleşme durum değiştirme | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Personel talebi görüntüleme | Evet | Portföyünde Evet | Evet | Firma bağlamında salt okunur | Hayır | Hayır |
-| Personel talebi oluşturma | Evet | Portföyünde Evet | Evet | Hayır | Hayır | Hayır |
-| Personel talebi güncelleme | Evet | Portföyünde Evet | Evet | Hayır | Hayır | Hayır |
-| Aktif iş gücü görüntüleme | Evet | Portföyünde Evet | Evet | Evet (salt okunur) | Hayır | Hayır |
-| Aktif iş gücü düzenleme mantığı | Evet | Portföyünde Evet | Evet | Hayır | Hayır | Hayır |
-| Randevu oluşturma | Evet | Portföyünde Evet | Evet | Hayır | Hayır | Hayır |
-| Randevu sonucu girme | Evet | Portföyünde Evet | Evet | Hayır | Hayır | Hayır |
-| Not ekleme / kendi notunu düzenleme | Evet | Portföyünde Evet | Evet | Evet | Hayır | Hayır |
-| Başkasının notunu geniş düzenleme | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Görev görüntüleme | Evet | Portföyünde Evet | Evet | Evet | Hayır | Hayır |
-| Görev oluşturma | Evet | Portföyünde Evet | Evet | Evet | Hayır | Hayır |
-| Görev durum değiştirme | Evet | Portföyünde Evet | Evet | Evet | Hayır | Hayır |
-| Görev atama / yeniden atama | Evet | Portföyünde Evet | Sınırlı | Hayır | Hayır | Hayır |
-| Evrak görüntüleme | Evet | Portföyünde Evet | Evet | Evet | Hayır | Hayır |
-| Evrak yükleme | Evet | Portföyünde Evet | Evet | Evet | Hayır | Hayır |
-| Evrak durumu güncelleme | Evet | Portföyünde Evet | Evet | Evet | Hayır | Hayır |
-| Bahsetme oluşturma | Evet | Portföyünde Evet | Evet | Evet | Hayır | Hayır |
-| Yönlendirme oluşturma | Evet | Portföyünde Evet | Evet | Evet | Evet | Hayır |
-| Yönlendirme tamamlama (kendi birimi) | Evet | Portföyünde Evet | Evet | Evet | Evet | Hayır |
-| Yönlendirme tamamlama (tüm birimler) | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Firma detay Ticari Özet görüntüleme | Evet | Portföyünde Evet | Sınırlı | Hayır | Salt okunur | Hayır |
-| Firma detay Ticari Kalite / Hesaplayıcı / Temas | Evet | Portföyünde Evet | Hayır | Hayır | Hayır | Hayır |
-| Finansal Özet görüntüleme | Evet | Portföyünde Sınırlı | Hayır | Hayır | Evet | Hayır |
+| Dashboard görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Evet (filtrelenmiş) | Evet (dar/ikincil) | Evet |
+| Firma listesi görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Evet | Evet | Evet |
+| Firma oluşturma | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Firma düzenleme | Evet | HOLD | Sınırlı | Hayır | Hayır | Hayır |
+| Firma pasife alma | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Yetkililer sekmesi görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Hayır | Hayır | Hayır |
+| Yetkili kişi ekleme | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Yetkili kişi tam düzenleme | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Yetkili kişi telefon/eposta düzenleme | Evet | HOLD | Evet | Hayır | Hayır | Hayır |
+| Ana yetkili değiştirme | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Sözleşme görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Hayır | Firma bağlamında salt okunur | Hayır |
+| Sözleşme oluşturma | Evet | HOLD | Sınırlı | Hayır | Hayır | Hayır |
+| Sözleşme durum değiştirme | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Personel talebi görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Firma bağlamında salt okunur | Hayır | Hayır |
+| Personel talebi oluşturma | Evet | HOLD | Evet | Hayır | Hayır | Hayır |
+| Personel talebi güncelleme | Evet | HOLD | Evet | Hayır | Hayır | Hayır |
+| Aktif iş gücü görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Evet (salt okunur) | Hayır | Hayır |
+| Aktif iş gücü düzenleme mantığı | Evet | HOLD | Evet | Hayır | Hayır | Hayır |
+| Randevu oluşturma | Evet | HOLD | Evet | Hayır | Hayır | Hayır |
+| Randevu sonucu girme | Evet | HOLD | Evet | Hayır | Hayır | Hayır |
+| Not ekleme / kendi notunu düzenleme | Evet | HOLD | Evet | Evet | Hayır | Hayır |
+| Başkasının notunu geniş düzenleme | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Görev görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Evet | Hayır | Hayır |
+| Görev oluşturma | Evet | HOLD | Evet | Evet | Hayır | Hayır |
+| Görev durum değiştirme | Evet | HOLD | Evet | Evet | Hayır | Hayır |
+| Görev atama / yeniden atama | Evet | HOLD | Sınırlı | Hayır | Hayır | Hayır |
+| Evrak görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Evet | Hayır | Hayır |
+| Evrak yükleme | Evet | HOLD | Evet | Evet | Hayır | Hayır |
+| Evrak durumu güncelleme | Evet | HOLD | Evet | Evet | Hayır | Hayır |
+| Bahsetme oluşturma | Evet | HOLD | Evet | Evet | Hayır | Hayır |
+| Yönlendirme oluşturma | Evet | HOLD | Evet | Evet | Evet | Hayır |
+| Yönlendirme tamamlama (kendi birimi) | Evet | HOLD | Evet | Evet | Evet | Hayır |
+| Yönlendirme tamamlama (tüm birimler) | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Firma detay Ticari Özet görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Sınırlı | Hayır | Salt okunur | Hayır |
+| Firma detay Ticari Kalite / Hesaplayıcı / Temas | Evet | HOLD | Hayır | Hayır | Hayır | Hayır |
+| Finansal Özet görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Hayır | Hayır | Evet | Hayır |
 | Finansal Özet özet veri bakımı (yükle/incele/onayla) | Evet | Hayır | Hayır | Hayır | Evet | Hayır |
-| Kurumsal Kritik Tarihler görüntüleme | Evet | Evet | Evet | Evet | Evet | Evet |
+| Kurumsal Kritik Tarihler görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Evet | Evet | Evet |
 | Kurumsal Kritik Tarihler oluşturma / düzenleme | Evet | Hayır | Hayır | Hayır | Hayır | Hayır |
-| Rapor görüntüleme | Evet | Portföyünde Sınırlı | Sınırlı | Yalnızca iş gücü | Riskli firma + partner özet | Sınırlı |
+| Rapor görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Sınırlı | Yalnızca iş gücü | Riskli firma + partner özet | Sınırlı |
 | Ayarlar erişimi | Evet | Hayır | Hayır | Hayır | Hayır | Hayır |
 | Kullanıcı / rol yönetimi | Evet | Hayır | Hayır | Hayır | Hayır | Hayır |
+
+> **Partner sütunu (2026-06-04):** Tüm `HOLD` hücreleri partner FROZEN/HOLD kararı gereğidir — aktif yetki değildir, koda uygulanmaz. **Contact create + Yetkili Ekle current truth = yönetici-only (Patch 2 `dace43d`).** `HOLD (read-only kalırsa Faz B)` işaretli satırların read-only olarak partner'a açık kalıp kalmayacağı Faz B kararıdır. `Kurumsal Kritik Tarihler görüntüleme` partner hücresi de `HOLD (read-only kalırsa Faz B)` yapılmıştır — frozen matris içinde **canlı partner istisnası bırakılmamıştır**. Partner'ın zaten `Hayır` olduğu satırlar (Finansal Özet bakımı, Kritik Tarih oluşturma, Ayarlar, Kullanıcı/rol) değişmemiştir.
 
 ### 4.1 `Sınırlı` ne demektir?
 - `Sınırlı`, yalnızca rolün zaten erişebildiği bağlamda çalışma anlamına gelir.
 - `Sınırlı`, sistem geneli yönetim yüzeylerine açılma anlamına gelmez.
 - `Sınırlı`, bazı alanlarda dar kapsamlı düzenleme; bazı alanlarda ise yalnızca read-only görünürlük anlamına gelebilir.
-- `Partner` sütunundaki `Portföyünde Evet` ve `Portföyünde Sınırlı` ifadeleri, yetkinin yalnızca atanmış portföy kapsamı için geçerli olduğunu anlatır.
+- _(**Stale — Partner FROZEN/HOLD.**)_ `Partner` sütunu artık aktif yetki taşımaz; her hücre `HOLD` ya da `Hayır`'dır. Eski `Portföyünde Evet` / `Portföyünde Sınırlı` ifadeleri tarihsel referanstır, aktif yetki anlatmaz (bkz. §4 footnote ve §3.3 HOLD).
 
 Pratik karşılıklar:
-- `yönetici` globaldir; `partner` ise yalnızca atanmış portföyünde yönetici-benzeri tam operasyon erişimi taşır
+- `yönetici` globaldir; `partner` için eski "atanmış portföyünde yönetici-benzeri tam operasyon erişimi" tanımı **stale/HOLD**'dur (Partner FROZEN) — aktif değildir
 - `partner`, diğer partnerlerin firmalarını, finansal görünürlüğünü veya operasyonel truth'ünü göremez
-- operasyon ve partner için `Firma detay Ticari Özet` erişimi, yalnızca ilgili firma veya atanmış portföy bağlamında görünürlük anlamına gelir
+- operasyon için `Firma detay Ticari Özet` erişimi, yalnızca ilgili firma bağlamında görünürlük anlamına gelir; **partner için bu read HOLD'dur (read-only kalırsa Faz B)**
 - bu erişim şirket geneli finansal toplamlar, trendler veya yönetim filtrelerine erişim vermez
 - operasyon için yetkili erişimi, yalnızca telefon ve e-posta gibi operasyonel koordinasyon gereken temel iletişim alanlarını güncelleme yetkisidir
 - `ik` için personel talebi görüntüleme `Firma bağlamında salt okunur` olarak tanımlanır; bu yalnızca Firma Detay > Talepler sekmesi bağlamında salt okunur erişim anlamına gelir, ana Talepler sayfasına erişim vermez
 - `ik` için görev erişimi sınırlıdır: oluşturma ve durum değiştirme yapabilir, mevcut görevlerde atanan kişiyi değiştiremez
 - gelecekte announcement / duyuru benzeri yüzeyler tanımlanırsa varsayılan görünürlük rol ve bağlam ilgili olmalı; yönetim geneli görünürlük otomatik açılmamalıdır
-- `Finansal Özet` şirket geneli management-wide visibility olarak yönetici yüzeyidir; partner için yalnızca atanmış portföyle sınırlı finansal görünürlük açılabilir, bu global finans ekranına dönüşmez
+- `Finansal Özet` şirket geneli management-wide visibility olarak yönetici yüzeyidir; **partner için portföyle sınırlı finansal görünürlük HOLD'dur (read-only kalırsa Faz B), aktif değildir** ve hiçbir durumda global finans ekranına dönüşmez
 
 ---
 
 ## 5. Alan bazlı yorumlar
 
 ### 5.1 Firmalar
-- Firma oluşturma partner ve yönetici için açık olabilir.
+- Firma oluşturma **current truth = yönetici** yetkisidir; **partner HOLD** (eski "partner ve yönetici için açık" ifadesi stale; bkz. §4).
 - Firma pasife alma yönetici yetkisi olmalıdır.
 - Operasyon ekibi firma üzerinde operasyon notu ekleyebilir ama ticari çekirdek alanları sınırlı değiştirmelidir.
 
 ### 5.1.1 Yetkili kişiler
 - Yetkili kişiler firma bağlamında tutulan iletişim kayıtlarıdır; generic CRM kontakt havuzu değildir.
 - Her firma en fazla 5 yetkili taşıyabilir; tam olarak biri ana yetkili olarak işaretlenmelidir.
-- Partner rolü ana bakım sahibidir: atanmış portföyünde ekleme, tam düzenleme ve ana yetkili yönetimi yapabilir.
-- Operasyon yalnızca telefon ve e-posta alanlarını güncelleyebilir; isim, unvan ve ana yetkili bayrağını değiştiremez; yeni yetkili ekleyemez.
+- Yetkili ekleme / tam düzenleme / ana yetkili yönetimi = **yönetici yetkisidir (current truth)**. **Partner HOLD** (eski "partner ana bakım sahibidir" ifadesi stale). Contact create = yönetici-only (Patch 2 `dace43d`).
+- Operasyon yalnızca telefon ve e-posta alanlarını güncelleyebilir; isim, unvan ve ana yetkili bayrağını değiştiremez; yeni yetkili ekleyemez. _(**AÇIK SORU** — bu operasyon telefon/eposta edit yetkisi devam edecek mi? Bkz. Open questions; bu satır bu Faz'da değiştirilmedi.)_
 - İK ve görüntüleyici rolleri Yetkililer sekmesine erişemez.
 - `kisaNotlar` alanı kısa bir bağlam notu olarak kullanılır; sohbet, geçmiş veya ilişki zaman çizgisi olarak genişletilemez.
 
@@ -362,14 +375,14 @@ Pratik karşılıklar:
 
 ### 5.3 Personel talepleri
 - Operasyon bu alanın ana kullanıcısıdır.
-- Partner talep açabilir ama operasyonel doluluk yönetimi operasyon rolünde olmalıdır.
+- Operasyonel doluluk yönetimi operasyon rolündedir; **partner talep açma yetkisi HOLD'dur** (Partner FROZEN; eski "partner talep açabilir" ifadesi stale).
 
 ### 5.4 Aktif iş gücü
-- Partner rolü bunu kendi portföyünde görünürlük ve takip için kullanır.
+- Aktif iş gücü görünürlüğü partner için **HOLD'dur (read-only kalırsa Faz B)**; eski "partner kendi portföyünde görünürlük ve takip için kullanır" ifadesi stale.
 - Operasyon ve yönetici, düzenleme ve takip tarafında daha geniş yetkili olur.
 
 ### 5.5 Randevular
-- Partner ve operasyon birlikte kullanabilir.
+- Randevuları **operasyon kullanır**; **partner HOLD** (Partner FROZEN; eski "partner ve operasyon birlikte kullanabilir" ifadesi stale).
 - Yönetici tüm görünümü takip edebilir.
 - Görüntüleyici sadece geçmiş ve planlı kayıtları görebilir.
 
@@ -388,7 +401,7 @@ Pratik karşılıklar:
 
 ### 5.9 Finansal Özet ve Ticari Özet
 - Finansal Özet şirket geneli yönetim görünürlüğüdür; varsayılan ve ilk dokümante sahibi yönetici rolüdür.
-- Firma detay içindeki Ticari Özet firma bazlı bağlamsal ticari görünürlüktür; partner ve ihtiyaç halinde operasyon bunu yalnızca ilgili firma veya atanmış portföy bağlamında görebilir.
+- Firma detay içindeki Ticari Özet firma bazlı bağlamsal ticari görünürlüktür; **ihtiyaç halinde operasyon** bunu yalnızca ilgili firma bağlamında görebilir; **partner için bu read HOLD'dur (read-only kalırsa Faz B)**.
 - Ticari Özet'in ilk beklentisi visibility-first, read-only kullanımdır.
 - Eğer ürün içinde manuel summary ticari veya finansal veri güncellemesi varsa bu yetki ilk aşamada yalnızca yöneticide kalmalıdır.
 - Bu güncelleme ileride delege edilecekse bu ancak açık rol kuralı değişikliğiyle yapılmalıdır; varsayılan genişleme kabul edilmez.
@@ -453,3 +466,39 @@ Yeni bir rol veya yetki ihtiyacı geldiğinde önce şu sorular cevaplanmalıdı
 4. Bu ayrım kullanıcı davranışını gerçekten değiştiriyor mu?
 
 Bu sorular net değilse yeni rol eklenmemelidir.
+
+---
+
+## 10. Future roles (henüz implement edilmedi)
+
+> **Planning-only — bu roller implement EDİLMEMİŞTİR.** Aşağıdakiler gelecekteki Role Model Refresh konularıdır ve ayrı bir ürün kararı gate'i gerektirir. Bu Faz'da kod, RLS veya rol seti bu rolleri içermez.
+
+- **Ortak Yönetici** — future planning. Henüz tanımlı/implement değil. Ayrı gate.
+- **Asistan** — future planning. Henüz tanımlı/implement değil. Ayrı gate.
+
+Partner FROZEN kararıyla boşalan yetkiler bu future rollere **devredilmemiştir**; şimdilik yönetici'de toplanır. Bu rollerin yetki haritası ancak kendi ürün karar gate'lerinde tanımlanır.
+
+---
+
+## 11. RLS drift risk memo (2026-06-04)
+
+> **Bu bölüm yalnızca risk kaydeder; RLS'e dokunmaz, hiçbir policy/grant önermez.**
+
+UI ve server-action katmanında partner mutation davranışı **donduruldu** (örn. contact create = yönetici-only, document upload passive guard). Ancak DB tarafında:
+
+- partner portföy-scope SELECT/INSERT/UPDATE policy'leri,
+- `partner_company_assignments` tablosu ve ona dayanan scope helper'ları (`current_user_has_company_scope`),
+
+**hâlâ canlı olabilir.** Yani doc/UI "partner FROZEN" derken, RLS hâlâ partner-scope mutation'a izin veriyor olabilir — bu bir **uzlaşmazlık (drift)**.
+
+Bu drift'in çözümü (RLS'i partner FROZEN kararıyla hizalamak) **Faz E**'de, en sona yakın, **Tier-1 destructive** ayrı bir gate olarak ele alınır. Bu dosya yalnız riski kaydeder; bu Faz'da RLS/policy/grant değişmez.
+
+---
+
+## 12. Open questions (bu Faz'da çözülmedi)
+
+Aşağıdakiler bilinçli olarak **açık bırakılmıştır** — bu doc patch'i bunları çözmez:
+
+1. **Operasyon sözleşme "Sınırlı" ne demek?** (§4 "Sözleşme oluşturma" operasyon = Sınırlı / §5.2). Net kapsam tanımı yapılmadı.
+2. **Operasyon telefon/eposta edit devam mı?** (§5.1.1 / §4 "Yetkili kişi telefon/eposta düzenleme"). Partner freeze sonrası bu operasyon yetkisinin akıbeti açık.
+3. **Mevcut partner kullanıcıları ne görmeli?** Donmuş partner hesaplarının UI deneyimi (read-only düşüş mü, erişim kısıtı mı, mesaj mı) tanımlanmadı.
