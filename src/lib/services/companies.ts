@@ -78,14 +78,13 @@ export async function getCompanyByLegacyMockId(
   return selectCompanyByLegacyMockId(client, legacyMockId);
 }
 
-/**
- * Resolve a legacy mock id and throw if no scoped row is found.
- *
- * Used by every contact-mutation entry point that takes a legacy id, so
- * the partner-scope re-verification rule from PARTNER_SCOPE_TOUCHPOINTS.md
- * §3 happens automatically: if RLS hides the firma, this throws and the
- * mutation never reaches the contacts table.
- */
+// UUID shape gate for the fallback lookup — a garbage `/firmalar/[id]`
+// param passed straight into `.eq("id", …)` would otherwise raise
+// Postgres 22P02 (invalid uuid syntax) instead of the domain error the
+// callers branch on.
+const UUID_SHAPE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Resolve a company by legacy mock id OR real UUID.
  * Tries legacy lookup first, falls back to UUID lookup.
@@ -102,28 +101,32 @@ export async function resolveCompanyByIdOrLegacy(
   const byLegacy = await getCompanyByLegacyMockId(client, idOrLegacy);
   if (byLegacy) return byLegacy;
 
-  // Try UUID lookup
-  const { selectCompanyById } = await import("@/lib/supabase/companies");
-  const byId = await selectCompanyById(client, idOrLegacy);
-  if (byId) return byId;
+  // UUID fallback only for uuid-shaped input (see UUID_SHAPE note).
+  if (UUID_SHAPE.test(idOrLegacy)) {
+    const { selectCompanyById } = await import("@/lib/supabase/companies");
+    const byId = await selectCompanyById(client, idOrLegacy);
+    if (byId) return byId;
+  }
 
   throw new CompanyNotFoundOrOutOfScopeError(idOrLegacy);
 }
 
+/**
+ * Resolve a legacy mock id and throw if no scoped row is found.
+ *
+ * Used by every contact-mutation entry point that takes a legacy id, so
+ * the partner-scope re-verification rule from PARTNER_SCOPE_TOUCHPOINTS.md
+ * §3 happens automatically: if RLS hides the firma, this throws and the
+ * mutation never reaches the contacts table.
+ *
+ * Same resolution semantics as `resolveCompanyByIdOrLegacy` — the two
+ * were byte-identical copies and have been merged to stop them drifting.
+ */
 export async function requireCompanyByLegacyMockId(
   client: Client,
   legacyMockId: string,
 ): Promise<CompanyRow> {
-  // Try legacy lookup first
-  const company = await getCompanyByLegacyMockId(client, legacyMockId);
-  if (company) return company;
-
-  // Fall back to UUID lookup for imported companies
-  const { selectCompanyById } = await import("@/lib/supabase/companies");
-  const byId = await selectCompanyById(client, legacyMockId);
-  if (byId) return byId;
-
-  throw new CompanyNotFoundOrOutOfScopeError(legacyMockId);
+  return resolveCompanyByIdOrLegacy(client, legacyMockId);
 }
 
 /**

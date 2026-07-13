@@ -286,6 +286,15 @@ export async function updateDocumentValidity(
     );
   }
 
+  // DB CHECK `documents_tam_requires_storage`: status 'tam' requires a
+  // stored file. Pre-check so a pathless row surfaces this Turkish
+  // domain error instead of a raw constraint violation.
+  if (!existing.storage_path) {
+    throw new DocumentValidationError(
+      "Dosyasi yuklenmemis evrak 'tam' olarak isaretlenemez. Once evrak dosyasini yukleyin.",
+    );
+  }
+
   const patch: DocumentUpdate = {
     validity_date: trimmedDate,
     status: "tam",

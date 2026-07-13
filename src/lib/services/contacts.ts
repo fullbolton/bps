@@ -47,6 +47,7 @@ import type {
 import {
   selectContactsByCompanyId,
   selectPrimaryContactsByCompanyIds,
+  selectContactByIdAndCompany,
   insertContact,
   updateContact,
   clearPrimaryForCompany,
@@ -132,6 +133,27 @@ function ensureFullName(fullName: string): string {
     throw new ContactValidationError("Ad soyad boş bırakılamaz.");
   }
   return trimmed;
+}
+
+/**
+ * Bind a contact mutation to the firma the caller resolved. Without this
+ * check a mismatched (legacyMockId, contactId) pair would mutate a
+ * contact in a DIFFERENT company than the one whose scope was verified —
+ * e.g. demote firma A's primaries while promoting a contact of firma B.
+ * Returns the existing row so callers can merge partial updates.
+ */
+async function requireContactInCompany(
+  client: Client,
+  companyId: string,
+  contactId: string,
+): Promise<ContactRow> {
+  const existing = await selectContactByIdAndCompany(client, contactId, companyId);
+  if (!existing) {
+    throw new ContactValidationError(
+      "Yetkili bulunamadı veya bu firmaya ait değil.",
+    );
+  }
+  return existing;
 }
 
 // ---------------------------------------------------------------------------
@@ -282,6 +304,9 @@ export async function updateContactFull(
   input: ContactFullUpdateInput,
 ): Promise<ContactRow> {
   const company = await requireCompanyByLegacyMockId(client, legacyMockId);
+  // Bind the target row to the resolved firma BEFORE any write — a
+  // mismatched pair must not demote this firma's primaries.
+  await requireContactInCompany(client, company.id, contactId);
 
   const fullName = ensureFullName(input.fullName);
   const phone = normalizeOptional(input.phone);
@@ -330,10 +355,16 @@ export async function updateContactPhoneEmail(
   contactId: string,
   input: ContactPhoneEmailUpdateInput,
 ): Promise<ContactRow> {
-  await requireCompanyByLegacyMockId(client, legacyMockId);
+  const company = await requireCompanyByLegacyMockId(client, legacyMockId);
+  const existing = await requireContactInCompany(client, company.id, contactId);
 
-  const phone = normalizeOptional(input.phone);
-  const email = normalizeOptional(input.email);
+  // Merge semantics: an omitted field keeps its stored value — only a
+  // field the caller actually supplied is (re)written. This is what the
+  // docblock promises; without the merge an omitted field was NULLed.
+  const phone =
+    input.phone === undefined ? existing.phone : normalizeOptional(input.phone);
+  const email =
+    input.email === undefined ? existing.email : normalizeOptional(input.email);
   ensurePhoneOrEmail(phone, email);
 
   return updateContact(client, contactId, {
@@ -356,6 +387,7 @@ export async function removeContact(
   legacyMockId: string,
   contactId: string,
 ): Promise<void> {
-  await requireCompanyByLegacyMockId(client, legacyMockId);
+  const company = await requireCompanyByLegacyMockId(client, legacyMockId);
+  await requireContactInCompany(client, company.id, contactId);
   return deleteContact(client, contactId);
 }

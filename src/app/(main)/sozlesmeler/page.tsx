@@ -25,9 +25,9 @@ import { selectAllCompanies } from "@/lib/supabase/companies";
 import type { CompanyRow } from "@/types/database.types";
 import {
   listAllContracts,
-  createContract,
   type ContractCreateInput,
 } from "@/lib/services/contracts";
+import { createContractAction } from "./actions";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
 import type { ContractRow } from "@/types/database.types";
 import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
@@ -274,7 +274,10 @@ export default function SozlesmelerPage() {
     },
   ];
 
-  const canCreate = role === "yonetici" || role === "partner";
+  // yonetici-only — matches the server action guard (partner FROZEN/HOLD
+  // per the ROLE_MATRIX refresh; showing the button to partner would only
+  // produce a server-side "Yetkisiz" error).
+  const canCreate = role === "yonetici";
 
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
@@ -470,13 +473,15 @@ export default function SozlesmelerPage() {
         onClose={() => setCreateOpen(false)}
         firmalar={firmaOptions}
         onSubmit={async (data) => {
-          // Faz 2: persist via service layer. The service re-verifies
-          // partner scope, validates name + date order + active-dates,
-          // and stamps created_by from the auth session. Errors bubble
-          // up so the modal can render them inline; only on resolve do
-          // we refetch and close. router.refresh() invalidates the
-          // entire client Router Cache so cached firma detail / firmalar
-          // list pages will re-fetch on their next visit.
+          // Persist via the server action — it resolves tenant_id
+          // server-side (`current_user_active_tenant()`), enforces the
+          // yonetici-only guard and the passive-company guard, then
+          // delegates to the service (name + date order + active-dates
+          // validation, created_by stamping). Errors bubble up so the
+          // modal can render them inline; only on resolve do we refetch
+          // and close. router.refresh() invalidates the entire client
+          // Router Cache so cached firma detail / firmalar list pages
+          // will re-fetch on their next visit.
           const payload: ContractCreateInput = {
             legacyCompanyId: data.firmaId,
             name: data.sozlesmeAdi,
@@ -487,7 +492,10 @@ export default function SozlesmelerPage() {
             contractValue: data.tutar || undefined,
             responsible: data.sorumlu || undefined,
           };
-          await createContract(supabase, payload);
+          const result = await createContractAction(payload);
+          if (!result.ok) {
+            throw new Error(result.error);
+          }
           await reload();
           router.refresh();
         }}

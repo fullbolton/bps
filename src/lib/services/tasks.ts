@@ -299,9 +299,13 @@ export async function updateTask(
   input: TaskUpdateInput,
 ): Promise<TaskRow> {
   // Gate: if assignedTo is being changed, check the caller's role.
+  // Fail closed: an unresolved role (profiles read failure / missing
+  // row) must NOT skip the block — the tasks RLS UPDATE policy is
+  // deliberately broader, so this service gate is the only enforcement
+  // of the ROLE_MATRIX reassign rule.
   if (input.assignedTo !== undefined) {
     const role = await getCurrentUserRole(client);
-    if (role && REASSIGN_BLOCKED_ROLES.has(role)) {
+    if (role === null || REASSIGN_BLOCKED_ROLES.has(role)) {
       throw new TaskReassignPermissionError();
     }
   }

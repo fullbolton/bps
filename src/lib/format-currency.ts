@@ -12,10 +12,29 @@
  * Presentation-only. Not a monetary-precision library.
  */
 
+// Strict Turkish notation: "380.000,50" (grouped), "380000" / "380000,5"
+// (raw numeric with optional decimal comma). Anything else — notably an
+// EN-formatted "1,200,000.50" — must NOT be dot-stripped into a wrong
+// amount; it falls through to the honest fallback instead.
+const TR_NUMBER_SHAPE = /^(?:\d{1,3}(?:\.\d{3})*|\d+)(?:,\d+)?$/;
+
 export function formatTRY(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "—";
 
-  const raw = typeof value === "number" ? String(value) : value.trim();
+  // A real number needs no string round-trip — the old String(n) path
+  // dot-stripped the decimal point ("1234.56" → 123456).
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return "—";
+    return (
+      "₺" +
+      value.toLocaleString("tr-TR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    );
+  }
+
+  const raw = value.trim();
   if (raw === "") return "—";
 
   // Strip currency symbol, whitespace, and any letters (e.g. a trailing
@@ -25,17 +44,19 @@ export function formatTRY(value: string | number | null | undefined): string {
     .replace(/[A-Za-zğüşıöçĞÜŞİÖÇ]/g, "")
     .trim();
 
-  if (cleaned === "") return "—";
-
   // BPS uses Turkish number notation end-to-end: "." groups thousands,
-  // "," is the decimal separator. Normalize to JS-parseable form.
-  const normalized = cleaned.replace(/\./g, "").replace(",", ".");
-
-  const num = Number.parseFloat(normalized);
-  if (!Number.isFinite(num)) {
-    // Input was not a parseable number — return the original string
+  // "," is the decimal separator. Only a string that fully matches that
+  // shape is normalized — parseFloat's partial-parse ("12abc" → 12,
+  // "1,200,000.50" → 1.2) silently produced wrong amounts before.
+  if (cleaned === "" || !TR_NUMBER_SHAPE.test(cleaned)) {
+    // Not unambiguously parseable — return the original string
     // unchanged so the user still sees what was stored.
-    return typeof value === "number" ? String(value) : value;
+    return value;
+  }
+
+  const num = Number.parseFloat(cleaned.replace(/\./g, "").replace(",", "."));
+  if (!Number.isFinite(num)) {
+    return value;
   }
 
   return (

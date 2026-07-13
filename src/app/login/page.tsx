@@ -32,7 +32,14 @@ import {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get("returnTo") || "/dashboard";
+  // Same-origin relative paths only — allow "/x" but not "//evil.com"
+  // or absolute URLs, so a crafted login link cannot bounce the user to
+  // an external site right after they authenticate (open redirect).
+  const rawReturnTo = searchParams.get("returnTo") || "/dashboard";
+  const returnTo =
+    rawReturnTo.startsWith("/") && !rawReturnTo.startsWith("//")
+      ? rawReturnTo
+      : "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

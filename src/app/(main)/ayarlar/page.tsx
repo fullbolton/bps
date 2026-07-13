@@ -302,6 +302,7 @@ function AccessRequestsTab() {
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchRequests = useCallback(async () => {
     const supabase = createClient();
@@ -322,6 +323,7 @@ function AccessRequestsTab() {
 
   async function handleAction(id: string, newStatus: "onaylandi" | "reddedildi") {
     setActionLoading(id);
+    setActionError(null);
     const supabase = createClient();
 
     const { error } = await supabase
@@ -341,6 +343,10 @@ function AccessRequestsTab() {
             : r
         )
       );
+    } else {
+      // Surface the failure — a silent branch left the click looking
+      // ignored while the request stayed beklemede.
+      setActionError(`İşlem kaydedilemedi: ${error.message}`);
     }
     setActionLoading(null);
   }
@@ -360,6 +366,11 @@ function AccessRequestsTab() {
 
   return (
     <div className="space-y-8">
+      {actionError && (
+        <p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">
+          {actionError}
+        </p>
+      )}
       {/* Pending requests */}
       <div>
         <div className="flex flex-wrap items-center gap-2 mb-3">

@@ -201,6 +201,41 @@ export async function uploadCompanyDocumentAction(
     return { ok: false, error: "Dosya 10 MB'dan büyük olamaz." };
   }
 
+  // Client-declared MIME is caller-controlled; verify the "%PDF-" magic
+  // bytes so arbitrary content cannot be stored (and later served) as a
+  // compliance document.
+  const head = new Uint8Array(await fileEntry.slice(0, 5).arrayBuffer());
+  const isPdfMagic =
+    head.length === 5 &&
+    head[0] === 0x25 && // %
+    head[1] === 0x50 && // P
+    head[2] === 0x44 && // D
+    head[3] === 0x46 && // F
+    head[4] === 0x2d; // -
+  if (!isPdfMagic) {
+    return { ok: false, error: "Sadece PDF dosyası yüklenebilir." };
+  }
+
+  // A supplied validity_date must be a real ISO (YYYY-MM-DD) date. The
+  // raw string is written into a date column at step 9 — a malformed
+  // value would pass every guard, upload the file at step 8, then fail
+  // the insert and orphan the storage object on every retry.
+  if (validityDate) {
+    let validIso = /^\d{4}-\d{2}-\d{2}$/.test(validityDate);
+    if (validIso) {
+      const parsed = new Date(`${validityDate}T00:00:00Z`);
+      validIso =
+        !Number.isNaN(parsed.getTime()) &&
+        parsed.toISOString().slice(0, 10) === validityDate;
+    }
+    if (!validIso) {
+      return {
+        ok: false,
+        error: "Geçerlilik tarihi biçimi geçersiz (YYYY-AA-GG bekleniyor).",
+      };
+    }
+  }
+
   // 5. Contract↔company binding check. If a contract_id is supplied,
   //    verify it actually belongs to this company — never trust the
   //    client-submitted relationship. Done BEFORE the storage upload so
@@ -259,10 +294,16 @@ export async function uploadCompanyDocumentAction(
   //    storage_path are server-controlled; created_by / uploaded_by
   //    derive from auth. If this fails, the storage object is orphaned
   //    and we surface that explicitly (no silent failure).
-  const uploadedBy =
-    (user.user_metadata?.display_name as string | undefined) ??
-    user.email ??
-    null;
+  // Display provenance from DB truth (profiles.display_name), not
+  // user_metadata — any user can rewrite their own metadata via
+  // auth.updateUser(), so the uploader label was spoofable. created_by
+  // (user.id) remains the authoritative provenance either way.
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const uploadedBy = profileRow?.display_name ?? user.email ?? null;
 
   const insert = await supabase
     .from("documents")

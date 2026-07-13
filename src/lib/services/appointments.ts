@@ -264,6 +264,13 @@ export async function completeAppointment(
     );
   }
 
+  // Idempotency: a retry / double-submit on an already-completed
+  // appointment must not re-complete it and insert a duplicate handoff
+  // task (mirrors the guard in the `complete_appointment_atomic` RPC).
+  if (existing.status === "tamamlandi") {
+    throw new AppointmentValidationError("Randevu zaten tamamlanmış.");
+  }
+
   // Update the appointment: status → tamamlandi, set result + next_action.
   const appointmentPatch: AppointmentUpdate = {
     status: "tamamlandi",
@@ -428,7 +435,15 @@ export function deriveLastCompletedDate(
 export function deriveNextPlannedDate(
   appointments: AppointmentRow[],
 ): string | null {
-  const today = new Date().toISOString().slice(0, 10);
+  // Local calendar date, not UTC: with toISOString() a Turkey (UTC+3)
+  // user between 00:00–03:00 local still saw *yesterday* as "today", so
+  // a yesterday-dated planned appointment leaked in as "next planned".
+  const now = new Date();
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("-");
   const planned = appointments
     .filter((a) => a.status === "planlandi" && a.meeting_date >= today)
     .sort((a, b) => a.meeting_date.localeCompare(b.meeting_date));

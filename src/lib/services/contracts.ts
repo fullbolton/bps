@@ -327,10 +327,15 @@ export async function getActiveContractCountsByLegacyIds(
  *   - Stamps created_by from the auth session.
  *   - last_action_label defaults to a friendly Turkish "draft created"
  *     marker so the list-row Son İşlem column has something to render.
+ *   - `options.tenantId` is REQUIRED: production `contracts.tenant_id`
+ *     is NOT NULL, so an insert without it fails at runtime. The value
+ *     must be server-resolved (`current_user_active_tenant()`); the
+ *     server action is the chokepoint — never read it from the client.
  */
 export async function createContract(
   client: Client,
   input: ContractCreateInput,
+  options: { tenantId: string },
 ): Promise<ContractRow> {
   const company = await requireCompanyByLegacyMockId(
     client,
@@ -359,6 +364,7 @@ export async function createContract(
   } = await client.auth.getUser();
 
   const payload: ContractInsert = {
+    tenant_id: options.tenantId,
     company_id: company.id,
     name,
     contract_type: nullableTrim(input.contractType ?? null),

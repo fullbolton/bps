@@ -203,6 +203,7 @@ export default function GorevlerPage() {
     firma: "",
   });
   const [newOpen, setNewOpen] = useState(false);
+  const [panelError, setPanelError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editDurum, setEditDurum] = useState<GorevDurumu>("acik");
   const [editAtananKisi, setEditAtananKisi] = useState("");
@@ -508,11 +509,17 @@ export default function GorevlerPage() {
                   />
                 </div>
               )}
+              {panelError && (
+                <p className={`${TYPE_CAPTION} text-red-600`} role="alert">
+                  {panelError}
+                </p>
+              )}
               <button
                 disabled={saving}
                 onClick={async () => {
                   if (!selectedTask) return;
                   setSaving(true);
+                  setPanelError(null);
                   try {
                     await updateTask(supabase, selectedTask.id, {
                       status: editDurum,
@@ -524,7 +531,13 @@ export default function GorevlerPage() {
                     await reload();
                     router.refresh();
                   } catch (err) {
-                    console.error("[gorevler] update error:", err);
+                    // Surface the failure — a silent catch left the panel
+                    // looking saved when nothing was written.
+                    setPanelError(
+                      err instanceof Error
+                        ? err.message
+                        : "Görev güncellenirken bir hata oluştu.",
+                    );
                   } finally {
                     setSaving(false);
                   }
@@ -544,22 +557,22 @@ export default function GorevlerPage() {
         firmalar={firmaOptions}
         allowAssignee={role !== "ik"}
         onSubmit={async ({ baslik, firmaId, kaynak, kaynakRef, atananKisi, termin, oncelik }) => {
-          try {
-            const input: TaskCreateInput = {
-              legacyCompanyId: firmaId,
-              title: baslik,
-              assignedTo: role === "ik" ? undefined : atananKisi.trim() || undefined,
-              dueDate: termin || undefined,
-              sourceType: kaynak,
-              sourceRef: kaynakRef,
-              priority: oncelik,
-            };
-            await createTask(supabase, input);
-            await reload();
-            router.refresh();
-          } catch (err) {
-            console.error("[gorevler] create error:", err);
-          }
+          // No try/catch here: errors must bubble so NewTaskModal renders
+          // its inline submitError (matches every sibling page). The old
+          // console.error swallow closed the modal as if the create
+          // succeeded when it had failed.
+          const input: TaskCreateInput = {
+            legacyCompanyId: firmaId,
+            title: baslik,
+            assignedTo: role === "ik" ? undefined : atananKisi.trim() || undefined,
+            dueDate: termin || undefined,
+            sourceType: kaynak,
+            sourceRef: kaynakRef,
+            priority: oncelik,
+          };
+          await createTask(supabase, input);
+          await reload();
+          router.refresh();
         }}
       />
     </>

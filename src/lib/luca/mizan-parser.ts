@@ -20,11 +20,21 @@ interface NumericResult {
   error: string | null;
 }
 
+// Only an unambiguous Turkish-formatted text cell may parse: optional
+// sign, grouped ("1.234.567,89") or plain ("1234567,89" / "1234567")
+// digits. parseFloat alone partial-parses — "12abc" → 12 and an
+// EN-formatted "1,234,567.89" → 1.234 — producing silently wrong
+// balances, which this file's contract explicitly forbids.
+const TR_TEXT_NUMBER = /^-?(?:\d{1,3}(?:\.\d{3})*|\d+)(?:,\d+)?$/;
+
 function normalizeTurkishNumber(value: unknown, fieldName: string): NumericResult {
   if (typeof value === "number") return { value, error: null };
   if (value == null || value === "") return { value: 0, error: null }; // blank = 0 is valid
   const str = String(value).trim();
   if (!str) return { value: 0, error: null };
+  if (!TR_TEXT_NUMBER.test(str)) {
+    return { value: 0, error: `${fieldName} gecersiz sayi: "${String(value)}"` };
+  }
   // Remove thousands dots, replace decimal comma with dot
   const normalized = str.replace(/\./g, "").replace(",", ".");
   const num = parseFloat(normalized);
@@ -175,6 +185,11 @@ export function parseMizanExcel(
 
     if (numericErrors.length > 0) {
       errors.push(`Satir ${rowLabel}: ${numericErrors.join("; ")}`);
+      // Explicit failure — a row whose numeric cells did not parse must
+      // NOT be carried forward with zeroed values into a confirmable
+      // dataset (zero borc_bakiyesi would silently drive a wrong
+      // open_receivable downstream).
+      continue;
     }
 
     // Match against BPS companies — preserves ambiguity

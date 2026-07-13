@@ -295,8 +295,17 @@ export default function LucaImportPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleConfirm}
-                disabled={parseResult.rows.length === 0 || confirming}
+                disabled={
+                  parseResult.rows.length === 0 ||
+                  parseResult.errors.length > 0 ||
+                  confirming
+                }
                 className={`px-4 py-2 text-sm font-medium text-white bg-slate-900 ${RADIUS_SM} hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed`}
+                title={
+                  parseResult.errors.length > 0
+                    ? "Dosyada geçersiz sayı içeren satırlar var — düzeltip yeniden yükleyin."
+                    : undefined
+                }
               >
                 {confirming ? "Kaydediliyor..." : "Onayla ve Kaydet"}
               </button>

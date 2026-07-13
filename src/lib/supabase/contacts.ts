@@ -82,6 +82,31 @@ export async function selectPrimaryContactsByCompanyIds(
   return data ?? [];
 }
 
+/**
+ * Fetch one contact bound to a specific company. Returns null when the
+ * row does not exist, belongs to another company, or RLS hides it. The
+ * service layer uses this to bind a contact mutation to the firma it
+ * resolved, so a mismatched (companyId, contactId) pair cannot reach
+ * across company boundaries.
+ */
+export async function selectContactByIdAndCompany(
+  client: Client,
+  id: string,
+  companyId: string,
+): Promise<ContactRow | null> {
+  const { data, error } = await client
+    .from("contacts")
+    .select("*")
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`contacts select failed: ${error.message}`);
+  }
+  return data;
+}
+
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------

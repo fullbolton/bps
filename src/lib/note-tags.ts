@@ -38,6 +38,9 @@ export const NOTE_TAG_LABELS: Record<NoteTagKey, string> = {
  */
 export function normalizeNoteTag(value: string | null | undefined): NoteTagKey | null {
   if (!value) return null;
-  if (value in NOTE_TAG_LABELS) return value as NoteTagKey;
+  // Object.hasOwn (not `in`): the `in` operator also matches prototype
+  // chain keys ("constructor", "toString", …), casting them to NoteTagKey
+  // and pushing them through to the DB whitelist as raw errors.
+  if (Object.hasOwn(NOTE_TAG_LABELS, value)) return value as NoteTagKey;
   return null;
 }

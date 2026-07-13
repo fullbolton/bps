@@ -52,13 +52,26 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/cron") ||
     pathname === "/api/healthz";
 
+  // Any redirect response must carry the cookies `setAll` wrote during
+  // `getUser()` — that call can rotate the refresh token, and dropping
+  // the rotated cookie on a redirect leaves the browser holding an
+  // already-consumed token (refresh-reuse detection then kills the
+  // session → sporadic forced logouts).
+  const redirectWithSessionCookies = (url: URL) => {
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
+  };
+
   // If no user and not on a public route, redirect to login with return URL
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     const returnTo = url.pathname + url.search;
     url.pathname = "/login";
     url.searchParams.set("returnTo", returnTo);
-    return NextResponse.redirect(url);
+    return redirectWithSessionCookies(url);
   }
 
   // If user is on login page and already authenticated, redirect to dashboard
@@ -67,7 +80,7 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.searchParams.delete("returnTo");
-    return NextResponse.redirect(url);
+    return redirectWithSessionCookies(url);
   }
 
   return supabaseResponse;

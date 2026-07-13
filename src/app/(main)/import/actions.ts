@@ -46,6 +46,7 @@ import {
 import type { ImportResult } from "@/lib/import/import-service";
 import type { ParsedRow } from "@/lib/import/csv-parser";
 import { convertDateForDB } from "@/lib/import/csv-parser";
+import { SECTOR_CODES } from "@/lib/sector-codes";
 import type { Database } from "@/types/database.types";
 
 type ServerClient = SupabaseClient<Database>;
@@ -55,6 +56,7 @@ type ServerClient = SupabaseClient<Database>;
 // tampered client. These guard the DB write directly.
 const ALLOWED_STATUS = new Set(["aday", "aktif", "pasif"]);
 const ALLOWED_RISK = new Set(["dusuk", "orta", "yuksek"]);
+const ALLOWED_SECTOR = new Set<string>(SECTOR_CODES);
 
 // Only these keys from `row.data` are passed to the insert. Anything
 // else the client put on the payload (id, tenant_id, created_by,
@@ -71,7 +73,7 @@ function sanitizeCompanyRow(row: ParsedRow): ParsedRow {
 
   const errors = [...row.errors];
 
-  // Re-validate status/risk on the server (defense in depth).
+  // Re-validate status/risk/sector on the server (defense in depth).
   if (allowed.status && !ALLOWED_STATUS.has(allowed.status)) {
     errors.push(`status reddedildi: "${allowed.status}"`);
     delete allowed.status;
@@ -79,6 +81,10 @@ function sanitizeCompanyRow(row: ParsedRow): ParsedRow {
   if (allowed.risk && !ALLOWED_RISK.has(allowed.risk)) {
     errors.push(`risk reddedildi: "${allowed.risk}"`);
     delete allowed.risk;
+  }
+  if (allowed.sector && !ALLOWED_SECTOR.has(allowed.sector)) {
+    errors.push(`sector reddedildi: "${allowed.sector}"`);
+    delete allowed.sector;
   }
 
   // `name` is required at the application layer too.

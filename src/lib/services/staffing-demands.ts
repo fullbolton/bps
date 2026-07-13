@@ -164,6 +164,22 @@ export async function listAllDemands(
  *   - Defaults requested_count to 1 and provided_count to 0 when omitted.
  *   - Stamps created_by from the auth session.
  */
+function ensureCountValue(value: number, label: string): void {
+  if (!Number.isInteger(value) || value < 0) {
+    throw new DemandValidationError(`${label} negatif olmayan bir tam sayı olmalıdır.`);
+  }
+}
+
+function ensureCountPair(requested: number, provided: number): void {
+  ensureCountValue(requested, "Talep edilen kişi sayısı");
+  ensureCountValue(provided, "Sağlanan kişi sayısı");
+  if (provided > requested) {
+    throw new DemandValidationError(
+      "Sağlanan kişi sayısı talep edilen sayıdan fazla olamaz.",
+    );
+  }
+}
+
 export async function createDemand(
   client: Client,
   input: DemandCreateInput,
@@ -175,6 +191,13 @@ export async function createDemand(
 
   const position = ensurePosition(input.position);
 
+  // Mirror the DB CHECKs (counts_non_negative, provided_lte_requested)
+  // so an invalid pair surfaces as the documented DemandValidationError
+  // instead of a raw constraint violation.
+  const requestedCount = input.requestedCount ?? 1;
+  const providedCount = input.providedCount ?? 0;
+  ensureCountPair(requestedCount, providedCount);
+
   const {
     data: { user },
   } = await client.auth.getUser();
@@ -182,8 +205,8 @@ export async function createDemand(
   const payload: StaffingDemandInsert = {
     company_id: company.id,
     position,
-    requested_count: input.requestedCount ?? 1,
-    provided_count: input.providedCount ?? 0,
+    requested_count: requestedCount,
+    provided_count: providedCount,
     location: nullableTrim(input.location),
     start_date: nullableTrim(input.startDate),
     priority: (input.priority as OncelikSeviyesi) ?? "normal",
@@ -214,10 +237,17 @@ export async function updateDemand(
     patch.position = ensurePosition(input.position);
   }
   if (input.requestedCount !== undefined) {
+    ensureCountValue(input.requestedCount, "Talep edilen kişi sayısı");
     patch.requested_count = input.requestedCount;
   }
   if (input.providedCount !== undefined) {
+    ensureCountValue(input.providedCount, "Sağlanan kişi sayısı");
     patch.provided_count = input.providedCount;
+  }
+  // Cross-field rule only when both sides are in the patch; a one-sided
+  // update is still backstopped by the DB CHECK (provided_lte_requested).
+  if (input.requestedCount !== undefined && input.providedCount !== undefined) {
+    ensureCountPair(input.requestedCount, input.providedCount);
   }
   if (input.location !== undefined) {
     patch.location = nullableTrim(input.location);

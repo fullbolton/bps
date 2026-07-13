@@ -334,8 +334,8 @@ export default function ImportPage() {
               <h2 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-2`}>{title}</h2>
               <div className={`${TYPE_BODY} ${TEXT_BODY} space-y-1`}>
                 {hasImported && <p>{importResult.imported} kayit basariyla aktarildi</p>}
-                {importResult.skipped > 0 && <p className="text-amber-600">{importResult.skipped} satir onizlemede gecersiz — atlandi</p>}
-                {hasErrors && <p className="text-red-600">{importResult.errors.length} satir yazim sirasinda reddedildi</p>}
+                {importResult.skipped > 0 && <p className="text-amber-600">{importResult.skipped} satir sunucu dogrulamasini gecemedi — atlandi</p>}
+                {hasErrors && <p className="text-red-600">{importResult.errors.length} hata — detaylar asagida</p>}
                 {isFullFailure && !hasErrors && <p>Aktarilacak gecerli satir bulunamadi.</p>}
               </div>
               {hasErrors && (

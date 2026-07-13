@@ -22,6 +22,9 @@ import { createClient } from "@supabase/supabase-js";
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX = 3; // max submissions per window per IP
 
+// Single-line basic email shape — same convention as the import layer.
+const BASIC_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 function checkRateLimit(ip: string): boolean {
@@ -109,17 +112,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Server-side validation
-    const fullName = String(body.full_name ?? "").trim();
-    const companyName = String(body.company_name ?? "").trim();
-    const email = String(body.email ?? "").trim();
+    // 3. Server-side validation. Length caps matter because this is an
+    //    unauthenticated write through service_role (RLS bypassed): the
+    //    table only enforces non-blank, so without caps a caller could
+    //    persist multi-megabyte payloads into the review queue.
+    const fullName = String(body.full_name ?? "").trim().slice(0, 200);
+    const companyName = String(body.company_name ?? "").trim().slice(0, 200);
+    const email = String(body.email ?? "").trim().slice(0, 320);
 
-    if (!fullName || !companyName || !email || !email.includes("@")) {
+    if (!fullName || !companyName || !email || !BASIC_EMAIL.test(email)) {
       return NextResponse.json(
         { success: false, error: "Lutfen zorunlu alanlari doldurun." },
         { status: 400 },
       );
     }
+
+    const bounded = (v: unknown, max: number) =>
+      typeof v === "string" ? v.trim().slice(0, max) || null : null;
 
     // 4. Insert via service role (bypasses RLS)
     const supabase = getAdminClient();
@@ -127,10 +136,10 @@ export async function POST(request: NextRequest) {
       full_name: fullName,
       company_name: companyName,
       email,
-      phone: typeof body.phone === "string" ? body.phone.trim() || null : null,
-      sector: typeof body.sector === "string" ? body.sector || null : null,
-      company_size: typeof body.company_size === "string" ? body.company_size || null : null,
-      message: typeof body.message === "string" ? body.message.trim() || null : null,
+      phone: bounded(body.phone, 40),
+      sector: bounded(body.sector, 100),
+      company_size: bounded(body.company_size, 100),
+      message: bounded(body.message, 4000),
     });
 
     if (error) {

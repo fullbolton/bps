@@ -33,7 +33,22 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  // 1. Feature flag. Default = disabled. Ops flips this to "true" only
+  // 1. Bearer-auth against CRON_SECRET — FIRST, before any other branch,
+  //    so an unauthenticated caller learns nothing about feature flags
+  //    or configuration state. Fail closed (generic 401) when the secret
+  //    is unset; the misconfiguration still surfaces to ops as failing
+  //    scheduled runs. Vercel Cron attaches the header automatically
+  //    once the project env has the secret set.
+  const secret = process.env.CRON_SECRET;
+  const authHeader = request.headers.get("authorization") ?? "";
+  if (!secret || authHeader !== `Bearer ${secret}`) {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized." },
+      { status: 401 },
+    );
+  }
+
+  // 2. Feature flag. Default = disabled. Ops flips this to "true" only
   //    after DNS / DKIM / SPF / DMARC on the From domain are verified
   //    and the vendor account is warmed.
   if (process.env.BPS_CONTRACT_EXPIRY_EMAIL_ENABLED !== "true") {
@@ -44,25 +59,6 @@ export async function GET(request: NextRequest) {
         reason: "BPS_CONTRACT_EXPIRY_EMAIL_ENABLED is not 'true'",
       },
       { status: 200 },
-    );
-  }
-
-  // 2. Bearer-auth against CRON_SECRET. Vercel Cron automatically
-  //    attaches this header on its side once the project env has the
-  //    secret set. Rejecting unauthenticated requests prevents the
-  //    public URL from being invoked by anyone other than the scheduler.
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json(
-      { ok: false, error: "CRON_SECRET is not configured." },
-      { status: 500 },
-    );
-  }
-  const authHeader = request.headers.get("authorization") ?? "";
-  if (authHeader !== `Bearer ${secret}`) {
-    return NextResponse.json(
-      { ok: false, error: "Unauthorized." },
-      { status: 401 },
     );
   }
 

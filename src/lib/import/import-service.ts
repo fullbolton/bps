@@ -66,7 +66,13 @@ export async function importCompanies(
   const { data: { user } } = await client.auth.getUser();
 
   for (const row of validRows) {
-    if (!row.valid) continue;
+    if (!row.valid) {
+      // Surface the server-side rejection reason — the client only ever
+      // submits preview-valid rows, so a silent skip here would hide the
+      // real (server) cause from the result screen.
+      errors.push(`Satir ${row.rowIndex}: ${row.errors.join("; ")}`);
+      continue;
+    }
     const d = row.data;
 
     const { error } = await client.from("companies").insert({
@@ -105,7 +111,11 @@ export async function importContacts(
   const { data: { user } } = await client.auth.getUser();
 
   for (const row of validRows) {
-    if (!row.valid) continue;
+    if (!row.valid) {
+      // Surface the server-side rejection reason (see importCompanies).
+      errors.push(`Satir ${row.rowIndex}: ${row.errors.join("; ")}`);
+      continue;
+    }
     const d = row.data;
     const companyId = companyNameToId.get(d.company_name?.trim());
     if (!companyId) {
@@ -153,7 +163,11 @@ export async function importContracts(
   const { data: { user } } = await client.auth.getUser();
 
   for (const row of validRows) {
-    if (!row.valid) continue;
+    if (!row.valid) {
+      // Surface the server-side rejection reason (see importCompanies).
+      errors.push(`Satir ${row.rowIndex}: ${row.errors.join("; ")}`);
+      continue;
+    }
     const d = row.data;
     const companyId = companyNameToId.get(d.company_name?.trim());
     if (!companyId) {

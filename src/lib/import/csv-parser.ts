@@ -33,40 +33,89 @@ export interface ParseResult {
 // CSV parsing (simple, no external deps)
 // ---------------------------------------------------------------------------
 
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
+// Turkish-locale Excel saves CSV with ";" as the list separator, so both
+// "," and ";" must parse. Decide from the header line only: count each
+// candidate outside quotes and pick the more frequent one.
+function detectDelimiter(text: string): "," | ";" {
   let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+  let commas = 0;
+  let semicolons = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += ch;
+      inQuotes = !inQuotes;
+    } else if (!inQuotes) {
+      if (ch === ",") commas++;
+      else if (ch === ";") semicolons++;
+      else if (ch === "\n" || ch === "\r") break;
     }
   }
-  result.push(current.trim());
-  return result;
+  return semicolons > commas ? ";" : ",";
+}
+
+// RFC-4180 character-level state machine. Unlike a split-on-newline
+// approach, a quoted field may contain the delimiter, escaped quotes
+// ("") and line breaks without fragmenting the row.
+function parseCSVText(text: string, delimiter: "," | ";"): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  const pushField = () => {
+    row.push(field.trim());
+    field = "";
+  };
+  const pushRow = () => {
+    pushField();
+    rows.push(row);
+    row = [];
+  };
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === delimiter) {
+      pushField();
+    } else if (ch === "\n") {
+      pushRow();
+    } else if (ch === "\r") {
+      if (text[i + 1] === "\n") i++;
+      pushRow();
+    } else {
+      field += ch;
+    }
+  }
+  // Flush the final row when the file does not end with a newline.
+  if (field.length > 0 || row.length > 0) pushRow();
+
+  // Drop rows with no content at all (blank / trailing lines).
+  return rows.filter((r) => r.some((c) => c.length > 0));
 }
 
 export function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length === 0) return { headers: [], rows: [] };
+  // Strip the UTF-8 BOM explicitly (Excel writes one).
+  const clean = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const table = parseCSVText(clean, detectDelimiter(clean));
+  if (table.length === 0) return { headers: [], rows: [] };
 
-  const headers = parseCSVLine(lines[0]);
+  const headers = table[0];
   const rows: Record<string, string>[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
+  for (let i = 1; i < table.length; i++) {
+    const values = table[i];
     const row: Record<string, string> = {};
     for (let j = 0; j < headers.length; j++) {
       row[headers[j]] = values[j] ?? "";
@@ -136,6 +185,11 @@ export function validateCompanyRow(row: Record<string, string>, rowIndex: number
 
 const CONTACTS_REQUIRED = ["company_name", "full_name"];
 
+// Mirror of the server's BASIC_EMAIL (`sanitizeContactRow`) — a row that
+// previews green must not be rejected at confirm for a rule the preview
+// never ran.
+const BASIC_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
 export function validateContactRow(
   row: Record<string, string>,
   rowIndex: number,
@@ -151,6 +205,15 @@ export function validateContactRow(
     if (!companyNameToId.has(name)) {
       errors.push(`company_name eslesmedi: "${name}"`);
     }
+  }
+
+  // Mirror the server (`sanitizeContactRow`) + contacts DB CHECK:
+  // at least one of phone / email, and basic email shape if supplied.
+  if (!row.phone?.trim() && !row.email?.trim()) {
+    errors.push("telefon veya e-posta zorunlu");
+  }
+  if (row.email?.trim() && !BASIC_EMAIL.test(row.email.trim())) {
+    errors.push(`email gecersiz format: "${row.email}"`);
   }
 
   if (row.is_primary?.trim()) {
@@ -211,6 +274,25 @@ export function validateContractRow(
 
   if (row.status?.trim() && !VALID_CONTRACT_STATUSES.has(row.status.trim())) {
     errors.push(`status gecersiz: "${row.status}"`);
+  }
+
+  // Mirror the server's cross-field rules (`sanitizeContractRow`) + the
+  // contracts DB CHECKs, so preview and confirm agree:
+  //   - aktif / imza_bekliyor require both dates (effective status
+  //     mirrors the insert default `status || "taslak"`),
+  //   - end_date >= start_date when both parse.
+  const effectiveStatus = row.status?.trim() || "taslak";
+  if (
+    (effectiveStatus === "aktif" || effectiveStatus === "imza_bekliyor") &&
+    (!row.start_date?.trim() || !row.end_date?.trim())
+  ) {
+    errors.push(`status "${effectiveStatus}" icin start_date ve end_date zorunlu`);
+  }
+
+  const startIso = row.start_date?.trim() ? parseDDMMYYYY(row.start_date.trim()) : null;
+  const endIso = row.end_date?.trim() ? parseDDMMYYYY(row.end_date.trim()) : null;
+  if (startIso && endIso && endIso < startIso) {
+    errors.push("end_date start_date'den once olamaz");
   }
 
   return { rowIndex, data: row, errors, valid: errors.length === 0 };
