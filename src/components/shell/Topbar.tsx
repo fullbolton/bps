@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, User, LogOut } from "lucide-react";
+import { User, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   TYPE_BODY,
@@ -72,12 +72,6 @@ export default function Topbar() {
         )}
 
         <div className="flex items-center gap-2 ml-auto">
-          {/* Notifications placeholder */}
-          <button className={`relative p-2 ${TEXT_SECONDARY} hover:text-slate-700 ${RADIUS_SM} hover:bg-slate-100 transition-colors`}>
-            <Bell size={18} />
-            <span className={`absolute top-1 right-1 w-2 h-2 bg-red-500 ${RADIUS_FULL}`} />
-          </button>
-
           {/* User menu */}
           <div ref={userMenuRef} className="relative">
             <button
