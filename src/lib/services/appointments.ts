@@ -50,7 +50,10 @@ import {
 } from "@/lib/supabase/appointments";
 import { getCompanyIdMapByLegacyMockIds } from "@/lib/services/companies";
 import { insertTask } from "@/lib/supabase/tasks";
-import { requireCompanyByLegacyMockId } from "@/lib/services/companies";
+import {
+  requireCompanyByLegacyMockId,
+  assertCompanyIsActiveForNewOperation,
+} from "@/lib/services/companies";
 
 type Client = SupabaseClient<Database>;
 
@@ -242,8 +245,18 @@ export async function createAppointment(
  *      - source_type = 'randevu'
  *      - appointment_id = appointmentId
  *      - status = 'acik'
- *   4. Returns both the updated appointment and the (optional) newly
- *      created task.
+ *   4. Returns the updated appointment, the (optional) newly created task,
+ *      and a `taskSkippedReason` when the handoff task was intentionally
+ *      NOT created.
+ *
+ * Passive-company rule (guard applied to the SIDE-EFFECT, not the whole
+ * function): completing an appointment for a pasif firma is allowed — it
+ * closes existing work. But the optional follow-up task is a NEW
+ * operation, so for a pasif firma the task insert is skipped and the
+ * reason is returned (never silently swallowed). The guard runs BEFORE
+ * the insert; `options.tenantId` is REQUIRED (fail-closed by
+ * construction) and the server action supplies it via
+ * `current_user_active_tenant()`.
  *
  * The caller does NOT need to separately call `updateAppointmentStatus`
  * — this function handles the complete lifecycle transition.
@@ -252,7 +265,12 @@ export async function completeAppointment(
   client: Client,
   appointmentId: string,
   input: AppointmentCompleteInput,
-): Promise<{ appointment: AppointmentRow; task: TaskRow | null }> {
+  options: { tenantId: string },
+): Promise<{
+  appointment: AppointmentRow;
+  task: TaskRow | null;
+  taskSkippedReason: string | null;
+}> {
   const result = ensureNonBlank(input.result, "Sonuç");
   const nextAction = ensureNonBlank(input.nextAction, "Sonraki adım");
 
@@ -283,25 +301,40 @@ export async function completeAppointment(
     appointmentPatch,
   );
 
-  // Optionally create a linked task (the handoff).
+  // Optionally create a linked task (the handoff). This is a NEW
+  // operation, so — unlike the completion above, which is allowed for a
+  // pasif firma — a pasif firma must NOT receive the follow-up task. The
+  // passive guard is applied to THIS side-effect only, before the insert;
+  // the completion already succeeded. A skip is reported, never silent.
   let task: TaskRow | null = null;
+  let taskSkippedReason: string | null = null;
   if (input.createTask) {
-    const {
-      data: { user },
-    } = await client.auth.getUser();
+    const activeCheck = await assertCompanyIsActiveForNewOperation(
+      client,
+      existing.company_id,
+      options.tenantId,
+    );
 
-    const taskPayload: TaskInsert = {
-      company_id: existing.company_id,
-      title: nextAction,
-      source_type: "randevu",
-      appointment_id: appointmentId,
-      status: "acik",
-      created_by: user?.id ?? null,
-    };
-    task = await insertTask(client, taskPayload);
+    if (!activeCheck.ok) {
+      taskSkippedReason = activeCheck.error;
+    } else {
+      const {
+        data: { user },
+      } = await client.auth.getUser();
+
+      const taskPayload: TaskInsert = {
+        company_id: existing.company_id,
+        title: nextAction,
+        source_type: "randevu",
+        appointment_id: appointmentId,
+        status: "acik",
+        created_by: user?.id ?? null,
+      };
+      task = await insertTask(client, taskPayload);
+    }
   }
 
-  return { appointment: updatedAppointment, task };
+  return { appointment: updatedAppointment, task, taskSkippedReason };
 }
 
 // ---------------------------------------------------------------------------

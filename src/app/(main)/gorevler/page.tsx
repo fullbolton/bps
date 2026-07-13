@@ -27,11 +27,13 @@ import { selectAllCompanies } from "@/lib/supabase/companies";
 import type { CompanyRow } from "@/types/database.types";
 import {
   listAllTasks,
-  createTask,
   updateTask,
   type TaskCreateInput,
 } from "@/lib/services/tasks";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
+// Görev create routes through the server action so the passive-company
+// guard runs before the insert (updateTask stays a direct service call).
+import { createTaskAction } from "./actions";
 import { TASK_SOURCE_LABELS } from "@/lib/task-sources";
 import type { TaskSourceType } from "@/lib/task-sources";
 import type { TaskRow } from "@/types/database.types";
@@ -570,7 +572,8 @@ export default function GorevlerPage() {
             sourceRef: kaynakRef,
             priority: oncelik,
           };
-          await createTask(supabase, input);
+          const result = await createTaskAction(input);
+          if (!result.ok) throw new Error(result.error);
           await reload();
           router.refresh();
         }}

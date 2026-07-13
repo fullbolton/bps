@@ -35,12 +35,14 @@ import { selectAllCompanies } from "@/lib/supabase/companies";
 import type { CompanyRow } from "@/types/database.types";
 import {
   listAllDemands,
-  createDemand,
   updateDemand,
   computeOpenCount,
   type DemandCreateInput,
 } from "@/lib/services/staffing-demands";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
+// Talep create routes through the server action so the passive-company
+// guard runs before the insert (updateDemand stays a direct service call).
+import { createDemandAction } from "./actions";
 import type { StaffingDemandRow } from "@/types/database.types";
 import type {
   ColumnDef,
@@ -585,7 +587,8 @@ export default function TaleplerPage() {
             priority: p.oncelik || undefined,
             responsible: p.sorumlu || undefined,
           };
-          await createDemand(supabase, payload);
+          const result = await createDemandAction(payload);
+          if (!result.ok) throw new Error(result.error);
           await reload();
           router.refresh();
         }}

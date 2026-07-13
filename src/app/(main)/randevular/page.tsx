@@ -35,13 +35,16 @@ import {
   NewTaskModal,
 } from "@/components/modals";
 import { createClient } from "@/lib/supabase/client";
-import {
-  listAllAppointments,
-  createAppointment,
-  completeAppointment,
-} from "@/lib/services/appointments";
-import { createTask } from "@/lib/services/tasks";
+import { listAllAppointments } from "@/lib/services/appointments";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
+// Create + complete paths route through server actions so the passive-
+// company guard runs before the insert / task side-effect. createTaskAction
+// is shared with the Görevler page (the "Görev Oluştur" flow creates a görev).
+import {
+  createAppointmentAction,
+  completeAppointmentAction,
+} from "./actions";
+import { createTaskAction } from "../gorevler/actions";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
 import type { AppointmentRow } from "@/types/database.types";
@@ -189,6 +192,9 @@ export default function RandevularPage() {
   });
   const [newOpen, setNewOpen] = useState(false);
   const [resultTarget, setResultTarget] = useState<{ open: boolean; randevuId?: string }>({ open: false });
+  // Info (not error): set when a completion succeeds but the follow-up
+  // task was skipped because the firma is pasif.
+  const [completionNotice, setCompletionNotice] = useState<string | null>(null);
   const [taskTarget, setTaskTarget] = useState<{
     open: boolean;
     firmaId?: string;
@@ -375,6 +381,12 @@ export default function RandevularPage() {
           </p>
         )}
 
+        {completionNotice && (
+          <p className={`${TYPE_CAPTION} text-amber-600`} role="status" aria-live="polite">
+            {completionNotice}
+          </p>
+        )}
+
         <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(statusCounts).map(([status, count]) => (
             <button
@@ -490,13 +502,14 @@ export default function RandevularPage() {
         onClose={() => setNewOpen(false)}
         firmalar={firmaOptions}
         onSubmit={async ({ firmaId, tarih, saat, gorusmeTipi, katilimci }) => {
-          await createAppointment(supabase, {
+          const result = await createAppointmentAction({
             legacyCompanyId: firmaId,
             meetingDate: tarih,
             meetingTime: saat || undefined,
             meetingType: gorusmeTipi,
             attendee: katilimci || undefined,
           });
+          if (!result.ok) throw new Error(result.error);
           await reload();
           router.refresh();
         }}
@@ -507,13 +520,23 @@ export default function RandevularPage() {
         randevuId={resultTarget.randevuId}
         onComplete={async ({ randevuId, sonuc, sonrakiAksiyon }) => {
           if (!randevuId) return;
-          await completeAppointment(supabase, randevuId, {
+          // The action completes the appointment (allowed on a pasif firma)
+          // and guards the follow-up task side-effect. On success it may
+          // report that the task was skipped because the firma is pasif —
+          // surfaced to the user, never silent.
+          const result = await completeAppointmentAction(randevuId, {
             result: sonuc,
             nextAction: sonrakiAksiyon,
             createTask: true,
           });
+          if (!result.ok) throw new Error(result.error);
           await reload();
           router.refresh();
+          setCompletionNotice(
+            result.taskSkippedReason
+              ? `Randevu tamamlandı. Takip görevi oluşturulmadı: ${result.taskSkippedReason}`
+              : null,
+          );
         }}
       />
       <NewTaskModal
@@ -524,7 +547,7 @@ export default function RandevularPage() {
         defaultFirmaId={taskTarget.firmaId}
         defaultKaynakRef={taskTarget.randevuId}
         onSubmit={async ({ baslik, firmaId, kaynak, kaynakRef, atananKisi, termin, oncelik }) => {
-          await createTask(supabase, {
+          const result = await createTaskAction({
             legacyCompanyId: firmaId,
             title: baslik,
             assignedTo: atananKisi || undefined,
@@ -534,6 +557,7 @@ export default function RandevularPage() {
             appointmentId: kaynakRef,
             priority: oncelik,
           });
+          if (!result.ok) throw new Error(result.error);
           await reload();
           router.refresh();
         }}
