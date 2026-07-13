@@ -1,0 +1,43 @@
+-- ==========================================================================
+-- BPS — Close the complete_appointment_atomic RPC exposure
+-- ==========================================================================
+-- `complete_appointment_atomic(uuid, text, text, boolean)` was created
+-- (20260407001700) as SECURITY DEFINER with NO explicit GRANT/REVOKE, so
+-- its EXECUTE privilege followed the PostgreSQL default (granted to PUBLIC).
+-- Because it is SECURITY DEFINER it runs as the owner and BYPASSES RLS, and
+-- it performs NO role/scope check on p_appointment_id. Net effect: any
+-- authenticated user could call it via PostgREST to complete ANY appointment
+-- and insert a task into ANY company — a privilege escalation / data-integrity
+-- hole.
+--
+-- The RPC is UNUSED by the app: the live path is the service-layer
+-- `completeAppointment` (src/lib/services/appointments.ts), which is now
+-- hardened (passive-company guard on the task side-effect + idempotency,
+-- commit 9370032). So the safe, minimal closure is to revoke EXECUTE.
+-- NOTE: `REVOKE ... FROM PUBLIC` also removes the PUBLIC-inherited EXECUTE for
+-- EVERY role — including service_role — because the RPC has no explicit
+-- grants. That is fine: the RPC is unused, so nothing (client OR server)
+-- breaks. If a server-side caller is ever needed, GRANT EXECUTE to
+-- service_role explicitly at that time.
+--
+-- ⚠ WRITTEN BUT NOT APPLIED — review + apply after confirming the current
+--    grants in prod (mirrors the access_requests deploy-gate discipline; do
+--    NOT run blind DDL). Before applying:
+--        select grantee, privilege_type
+--          from information_schema.role_routine_grants
+--         where routine_schema = 'public'
+--           and routine_name = 'complete_appointment_atomic';
+--    `PUBLIC` appearing is enough to confirm the exposure (anon/authenticated
+--    inherit EXECUTE via PUBLIC). Note any explicit per-role grants too.
+--
+-- ⚠ RE-ENABLING LATER: if the team decides to adopt this atomic RPC (it has
+--    row-lock + idempotency the service layer implements in app code), do
+--    NOT simply re-grant. First add an in-function role/scope gate mirroring
+--    the service layer (yonetici global + partner within
+--    partner_company_assignments; block goruntuleyici/muhasebe) and a
+--    passive-company check on the task insert, THEN grant EXECUTE.
+-- ==========================================================================
+
+REVOKE EXECUTE ON FUNCTION
+  public.complete_appointment_atomic(uuid, text, text, boolean)
+  FROM PUBLIC, anon, authenticated;
