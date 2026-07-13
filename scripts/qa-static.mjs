@@ -103,11 +103,19 @@ const FAIL = "FAIL";
 // =========================================================================
 
 // R1 — service_role confined to sanctioned API routes (cron / healthz /
-// demo-request). The env-var read is the client-construction signal; the
-// lowercase `service_role` word also appears in comments + healthz role
-// assertions, so we key on SUPABASE_SERVICE_ROLE_KEY, not the word.
+// demo-request / access-request). The env-var read is the client-
+// construction signal; the lowercase `service_role` word also appears in
+// comments + healthz role assertions, so we key on
+// SUPABASE_SERVICE_ROLE_KEY, not the word. access-request follows the
+// demo-request precedent: a public unauthenticated form write moved
+// server-side so the anon insert path can be revoked.
 (() => {
-  const ALLOW = ["api/cron/", "api/healthz/", "api/demo-request/"];
+  const ALLOW = [
+    "api/cron/",
+    "api/healthz/",
+    "api/demo-request/",
+    "api/access-request/",
+  ];
   const offenders = [];
   for (const f of walk("src")) {
     if (!f.endsWith(".ts") && !f.endsWith(".tsx")) continue;
@@ -118,7 +126,7 @@ const FAIL = "FAIL";
     }
   }
   if (offenders.length === 0) {
-    record(FAIL, "service_role-confined", PASS, "service_role only in cron/healthz/demo-request");
+    record(FAIL, "service_role-confined", PASS, "service_role only in cron/healthz/demo-request/access-request");
   } else {
     record(FAIL, "service_role-confined", FAIL, `unexpected service_role: ${offenders.join(", ")}`);
   }

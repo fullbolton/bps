@@ -133,6 +133,7 @@ function LoginForm() {
 function AccessRequestForm({ onBack }: { onBack: () => void }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot — real users leave empty
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -142,28 +143,39 @@ function AccessRequestForm({ onBack }: { onBack: () => void }) {
     setError("");
     setLoading(true);
 
-    const supabase = createClient();
-
-    const { error: insertError } = await supabase
-      .from("access_requests")
-      .insert({
-        full_name: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        birim: "diger",
+    // Server-side path (/api/access-request) — the direct browser anon
+    // insert is being retired (see the companion migration). The route
+    // runs honeypot + rate limit + validation and writes via service role.
+    try {
+      const res = await fetch("/api/access-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: fullName.trim(),
+          email: email.trim().toLowerCase(),
+          website,
+        }),
       });
+      const data = await res.json().catch(() => ({ success: false }));
 
-    if (insertError) {
-      if (insertError.code === "23505" || insertError.message?.includes("duplicate") || insertError.message?.includes("unique")) {
-        setError("Bu e-posta ile bekleyen bir talep zaten mevcut.");
-      } else {
-        setError("Talep gönderilemedi. Lütfen tekrar deneyin.");
+      if (!res.ok || !data.success) {
+        setError(
+          data.code === "duplicate"
+            ? "Bu e-posta ile bekleyen bir talep zaten mevcut."
+            : (typeof data.error === "string"
+                ? data.error
+                : "Talep gönderilemedi. Lütfen tekrar deneyin."),
+        );
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return;
-    }
 
-    setSuccess(true);
-    setLoading(false);
+      setSuccess(true);
+      setLoading(false);
+    } catch {
+      setError("Talep gönderilemedi. Lütfen tekrar deneyin.");
+      setLoading(false);
+    }
   }
 
   if (success) {
@@ -226,6 +238,20 @@ function AccessRequestForm({ onBack }: { onBack: () => void }) {
           placeholder="ornek@sirket.com"
         />
       </div>
+
+      {/* Honeypot — off-screen, tab-skipped, aria-hidden. Real users never
+          see or fill it; a bot that populates it gets a fake-success no-op
+          on the server (nothing is inserted). */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+      />
 
       {error && (
         <p className={`${TYPE_CAPTION} text-red-600`}>{error}</p>
