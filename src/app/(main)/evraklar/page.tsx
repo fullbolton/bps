@@ -15,6 +15,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { UploadDocumentModal, UpdateValidityModal } from "@/components/modals";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -121,6 +122,7 @@ const COLUMNS: ColumnDef<DocumentListRow>[] = [
 
 export default function EvraklarPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const router = useRouter();
   const supabase = createClient();
 
@@ -307,6 +309,17 @@ export default function EvraklarPage() {
         !row.storage_path || signedUrlErrorIds.has(row.id),
     },
   ];
+
+  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Evraklar" subtitle="Belge takibi" />
+        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
 
   if (["goruntuleyici", "muhasebe"].includes(role)) {
     return (

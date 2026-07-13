@@ -17,6 +17,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { NewTaskModal } from "@/components/modals";
 // Faz 3: Görevler list cutover. Tasks come from the tasks service
 // layer; the firma filter dropdown and New Task modal now source
@@ -184,6 +185,7 @@ const COLUMNS: ColumnDef<TaskListRow>[] = [
 
 export default function GorevlerPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
@@ -348,6 +350,17 @@ export default function GorevlerPage() {
   // ------------------------------------------------------------------
   // Role gate — goruntuleyici / muhasebe have no access
   // ------------------------------------------------------------------
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Görevler" subtitle="Operasyon takibi" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
+
   if (["goruntuleyici", "muhasebe"].includes(role)) {
     return (
       <>

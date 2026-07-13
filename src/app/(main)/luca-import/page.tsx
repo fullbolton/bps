@@ -9,6 +9,7 @@ import { useState, useMemo } from "react";
 import { Upload, CheckCircle, XCircle, AlertTriangle, FileText, HelpCircle } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { parseMizanExcel, buildCompanyMatchMap } from "@/lib/luca/mizan-parser";
 import type { LucaParseResult, LucaMizanRow } from "@/lib/luca/types";
@@ -40,12 +41,24 @@ const MATCH_BADGE: Record<string, { label: string; color: string }> = {
 
 export default function LucaImportPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const supabase = createClient();
 
   const [parseResult, setParseResult] = useState<LucaParseResult | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Luca Mizan Import" subtitle="Muhasebe raporu kaynakli alacak gorunumu" />
+        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
 
   if (role !== "yonetici") {
     return (

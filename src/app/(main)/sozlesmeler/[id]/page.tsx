@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { NewContractModal } from "@/components/modals";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 // Faz 2: Sözleşme Detay core read path cuts over to the contracts
 // service layer. Sections that depended on excluded domains are
 // removed in this slice — see the cutover report's "what was
@@ -79,6 +80,7 @@ export default function SozlesmeDetayPage({
   const { id } = use(params);
   const router = useRouter();
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
 
   const supabase = useMemo(() => createClient(), []);
   const [contract, setContract] = useState<ContractRow | null>(null);
@@ -162,6 +164,17 @@ export default function SozlesmeDetayPage({
   }, [reload]);
 
   const canEdit = role === "yonetici" || role === "partner";
+
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Sözleşme Detay" subtitle="Sözleşme yaşam döngüsü" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
 
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (

@@ -13,6 +13,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   listAllWorkforceSummaries,
@@ -101,6 +102,7 @@ const COLUMNS: ColumnDef<WorkforceListRow>[] = [
 
 export default function AktifIsgucuPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
 
   const supabase = useMemo(() => createClient(), []);
   const [summaries, setSummaries] = useState<WorkforceSummaryRow[]>([]);
@@ -237,6 +239,20 @@ export default function AktifIsgucuPage() {
   );
 
   // --- role gate ---
+  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader
+          title="Aktif Is Gucu"
+          subtitle="Firma bazli kapasite"
+        />
+        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
+
   if (["goruntuleyici", "muhasebe"].includes(role)) {
     return (
       <>

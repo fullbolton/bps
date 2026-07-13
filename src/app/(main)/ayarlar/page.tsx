@@ -488,7 +488,19 @@ function AccessRequestsTab() {
 
 export default function AyarlarPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("kullanicilar");
+
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Ayarlar" subtitle="Sistem yapılandırması" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
 
   if (role !== "yonetici") {
     return (

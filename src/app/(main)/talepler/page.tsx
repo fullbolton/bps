@@ -29,6 +29,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { NewRequestModal, AssignOwnerModal } from "@/components/modals";
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
@@ -204,6 +205,7 @@ const COLUMNS: ColumnDef<DemandListRow>[] = [
 
 export default function TaleplerPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const router = useRouter();
 
   // ---------------------------------------------------------------------------
@@ -373,6 +375,17 @@ export default function TaleplerPage() {
   // ---------------------------------------------------------------------------
   // Role gate
   // ---------------------------------------------------------------------------
+  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Personel Talepleri" subtitle="Talep yonetimi" />
+        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
+
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
       <>

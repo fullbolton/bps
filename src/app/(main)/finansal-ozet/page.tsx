@@ -9,6 +9,7 @@ import {
   ReceivablesSummaryCard,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { extractReceivablesSummary } from "@/lib/extract-financials";
 import { createClient } from "@/lib/supabase/client";
 import type { ExtractedReceivables } from "@/lib/extract-financials";
@@ -33,6 +34,7 @@ import {
 
 export default function FinansalOzetPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const supabase = createClient();
 
   // Upload flow state
@@ -244,6 +246,17 @@ export default function FinansalOzetPage() {
       kesilmemisBekleyen: r.kesilmemisBekleyen ?? "—",
     }));
   const hasAnyRealData = portfolio !== null || perCompany.length > 0;
+
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Finansal Özet" subtitle="Yönetim görünürlüğü" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
 
   if (!["yonetici", "muhasebe"].includes(role)) {
     return (

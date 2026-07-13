@@ -12,6 +12,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Upload, Download, FileText, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   parseCSV,
@@ -51,6 +52,7 @@ const IMPORT_TYPES: { key: ImportType; label: string; description: string; templ
 
 export default function ImportPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const supabase = createClient();
 
   const [selectedType, setSelectedType] = useState<ImportType | null>(null);
@@ -60,6 +62,17 @@ export default function ImportPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Yonetici-only gate
+  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Veri Aktarimi" subtitle="CSV Import" />
+        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
+
   if (role !== "yonetici") {
     return (
       <>

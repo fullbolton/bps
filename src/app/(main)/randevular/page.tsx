@@ -29,6 +29,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   NewAppointmentModal,
   AppointmentResultModal,
@@ -173,6 +174,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
 
 export default function RandevularPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
@@ -350,6 +352,17 @@ export default function RandevularPage() {
   // ------------------------------------------------------------------
   // Role gate
   // ------------------------------------------------------------------
+
+  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Randevular" subtitle="Gorusme takibi" />
+        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
 
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (

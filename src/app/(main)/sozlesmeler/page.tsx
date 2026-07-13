@@ -15,6 +15,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
 import { NewContractModal } from "@/components/modals";
 // Faz 2: Sözleşmeler list cutover. Contracts and the active-count
 // statistics come from the contracts service layer. The firma filter
@@ -149,6 +150,7 @@ const COLUMNS: ColumnDef<ContractListRow>[] = [
 
 export default function SozlesmelerPage() {
   const { role } = useRole();
+  const { loading: authLoading } = useAuth();
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
@@ -278,6 +280,17 @@ export default function SozlesmelerPage() {
   // per the ROLE_MATRIX refresh; showing the button to partner would only
   // produce a server-side "Yetkisiz" error).
   const canCreate = role === "yonetici";
+
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
+  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
+  if (authLoading) {
+    return (
+      <>
+        <PageHeader title="Sözleşmeler" subtitle="Sözleşme yaşam döngüsü" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+      </>
+    );
+  }
 
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
