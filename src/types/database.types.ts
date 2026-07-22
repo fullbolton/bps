@@ -313,10 +313,14 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          // Optional here only so pre-existing callers compile; the
-          // import server action always supplies it from
-          // current_user_active_tenant(). RLS / NOT NULL enforce at runtime.
-          tenant_id?: string;
+          // REQUIRED — production has NOT NULL on this column. It was
+          // previously optional "so pre-existing callers compile", and that
+          // hole is exactly how `createContract` shipped without it: every
+          // UI-created contract failed at runtime until 865ecfb. Required
+          // here so tsc catches a missing tenant_id at COMPILE time. Always
+          // server-resolved via current_user_active_tenant() — never read
+          // from a client payload. (Update keeps it optional.)
+          tenant_id: string;
           company_id: string;
           name: string;
           contract_type?: string | null;
@@ -664,15 +668,16 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          // Production schema requires NOT NULL on this column. Kept
-          // optional in the TS Insert shape so internal update/replace
-          // helpers that only touch existing rows do not need to restate
-          // it. Document creation goes exclusively through the server
-          // action `uploadCompanyDocumentAction`, which always supplies a
-          // server-resolved tenant_id; the legacy `createDocument` is a
-          // fail-closed stub and inserts nothing. RLS / NOT NULL enforce
-          // at runtime.
-          tenant_id?: string;
+          // REQUIRED — production has NOT NULL on this column. Document
+          // creation goes exclusively through the server action
+          // `uploadCompanyDocumentAction`, which always supplies a
+          // server-resolved tenant_id (the legacy `createDocument` is a
+          // fail-closed stub that inserts nothing). Required here so tsc
+          // catches a missing tenant_id at COMPILE time instead of letting
+          // it fail at runtime — the same hole that broke contract create.
+          // Update/replace helpers use the Update shape, where tenant_id
+          // stays optional.
+          tenant_id: string;
           company_id: string;
           contract_id?: string | null;
           name: string;
