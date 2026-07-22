@@ -33,6 +33,16 @@ function formatCurrency(n: number): string {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " TL";
 }
 
+// Upload size ceiling for the mizan file. Real Luca exports are well under
+// this (a 10k-row mizan is a couple of MB). The cap exists to bound the work
+// handed to SheetJS: xlsx@0.18.5 carries a known ReDoS advisory
+// (GHSA-5pgg-2g8v-p4x9) with no npm fix available — npm's `latest` IS 0.18.5,
+// because SheetJS publishes newer builds only on its own CDN. Parsing here is
+// browser-side and yonetici-only on an admin-chosen file, so the practical
+// exposure is small; this ceiling simply keeps a malformed or oversized file
+// from tying up the uploader's tab. Mirrors the 10 MB document-upload cap.
+const MAX_MIZAN_BYTES = 10 * 1024 * 1024;
+
 const MATCH_BADGE: Record<string, { label: string; color: string }> = {
   matched: { label: "Eslesti", color: "text-green-700 bg-green-50 ring-green-600/20" },
   unmatched: { label: "Eslesme yok", color: "text-amber-700 bg-amber-50 ring-amber-600/20" },
@@ -78,6 +88,12 @@ export default function LucaImportPage() {
 
     if (!file.name.match(/\.xlsx?$/i)) {
       setError("Yalnizca Excel (.xlsx / .xls) dosyasi kabul edilir.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_MIZAN_BYTES) {
+      setError("Dosya 10 MB'dan buyuk olamaz. Mizan disa aktarimini daraltip tekrar deneyin.");
       e.target.value = "";
       return;
     }
