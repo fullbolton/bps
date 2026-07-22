@@ -7,8 +7,18 @@
  * conditional rendering (role === "yonetici", role !== "goruntuleyici", etc.)
  * continues to work without changes.
  *
- * Role is sourced from user_metadata.role set during user creation in Supabase.
- * Falls back to "goruntuleyici" (most restricted) if no role is found.
+ * Role is sourced from `current_user_role()` — the SAME database function the
+ * server actions and every RLS policy use, which reads `profiles.role` by
+ * auth.uid(). This makes the client's gates agree with the server by
+ * construction, so the two cannot drift.
+ *
+ * `user_metadata.role` is deliberately NOT consulted: it is a separate copy
+ * that the server does not honor, so trusting it made the UI promise
+ * capabilities the server would reject (and vice versa).
+ *
+ * Falls back to "goruntuleyici" (most restricted) when the role cannot be
+ * resolved — which matches the server, since it denies every role-gated
+ * action in exactly that case.
  */
 
 import {
@@ -27,7 +37,11 @@ export type UserRole = "yonetici" | "partner" | "operasyon" | "ik" | "muhasebe" 
 interface AuthContextValue {
   /** Current authenticated user, or null if loading / not authenticated */
   user: User | null;
-  /** Resolved role from user metadata */
+  /**
+   * Role resolved from `current_user_role()` (→ profiles.role) — the same
+   * source the server actions and RLS use. "goruntuleyici" until the first
+   * resolution completes, and on any failure (fail-closed).
+   */
   role: UserRole;
   /** Display name for the current user */
   displayName: string;
@@ -47,15 +61,6 @@ const AuthContext = createContext<AuthContextValue>({
 
 const VALID_ROLES: UserRole[] = ["yonetici", "partner", "operasyon", "ik", "muhasebe", "goruntuleyici"];
 
-function resolveRole(user: User | null): UserRole {
-  if (!user) return "goruntuleyici";
-  const metaRole = user.user_metadata?.role as string | undefined;
-  if (metaRole && VALID_ROLES.includes(metaRole as UserRole)) {
-    return metaRole as UserRole;
-  }
-  return "goruntuleyici";
-}
-
 function resolveDisplayName(user: User | null): string {
   if (!user) return "";
   return (
@@ -68,25 +73,58 @@ function resolveDisplayName(user: User | null): string {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<UserRole>("goruntuleyici");
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setLoading(false);
-    });
+    let active = true;
+    // Monotonic guard: the role lookup is async, so a slow in-flight
+    // resolution must never overwrite the result of a NEWER auth event
+    // (e.g. a sign-out landing while the initial getUser is still pending).
+    let seq = 0;
 
-    // Listen for auth state changes
+    // Ask the database for the role — same function the server/RLS use.
+    async function resolveRoleFromDb(nextUser: User | null): Promise<UserRole> {
+      if (!nextUser) return "goruntuleyici";
+      const { data, error } = await supabase.rpc("current_user_role");
+      if (
+        error ||
+        typeof data !== "string" ||
+        !VALID_ROLES.includes(data as UserRole)
+      ) {
+        // Fail closed. The server denies role-gated actions in this same
+        // case, so showing the most restricted UI is the honest state.
+        return "goruntuleyici";
+      }
+      return data as UserRole;
+    }
+
+    async function apply(nextUser: User | null) {
+      const mySeq = ++seq;
+      const nextRole = await resolveRoleFromDb(nextUser);
+      if (!active || mySeq !== seq) return;
+      setUser(nextUser);
+      setRole(nextRole);
+      // `loading` only gates the FIRST resolution. Later auth events (e.g.
+      // TOKEN_REFRESHED) must not re-flash the full-page loading gates.
+      setLoading(false);
+    }
+
+    // Initial session
+    void supabase.auth.getUser().then(({ data: { user } }) => apply(user));
+
+    // Auth state changes (sign in / out / token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      void apply(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, [supabase]);
 
   const signOut = useCallback(async () => {
@@ -94,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/login";
   }, [supabase]);
 
-  const role = resolveRole(user);
+  // `role` is state now — resolved from the DB in the effect above.
   const displayName = resolveDisplayName(user);
 
   return (
