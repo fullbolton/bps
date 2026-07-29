@@ -50,7 +50,8 @@ import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
 import type { AppointmentRow } from "@/types/database.types";
 import { selectAllCompanies } from "@/lib/supabase/companies";
-import type { CompanyRow } from "@/types/database.types";
+import { listProfiles } from "@/lib/services/profiles";
+import type { CompanyRow, ProfileRow } from "@/types/database.types";
 import type {
   ColumnDef,
   FilterConfig,
@@ -185,6 +186,8 @@ export default function RandevularPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   // Real companies for the firma filter + New Appointment modal.
   const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+  const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
+  const [profilesDurum, setProfilesDurum] = useState<"loading" | "error" | "ready">("loading");
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({
@@ -246,6 +249,21 @@ export default function RandevularPage() {
         if (active) setAllCompanies(rows);
       } catch {
         if (active) setAllCompanies([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [supabase]);
+
+  // Assignable users for the "Görev Oluştur" assignee picker. On failure the
+  // picker renders disabled rather than pretending nobody exists.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const rows = await listProfiles(supabase);
+        if (active) { setAllProfiles(rows); setProfilesDurum("ready"); }
+      } catch {
+        if (active) { setAllProfiles([]); setProfilesDurum("error"); }
       }
     })();
     return () => { active = false; };
@@ -313,6 +331,11 @@ export default function RandevularPage() {
   const selectedRandevu = useMemo(
     () => enrichedRows.find((r) => r.id === selectedId) ?? null,
     [enrichedRows, selectedId]
+  );
+
+  const kullaniciOptions = useMemo(
+    () => allProfiles.map((p) => ({ id: p.id, ad: p.display_name })),
+    [allProfiles],
   );
 
   const firmaOptions = useMemo(
@@ -556,14 +579,17 @@ export default function RandevularPage() {
         open={taskTarget.open}
         onClose={() => setTaskTarget({ open: false })}
         firmalar={firmaOptions}
+        kullanicilar={kullaniciOptions}
+        kullanicilarDurum={profilesDurum}
         defaultKaynak="randevu"
         defaultFirmaId={taskTarget.firmaId}
         defaultKaynakRef={taskTarget.randevuId}
-        onSubmit={async ({ baslik, firmaId, kaynak, kaynakRef, atananKisi, termin, oncelik }) => {
+        onSubmit={async ({ baslik, firmaId, kaynak, kaynakRef, atananKisiId, termin, oncelik }) => {
           const result = await createTaskAction({
             legacyCompanyId: firmaId,
             title: baslik,
-            assignedTo: atananKisi || undefined,
+            // id only — the service resolves the display name server-side.
+            assignedToUserId: atananKisiId,
             dueDate: termin || undefined,
             sourceType: kaynak,
             sourceRef: kaynakRef,

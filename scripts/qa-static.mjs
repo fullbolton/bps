@@ -294,6 +294,90 @@ const FAIL = "FAIL";
     importsCreateContact ? "page imports createContact from contacts service" : "page does not import browser createContact");
 })();
 
+// R12 — pre-deploy gates must be RECORDED before the work they gate ships.
+// The gates live in supabase/manual/README.md as a table the operator fills in
+// with the query result, the date and who cleared it. A gate written only as
+// prose is not enforcement: the migration is applied at one moment and the
+// deploy decision is made at another, possibly by someone else.
+//
+// This is a FAIL rule on purpose. It cannot verify the database — but a WARN
+// would leave the harness green (exit 0) while an unverified change was free to
+// ship, which is precisely the failure mode the gates exist to prevent. Failing
+// forces the evidence to be produced: run the query, write the answer down.
+// Expected: 1 FAIL before the gates are cleared, 0 after.
+// Each gate is one machine-readable marker line in that file:
+//   <!-- gate:G1 status=not_run value=none checked_on=none cleared_by=none -->
+// A gate clears ONLY when status=cleared AND value equals the one answer that
+// makes shipping safe. Counting prose ("not run") was not enough: writing the
+// wrong answer, or deleting the row entirely, would have read as cleared.
+(() => {
+  const EXPECTED = {
+    G1: { value: "1", why: "tenant_count must be exactly 1" },
+    G2: { value: "assigned_to_user_id", why: "column must exist on tasks" },
+    G3: { value: "attested", why: "profile roster reviewed, all own staff" },
+  };
+
+  const gatesDoc = read("supabase/manual/README.md");
+  const gatedCodeShipped = (read("src/lib/services/tasks.ts") ?? "").includes(
+    "assigned_to_user_id",
+  );
+
+  if (!gatedCodeShipped) {
+    record(FAIL, "pre-deploy-gates-recorded", PASS, "no gated change in tree");
+    return;
+  }
+  if (!gatesDoc) {
+    record(FAIL, "pre-deploy-gates-recorded", FAIL,
+      "gated change present but supabase/manual/README.md is missing");
+    return;
+  }
+
+  const problems = [];
+  for (const [id, exp] of Object.entries(EXPECTED)) {
+    const markers = [
+      ...gatesDoc.matchAll(new RegExp(`<!--\\s*gate:${id}\\s+([^>]*?)-->`, "g")),
+    ];
+    if (markers.length === 0) { problems.push(`${id}: marker missing`); continue; }
+    if (markers.length > 1) { problems.push(`${id}: ${markers.length} markers`); continue; }
+
+    // Parse strictly. Object.fromEntries silently keeps the LAST duplicate, so
+    // `status=not_run status=cleared` would have read as cleared; and a shape
+    // check alone accepts impossible dates like 2026-99-99.
+    const REQUIRED = ["status", "value", "checked_on", "cleared_by"];
+    const pairs = markers[0][1].trim().split(/\s+/).filter(Boolean);
+    const f = {};
+    let malformed = null;
+    for (const kv of pairs) {
+      const i = kv.indexOf("=");
+      if (i === -1) { malformed = `bad field "${kv}"`; break; }
+      const k = kv.slice(0, i);
+      if (!REQUIRED.includes(k)) { malformed = `unknown key "${k}"`; break; }
+      if (k in f) { malformed = `duplicate key "${k}"`; break; }
+      f[k] = kv.slice(i + 1);
+    }
+    if (malformed) { problems.push(`${id}: ${malformed}`); continue; }
+    const missing = REQUIRED.filter((k) => !(k in f));
+    if (missing.length) { problems.push(`${id}: missing ${missing.join(",")}`); continue; }
+
+    if (f.status !== "cleared") { problems.push(`${id}: status=${f.status}`); continue; }
+    if (f.value !== exp.value) { problems.push(`${id}: value=${f.value} (${exp.why})`); continue; }
+    // Real calendar date, not just the shape: round-trip through Date.
+    const d = f.checked_on;
+    const ok = /^\d{4}-\d{2}-\d{2}$/.test(d) &&
+      new Date(`${d}T00:00:00Z`).toISOString().slice(0, 10) === d;
+    if (!ok) { problems.push(`${id}: checked_on="${d}" is not a real date`); continue; }
+    if (!f.cleared_by || f.cleared_by === "none") { problems.push(`${id}: cleared_by empty`); }
+  }
+
+  if (problems.length === 0) {
+    record(FAIL, "pre-deploy-gates-recorded", PASS,
+      `${Object.keys(EXPECTED).join("/")} cleared with accepted values`);
+  } else {
+    record(FAIL, "pre-deploy-gates-recorded", FAIL,
+      `${problems.join(" · ")} — do not deploy the picker/görev code`);
+  }
+})();
+
 // =========================================================================
 // Report + exit
 // =========================================================================

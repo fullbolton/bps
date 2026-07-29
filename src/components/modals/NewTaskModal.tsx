@@ -16,6 +16,16 @@ interface NewTaskModalProps {
   open: boolean;
   onClose: () => void;
   firmalar: { id: string; ad: string }[];
+  /**
+   * Assignable users (profiles). The picker replaced a free-text field: a
+   * typed name cannot carry identity, so it could not back the "my tasks"
+   * ownership rule.
+   */
+  kullanicilar?: { id: string; ad: string }[];
+  /** Distinguishes "still loading" / "load failed" / "genuinely nobody" — an
+   *  empty array alone cannot tell them apart, and showing "yüklenemedi"
+   *  during a normal load is a lie. */
+  kullanicilarDurum?: "loading" | "error" | "ready";
   allowAssignee?: boolean;
   /** Pre-selected kaynak when creating from a specific context */
   defaultKaynak?: TaskSourceType;
@@ -29,7 +39,9 @@ interface NewTaskModalProps {
     firmaId: string;
     kaynak: TaskSourceType;
     kaynakRef?: string;
-    atananKisi: string;
+    /** profiles.id of the selected user, or null. The service resolves the
+     *  display name from it — the caller never supplies a name. */
+    atananKisiId: string | null;
     termin: string;
     oncelik: string;
   }) => void | Promise<void>;
@@ -39,6 +51,8 @@ export default function NewTaskModal({
   open,
   onClose,
   firmalar,
+  kullanicilar = [],
+  kullanicilarDurum = "ready",
   allowAssignee = true,
   defaultKaynak,
   defaultFirmaId,
@@ -50,7 +64,8 @@ export default function NewTaskModal({
   const [baslik, setBaslik] = useState(defaultBaslik ?? "");
   const [firmaId, setFirmaId] = useState(defaultFirmaId ?? "");
   const [kaynak, setKaynak] = useState<TaskSourceType>(defaultKaynak ?? "manuel");
-  const [atananKisi, setAtananKisi] = useState("");
+  // Holds profiles.id ("" = unassigned); the display name is derived from it.
+  const [atananKisiId, setAtananKisiId] = useState("");
   const [termin, setTermin] = useState("");
   const [oncelik, setOncelik] = useState(defaultOncelik ?? "normal");
   const [saving, setSaving] = useState(false);
@@ -61,7 +76,7 @@ export default function NewTaskModal({
     if (!open) return;
     setFirmaId(defaultFirmaId ?? "");
     setKaynak(defaultKaynak ?? "manuel");
-    setAtananKisi("");
+    setAtananKisiId("");
     setTermin("");
     setSubmitError(null);
     if (defaultBaslik) setBaslik(defaultBaslik);
@@ -75,7 +90,7 @@ export default function NewTaskModal({
       firmaId,
       kaynak,
       kaynakRef: defaultKaynakRef,
-      atananKisi: allowAssignee ? atananKisi : "",
+      atananKisiId: allowAssignee ? (atananKisiId || null) : null,
       termin,
       oncelik,
     };
@@ -98,7 +113,7 @@ export default function NewTaskModal({
     setFirmaId(defaultFirmaId ?? "");
     setKaynak(defaultKaynak ?? "manuel");
     setOncelik(defaultOncelik ?? "normal");
-    setAtananKisi("");
+    setAtananKisiId("");
     setTermin("");
     setOncelik("normal");
     setSubmitError(null);
@@ -215,13 +230,27 @@ export default function NewTaskModal({
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Atanan Kişi
               </label>
-              <input
-                type="text"
-                value={atananKisi}
-                onChange={(e) => setAtananKisi(e.target.value)}
-                placeholder="Kişi adı"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <select
+                value={atananKisiId}
+                onChange={(e) => setAtananKisiId(e.target.value)}
+                disabled={kullanicilarDurum !== "ready" || kullanicilar.length === 0}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              >
+                <option value="">
+                  {kullanicilarDurum === "loading"
+                    ? "Kullanıcılar yükleniyor…"
+                    : kullanicilarDurum === "error"
+                      ? "Kullanıcı listesi yüklenemedi"
+                      : kullanicilar.length === 0
+                        ? "Atanabilecek kullanıcı yok"
+                        : "Atanmadı"}
+                </option>
+                {kullanicilar.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.ad}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">

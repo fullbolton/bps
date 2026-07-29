@@ -25,7 +25,8 @@ import { NewTaskModal } from "@/components/modals";
 // scoped), replacing the earlier MOCK_FIRMALAR UI dictionary.
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
-import type { CompanyRow } from "@/types/database.types";
+import { listProfiles } from "@/lib/services/profiles";
+import type { CompanyRow, ProfileRow } from "@/types/database.types";
 import {
   listAllTasks,
   updateTask,
@@ -198,6 +199,8 @@ export default function GorevlerPage() {
   // RLS-scoped; option id prefers legacy_mock_id so the modal's write
   // path (createTask → legacyCompanyId) keeps working.
   const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+  const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
+  const [profilesDurum, setProfilesDurum] = useState<"loading" | "error" | "ready">("loading");
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({
@@ -210,7 +213,8 @@ export default function GorevlerPage() {
   const [panelError, setPanelError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editDurum, setEditDurum] = useState<GorevDurumu>("acik");
-  const [editAtananKisi, setEditAtananKisi] = useState("");
+  // Holds profiles.id ("" = unassigned). The display name is derived on save.
+  const [editAtananKisiId, setEditAtananKisiId] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
@@ -256,6 +260,22 @@ export default function GorevlerPage() {
         if (active) setAllCompanies(rows);
       } catch {
         if (active) setAllCompanies([]);
+      }
+    })();
+    return () => { active = false; };
+  }, [supabase]);
+
+  // Assignable users for the assignee picker. Same honest-empty contract as
+  // companies above: on failure the picker renders disabled rather than
+  // pretending nobody exists.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const rows = await listProfiles(supabase);
+        if (active) { setAllProfiles(rows); setProfilesDurum("ready"); }
+      } catch {
+        if (active) { setAllProfiles([]); setProfilesDurum("error"); }
       }
     })();
     return () => { active = false; };
@@ -320,7 +340,7 @@ export default function GorevlerPage() {
   useEffect(() => {
     if (!selectedTask) return;
     setEditDurum(selectedTask.status);
-    setEditAtananKisi(selectedTask.assigned_to ?? "");
+    setEditAtananKisiId(selectedTask.assigned_to_user_id ?? "");
   }, [selectedTask]);
 
   const firmaOptions = useMemo(
@@ -330,6 +350,11 @@ export default function GorevlerPage() {
         ad: c.name,
       })),
     [allCompanies],
+  );
+
+  const kullaniciOptions = useMemo(
+    () => allProfiles.map((p) => ({ id: p.id, ad: p.display_name })),
+    [allProfiles],
   );
 
   const filterConfig = useMemo<FilterConfig[]>(
@@ -516,12 +541,34 @@ export default function GorevlerPage() {
                   <label className={FORM_LABEL}>
                     Atanan Kişi
                   </label>
-                  <input
-                    type="text"
-                    value={editAtananKisi}
-                    onChange={(e) => setEditAtananKisi(e.target.value)}
+                  <select
+                    value={editAtananKisiId}
+                    onChange={(e) => setEditAtananKisiId(e.target.value)}
+                    disabled={profilesDurum !== "ready" || kullaniciOptions.length === 0}
                     className={INPUT_BASE}
-                  />
+                  >
+                    <option value="">
+                      {profilesDurum === "loading"
+                        ? "Kullanıcılar yükleniyor…"
+                        : profilesDurum === "error"
+                          ? "Kullanıcı listesi yüklenemedi"
+                          : kullaniciOptions.length === 0
+                            ? "Atanabilecek kullanıcı yok"
+                            : "Atanmadı"}
+                    </option>
+                    {kullaniciOptions.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.ad}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Legacy rows carry only a typed name; show it so the
+                      current value is visible until someone re-assigns. */}
+                  {!editAtananKisiId && selectedTask?.assigned_to && (
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>
+                      Kayıtlı (eski): {selectedTask.assigned_to}
+                    </p>
+                  )}
                 </div>
               )}
               {panelError && (
@@ -536,10 +583,12 @@ export default function GorevlerPage() {
                   setSaving(true);
                   setPanelError(null);
                   try {
+                    // Send the id only — the service derives the display name
+                    // from profiles and clears both columns on "" (unassign).
                     await updateTask(supabase, selectedTask.id, {
                       status: editDurum,
                       ...(role !== "ik"
-                        ? { assignedTo: editAtananKisi.trim() || undefined }
+                        ? { assignedToUserId: editAtananKisiId || null }
                         : {}),
                     });
                     setSelectedId(null);
@@ -570,8 +619,10 @@ export default function GorevlerPage() {
         open={newOpen}
         onClose={() => setNewOpen(false)}
         firmalar={firmaOptions}
+        kullanicilar={kullaniciOptions}
+        kullanicilarDurum={profilesDurum}
         allowAssignee={role !== "ik"}
-        onSubmit={async ({ baslik, firmaId, kaynak, kaynakRef, atananKisi, termin, oncelik }) => {
+        onSubmit={async ({ baslik, firmaId, kaynak, kaynakRef, atananKisiId, termin, oncelik }) => {
           // No try/catch here: errors must bubble so NewTaskModal renders
           // its inline submitError (matches every sibling page). The old
           // console.error swallow closed the modal as if the create
@@ -579,7 +630,8 @@ export default function GorevlerPage() {
           const input: TaskCreateInput = {
             legacyCompanyId: firmaId,
             title: baslik,
-            assignedTo: role === "ik" ? undefined : atananKisi.trim() || undefined,
+            // id only — the service resolves the display name server-side.
+            assignedToUserId: role === "ik" ? undefined : atananKisiId,
             dueDate: termin || undefined,
             sourceType: kaynak,
             sourceRef: kaynakRef,

@@ -554,7 +554,14 @@ export interface Database {
           contract_id: string | null;
           appointment_id: string | null;
           title: string;
+          // Display denormalization (free text, legacy). NEVER key
+          // authorization on this — see assigned_to_user_id.
           assigned_to: string | null;
+          // Assignee identity (profiles.id). No policy reads it yet — the
+          // ownership branch arrives with the role/RLS rewrite; FUTURE
+          // authorization will key on this, never on the free-text
+          // assigned_to. Mirrors migration 20260722000100.
+          assigned_to_user_id: string | null;
           due_date: string | null;
           source_type: TaskSourceType;
           source_ref: string | null;
@@ -571,6 +578,7 @@ export interface Database {
           appointment_id?: string | null;
           title: string;
           assigned_to?: string | null;
+          assigned_to_user_id?: string | null;
           due_date?: string | null;
           source_type?: TaskSourceType;
           source_ref?: string | null;
@@ -587,6 +595,7 @@ export interface Database {
           appointment_id?: string | null;
           title?: string;
           assigned_to?: string | null;
+          assigned_to_user_id?: string | null;
           due_date?: string | null;
           source_type?: TaskSourceType;
           source_ref?: string | null;
@@ -601,6 +610,7 @@ export interface Database {
           { foreignKeyName: "tasks_contract_id_fkey"; columns: ["contract_id"]; referencedRelation: "contracts"; referencedColumns: ["id"] },
           { foreignKeyName: "tasks_appointment_id_fkey"; columns: ["appointment_id"]; referencedRelation: "appointments"; referencedColumns: ["id"] },
           { foreignKeyName: "tasks_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "tasks_assigned_to_user_id_fkey"; columns: ["assigned_to_user_id"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
       // ---------------------------------------------------------------------

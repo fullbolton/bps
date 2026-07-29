@@ -47,6 +47,7 @@ import {
   updateTask as updateTaskRaw,
 } from "@/lib/supabase/tasks";
 import { requireCompanyByLegacyMockId } from "@/lib/services/companies";
+import { selectProfileById } from "@/lib/supabase/profiles";
 
 type Client = SupabaseClient<Database>;
 
@@ -107,7 +108,14 @@ const REASSIGN_BLOCKED_ROLES: ReadonlySet<UserRole> = new Set([
 export interface TaskCreateInput {
   legacyCompanyId: string;
   title: string;
-  assignedTo?: string;
+  /**
+   * Assignee identity (profiles.id), or null to leave unassigned. This is the
+   * ONLY assignee input: the display name is resolved from profiles server-side
+   * (see resolveAssignee). There is deliberately no name field — a caller that
+   * could supply one could write an arbitrary name into every task list, and
+   * these inputs are reachable through a server action.
+   */
+  assignedToUserId?: string | null;
   dueDate?: string;
   sourceType?: string;
   sourceRef?: string;
@@ -118,7 +126,9 @@ export interface TaskCreateInput {
 
 export interface TaskUpdateInput {
   title?: string;
-  assignedTo?: string;
+  /** Assignee identity (profiles.id), or null to unassign. Sole assignee input
+   *  — the display name is derived server-side; see TaskCreateInput. */
+  assignedToUserId?: string | null;
   dueDate?: string;
   priority?: string;
   status?: string;
@@ -136,10 +146,58 @@ function ensureTitle(raw: string): string {
   return trimmed;
 }
 
-function nullableTrim(value: string | undefined): string | null {
+// Accepts null as well as undefined: an explicit null means "unassign", and
+// the body already collapsed both to null — only the signature was narrower.
+function nullableTrim(value: string | undefined | null): string | null {
   if (value === undefined || value === null) return null;
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+const UUID_SHAPE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolve the assignee PAIR (identity + display name) from a user id.
+ *
+ * The display name is read from `profiles` here rather than taken from the
+ * caller: a client that sent a mismatched (id, name) pair would otherwise
+ * have the wrong name rendered in every task list. The id is the truth; the
+ * name is derived from it.
+ *
+ * Returns both as null for an explicit unassign, so callers that go through
+ * this service cannot leave the identity cleared while a stale name lingers on
+ * screen. That is an APPLICATION-level guarantee only — see the scope note in
+ * `updateTask`: the tasks RLS UPDATE policy is broad, so a direct PostgREST
+ * write can still set the two columns independently until the STEP 3 rewrite
+ * constrains it.
+ *
+ * NOTE — tenant scope: `profiles` carries no tenant_id today, so this cannot
+ * yet verify that the assignee belongs to the caller's tenant. Same gap as the
+ * child-table RLS work; closing it belongs to the role/RLS rewrite, which must
+ * add tenant membership to profiles and constrain assignment accordingly.
+ */
+async function resolveAssignee(
+  client: Client,
+  userId: string | null | undefined,
+): Promise<{ id: string | null; name: string | null }> {
+  const id = nullableTrim(userId);
+  if (!id) return { id: null, name: null };
+
+  // Shape-check before querying: a malformed id would otherwise reach
+  // `.eq("id", …)` and surface Postgres 22P02 (invalid uuid syntax) instead of
+  // the domain error the UI knows how to show.
+  if (!UUID_SHAPE.test(id)) {
+    throw new TaskValidationError("Atanan kullanıcı kimliği geçersiz.");
+  }
+
+  const profile = await selectProfileById(client, id);
+  if (!profile) {
+    throw new TaskValidationError(
+      "Atanan kullanıcı bulunamadı. Listeyi yenileyip tekrar deneyin.",
+    );
+  }
+  return { id: profile.id, name: profile.display_name };
 }
 
 /**
@@ -241,6 +299,9 @@ export async function createTask(
 
   const title = ensureTitle(input.title);
 
+  // The id is the sole assignee input; both columns are derived from it.
+  const assignee = await resolveAssignee(client, input.assignedToUserId);
+
   const {
     data: { user },
   } = await client.auth.getUser();
@@ -248,7 +309,8 @@ export async function createTask(
   const payload: TaskInsert = {
     company_id: company.id,
     title,
-    assigned_to: nullableTrim(input.assignedTo),
+    assigned_to: assignee.name,
+    assigned_to_user_id: assignee.id,
     due_date: nullableTrim(input.dueDate),
     source_type: (input.sourceType as TaskSourceType) ?? "manuel",
     source_ref: nullableTrim(input.sourceRef),
@@ -288,9 +350,9 @@ export async function updateTaskStatus(
  * status against the whitelist when included.
  *
  * IMPORTANT per ROLE_MATRIX: ik and goruntuleyici can create tasks and
- * change status but CANNOT reassign (change assigned_to). If the
- * caller's role is in the blocked set and the input includes an
- * assignedTo change, this function throws `TaskReassignPermissionError`.
+ * change status but CANNOT reassign. If the caller's role is in the
+ * blocked set and the input includes an `assignedToUserId` change, this
+ * function throws `TaskReassignPermissionError`.
  * This is the service-layer gate; RLS allows the broader UPDATE.
  */
 export async function updateTask(
@@ -298,12 +360,14 @@ export async function updateTask(
   taskId: string,
   input: TaskUpdateInput,
 ): Promise<TaskRow> {
-  // Gate: if assignedTo is being changed, check the caller's role.
+  // Gate: if the assignee is being changed, check the caller's role.
   // Fail closed: an unresolved role (profiles read failure / missing
   // row) must NOT skip the block — the tasks RLS UPDATE policy is
   // deliberately broader, so this service gate is the only enforcement
   // of the ROLE_MATRIX reassign rule.
-  if (input.assignedTo !== undefined) {
+  // `assignedToUserId` is now the only way to change the assignee, so gating
+  // on it covers every reassignment path.
+  if (input.assignedToUserId !== undefined) {
     const role = await getCurrentUserRole(client);
     if (role === null || REASSIGN_BLOCKED_ROLES.has(role)) {
       throw new TaskReassignPermissionError();
@@ -315,8 +379,22 @@ export async function updateTask(
   if (input.title !== undefined) {
     patch.title = ensureTitle(input.title);
   }
-  if (input.assignedTo !== undefined) {
-    patch.assigned_to = nullableTrim(input.assignedTo);
+  // An assignee id (including an explicit null) rewrites BOTH columns
+  // together. There is no name-only path: patching them independently is what
+  // let an unassign clear the identity while the stale name stayed on screen,
+  // and it would also let a caller point the name at someone other than the
+  // person the task is actually assigned to.
+  //
+  // SCOPE OF THIS GUARANTEE: it holds for the application paths, which all go
+  // through this service. It is NOT a database boundary — the tasks RLS UPDATE
+  // policy is deliberately broad, so a direct PostgREST write can still set
+  // assigned_to alone. Closing that belongs to the STEP 3 RLS rewrite, which
+  // must constrain direct task writes before anything relies on
+  // assigned_to_user_id as an ownership signal.
+  if (input.assignedToUserId !== undefined) {
+    const assignee = await resolveAssignee(client, input.assignedToUserId);
+    patch.assigned_to_user_id = assignee.id;
+    patch.assigned_to = assignee.name;
   }
   if (input.dueDate !== undefined) {
     patch.due_date = nullableTrim(input.dueDate);
