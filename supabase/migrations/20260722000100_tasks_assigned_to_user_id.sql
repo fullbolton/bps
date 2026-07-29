@@ -34,10 +34,13 @@
 --    narrower blast radius, not a reason to skip the gate.
 --    Correct order: apply this migration → verify the column exists → deploy.
 --
--- ⚠⚠ SECOND DEPLOY GATE — TENANT TOPOLOGY. The assignee picker cannot be
---    tenant-scoped (profiles has no tenant_id), so on a multi-tenant deployment
---    it would allow a cross-tenant assignee. Both gates — this one and the
---    apply-before-deploy order above — must be RUN AND RECORDED in
+-- ⚠⚠ TENANT TOPOLOGY GATE. The assignee picker cannot be tenant-scoped
+--    (profiles has no tenant_id), so on a multi-tenant deployment it would
+--    allow a cross-tenant assignee. This is recorded as two gates, not one:
+--    the tenant count (G1) and a human attestation that every profiles row is
+--    this organisation's own staff (G3) — G1 counts `companies` and cannot
+--    prove anything about `profiles`. With the apply-before-deploy order above
+--    (G2) that makes three, and all three must be RUN AND RECORDED in
 --    `supabase/manual/README.md` (§PRE-DEPLOY GATES) before shipping. A gate
 --    that lives only as a comment here is not enforcement: this file is applied
 --    at one moment and the deploy decision is made at another.

@@ -62,9 +62,10 @@
 --
 -- Should no longer have access:
 --     -- (a) ban the auth user first (docs/runbooks/user-offboarding.md).
---     --     The ban is what actually cuts access — no change to profiles.role
---     --     closes an account, because every value in the CHECK still carries
---     --     rights. Then
+--     --     The ban is what actually cuts access. There is no durable
+--     --     disabled state today, and none of the roles a retired account
+--     --     can be left on or moved to is zero-privilege — so no value
+--     --     written to profiles.role closes an account. Then
 --     -- (b) leave profiles.role AS IS and do not unban until the durable
 --     --     disabled state exists (see below).
 --     -- Do NOT park the row on an active role: a ban is reversible and nothing
