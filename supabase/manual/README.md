@@ -12,6 +12,10 @@ exactly wrong for scripts that:
 
 Run these by hand in the SQL editor, after reading the file's own preconditions.
 
+| File | Run when |
+|---|---|
+| `role_remap_retired.sql` | Step 2 of the role simplification — **after** the role/RLS rewrite ships, so anyone reassigned lands on a role that has policies behind it. It performs no automatic updates; it is a checklist plus a guard. |
+
 ---
 
 ## PRE-DEPLOY GATES
