@@ -14,21 +14,31 @@
 -- `completeAppointment` (src/lib/services/appointments.ts), which is now
 -- hardened (passive-company guard on the task side-effect + idempotency,
 -- commit 9370032). So the safe, minimal closure is to revoke EXECUTE.
--- NOTE: `REVOKE ... FROM PUBLIC` also removes the PUBLIC-inherited EXECUTE for
--- EVERY role — including service_role — because the RPC has no explicit
--- grants. That is fine: the RPC is unused, so nothing (client OR server)
--- breaks. If a server-side caller is ever needed, GRANT EXECUTE to
--- service_role explicitly at that time.
+-- NOTE (corrected 2026-07-29, after applying): an earlier draft of this note
+-- claimed the RPC had no explicit grants, and therefore that revoking from
+-- PUBLIC would strip EXECUTE from every role including service_role. Measured
+-- in prod, that is wrong on both counts: `service_role` and `postgres` hold
+-- DIRECT EXECUTE grants, which a `REVOKE ... FROM PUBLIC, anon, authenticated`
+-- does not touch — and should not. service_role is not rolsuper and inherits
+-- from no other role, so its access comes from that direct grant alone.
+-- Post-apply measurement: anon = false, authenticated = false,
+-- service_role = TRUE. That is exactly the intended end state — outside roles
+-- shut, server side open — so the "grant EXECUTE to service_role later if a
+-- caller appears" step the earlier note described is unnecessary; the grant is
+-- already there.
 --
--- ⚠ WRITTEN BUT NOT APPLIED — review + apply after confirming the current
---    grants in prod (mirrors the access_requests deploy-gate discipline; do
---    NOT run blind DDL). Before applying:
---        select grantee, privilege_type
---          from information_schema.role_routine_grants
---         where routine_schema = 'public'
---           and routine_name = 'complete_appointment_atomic';
---    `PUBLIC` appearing is enough to confirm the exposure (anon/authenticated
---    inherit EXECUTE via PUBLIC). Note any explicit per-role grants too.
+-- ✅ APPLIED 2026-07-29 (prod, SQL Editor) and recorded in the migration
+--    ledger by an explicit-version `migration repair --status applied`.
+--    Pre-apply grants were PUBLIC, anon, authenticated, postgres, service_role.
+--    Note for other environments: anon and authenticated were EXPLICIT
+--    grantees, not merely PUBLIC inheritors — Supabase issues a default
+--    GRANT EXECUTE on public-schema functions to both. Revoking only FROM
+--    PUBLIC would therefore have left them able to call it. This statement
+--    names all three deliberately. Verify with has_function_privilege(), not
+--    the grant listing, since it answers explicit and inherited together:
+--        select has_function_privilege('anon',
+--          'public.complete_appointment_atomic(uuid, text, text, boolean)',
+--          'EXECUTE');
 --
 -- ⚠ RE-ENABLING LATER: if the team decides to adopt this atomic RPC (it has
 --    row-lock + idempotency the service layer implements in app code), do
