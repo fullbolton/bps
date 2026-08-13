@@ -43,7 +43,7 @@ profile, which the old free-text field never created.
 select count(distinct tenant_id) as tenant_count from companies;
 ```
 
-<!-- gate:G1 status=not_run value=none checked_on=none cleared_by=none -->
+<!-- gate:G1 status=cleared value=1 checked_on=2026-08-10 cleared_by=Furkan-Yahsi -->
 
 - **1** → set `status=cleared value=1`. Necessary, but **not sufficient on its
   own** — see G3.
@@ -65,7 +65,7 @@ List the full roster and read every row:
 select email, display_name, role, created_at from profiles order by email;
 ```
 
-<!-- gate:G3 status=not_run value=none checked_on=none cleared_by=none -->
+<!-- gate:G3 status=cleared value=attested checked_on=2026-08-10 cleared_by=Furkan-Yahsi -->
 
 - Every account is **this organisation's own staff**, no external or
   other-tenant user → set `status=cleared value=attested`.
@@ -92,7 +92,7 @@ select column_name from information_schema.columns
    and column_name = 'assigned_to_user_id';
 ```
 
-<!-- gate:G2 status=not_run value=none checked_on=none cleared_by=none -->
+<!-- gate:G2 status=cleared value=assigned_to_user_id checked_on=2026-08-10 cleared_by=Furkan-Yahsi -->
 
 - **one row returned** → set `status=cleared value=assigned_to_user_id`.
 - **no rows** → the migration is not applied. Apply it first; never deploy the
