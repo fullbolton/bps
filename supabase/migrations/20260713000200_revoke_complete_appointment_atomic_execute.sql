@@ -14,7 +14,7 @@
 -- `completeAppointment` (src/lib/services/appointments.ts), which is now
 -- hardened (passive-company guard on the task side-effect + idempotency,
 -- commit 9370032). So the safe, minimal closure is to revoke EXECUTE.
--- NOTE (corrected 2026-07-29, after applying): an earlier draft of this note
+-- NOTE (corrected 2026-08-10, after applying): an earlier draft of this note
 -- claimed the RPC had no explicit grants, and therefore that revoking from
 -- PUBLIC would strip EXECUTE from every role including service_role. Measured
 -- in prod, that is wrong on both counts: `service_role` and `postgres` hold
@@ -27,7 +27,7 @@
 -- caller appears" step the earlier note described is unnecessary; the grant is
 -- already there.
 --
--- ✅ APPLIED 2026-07-29 (prod, SQL Editor) and recorded in the migration
+-- ✅ APPLIED 2026-08-10 (prod, SQL Editor) and recorded in the migration
 --    ledger by an explicit-version `migration repair --status applied`.
 --    Pre-apply grants were PUBLIC, anon, authenticated, postgres, service_role.
 --    Note for other environments: anon and authenticated were EXPLICIT

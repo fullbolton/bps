@@ -23,7 +23,7 @@
 --    (Auth Foundation Phase 2A, 2026-04-05), so the name was unknown when
 --    this file was written and three plural spellings were guessed. All
 --    three were wrong — every DROP was a silent no-op. Confirmed against
---    prod on 2026-07-29: the policy is `anon_insert_access_request`
+--    prod on 2026-08-10: the policy is `anon_insert_access_request`
 --    (singular, and the words in the other order), with_check = true, i.e.
 --    unconditionally open. Re-confirm before applying to any OTHER
 --    environment, where the name may differ again:
@@ -39,7 +39,7 @@
 --   2. REVOKE removes the privilege surface. Privileges are checked before
 --      RLS, so with no grant anon cannot insert whatever policy survives.
 --
--- ⚠ REVOKE ALL, not REVOKE INSERT. The 2026-07-29 prod audit found anon
+-- ⚠ REVOKE ALL, not REVOKE INSERT. The 2026-08-10 prod audit found anon
 --    holding INSERT, SELECT, UPDATE, DELETE, TRUNCATE, TRIGGER and
 --    REFERENCES on this table. SELECT/UPDATE/DELETE are blocked today only
 --    by the ABSENCE of an anon policy — one permissive policy added later
@@ -62,7 +62,7 @@ REVOKE ALL ON public.access_requests FROM anon;
 -- ==========================================================================
 -- PART 2 — yonetici policies: user_metadata → profiles.role
 -- ==========================================================================
--- Confirmed against prod on 2026-07-29, both policies on this table read the
+-- Confirmed against prod on 2026-08-10, both policies on this table read the
 -- role out of the JWT's user_metadata claim:
 --     yonetici_select_access_requests  SELECT  qual
 --     yonetici_update_access_requests  UPDATE  qual + with_check
@@ -81,6 +81,17 @@ REVOKE ALL ON public.access_requests FROM anon;
 -- The authorization DECISION is unchanged: yonetici, and only yonetici. Only
 -- the source changes, mirroring 415d67b, which moved the client off
 -- user_metadata to current_user_role() and left the role conditions alone.
+-- With that client change already shipped, applying this migration takes the
+-- user_metadata authorization dependency to ZERO end to end — RLS here,
+-- AuthContext there. Nothing reads the claim for an access decision anymore;
+-- AuthContext still reads user_metadata for display_name/full_name only,
+-- which is not an authorization read.
+--
+-- Post-apply smoke (2026-08-10, prod): Ayarlar > Erişim Talepleri opens
+-- clean for yonetici — empty state on Bekleyen, 2 rows under Son İşlenenler.
+-- That page reads and updates this table from the BROWSER client, so it is
+-- the surface that actually exercises the rewritten policies; the
+-- /api/access-request POST path does not, since service_role bypasses RLS.
 --
 -- Why current_user_role() is safe inside a policy: it is SECURITY DEFINER
 -- (20260407000200) and therefore reads public.profiles WITHOUT re-entering
