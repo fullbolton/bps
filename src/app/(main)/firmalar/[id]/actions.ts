@@ -48,6 +48,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertCompanyIsActiveForNewOperation } from "@/lib/services/companies";
 import { createContact } from "@/lib/services/contacts";
 import type { ContactCreateInput } from "@/lib/services/contacts";
+import { createNote } from "@/lib/services/notes";
+import type { NoteCreateInput } from "@/lib/services/notes";
 import type { EvrakDurumu } from "@/types/ui";
 import type { DocumentCategory } from "@/lib/document-categories";
 
@@ -766,6 +768,66 @@ export async function createContactAction(
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Yetkili kişi eklenemedi.",
+    };
+  }
+}
+
+export type NoteCreateResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Create a note via a server action.
+ *
+ * Reason this exists: `notes.tenant_id` is NOT NULL with no DEFAULT and the
+ * notes policies scope on it, but the previous browser-context `createNote`
+ * call had no way to obtain a tenant — the value must come from
+ * `current_user_active_tenant()`, which is server-resolved and must never be
+ * read from a client payload. So the call moves here, exactly as the
+ * görev / randevu / talep creates did.
+ *
+ * NO app-level role guard, on purpose: note creation is open to more roles
+ * than contact creation (ROLE_MATRIX §4, "Not ekleme / kendi notunu
+ * düzenleme"), and RLS is already the authority. Adding one here would
+ * narrow behaviour beyond this fix.
+ *
+ * NO passive-company guard either: the 9370032 guard line covers randevu /
+ * görev / talep, and notes were deliberately outside it. This action changes
+ * where the tenant comes from, nothing else.
+ *
+ * Update and delete note paths are unchanged — create only. service_role is
+ * never used.
+ */
+export async function createNoteAction(
+  companyId: string,
+  input: NoteCreateInput,
+): Promise<NoteCreateResult> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
+  }
+
+  if (!companyId || typeof companyId !== "string") {
+    return { ok: false, error: "Firma kimliği geçersiz." };
+  }
+
+  const { data: tenantId, error: tenantError } = await supabase.rpc(
+    "current_user_active_tenant",
+  );
+  if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
+    return { ok: false, error: "Aktif kiracı çözümlenemedi." };
+  }
+
+  try {
+    await createNote(supabase, companyId, input, { tenantId });
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Not eklenemedi.",
     };
   }
 }

@@ -389,6 +389,7 @@ export interface Database {
       notes: {
         Row: {
           id: string;
+          tenant_id: string;
           company_id: string;
           author_id: string | null;
           author_name: string;
@@ -400,6 +401,13 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // REQUIRED — production has NOT NULL on this column and the notes
+          // policies scope on it. Same reasoning as contracts/documents
+          // above: optional typing is how a create path ships without it and
+          // fails only at runtime. Always server-resolved via
+          // current_user_active_tenant() — never read from a client payload.
+          // (Update keeps it optional.)
+          tenant_id: string;
           company_id: string;
           author_id?: string | null;
           author_name: string;
@@ -411,6 +419,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          tenant_id?: string;
           company_id?: string;
           author_id?: string | null;
           author_name?: string;
@@ -441,6 +450,7 @@ export interface Database {
       staffing_demands: {
         Row: {
           id: string;
+          tenant_id: string;
           company_id: string;
           position: string;
           requested_count: number;
@@ -456,6 +466,10 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // REQUIRED — see the contracts Insert note above. Production has
+          // NOT NULL here with no DEFAULT, so an insert without it is
+          // rejected by RLS before the NOT NULL is even reached.
+          tenant_id: string;
           company_id: string;
           position: string;
           requested_count?: number;
@@ -471,6 +485,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          tenant_id?: string;
           company_id?: string;
           position?: string;
           requested_count?: number;
@@ -495,6 +510,7 @@ export interface Database {
       appointments: {
         Row: {
           id: string;
+          tenant_id: string;
           company_id: string;
           contract_id: string | null;
           meeting_date: string;
@@ -510,6 +526,10 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // REQUIRED — see the contracts Insert note above. Production has
+          // NOT NULL here with no DEFAULT, so an insert without it is
+          // rejected by RLS before the NOT NULL is even reached.
+          tenant_id: string;
           company_id: string;
           contract_id?: string | null;
           meeting_date: string;
@@ -525,6 +545,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          tenant_id?: string;
           company_id?: string;
           contract_id?: string | null;
           meeting_date?: string;
@@ -550,6 +571,7 @@ export interface Database {
       tasks: {
         Row: {
           id: string;
+          tenant_id: string;
           company_id: string;
           contract_id: string | null;
           appointment_id: string | null;
@@ -573,6 +595,12 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // REQUIRED — see the contracts Insert note above. Production
+          // `tasks_insert` checks `tenant_id = current_user_active_tenant()`,
+          // so an insert without it is rejected outright: this is exactly
+          // how görev creation shipped broken and stayed unnoticed while
+          // the table was empty.
+          tenant_id: string;
           company_id: string;
           contract_id?: string | null;
           appointment_id?: string | null;
@@ -590,6 +618,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          tenant_id?: string;
           company_id?: string;
           contract_id?: string | null;
           appointment_id?: string | null;
@@ -730,6 +759,7 @@ export interface Database {
       critical_dates: {
         Row: {
           id: string;
+          tenant_id: string;
           title: string;
           date_type: CriticalDateType;
           deadline_date: string;
@@ -742,6 +772,10 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          // REQUIRED — see the contracts Insert note above. Production
+          // `critical_dates_insert` carries a tenant condition and the column
+          // is NOT NULL with no DEFAULT.
+          tenant_id: string;
           title: string;
           date_type?: CriticalDateType;
           deadline_date: string;
@@ -754,6 +788,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          tenant_id?: string;
           title?: string;
           date_type?: CriticalDateType;
           deadline_date?: string;

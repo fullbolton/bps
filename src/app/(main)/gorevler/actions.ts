@@ -69,7 +69,7 @@ export async function createTaskAction(
     if (!activeCheck.ok) {
       return activeCheck;
     }
-    await createTask(supabase, input);
+    await createTask(supabase, input, { tenantId });
     return { ok: true };
   } catch (err) {
     return {

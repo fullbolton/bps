@@ -65,6 +65,7 @@ import {
   passivateCompanyAction,
   reactivateCompanyAction,
   createContactAction,
+  createNoteAction,
 } from "./actions";
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
@@ -75,7 +76,6 @@ import {
 } from "@/lib/services/contacts";
 import {
   listNotesByLegacyCompanyId,
-  createNote,
   updateNoteContent,
   pinNote,
   unpinNote,
@@ -1696,10 +1696,16 @@ export default function FirmaDetayPage({
               tag: etiket,
             });
           } else {
-            await createNote(supabase, id, {
+            // Server action: notes.tenant_id must be resolved server-side
+            // via current_user_active_tenant(), which the browser client
+            // cannot do. Same shape as createContactAction below.
+            const result = await createNoteAction(id, {
               content: icerik,
               tag: etiket,
             });
+            if (!result.ok) {
+              throw new Error(result.error);
+            }
           }
           setNotEditTarget(null);
           await reloadNotlar();

@@ -67,7 +67,7 @@ export async function createDemandAction(
     if (!activeCheck.ok) {
       return activeCheck;
     }
-    await createDemand(supabase, input);
+    await createDemand(supabase, input, { tenantId });
     return { ok: true };
   } catch (err) {
     return {

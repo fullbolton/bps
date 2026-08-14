@@ -180,6 +180,7 @@ export async function createNote(
   client: Client,
   legacyMockId: string,
   input: NoteCreateInput,
+  options: { tenantId: string },
 ): Promise<NoteRow> {
   const company = await requireCompanyByLegacyMockId(client, legacyMockId);
   const author = await requireCurrentAuthor(client);
@@ -188,6 +189,7 @@ export async function createNote(
   const tag = normalizeNoteTag(input.tag ?? null);
 
   const payload: NoteInsert = {
+    tenant_id: options.tenantId,
     company_id: company.id,
     author_id: author.id,
     author_name: author.displayName,

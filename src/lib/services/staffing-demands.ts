@@ -183,6 +183,7 @@ function ensureCountPair(requested: number, provided: number): void {
 export async function createDemand(
   client: Client,
   input: DemandCreateInput,
+  options: { tenantId: string },
 ): Promise<StaffingDemandRow> {
   const company = await requireCompanyByLegacyMockId(
     client,
@@ -203,6 +204,7 @@ export async function createDemand(
   } = await client.auth.getUser();
 
   const payload: StaffingDemandInsert = {
+    tenant_id: options.tenantId,
     company_id: company.id,
     position,
     requested_count: requestedCount,

@@ -73,7 +73,7 @@ export async function createAppointmentAction(
     if (!activeCheck.ok) {
       return activeCheck;
     }
-    await createAppointment(supabase, input);
+    await createAppointment(supabase, input, { tenantId });
     return { ok: true };
   } catch (err) {
     return {

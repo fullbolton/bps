@@ -287,10 +287,16 @@ export async function listTasksByAppointmentId(
  *   - Defaults status to "acik", priority to "normal", source_type to
  *     "manuel" when omitted.
  *   - Stamps created_by from the auth session.
+ *   - `options.tenantId` is REQUIRED: production `tasks_insert` checks
+ *     `tenant_id = current_user_active_tenant()`, so an insert without it
+ *     is rejected by RLS. The value must be server-resolved
+ *     (`current_user_active_tenant()`); the server action is the
+ *     chokepoint — never read it from the client. Mirrors createContract.
  */
 export async function createTask(
   client: Client,
   input: TaskCreateInput,
+  options: { tenantId: string },
 ): Promise<TaskRow> {
   const company = await requireCompanyByLegacyMockId(
     client,
@@ -307,6 +313,7 @@ export async function createTask(
   } = await client.auth.getUser();
 
   const payload: TaskInsert = {
+    tenant_id: options.tenantId,
     company_id: company.id,
     title,
     assigned_to: assignee.name,

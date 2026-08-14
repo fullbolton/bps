@@ -128,6 +128,7 @@ export async function getCriticalDateById(
 export async function createCriticalDate(
   client: Client,
   input: CriticalDateCreateInput,
+  options: { tenantId: string },
 ): Promise<CriticalDateRow> {
   const title = ensureNonBlank(input.title, "Baslik");
   const deadlineDate = ensureNonBlank(input.deadlineDate, "Son tarih");
@@ -137,6 +138,7 @@ export async function createCriticalDate(
   } = await client.auth.getUser();
 
   const payload: CriticalDateInsert = {
+    tenant_id: options.tenantId,
     title,
     date_type: input.dateType ?? "diger",
     deadline_date: deadlineDate,

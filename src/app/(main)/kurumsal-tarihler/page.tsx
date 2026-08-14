@@ -18,9 +18,9 @@ import { useRole } from "@/context/RoleContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   listAllCriticalDates,
-  createCriticalDate,
   updateCriticalDateRecord,
 } from "@/lib/services/critical-dates";
+import { createCriticalDateAction } from "./actions";
 import {
   CRITICAL_DATE_TYPE_LABELS,
   CRITICAL_DATE_PRIORITY_LABELS,
@@ -135,7 +135,10 @@ export default function KurumsalTarihlerPage() {
           note: formNot.trim() || undefined,
         });
       } else {
-        await createCriticalDate(supabase, {
+        // Server action: critical_dates.tenant_id must be resolved
+        // server-side via current_user_active_tenant(), which the browser
+        // client cannot do.
+        const result = await createCriticalDateAction({
           title: formBaslik.trim(),
           dateType: formTur as CriticalDateType,
           deadlineDate: formBitis,
@@ -143,6 +146,9 @@ export default function KurumsalTarihlerPage() {
           responsible: formSorumlu.trim() || undefined,
           note: formNot.trim() || undefined,
         });
+        if (!result.ok) {
+          throw new Error(result.error);
+        }
       }
       setModalOpen(false);
       await reload();

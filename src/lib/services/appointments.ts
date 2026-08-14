@@ -203,6 +203,7 @@ export async function listAppointmentsByContractId(
 export async function createAppointment(
   client: Client,
   input: AppointmentCreateInput,
+  options: { tenantId: string },
 ): Promise<AppointmentRow> {
   const company = await requireCompanyByLegacyMockId(
     client,
@@ -216,6 +217,7 @@ export async function createAppointment(
   } = await client.auth.getUser();
 
   const payload: AppointmentInsert = {
+    tenant_id: options.tenantId,
     company_id: company.id,
     contract_id: nullableTrim(input.contractId),
     meeting_date: meetingDate,
@@ -323,6 +325,8 @@ export async function completeAppointment(
       } = await client.auth.getUser();
 
       const taskPayload: TaskInsert = {
+        // Same tenant the passive-company guard above was checked against.
+        tenant_id: options.tenantId,
         company_id: existing.company_id,
         title: nextAction,
         source_type: "randevu",
