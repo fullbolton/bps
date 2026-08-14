@@ -413,6 +413,42 @@ Binding clarifications preserved in this batch:
 
 ---
 
+## Smoke Bulguları — Açık Kalemler (2026-08-10)
+
+Tenant düzeltme batch'inin (`074e859`) production smoke turunda çıktı. Beş create
+yolu 5/5 PASS; aşağıdakiler o turun **yan** bulguları, arıza değil eksik.
+
+### a) Görevler ekranında silme kontrolü yok — ürün eksiği
+
+`tasks_delete` policy'si DB'de var, UI karşılığı yok: ne buton, ne satır menüsü.
+Kullanıcı oluşturduğu bir görevi arayüzden kaldıramıyor.
+
+İki sonucu var. Birincisi ürün: sahipsiz iş yasağı olan bir üründe yanlış açılmış
+bir görevin kapatılamaması gerçek bir boşluk. İkincisi operasyonel: smoke
+turlarının cleanup'ı arayüzden yapılamıyor, elle SQL'e mecbur kalıyor.
+
+Smoke artıkları (`BPS_SMOKE_*`) bilerek silinmedi — SQL'le silinselerdi bu bulgunun
+kanıtı da kaybolurdu. **Silme UI'ı yazıldığında cleanup, o özelliğin kendi smoke'u
+olur.**
+
+### b) Not oluşturma sonrası liste tazelenmiyor — UX
+
+Not kaydediliyor (DB'de satır var, tenant doğru), ama listeye düşmüyor ve form
+açık kalıyor. Kullanıcı kaydın gittiğini sanıp tekrar deneyebilir. Veri kaybı yok.
+
+İlk şüpheli `router.refresh()` eksikliği. Bu yol bu batch'te tarayıcıdan server
+action'a taşındı, yani davranış değişikliği taşımanın yan etkisi olabilir —
+düzeltmeden önce doğrulanmalı, körlemesine `refresh()` eklenmemeli.
+
+### c) `tasks=2` sürprizi — açık değil, test artefaktı (KAPANDI)
+
+Smoke sırasında beklenmedik ikinci görev satırı görüldü. Çift submit sanıldı,
+idempotency açığı şüphesi doğdu. Çözüldü: iki kayıt arasında 36 dakika var — MCP
+"timeout" döndürmüş ama çağrı aslında çalışmıştı. Ürün açığı yok, kayıt burada
+sadece aynı şüphenin tekrar doğmaması için duruyor.
+
+---
+
 ## Later Planning Notes
 These items capture Partner Staff / BPS-specific post-roadmap workstreams and future planning notes.
 They do not change the historical numbered roadmap order.

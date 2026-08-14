@@ -1,6 +1,7 @@
 {
   "_note": "BPS QA Mini Harness V1 — canonical state baseline. This is NOT a hardcoded FAIL oracle. No harness script reads this; a human runs qa/state.sql in the Supabase SQL editor and diffs the output against these values. After any intentional seed/import/cleanup, UPDATE this file to match the new truth.",
-  "_asOf": "2026-06-04 (post passive-guard + lifecycle work)",
+  "_asOf": "2026-08-10 (post 074e859 tenant fix + production smoke, 5/5 PASS)",
+  "_smokeResidue": "tasks / notes / critical_dates / appointments carry BPS_SMOKE_* rows from the 2026-08-10 smoke run. They were NOT cleaned up, deliberately: the Görevler screen has no delete control (TASK_ROADMAP → Smoke Bulguları (a)), and removing the rows with hand-written SQL would have destroyed the evidence for that finding. Every mutation in that run went through a migration or an app path; none went through ad-hoc SQL. These counts are therefore the CORRECT expected state — do not read them as drift, and do not 'fix' them by deleting rows. When the delete UI ships, its own smoke becomes the cleanup, and these numbers drop back.",
   "companies": {
     "total": 2,
     "byStatus": {
@@ -22,12 +23,39 @@
   "documents": {
     "total": 0
   },
+  "tasks": {
+    "total": 3,
+    "_note": "1 manual smoke görev + 1 repeat (see below) + 1 handoff görev written by completeAppointment with source_type='randevu'. The repeat was NOT a double submit or an idempotency gap: the two rows are 36 minutes apart, from a call the MCP client reported as a timeout but which had in fact succeeded. Recorded so the same suspicion is not re-opened."
+  },
+  "appointments": {
+    "total": 1,
+    "_note": "smoke randevu, completed during the handoff check (status=tamamlandi)"
+  },
+  "notes": {
+    "total": 1
+  },
+  "staffing_demands": {
+    "total": 1,
+    "_note": "pre-existing row, tenant-stamped — seed or import origin. The talep create path was NOT smoke-tested: it is byte-for-byte the same shape as görev/randevu (one options argument), both of which passed."
+  },
+  "critical_dates": {
+    "total": 1
+  },
+  "access_requests": {
+    "total": 2,
+    "_note": "Reddet Test (reddedildi) + Test Kullanıcı (onaylandı). Preserved through the 20260713000100 policy rewrite and used as its post-apply evidence."
+  },
+  "tenantIntegrity": {
+    "nullTenantRows": 0,
+    "_note": "MUST be 0 on every tenant-scoped table (qa/state.sql §4c). A non-zero count is a FAIL, not a warning: it means a write path reached a table without a tenant — the defect class 074e859 closed. Production INSERT policies check tenant_id = current_user_active_tenant(), so a null here also implies something bypassed RLS."
+  },
   "mustBeAbsent": [
     "BPS_NEG_*   (companies / contacts / contracts)",
     "BPS_SMOKE_CONTACT*  (contacts)",
     "BPS_SMOKE_CONTRACT*  (contracts)"
   ],
   "knownWarnings": [
-    "~491KB object in the `documents` storage bucket has no documents row (DB-unlinked orphan). WARN, not FAIL — pre-existing, out of V1 cleanup scope."
+    "~491KB object in the `documents` storage bucket has no documents row (DB-unlinked orphan). WARN, not FAIL — pre-existing, out of V1 cleanup scope.",
+    "Note creation does not refresh the list and leaves the modal open; the row IS written. UX defect, no data loss — TASK_ROADMAP → Smoke Bulguları (b)."
   ]
 }

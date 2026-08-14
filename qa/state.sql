@@ -32,6 +32,45 @@ order by 1;
 -- 4. Documents — count
 select 'documents_total' as metric, count(*)::text as value from documents;
 
+-- 4b. Operational tables — counts.
+--     Added 2026-08-10. These were absent while the tables were empty, which
+--     is exactly why a whole class of tenant defects went unseen: nothing in
+--     the baseline would have moved when görev/randevu/talep/not creation was
+--     rejected. They are measured now.
+select 'tasks_total'             as metric, count(*)::text as value from tasks
+union all
+select 'appointments_total',     count(*)::text from appointments
+union all
+select 'notes_total',            count(*)::text from notes
+union all
+select 'staffing_demands_total', count(*)::text from staffing_demands
+union all
+select 'critical_dates_total',   count(*)::text from critical_dates
+union all
+select 'access_requests_total',  count(*)::text from access_requests
+order by 1;
+
+-- 4c. Tenant integrity — every tenant-scoped table must have ZERO null
+--     tenant_id rows. A non-zero count here is a FAIL, not a warning: it
+--     means a write path reached the table without a tenant, which is the
+--     defect class closed by 074e859.
+select 'null_tenant:tasks'            as check, count(*)::text as value from tasks            where tenant_id is null
+union all
+select 'null_tenant:appointments',     count(*)::text from appointments     where tenant_id is null
+union all
+select 'null_tenant:notes',            count(*)::text from notes            where tenant_id is null
+union all
+select 'null_tenant:staffing_demands', count(*)::text from staffing_demands where tenant_id is null
+union all
+select 'null_tenant:critical_dates',   count(*)::text from critical_dates   where tenant_id is null
+union all
+select 'null_tenant:contracts',        count(*)::text from contracts        where tenant_id is null
+union all
+select 'null_tenant:documents',        count(*)::text from documents        where tenant_id is null
+union all
+select 'null_tenant:companies',        count(*)::text from companies        where tenant_id is null
+order by 1;
+
 -- 5. Must-be-absent artifacts (expected: ZERO rows from each).
 --    NOTE: BPS_SMOKE_IMPORT_* is a CANONICAL company (pasif) and is NOT an
 --    artifact — it is intentionally excluded from the companies check below.
