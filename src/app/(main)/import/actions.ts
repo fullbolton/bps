@@ -326,11 +326,17 @@ export async function importCompaniesAction(
   //    authenticated user as above) and never sets id / created_at /
   //    updated_at / legacy_mock_id.
   //
-  //    Note: if the `companies` INSERT RLS policy is missing or
-  //    misaligned, the insert returns an error per row. Those errors
-  //    are captured in `result.errors[]` and surfaced in the existing
-  //    import UI. That is the expected state until the
-  //    `companies_insert_yonetici` policy gate lands.
+  //    The DB gate this note used to describe as pending is LIVE:
+  //    measured in production 2026-08-10, `companies_insert_yonetici`
+  //    exists (INSERT, to authenticated, checks role + tenant, no
+  //    partner branch — consistent with ROLE_MATRIX Partner HOLD). The
+  //    policy is NOT in supabase/migrations; it is one of the 43
+  //    tenant-scoped policies that live only as out-of-band production
+  //    DDL, so a from-scratch environment will not have it.
+  //
+  //    Per-row insert errors are still captured in `result.errors[]`
+  //    and surfaced in the import UI — that path stays as the failure
+  //    surface, it is just no longer the expected steady state here.
   return importCompanies(supabase, sanitized, { tenantId });
 }
 
