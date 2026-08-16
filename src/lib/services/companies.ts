@@ -28,7 +28,11 @@ import {
   selectCompanyByLegacyMockId,
   selectCompaniesByLegacyMockIds,
   selectCompaniesByIds,
+  selectCompaniesByExactName,
+  insertCompany,
 } from "@/lib/supabase/companies";
+import type { CompanyInsert } from "@/types/database.types";
+import type { FirmaDurumu, RiskSeviyesi } from "@/types/ui";
 
 type Client = SupabaseClient<Database>;
 
@@ -191,6 +195,96 @@ export async function getCompanyDisplayMapByIds(
 // MUST invoke this BEFORE any side-effecting step so a pasif company
 // cannot produce a row or a storage object.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Writes — inline create (B batch)
+// ---------------------------------------------------------------------------
+
+export type CompanyCreateInput = {
+  name: string;
+  sector?: string;
+  city?: string;
+};
+
+/**
+ * Thrown when the supplied name is blank after trimming. Name is the only
+ * genuinely required field — the production schema leaves sector and city
+ * nullable, so the application must not invent a stricter contract.
+ */
+export class CompanyValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CompanyValidationError";
+  }
+}
+
+/**
+ * Find companies already carrying this exact name, so a caller can warn
+ * before creating a second one.
+ *
+ * Deliberately NOT a uniqueness rule: the database has no unique constraint
+ * on companies.name and two real firms can legitimately share a name. This
+ * is a "did you mean the existing one?" prompt, and blocking on it would
+ * make a legal case impossible to enter.
+ */
+export async function findCompaniesByExactName(
+  client: Client,
+  name: string,
+): Promise<CompanyRow[]> {
+  const trimmed = name.trim();
+  if (!trimmed) return [];
+  return selectCompaniesByExactName(client, trimmed);
+}
+
+/**
+ * Create a company from the inline (randevu / talep) create path.
+ *
+ * Behavior:
+ *   - Trims and requires `name`; `sector` / `city` are optional and become
+ *     NULL when blank.
+ *   - Status is `aday`, NOT the `aktif` default the Excel import uses. A
+ *     firma entered mid-conversation is a prospect, not an active customer,
+ *     and `aday` is already in STATUS_DICTIONARY. It also stays usable
+ *     immediately: the passive-company guard rejects only `pasif`, so the
+ *     new firma can receive the randevu or talep being created alongside it.
+ *   - `risk` defaults to `dusuk`, matching the import path.
+ *   - `created_by` comes from the session; id / created_at / updated_at /
+ *     legacy_mock_id are never written.
+ *   - `options.tenantId` is REQUIRED and must be server-resolved via
+ *     `current_user_active_tenant()`. Production `companies.tenant_id` is
+ *     NOT NULL and `companies_insert_yonetici` checks it, so an insert
+ *     without it fails. Never read it from a client payload.
+ *
+ * No role check here — the server action holds the yonetici gate and RLS
+ * enforces the same boundary. Duplicate-name detection is the CALLER's
+ * business (see findCompaniesByExactName); this function writes.
+ */
+export async function createCompany(
+  client: Client,
+  input: CompanyCreateInput,
+  options: { tenantId: string },
+): Promise<CompanyRow> {
+  const name = input.name?.trim() ?? "";
+  if (!name) {
+    throw new CompanyValidationError("Firma adı zorunludur.");
+  }
+
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+
+  const payload: CompanyInsert = {
+    tenant_id: options.tenantId,
+    name,
+    sector: input.sector?.trim() || null,
+    city: input.city?.trim() || null,
+    status: "aday" as FirmaDurumu,
+    risk: "dusuk" as RiskSeviyesi,
+    created_by: user?.id ?? null,
+  };
+
+  return insertCompany(client, payload);
+}
+
 export async function assertCompanyIsActiveForNewOperation(
   client: Client,
   companyId: string,

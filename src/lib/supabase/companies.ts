@@ -23,7 +23,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, CompanyRow } from "@/types/database.types";
+import type { Database, CompanyRow, CompanyInsert } from "@/types/database.types";
 
 type Client = SupabaseClient<Database>;
 
@@ -121,6 +121,55 @@ export async function selectAllCompanies(
     throw new Error(`companies select-all failed: ${error.message}`);
   }
   return data ?? [];
+}
+
+/**
+ * Read companies whose name matches `name` case-insensitively, within the
+ * caller's visible set. Used by the inline-create path to warn about a
+ * probable duplicate before writing — never to block.
+ *
+ * Exact match, not fuzzy: this exists to catch "the firma is already in the
+ * list and you did not notice", not to guess at near-misses.
+ */
+export async function selectCompaniesByExactName(
+  client: Client,
+  name: string,
+): Promise<CompanyRow[]> {
+  const { data, error } = await client
+    .from("companies")
+    .select("*")
+    .ilike("name", name);
+
+  if (error) {
+    throw new Error(`companies select-by-name failed: ${error.message}`);
+  }
+  return data ?? [];
+}
+
+/**
+ * Insert one company row and return it.
+ *
+ * Raw CRUD: the caller supplies the whole payload, including the
+ * server-resolved `tenant_id`. No defaulting and no role check here — the
+ * service layer owns those, RLS (`companies_insert_yonetici`) is the
+ * database boundary.
+ */
+export async function insertCompany(
+  client: Client,
+  payload: CompanyInsert,
+): Promise<CompanyRow> {
+  const { data, error } = await client
+    .from("companies")
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error || !data) {
+    throw new Error(
+      `companies insert failed: ${error?.message ?? "no row returned"}`,
+    );
+  }
+  return data;
 }
 
 export async function selectCompaniesByIds(
