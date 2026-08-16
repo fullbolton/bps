@@ -449,6 +449,81 @@ sadece aynı şüphenin tekrar doğmaması için duruyor.
 
 ---
 
+## Tenant Schema-as-Code Turu — Ertelenen Kalemler (2026-08-10)
+
+Faz 1 envanteri ve Faz 2 taslakları sırasında çıktı. Hiçbiri o turun kapsamı
+değildi; hepsi bilinçli olarak ertelendi ve burada duruyor ki oturumlar
+arasında kaybolmasın.
+
+### d) `financial_summaries` parasal alanları `text` — ertelenmiş tasarım borcu
+
+Tabloda `open_receivable`, `unbilled_amount`, `total_open_receivable`,
+`invoiced_this_month`, `total_unbilled`, `total_overdue`, `salary_costs`,
+`fixed_costs` — sekizi de **`text`**, `numeric` değil.
+
+`text` para toplama, karşılaştırma ve yuvarlamada sessiz hata üretir:
+`'1000' > '999'` string karşılaştırmasında **false** döner, sıralama sözlük
+sırasına göre yapılır, toplama için her seferinde cast gerekir ve bozuk bir
+değer ancak cast anında patlar.
+
+**Faz 2 bunu `text` olarak kaydedecek** — ilkesi "prod'u olduğu gibi yaz",
+düzeltmek değil. Ama kaydetmek onaylamak değildir; bu not tam da Faz 2'nin
+borcu meşrulaştırmaması için var. `numeric`'e taşımak ayrı bir karar,
+ayrı bir migration ve veri dönüşümü konusu.
+
+### e) `updated_at` garantisi iki tabloda uygulama katmanında
+
+`documents` ve `critical_dates` `updated_at` taşıyor ama trigger'ları yoktu —
+ne repo'da ne prod'da; diğer 11 tabloda var. **Veri hatası değildi**: ölçüldü,
+uygulama katmanı damgayı doğru atıyordu. Sorun garantinin yeriydi — DB sınırı
+yerine uygulama disiplini.
+
+`827957c` ile trigger'lar yazıldı (**prod'a UYGULANMADI**). `tenants` bilerek
+dışarıda: tabloyu hiçbir repo migration'ı yaratmıyor, Faz 2 yaratacak;
+trigger'ı oraya ait.
+
+Not: `critical_dates`'in uygulama deseni `documents`'inkinden dayanıklıydı —
+damga patch nesnesinin ilk alanı, koşullu alanlar üstüne biniyor. `documents`
+üç ayrı yolda ayrı ayrı hatırlıyor.
+
+### f) `workforce_summary` mükerrer index — repo kaynaklı
+
+`constraint workforce_summary_one_per_company unique (company_id)` **ve**
+`create index workforce_summary_company_id_idx on (company_id)` bir arada
+(`20260407000900`). Unique constraint zaten implicit index yaratıyor, düz
+index gereksiz.
+
+Prod drift'i **değil**, repo'nun kendi fazlalığı. Ara ölçümde "non-unique"
+görünmesi sorgu artefaktıydı (`pg_indexes.indexdef`, unique constraint'in
+implicit index'ini `CREATE UNIQUE INDEX` metniyle göstermiyor);
+`pg_constraint.contype='u'` ile bütünlüğün yerinde olduğu doğrulandı.
+
+Faz 2 ikisini de olduğu gibi kaydedecek. Temizlik ayrı karar.
+
+### g) G1 gate'i vekil bir nicelik ölçüyor
+
+G1 `count(distinct tenant_id) from companies` sorar ve `1` döndü — doğru.
+Ama prod **üç tenant** taşıyor: `partnerstaff` (7 üye / 2 firma), `brothers`
+(0/0), `bposgb` (0/0). Kurulum yapısal olarak çok kiracılı, ikisi boş.
+
+Görev assignee picker'ı `profiles`'ı **kapsamsız** okuyor ve `profiles`'ta
+tenant kolonu yok. Dolayısıyla asıl tetikleyici "başka tenant'a firma
+eklenmesi" değil, **"başka tenant'a üye eklenmesi"** — o an bir tenant'ın
+kullanıcıları diğerininkileri picker'da görür.
+
+Bugün ölçülebilir ve daha doğru bir vekil var (gate yazıldığında
+`tenant_memberships`'in varlığı bilinmiyordu):
+
+```sql
+select count(distinct tenant_id) from tenant_memberships;   -- bugün: 1
+```
+
+Gate'ler geriye dönük değiştirilmiyor — ölçüm o gün doğruydu. Kalıcı çözüm
+Step 3 (b): `profiles`'a tenant üyeliği ve picker'ın kapsamlanması. G1 anlık
+bir ölçüm; değeri kimse yeniden koşmadan değişebilir.
+
+---
+
 ## Later Planning Notes
 These items capture Partner Staff / BPS-specific post-roadmap workstreams and future planning notes.
 They do not change the historical numbered roadmap order.
