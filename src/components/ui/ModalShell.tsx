@@ -22,6 +22,20 @@ interface ModalShellProps {
   footer?: React.ReactNode;
 }
 
+/**
+ * Open-modal stack, module level.
+ *
+ * Escape is listened for on `document`, so with two modals open BOTH used to
+ * react to a single keypress. That is not cosmetic: the inline-firma flow
+ * opens a company modal on top of the Yeni Randevu form, and that form wipes
+ * its fields in its close handler — so one Escape closed the small modal and
+ * silently threw away everything the user had typed underneath.
+ *
+ * Only the topmost open modal now reacts. With a single modal open — every
+ * other caller in the app — behaviour is unchanged.
+ */
+const openModalStack: object[] = [];
+
 export default function ModalShell({
   open,
   onClose,
@@ -31,14 +45,37 @@ export default function ModalShell({
 }: ModalShellProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
+  // Stable identity for this instance's slot in the stack.
+  const idRef = useRef<object | null>(null);
+  if (idRef.current === null) idRef.current = {};
+
+  // `onClose` is usually an inline function, so its identity changes every
+  // render. Kept in a ref so the effect below depends only on `open` — if it
+  // re-ran per render it would pop and re-push this modal, putting it back on
+  // top of a modal that legitimately opened above it.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
+    const id = idRef.current as object;
+    openModalStack.push(id);
+
     function handleEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (openModalStack[openModalStack.length - 1] !== id) return;
+      onCloseRef.current();
     }
     document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [open, onClose]);
+
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      const i = openModalStack.lastIndexOf(id);
+      if (i !== -1) openModalStack.splice(i, 1);
+    };
+  }, [open]);
 
   if (!open) return null;
 
