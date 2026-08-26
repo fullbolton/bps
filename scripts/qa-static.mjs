@@ -4,7 +4,14 @@
  *
  * Custom static guard checks over the repo text. Node built-in only — no
  * dependencies, no DB, no network, no credential reads. Complements (does
- * NOT run) `tsc --noEmit`, `next lint`, `next build`; run those separately.
+ * NOT run) `tsc --noEmit` and `next build`; run those separately.
+ *
+ * ⚠ `npm run lint` does NOT work in this project (verified 2026-08-10):
+ * ESLint is not installed and not configured — no config file, no dependency,
+ * no eslint block in next.config.ts — so `next lint` only opens an interactive
+ * setup wizard. `next build` therefore performs no linting either. Treat
+ * "build passed" as type-check + compile only. Adopting ESLint is an open
+ * decision, not an oversight to fix in passing.
  *
  * Output: one line per rule — PASS / WARN / FAIL + evidence.
  * Exit code: non-zero ONLY if at least one FAIL. WARN exits 0.
@@ -530,6 +537,6 @@ for (const r of results) {
   console.log(`${c}${r.status.padEnd(4)}${COLORS.reset} ${r.rule.padEnd(34)} ${sev}  ${r.evidence}`);
 }
 console.log(`\n${results.length} checks · ${fails} FAIL · ${warns} WARN`);
-console.log(relative(process.cwd(), join(ROOT, "scripts/qa-static.mjs")) + " — static only; run tsc/lint/build separately.");
+console.log(relative(process.cwd(), join(ROOT, "scripts/qa-static.mjs")) + " — static only; run tsc + build separately (no lint configured).");
 
 process.exit(fails > 0 ? 1 : 0);

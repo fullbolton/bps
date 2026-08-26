@@ -665,6 +665,25 @@ değildir.**
 
 ---
 
+## Lint Yok — Açık Karar (2026-08-10)
+
+`npm run lint` bu projede çalışmıyor: ESLint kurulu değil, config dosyası yok,
+`package.json`'da bağımlılık yok, `next.config.ts`'te ayar yok. Komut yalnız
+interaktif kurulum sihirbazı açıyor. Dolayısıyla **`next build` de lint
+yapmıyor** — "build geçti" ifadesi tip kontrolü + derleme demek, statik kod
+analizi değil.
+
+Bu bir kusur değil bir boşluk: kimse ESLint'i kaldırmamış, hiç kurulmamış.
+`qa:static` bu boşluğun bir kısmını kapatıyor (14 özel kural) ama genel amaçlı
+bir linter'ın yerini tutmuyor.
+
+**Karar gerekiyor:** ESLint kurulacak mı? Olgun bir kod tabanına sonradan
+eklemek çok sayıda bulgu üretir; kurulacaksa kapsam (yalnız yeni kod mu, tümü
+mü) ve severity baştan kararlaştırılmalı. Kurulmayacaksa bu not, "neden lint
+yok" sorusunun cevabı olarak durur.
+
+---
+
 ## qa:static Kural Adayı — Ölü Bileşen Tespiti (2026-08-10)
 
 B batch'i sırasında `NewCompanyModal`'ın bir mock kalıntısı olduğu ortaya çıktı:
