@@ -23,7 +23,17 @@
  *   R5  passivate-status-only            → an extra key added to the payload
  *   R12 pre-deploy-gates-recorded        → seen red throughout the gate work
  *   R13 table-rls-enabled                → a CREATE TABLE with no ENABLE RLS
- * The six WARN rules are NOT yet negative-tested.
+ * All six WARN rules were negative-tested the same way:
+ *   W1  package-migration-drift          → seen amber whenever a migration sat
+ *                                          uncommitted in the working tree
+ *   W2  upload-guard-before-storage      → an earlier ".upload(storagePath"
+ *   W3  contact-guard-before-insert      → an earlier "await createContact("
+ *   W4  reactivate-status-only           → an extra key in the payload
+ *   W5  stale-partner-comment            → the old partner-scope comment restored
+ *   W6  import-graph-browser-create      → createContact added to the page import
+ * W2 and W3 were broken by planting an EARLIER occurrence rather than by
+ * deleting the guard, so what was exercised is the ordering branch the rules
+ * actually assert — not the easier "missing entirely" branch.
  *
  * Caveat worth keeping: a negative test whose mutation you did not verify is
  * not a test either. The first attempt at R3 and R5 reported PASS because the
