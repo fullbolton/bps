@@ -593,6 +593,33 @@ olan her bileşeni tüketici varmış gibi gösterir.
 "bu bileşeni bir ekran ya da başka bir bileşen render ediyor mu", "bir
 `index.ts` onu yeniden ihraç ediyor mu" değil.
 
+### İkinci kural adayı — `CREATE TABLE` başına `ENABLE ROW LEVEL SECURITY`
+
+Tam sayım prod'da `ensure_rls` adlı bir **event trigger** ortaya çıkardı
+(`ddl_command_end`, `rls_auto_enable` fonksiyonunu çağırıyor): yeni yaratılan
+tabloda RLS'i otomatik açıyor. Repo'da yok — beşinci repo-dışı kategori,
+`pg_event_trigger` daha önce hiç sorgulanmamıştı.
+
+Ölçüldü: repo'nun yarattığı **17 tablonun 17'sinde** açık
+`ENABLE ROW LEVEL SECURITY` var. Yani repo bu event trigger'a GÜVENMİYOR ve
+mevcut tablolar taze ortamda güvende.
+
+**Asıl risk parite değil, ASİMETRİ.** Aynı hata iki ortamda farklı davranıyor:
+biri `ENABLE RLS` yazmayı unutursa prod'da event trigger sessizce düzeltir,
+taze ortamda tablo RLS'siz kalır. Hata prod'da hiç görünmez, demo/dev'de
+sessizce güvenlik aleyhine sapar.
+
+Event trigger'ı Faz 2'ye almak pariteyi sağlar ama KORUMA sağlamaz — çalışma
+zamanına bağlı kalır. Statik kural daha güçlü:
+
+> Her `CREATE TABLE` için eşleşen bir `ENABLE ROW LEVEL SECURITY` bulunmalı.
+
+Review anında patlar, hiçbir ortamın davranışına bağlı değil, ve bugün 17/17
+geçtiği için kural yeşil başlar — yalnız regresyonu yakalar. FAIL olabilir.
+
+İkisi birden yapılmalı: parite için event trigger Faz 2'ye, koruma için bu
+kural qa:static'e.
+
 ### Kapsam notu
 
 İkinci sinyal (`console.log` atıp kapanan submit) daha dar ama daha kesin.
