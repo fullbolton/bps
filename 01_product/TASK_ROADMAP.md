@@ -665,6 +665,46 @@ değildir.**
 
 ---
 
+## B Batch — Codex Review Sonrası Açık Kalemler (2026-08-10)
+
+`06e6922..ab5c3b1` review'ından üç Medium. Must-fix yok, push serbest verildi;
+bunlar ayrı dar bir batch.
+
+### h) `NewCompanyModal.resetAndClose()` `saving`'i yok sayıyor
+
+Escape / X / overlay tıklaması, `createCompanyAction()` **uçuştayken** modalı
+kapatabiliyor. Kullanıcı "iptal ettim" sanıyor ama istek sürüyor: firma
+yaratılıp seçilebiliyor.
+
+`47cb056`'da düzelttiğimiz hatanın **kardeşi** — orada Escape formu siliyordu,
+burada Escape iptal ettiğini sandırıyor ama etmiyor. Aynı kök: kapatma yolları
+uçuştaki işi hesaba katmıyor. `NewRequestModal.resetAndClose()` `if (saving)
+return;` ile korunuyor, yani emsal zaten kod tabanında var.
+
+### i) `sector` sunucuda doğrulanmıyor — import yoluyla asimetri
+
+`createCompany` / `createCompanyAction` `sector`'ü serbest metin olarak kabul
+ediyor. UI `SECTOR_CODES` ile kısıtlıyor ama action doğrudan çağrılabilir.
+
+Asimetri şurada: **import yolunda allow-list VAR** (`ALLOWED_CATEGORIES`
+deseninin sektör karşılığı), inline create yolunda yok. Aynı listeyi buraya
+taşımak yeterli.
+
+### j) `legacy_mock_id` / `id` anahtar uyuşmazlığı — mükerrer görünüm
+
+Form listesi `legacy_mock_id ?? id` ile kuruluyor
+(`randevular/page.tsx:344`), in-session merge ise gerçek `id` ile de-dupe
+ediyor. Yeni yaratılan firmada `legacy_mock_id` olmadığı için sorun çıkmıyor;
+**mükerrer uyarısından "Bunu seç"** ile mevcut bir firma seçilince o firma
+dropdown'da iki kez görünebilir (bir kez `f2`, bir kez UUID).
+
+Yazma çalışıyor — resolver UUID kabul ediyor — yani veri hatası yok, görünüm
+hatası var. `a193f48`'in commit mesajındaki "de-dupes by id" ifadesi bu yüzden
+eksik: de-dupe anahtarı taban listenin anahtarıyla her zaman aynı değil.
+Ya de-dupe aynı anahtara hizalanmalı, ya iddia düzeltilmeli.
+
+---
+
 ## Lint Yok — Açık Karar (2026-08-10)
 
 `npm run lint` bu projede çalışmıyor: ESLint kurulu değil, config dosyası yok,

@@ -30,7 +30,7 @@
  *   R5  passivate-status-only            → an extra key added to the payload
  *   R12 pre-deploy-gates-recorded        → seen red throughout the gate work
  *   R13 table-rls-enabled                → a CREATE TABLE with no ENABLE RLS
- * All six WARN rules were negative-tested the same way:
+ * All seven WARN rules were negative-tested the same way:
  *   W1  package-migration-drift          → seen amber whenever a migration sat
  *                                          uncommitted in the working tree
  *   W2  upload-guard-before-storage      → an earlier ".upload(storagePath"
