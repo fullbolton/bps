@@ -524,6 +524,57 @@ bir ölçüm; değeri kimse yeniden koşmadan değişebilir.
 
 ---
 
+## custom_access_token_hook — Okunmuş Davranış ve Bir Tripwire (2026-08-10)
+
+Gövde satır satır okundu (md5 `758af650dcaa`, 1224 char). Karar mantığı:
+
+```
+v_count = COUNT(*) ve v_tenant_id = MIN(tenant_id::text)::uuid  (tenant_memberships, user_id ile)
+IF v_count = 1 → claims'e active_tenant_id yaz, event'i degistirerek don
+v_count = 0 veya > 1 → claim EKLENMEZ, event aynen doner
+```
+
+`v_count = 0` veya `> 1` durumunda claim düşer → `current_user_active_tenant()`
+NULL döner → 43 tenant koşullu policy **fail-closed** olur.
+
+### Güvenlik `v_count = 1` kapısından geliyor, `MIN`'den değil
+
+`MIN(tenant_id::text)::uuid` deterministik, ama **kullanılan tek dalda zaten
+tek satır var** — orada seçecek bir şey yok. MIN, "çoklu arasından seç" işlevi
+görmüyor; `COUNT(*)` ile aynı sorguda kolonu çekebilmek için gereken agrega
+sarmalayıcısı. (`MIN(uuid)` PostgreSQL'de yok, text cast'i bu yüzden — bilinçli
+workaround, temizlenecek hack değil.)
+
+Ayrım önemli: ileride biri "MIN zaten deterministik" diyerek `v_count = 1`
+kapısını gevşetirse davranış deterministik kalır ama kullanıcı hangi tenant'ta
+olduğunu seçemeden **en küçük uuid'ye kilitlenir** — sessiz ve açıklanamaz bir
+atama.
+
+### ⚠ TRIPWIRE — ikinci üyelik erişimi anında kesiyor
+
+Bir kullanıcı ikinci bir tenant'a üye yapılırsa `v_count > 1` olur, claim
+düşer, ve o kullanıcı **birinci tenant'taki erişimini de anında kaybeder**.
+
+Fail-closed olması doğru, ama arıza modu görünmez: kullanıcı "iki tenant'a
+üyesin" diye bir hata görmez — her şey boş gelir ya da erişim reddedilir.
+Tehlikeli olan, **"kullanıcıyı ikinci tenant'a ekle" işleminin idari ve
+zararsız görünmesi**; kimse bunun mevcut erişimi kilitleyeceğini beklemez.
+
+Bugün erişilemez (Brothers ve BP OSGB tenant'larının sıfır üyesi var). Tenant
+switcher / aktif tenant seçimi geldiğinde bu hook değişmeli — o iş başlamadan
+ikinci üyelik verilmemeli.
+
+### Faz 2 için kısıt: kısmi gövdeyle yazılamaz
+
+Okuma sırasında 4 satır araç tarafından bloklandı (user_id extraction, uuid
+cast, WHERE, claims COALESCE). İskelet ve karar mantığı tam, ama migration
+**tahminle tamamlanamaz**: taslaktaki md5 drift guard'ı prod gövdesinin
+hash'ini bekliyor, dolayısıyla kendi yazdığımız "standart" satırlar guard'ı
+kendi migration'ımıza karşı çalıştırır. Tam metin şart — guard'ın amacı zaten
+tahmine dayalı yeniden kurgulamayı imkânsız kılmaktı.
+
+---
+
 ## A (Firmasız Görev/Randevu) — Ölçülmüş Maliyet (2026-08-10)
 
 `trg_tasks_validate_linked_fks` ve `trg_appointments_validate_linked_fks`
