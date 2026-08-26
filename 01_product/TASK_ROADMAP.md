@@ -524,6 +524,54 @@ bir ölçüm; değeri kimse yeniden koşmadan değişebilir.
 
 ---
 
+## A (Firmasız Görev/Randevu) — Ölçülmüş Maliyet (2026-08-10)
+
+`trg_tasks_validate_linked_fks` ve `trg_appointments_validate_linked_fks`
+gövdeleri okundu. **A ucuz: yardımcı fonksiyonları değiştirmeye gerek yok,
+kolonu nullable yapmak yeterli.** A, Step 3 kalemi olarak kalabilir; kendi
+migration'ını istemiyor.
+
+`validate_same_company_contract(p_contract_id, p_expected_company_id)` sırası:
+
+1. `p_contract_id IS NULL` → `RETURN true` (bağ yoksa geç)
+2. sözleşme bulunamazsa → `RAISE 'Linked contract % does not exist'`
+3. `v_contract_company_id != p_expected_company_id` → `RAISE 'Cross-company...'`
+
+`company_id` NULL geldiğinde: adım 2 **çalışmaya devam eder** (parametreye
+dokunmuyor), adım 3 ise `X != NULL` → NULL → IF ateşlemez → sessizce geçer.
+
+### A'nın migration yorumuna yazılacak
+
+> Firmasız kayıtta (`company_id IS NULL`) bağlı FK'nın **varlık** doğrulaması
+> çalışmaya devam eder — var olmayan bir `contract_id`/`appointment_id` yine
+> reddedilir. Sessizce atlanan yalnız **cross-company sahiplik** kontrolüdür:
+> `X != NULL` NULL döner ve IF ateşlemez. Bu bir boşluk değil, sorunun tek
+> makul cevabı — firma yokken "aynı firmaya mı ait" sorusunun anlamı yoktur.
+> Endişe davranışta değil görünürlükte: yardımcıya
+> `IF p_expected_company_id IS NULL THEN RETURN true; END IF;` eklemek
+> davranışı değiştirmez ama niyeti kodda görünür kılar. Ayrı karar.
+
+### Yöntem notu — üçüncü yanıltıcı ölçüm
+
+`comp_null=true` sonucu `p_expected_company_id`'yi değil, gövdedeki
+`v_contract_company_id IS NULL` satırını yakalamıştı. Bu, aynı gün içindeki
+üçüncü yanıltıcı gövde ölçümü (`raises=false` ve `RETURN NULL` sanısından
+sonra). Ders yalnız "grep çağrılanları görmez" değil: **identifier üzerinde
+substring eşleşmesi, adları benzeyen farklı değişkenleri birbirine karıştırır.**
+Gövde okunmadan davranış iddiası kurulmamalı.
+
+Uzun gövdeler artık okunabiliyor — satır bazında bölerek:
+
+```sql
+select ln, txt from (
+  select row_number() over () ln, txt
+    from pg_proc p, regexp_split_to_table(p.prosrc, E'\n') txt
+   where p.proname = 'X'
+) s where btrim(txt) <> '' order by ln;
+```
+
+---
+
 ## Faz 2 Envanter Yöntemi — Filtreleme Değil, Tam Sayım (2026-08-10)
 
 Envanter üç turda üç kez eksik çıktı, ve üçü de aynı sebepten:
