@@ -347,11 +347,13 @@ export default function GorevlerPage() {
       if (filters.kaynak && g.source_type !== filters.kaynak) return false;
       if (filters.firma && g.firma_name !== filters.firma) return false;
       if (filters.atama === "atanmamis" && g.assigned_to_user_id) return false;
-      // Oturum çözülmemişse "bana atanan" hiçbir şey döndürmez — sessizce
-      // "hepsi"ne düşmek, kullanıcıya başkasının işini kendi işiymiş gibi
-      // gösterirdi.
-      if (filters.atama === "bana" && g.assigned_to_user_id !== (user?.id ?? null))
-        return false;
+      // Oturum çözülmemişse "bana atanan" HİÇBİR ŞEY döndürür — açıkça,
+      // `user?.id ?? null` ile karşılaştırarak DEĞİL: o hâlde null === null
+      // eşleşir ve ATANMAMIŞ görevler "bana atanan" gibi görünürdü.
+      if (filters.atama === "bana") {
+        if (!user?.id) return false;
+        if (g.assigned_to_user_id !== user.id) return false;
+      }
       return true;
     });
   }, [enrichedRows, search, filters, user]);
