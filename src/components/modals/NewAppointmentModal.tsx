@@ -11,7 +11,15 @@
 import { useState } from "react";
 import { ModalShell } from "@/components/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
+import NewCompanyModal from "./NewCompanyModal";
+import type { CreatedCompany } from "./NewCompanyModal";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
+
+/**
+ * Select icindeki "yeni firma" secenegi. Gercek bir firma id'siyle
+ * cakismamasi icin uuid olmayan bir sentinel.
+ */
+const NEW_COMPANY_OPTION = "__new_company__";
 
 interface NewAppointmentModalProps {
   open: boolean;
@@ -40,6 +48,25 @@ export default function NewAppointmentModal({
   const [katilimci, setKatilimci] = useState("");
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
+  // Bu oturumda inline yaratilan firmalar. Parent kendi listesini randevu
+  // kaydedildikten sonra zaten yeniliyor; buradaki amac yeni firmanin
+  // select'te ANINDA gorunmesi, sayfa reload etmeden.
+  const [yeniFirmalar, setYeniFirmalar] = useState<{ id: string; ad: string }[]>([]);
+
+  const tumFirmalar = [
+    ...firmalar,
+    ...yeniFirmalar.filter((y) => !firmalar.some((f) => f.id === y.id)),
+  ];
+
+  function handleCompanyCreated(company: CreatedCompany) {
+    setYeniFirmalar((prev) =>
+      prev.some((p) => p.id === company.id)
+        ? prev
+        : [...prev, { id: company.id, ad: company.name }],
+    );
+    setFirmaId(company.id);
+  }
 
   async function handleSubmit() {
     if (!firmaId || !tarih) return;
@@ -72,10 +99,12 @@ export default function NewAppointmentModal({
     setTip("ziyaret");
     setKatilimci("");
     setSubmitError(null);
+    setYeniFirmalar([]);
     onClose();
   }
 
   return (
+    <>
     <ModalShell
       open={open}
       onClose={resetAndClose}
@@ -111,15 +140,23 @@ export default function NewAppointmentModal({
           </label>
           <select
             value={firmaId}
-            onChange={(e) => setFirmaId(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value === NEW_COMPANY_OPTION) {
+                setCompanyModalOpen(true);
+                return;
+              }
+              setFirmaId(e.target.value);
+            }}
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Firma secin</option>
-            {firmalar.map((f) => (
+            {tumFirmalar.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.ad}
               </option>
             ))}
+            <option disabled>──────────────</option>
+            <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
           </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -176,5 +213,15 @@ export default function NewAppointmentModal({
         </div>
       </div>
     </ModalShell>
+
+    {/* ModalShell'in KARDESI — icine konsaydi modal govdesinin max-h
+        kirpmasina takilirdi. Ustte cizilmesi DOM sirasindan geliyor;
+        ikisi de z-50. */}
+    <NewCompanyModal
+      open={companyModalOpen}
+      onClose={() => setCompanyModalOpen(false)}
+      onCreated={handleCompanyCreated}
+    />
+    </>
   );
 }

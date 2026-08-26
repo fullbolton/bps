@@ -13,6 +13,8 @@
  */
 
 import { useEffect, useState } from "react";
+import NewCompanyModal from "./NewCompanyModal";
+import type { CreatedCompany } from "./NewCompanyModal";
 import { ModalShell } from "@/components/ui";
 
 const ONCELIK_OPTIONS = [
@@ -32,6 +34,12 @@ export interface NewRequestSubmitData {
   oncelik: string;
   sorumlu: string;
 }
+
+/**
+ * Select icindeki "yeni firma" secenegi — gercek bir id ile cakismamasi
+ * icin uuid olmayan sentinel. NewAppointmentModal ile ayni desen.
+ */
+const NEW_COMPANY_OPTION = "__new_company__";
 
 interface NewRequestModalProps {
   open: boolean;
@@ -60,6 +68,24 @@ export default function NewRequestModal({
   const [sorumlu, setSorumlu] = useState("");
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
+  // Inline yaratilanlar — select'te aninda gorunsun diye. Parent kendi
+  // listesini talep kaydedildikten sonra zaten yeniliyor.
+  const [yeniFirmalar, setYeniFirmalar] = useState<{ id: string; ad: string }[]>([]);
+
+  const tumFirmalar = [
+    ...firmalar,
+    ...yeniFirmalar.filter((y) => !firmalar.some((f) => f.id === y.id)),
+  ];
+
+  function handleCompanyCreated(company: CreatedCompany) {
+    setYeniFirmalar((prev) =>
+      prev.some((p) => p.id === company.id)
+        ? prev
+        : [...prev, { id: company.id, ad: company.name }],
+    );
+    setFirmaId(company.id);
+  }
 
   const requiresOwner = oncelik === "yuksek" || oncelik === "kritik";
   const canSubmit = !!(
@@ -119,10 +145,12 @@ export default function NewRequestModal({
     setOncelik("normal");
     setSorumlu("");
     setSubmitError(null);
+    setYeniFirmalar([]);
     onClose();
   }
 
   return (
+    <>
     <ModalShell
       open={open}
       onClose={resetAndClose}
@@ -153,16 +181,24 @@ export default function NewRequestModal({
           </label>
           <select
             value={firmaId}
-            onChange={(e) => setFirmaId(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value === NEW_COMPANY_OPTION) {
+                setCompanyModalOpen(true);
+                return;
+              }
+              setFirmaId(e.target.value);
+            }}
             disabled={saving}
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
           >
             <option value="">Firma secin</option>
-            {firmalar.map((f) => (
+            {tumFirmalar.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.ad}
               </option>
             ))}
+            <option disabled>──────────────</option>
+            <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
           </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -264,5 +300,14 @@ export default function NewRequestModal({
         )}
       </div>
     </ModalShell>
+
+    {/* ModalShell'in KARDESI — icine konsaydi modal govdesinin max-h
+        kirpmasina takilirdi. */}
+    <NewCompanyModal
+      open={companyModalOpen}
+      onClose={() => setCompanyModalOpen(false)}
+      onCreated={handleCompanyCreated}
+    />
+    </>
   );
 }
