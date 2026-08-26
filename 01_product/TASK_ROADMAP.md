@@ -524,6 +524,43 @@ bir ölçüm; değeri kimse yeniden koşmadan değişebilir.
 
 ---
 
+## qa:static Kural Adayı — Ölü Bileşen Tespiti (2026-08-10)
+
+B batch'i sırasında `NewCompanyModal`'ın bir mock kalıntısı olduğu ortaya çıktı:
+submit'i `console.log` atıp kapanıyordu, hiçbir şey kaydetmiyordu, ve hiçbir
+ekrandan açılmıyordu. Mock temizliğinden sağ kalmıştı çünkü `@/mocks`'tan
+**import etmiyordu** — sadece kaydetmiyordu.
+
+**Kör nokta:** mevcut tarama import grafiğine bakıyor, davranışa değil. Hiçbir
+şeye bağlı olmayan, sahte veri de kullanmayan, sadece hiçbir şey yapmayan bir
+bileşen görünmez kalıyor.
+
+### Kuralı yazacak kişiye: naif hali bu vakayı KAÇIRIR
+
+"Export edilmiş ama hiçbir yerden import edilmemiş bileşen" yetmez.
+`src/components/modals/index.ts` şunu içeriyor:
+
+```ts
+export { default as NewCompanyModal } from "./NewCompanyModal";
+```
+
+Yani dosya *import edilmiş* görünür ve kural onu geçirir. Barrel dosyası, ölü
+olan her bileşeni tüketici varmış gibi gösterir.
+
+**Kuralın barrel re-export'larını tüketici saymaması gerekiyor:** gerçek soru
+"bu bileşeni bir ekran ya da başka bir bileşen render ediyor mu", "bir
+`index.ts` onu yeniden ihraç ediyor mu" değil.
+
+### Kapsam notu
+
+İkinci sinyal (`console.log` atıp kapanan submit) daha dar ama daha kesin.
+İkisini birleştirmek yerine ayrı kurallar olarak düşünmek daha iyi olabilir:
+biri ulaşılabilirlik, diğeri sahte-kalıcılık. Ulaşılabilirlik kuralı yanlış
+pozitif üretmeye açık (yeni yazılmış, henüz bağlanmamış bileşen), o yüzden
+muhtemelen WARN; sahte-kalıcılık kuralı daha net, FAIL olabilir.
+
+---
+
 ## Later Planning Notes
 These items capture Partner Staff / BPS-specific post-roadmap workstreams and future planning notes.
 They do not change the historical numbered roadmap order.
