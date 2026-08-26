@@ -12,6 +12,25 @@
  * Rule severity rationale: deterministic security/decision invariants are
  * FAIL; line-order and comment heuristics are WARN (a reformat must not
  * produce a false FAIL).
+ *
+ * NEGATIVE-TESTED (2026-08-10): all seven FAIL rules were each shown to go
+ * red for a real violation, then restored. A rule only ever seen green has
+ * not been shown to detect anything.
+ *   R1  service_role-confined            → SUPABASE_SERVICE_ROLE_KEY outside the allow-list
+ *   R2  browser-createContact-removed    → a createContact( call under src/app
+ *   R3  contact-create-yonetici-only-*   → guard widened to admit partner
+ *   R4  ...-ui                           → the old partner OR-gate restored
+ *   R5  passivate-status-only            → an extra key added to the payload
+ *   R12 pre-deploy-gates-recorded        → seen red throughout the gate work
+ *   R13 table-rls-enabled                → a CREATE TABLE with no ENABLE RLS
+ * The six WARN rules are NOT yet negative-tested.
+ *
+ * Caveat worth keeping: a negative test whose mutation you did not verify is
+ * not a test either. The first attempt at R3 and R5 reported PASS because the
+ * edits had landed elsewhere — R3 on the first of five identical guards (in
+ * deleteCompanyDocumentAction, not createContactAction) and R5 inside a doc
+ * comment that happened to contain ".update(". Both rules were fine. Target
+ * the line, then read it back before trusting the result.
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
