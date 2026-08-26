@@ -705,6 +705,27 @@ Ya de-dupe aynı anahtara hizalanmalı, ya iddia düzeltilmeli.
 
 ---
 
+## Step 3 Smoke Notu — "Bekleyen Görev" KPI'ının anlamı değişecek (2026-08-27)
+
+`248a9e9` Dashboard'daki **Bugünün Görevleri** kartını kişiye daralttı
+(bana atanan VEYA atanmamış). Yanındaki **Bekleyen Görev** KPI'ı bilerek
+daraltılmadı: portföy sayısı, kişisel değil.
+
+Bugün bu ayrım tutarlı. Ama Step 3'ün RLS yeniden-yazımından sonra `operasyon`
+yalnız kendine atanan görevleri görecek — yani KPI'ın beslendiği sorgu zaten
+kişiye daralmış dönecek. **Kod değişmeden KPI portföy sayısı olmaktan çıkıp
+kişisel sayıya dönüşür, etiketi aynı kalır.**
+
+`Tümü` düğmesini `yonetici`'ye sınırlarken düşündüğümüz tuzağın aynısı, farklı
+bir yerde: bileşen değişmiyor, altındaki veri kümesi değişiyor.
+
+**Step 3 smoke'unda kontrol edilecek:** `operasyon` ile giriş yap, KPI'ın
+gösterdiği sayı ile kartın gösterdiği satırlar aynı kümeyi mi tarif ediyor.
+Ediyorsa KPI etiketi düzeltilmeli (portföy iddiası artık doğru değil) ya da
+KPI rol-farkında hale getirilmeli.
+
+---
+
 ## Lint Yok — Açık Karar (2026-08-10)
 
 `npm run lint` bu projede çalışmıyor: ESLint kurulu değil, config dosyası yok,
