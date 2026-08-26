@@ -31,6 +31,8 @@
  *   W4  reactivate-status-only           → an extra key in the payload
  *   W5  stale-partner-comment            → the old partner-scope comment restored
  *   W6  import-graph-browser-create      → createContact added to the page import
+ *   W7  unreachable-component            → a component added to a barrel and
+ *                                          rendered by nothing
  * W2 and W3 were broken by planting an EARLIER occurrence rather than by
  * deleting the guard, so what was exercised is the ordering branch the rules
  * actually assert — not the easier "missing entirely" branch.
@@ -460,6 +462,54 @@ const FAIL = "FAIL";
     record(FAIL, "table-rls-enabled", FAIL,
       missing.map((t) => `${t} (${created.get(t)})`).join(" · ") +
       " — no ALTER TABLE ... ENABLE ROW LEVEL SECURITY");
+  }
+})();
+
+// R14 — a component nothing renders (barrel re-exports do not count).
+//
+// NewCompanyModal was a demo for months: its submit logged to the console and
+// closed, it persisted nothing, and no screen opened it. It survived the mock
+// cleanup because it never imported from @/mocks — it simply did not save.
+//
+// The obvious form of this rule would have missed it. src/components/modals/
+// index.ts re-exports the file, so "is it imported anywhere" answers yes. A
+// barrel makes every dead component look consumed, which is why index.ts files
+// are excluded from the set of consumers here.
+//
+// WARN, not FAIL: a component written today and wired tomorrow is legitimately
+// unreferenced, and blocking that would be wrong. The signal is "nobody has
+// wired this yet" — worth seeing, not worth stopping a commit for.
+//
+// Name-based and deliberately loose: a mention in a comment counts as a
+// reference. False negatives are acceptable for a WARN; false alarms are not.
+(function ruleUnreachableComponent() {
+  const EXEMPT = new Set([
+    // (bos) — muafiyet eklerken GEREKCESINI yaz.
+  ]);
+
+  const files = walk("src/components").filter((f) => f.endsWith(".tsx"));
+  const consumers = walk("src").filter(
+    (f) => (f.endsWith(".ts") || f.endsWith(".tsx")) && !/(^|\/)index\.ts$/.test(f),
+  );
+  const cache = new Map(consumers.map((f) => [f, read(f) ?? ""]));
+
+  const orphans = [];
+  for (const f of files) {
+    const name = f.split("/").pop().replace(/\.tsx$/, "");
+    if (EXEMPT.has(name)) continue;
+    const re = new RegExp(`\\b${name}\\b`);
+    const used = consumers.some((c) => c !== f && re.test(cache.get(c)));
+    if (!used) orphans.push(name);
+  }
+
+  if (files.length === 0) {
+    record(WARN, "unreachable-component", WARN, "no components found — rule verified nothing");
+  } else if (orphans.length === 0) {
+    record(WARN, "unreachable-component", PASS,
+      `all ${files.length} components are referenced outside a barrel`);
+  } else {
+    record(WARN, "unreachable-component", WARN,
+      `nothing renders: ${orphans.sort().join(", ")}`);
   }
 })();
 
