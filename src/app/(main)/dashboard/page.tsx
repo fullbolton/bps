@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Building2,
@@ -95,9 +95,40 @@ export default function DashboardPage() {
   // Signal cards paired with the KPIs above. Same RLS / partner-scope
   // behavior as the KPIs; shape mirrors the previous mock render shape
   // so the card layout stays byte-identical.
-  const [todayTasks, setTodayTasks] = useState<
-    Array<{ id: string; baslik: string; firma: string; gecikme: boolean }>
+  // Kişi-merkezli daraltma: ham liste burada durur, gösterilen liste
+  // aşağıdaki useMemo'da türetilir. Filtre slice'tan ÖNCE uygulanmalı —
+  // sonra uygulansaydı "bana atanan" görünümü elde olandan az satır
+  // gösterirdi.
+  const [openTasks, setOpenTasks] = useState<
+    Array<{
+      id: string;
+      baslik: string;
+      firma: string;
+      gecikme: boolean;
+      assignedToUserId: string | null;
+    }>
   >([]);
+  const [taskScope, setTaskScope] = useState<"mine" | "all">("mine");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Varsayılan "bana atanan VEYA ATANMAMIŞ".
+  //
+  // Atanmamış olanlar bilerek dahil: `completeAppointment` handoff görevi
+  // assignee YAZMIYOR (appointments.ts), yani sahipsiz görev üretiliyor.
+  // Yalnız "bana atanan" filtrelenseydi o görevler HİÇ KİMSENİN ekranında
+  // görünmezdi — WORKFLOW_RULES "sahipsiz iş yasağı" derken tam tersini
+  // istiyor: sahipsiz iş gizlenmeli değil, görünür olmalı.
+  const todayTasks = useMemo(() => {
+    const scoped =
+      taskScope === "all"
+        ? openTasks
+        : openTasks.filter(
+            (t) =>
+              t.assignedToUserId === null ||
+              t.assignedToUserId === currentUserId,
+          );
+    return scoped.slice(0, 4);
+  }, [openTasks, taskScope, currentUserId]);
   const [openDemands, setOpenDemands] = useState<
     Array<{ id: string; firma: string; pozisyon: string; adet: number }>
   >([]);
@@ -175,6 +206,13 @@ export default function DashboardPage() {
     let criticalDatesCatchError = false;
     (async () => {
       const supabase = createClient();
+      // Oturum sahibinin id'si — "bana atanan" daraltmasının anahtarı.
+      // Çözülemezse currentUserId null kalır ve filtre yalnız atanmamış
+      // görevleri gösterir; sessizce "hepsi"ne düşmez.
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (!cancelled) setCurrentUserId(currentUser?.id ?? null);
       const [
         companiesRes,
         contractsRes,
@@ -212,7 +250,7 @@ export default function DashboardPage() {
         // filter as the KPI — status IN ('acik','devam_ediyor','gecikti').
         supabase
           .from("tasks")
-          .select("id, title, company_id, status, due_date")
+          .select("id, title, company_id, status, due_date, assigned_to_user_id")
           .in("status", ["acik", "devam_ediyor", "gecikti"]),
         supabase
           .from("appointments")
@@ -297,12 +335,12 @@ export default function DashboardPage() {
                 : Number.MAX_SAFE_INTEGER;
               return aTime - bTime;
             })
-            .slice(0, 4)
             .map((t) => ({
               id: t.id,
               baslik: t.title,
               firma: companyNameById.get(t.company_id) ?? "—",
               gecikme: t.status === "gecikti",
+              assignedToUserId: t.assigned_to_user_id ?? null,
             }));
 
       // Açık Personel Talepleri — row cap 4 (subset view). No new
@@ -388,7 +426,7 @@ export default function DashboardPage() {
               href: `/firmalar/${c.legacy_mock_id ?? c.id}`,
             }));
 
-      setTodayTasks(mappedTasks);
+      setOpenTasks(mappedTasks);
       setOpenDemands(mappedDemands);
       setExpiringContracts(mappedExpiringContracts);
       setEksikEvraklar(mappedEksikEvraklar);
@@ -514,9 +552,29 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Bugünün Görevleri — hidden for muhasebe */}
           {!["muhasebe", "goruntuleyici"].includes(role) && <div className={CARD}>
-            <h3 className={CARD_TITLE}>
-              Bugünün Görevleri
-            </h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className={CARD_TITLE}>
+                Bugünün Görevleri
+              </h3>
+              {/* "Tümü" YALNIZ yonetici'de.
+                  Rol modeli kilitlendiğinde `operasyon` "yalnız kendine
+                  atanan görevler" olacak (Step 3, RLS yeniden-yazımı).
+                  Bugün RLS operasyon'a hepsini gösteriyor, yani şimdi
+                  konacak bir "Tümü" düğmesi Step 3'ten sonra AYNI KALIP
+                  farklı sonuç döndürürdü — düğme değişmeden anlamı
+                  değişirdi. Söz vermemek, sonra geri almaktan iyi. */}
+              {role === "yonetici" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTaskScope((s) => (s === "mine" ? "all" : "mine"))
+                  }
+                  className={`${TYPE_CAPTION} ${TEXT_MUTED} hover:text-slate-700 underline underline-offset-2`}
+                >
+                  {taskScope === "mine" ? "Tümü" : "Bana atanan"}
+                </button>
+              )}
+            </div>
             <AsyncSection
               isLoading={signalsLoading}
               hasError={signalErrors.tasks}

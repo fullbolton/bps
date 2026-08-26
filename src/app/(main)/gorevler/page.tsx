@@ -101,6 +101,24 @@ const FILTER_CONFIG: FilterConfig[] = [
     ],
   },
   {
+    // Kişi-merkezli daraltma. Varsayılan boş = Tümü; Görevler tam yönetim
+    // ekranı olduğu için burada varsayılan daraltma YAPILMIYOR (Dashboard'da
+    // yapılıyor — orası "bugün ne yapmalıyım" yüzeyi).
+    //
+    // "Atanmamış" ayrı bir seçenek: `completeAppointment` handoff görevi
+    // assignee yazmıyor, yani sahipsiz görev üretiliyor ve bugün onları
+    // bulmanın hiçbir yolu yok. WORKFLOW_RULES "sahipsiz iş yasağı" diyor;
+    // yasağın işe yaraması için sahipsiz işin ARANABİLİR olması gerekiyor.
+    key: "atama",
+    label: "Atama",
+    type: "select",
+    placeholder: "Tümü",
+    options: [
+      { label: "Bana atanan", value: "bana" },
+      { label: "Atanmamış", value: "atanmamis" },
+    ],
+  },
+  {
     key: "oncelik",
     label: "Öncelik",
     type: "select",
@@ -186,7 +204,7 @@ const COLUMNS: ColumnDef<TaskListRow>[] = [
 
 export default function GorevlerPage() {
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
@@ -328,9 +346,15 @@ export default function GorevlerPage() {
       if (filters.oncelik && g.priority !== filters.oncelik) return false;
       if (filters.kaynak && g.source_type !== filters.kaynak) return false;
       if (filters.firma && g.firma_name !== filters.firma) return false;
+      if (filters.atama === "atanmamis" && g.assigned_to_user_id) return false;
+      // Oturum çözülmemişse "bana atanan" hiçbir şey döndürmez — sessizce
+      // "hepsi"ne düşmek, kullanıcıya başkasının işini kendi işiymiş gibi
+      // gösterirdi.
+      if (filters.atama === "bana" && g.assigned_to_user_id !== (user?.id ?? null))
+        return false;
       return true;
     });
-  }, [enrichedRows, search, filters]);
+  }, [enrichedRows, search, filters, user]);
 
   const selectedTask = useMemo(
     () => enrichedRows.find((task) => task.id === selectedId) ?? null,
