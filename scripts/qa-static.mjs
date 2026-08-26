@@ -378,6 +378,62 @@ const FAIL = "FAIL";
   }
 })();
 
+// R13 — every CREATE TABLE must explicitly ENABLE ROW LEVEL SECURITY.
+//
+// Production carries an event trigger (`ensure_rls`, ddl_command_end →
+// rls_auto_enable) that switches RLS on for any newly created table. It is
+// NOT in this repo, so a from-scratch environment does not have it.
+//
+// That difference is the whole point of this rule. Today every one of the
+// repo's tables enables RLS explicitly, so the rule starts green and only
+// ever catches a regression. But without it, forgetting the ENABLE would be
+// silently corrected in production and left in place everywhere else — the
+// mistake would be invisible exactly where it is survivable, and silent where
+// it is not. Drift would always run toward LESS protection.
+//
+// FAIL, not WARN: an unprotected table is not a style question. Deliberate
+// exceptions belong in EXEMPT below, with a reason.
+(function ruleTableRlsEnabled() {
+  const EXEMPT = new Set([
+    // (bos) — muafiyet eklerken GEREKCESINI yaz.
+  ]);
+
+  const files = walk("supabase/migrations").filter((f) => f.endsWith(".sql"));
+
+  const created = new Map(); // table -> first file that creates it
+  const enabled = new Set();
+
+  for (const f of files) {
+    const sql = read(f) ?? "";
+    for (const m of sql.matchAll(
+      /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z_][a-z0-9_]*)/gi,
+    )) {
+      const t = m[1].toLowerCase();
+      if (!created.has(t)) created.set(t, f);
+    }
+    for (const m of sql.matchAll(
+      /alter\s+table\s+(?:public\.)?([a-z_][a-z0-9_]*)\s+enable\s+row\s+level\s+security/gi,
+    )) {
+      enabled.add(m[1].toLowerCase());
+    }
+  }
+
+  const missing = [...created.keys()]
+    .filter((t) => !enabled.has(t) && !EXEMPT.has(t))
+    .sort();
+
+  if (created.size === 0) {
+    record(FAIL, "table-rls-enabled", FAIL, "no CREATE TABLE found — rule cannot verify anything");
+  } else if (missing.length === 0) {
+    record(FAIL, "table-rls-enabled", PASS,
+      `${created.size}/${created.size} created tables enable RLS explicitly`);
+  } else {
+    record(FAIL, "table-rls-enabled", FAIL,
+      missing.map((t) => `${t} (${created.get(t)})`).join(" · ") +
+      " — no ALTER TABLE ... ENABLE ROW LEVEL SECURITY");
+  }
+})();
+
 // =========================================================================
 // Report + exit
 // =========================================================================
