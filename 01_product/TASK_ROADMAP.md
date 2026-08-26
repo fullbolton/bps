@@ -524,6 +524,48 @@ bir ölçüm; değeri kimse yeniden koşmadan değişebilir.
 
 ---
 
+## Faz 2 Envanter Yöntemi — Filtreleme Değil, Tam Sayım (2026-08-10)
+
+Envanter üç turda üç kez eksik çıktı, ve üçü de aynı sebepten:
+
+1. tablo / fonksiyon / policy sayıldı → **trigger'lar** kaçırıldı
+2. trigger'lar eklendi → **trigger'ların çağırdığı yardımcı fonksiyonlar** kaçırıldı
+   (`validate_same_company_contract`, `validate_same_company_appointment` —
+   ikisi de repo'da yok, prod'da var, `tasks`/`appointments` trigger'ları
+   tarafından çağrılıyor)
+3. dördüncü bir kategorinin daha çıkacağını varsaymak makul
+
+**Kök sebep: filtreleyerek sayıyoruz.** "Tenant fonksiyonları (3)" diye
+ölçüldü — arayarak, listeleyerek değil. Bu iki yardımcı o filtreye takılmadı
+çünkü adlarında `tenant` geçmiyor.
+
+**İkinci kör nokta, aynı sınıftan:** bir fonksiyonun gövdesinde arama yapmak
+(`prosrc ilike '%raise%'`) o fonksiyonun ÇAĞIRDIKLARINI görmez. PL/pgSQL
+gövdesi düz metindir. `trg_tasks_validate_linked_fks` "RAISE yok" ölçüldü;
+gerçekte RAISE alt fonksiyondaydı ve trigger satırı gerçekten reddediyordu.
+Bu oturumda "şu fonksiyon tenant kontrolü yapıyor mu / rol geçidi var mı"
+sorularının hepsi aynı zaafı taşıyor.
+
+**`pg_depend` bunu çözmez** — Postgres, PL/pgSQL gövdesindeki fonksiyon
+çağrılarını bağımlılık olarak kaydetmez. Çağrı grafiği oradan çıkarılamaz.
+
+### Yapılacak: her kategoride TAM sayım, sonra repo ile diff
+
+```sql
+-- fonksiyonlar (repo'da 18 tane var; fark = repo-dışı)
+select p.proname, p.pronargs, length(p.prosrc) as uzunluk, md5(p.prosrc) as md5
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' order by p.proname;
+```
+
+Aynısı tablolar, policy'ler, trigger'lar, index'ler ve constraint'ler için.
+Tanımı gereği eksiksiz olur; çağrı grafiği çıkarmaya gerek kalmaz.
+
+**Faz 2'nin "envanter tamam" iddiası bu sayım yapılana kadar güvenilir
+değildir.**
+
+---
+
 ## qa:static Kural Adayı — Ölü Bileşen Tespiti (2026-08-10)
 
 B batch'i sırasında `NewCompanyModal`'ın bir mock kalıntısı olduğu ortaya çıktı:
