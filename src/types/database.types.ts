@@ -803,6 +803,43 @@ export interface Database {
           { foreignKeyName: "critical_dates_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+
+      // ---------------------------------------------------------------------
+      // announcements — Batch 10 Phase 2 Dashboard "Duyurular"
+      // ---------------------------------------------------------------------
+      // Mirrors `supabase/migrations/20260827000100_create_announcements.sql`.
+      // One-directional, yonetici-authored. NOT chat, NOT inbox: no reply, no
+      // reaction, no recipient, no read-state, no company scope.
+      //
+      // There is deliberately NO `updated_at` and NO update path — the
+      // migration ships no UPDATE policy, so RLS denies edits by default. The
+      // `Update` type below is intentionally empty so tsc refuses an edit call
+      // too, instead of letting one compile and fail at runtime.
+      // ---------------------------------------------------------------------
+      announcements: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          body: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          // REQUIRED — same reason as critical_dates above: the production
+          // INSERT policy carries a tenant condition and the column is NOT
+          // NULL with no DEFAULT. Server-resolved, never from a client payload.
+          tenant_id: string;
+          body: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        // No edit path by design — see the note above.
+        Update: Record<string, never>;
+        Relationships: [
+          { foreignKeyName: "announcements_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       // ---------------------------------------------------------------------
       // partner_company_assignments — Faz 1A partner-scope source
       // ---------------------------------------------------------------------
@@ -1161,6 +1198,11 @@ export type DocumentUpdate = Database["public"]["Tables"]["documents"]["Update"]
 export type CriticalDateRow = Database["public"]["Tables"]["critical_dates"]["Row"];
 export type CriticalDateInsert = Database["public"]["Tables"]["critical_dates"]["Insert"];
 export type CriticalDateUpdate = Database["public"]["Tables"]["critical_dates"]["Update"];
+
+// No `AnnouncementUpdate` alias on purpose — announcements have no edit path
+// (no UPDATE policy in the migration, empty Update type).
+export type AnnouncementRow = Database["public"]["Tables"]["announcements"]["Row"];
+export type AnnouncementInsert = Database["public"]["Tables"]["announcements"]["Insert"];
 
 export type PartnerCompanyAssignmentRow =
   Database["public"]["Tables"]["partner_company_assignments"]["Row"];

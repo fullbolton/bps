@@ -14,6 +14,7 @@ import {
   Megaphone,
   Eye,
   Clock,
+  Trash2,
 } from "lucide-react";
 import {
   PageHeader,
@@ -21,6 +22,7 @@ import {
   ContractExpiryCard,
   RiskBadge,
   EmptyState,
+  ModalShell,
 } from "@/components/ui";
 import AsyncSection from "@/components/ui/AsyncSection";
 import {
@@ -32,14 +34,23 @@ import type { ContractRow, DocumentRow } from "@/types/database.types";
 import type { ExpiringContract } from "@/components/ui/ContractExpiryCard";
 import type { EvrakDurumu } from "@/types/ui";
 import { clsx } from "clsx";
+import { formatDateTR } from "@/lib/format-date";
 import { useRole } from "@/context/RoleContext";
 import { listAllCriticalDates } from "@/lib/services/critical-dates";
+import {
+  listRecentAnnouncements,
+  ANNOUNCEMENT_MAX_LENGTH,
+} from "@/lib/services/announcements";
+import {
+  createAnnouncementAction,
+  deleteAnnouncementAction,
+} from "./actions";
 import {
   CRITICAL_DATE_TYPE_LABELS,
   computeRemainingDays as computeDeadlineRemaining,
   deriveDeadlineStatus,
 } from "@/lib/critical-date-types";
-import type { CriticalDateRow } from "@/types/database.types";
+import type { CriticalDateRow, AnnouncementRow } from "@/types/database.types";
 import { generateHotelEmailDraft, type HotelEmailContext } from "@/lib/draft-hotel-email";
 import {
   SURFACE_PRIMARY,
@@ -168,6 +179,11 @@ export default function DashboardPage() {
   // deadline-ascending read so the most urgent items show first.
   const [criticalDates, setCriticalDates] = useState<CriticalDateRow[]>([]);
 
+  // Duyurular — real `announcements` truth (Batch 10 Phase 2). Tenant-scoped
+  // by RLS, newest first, capped at ANNOUNCEMENT_STRIP_LIMIT by the service.
+  // One-directional: nothing here replies, reacts, or marks as read.
+  const [announcements, setAnnouncements] = useState<AnnouncementRow[]>([]);
+
   const [signalsLoading, setSignalsLoading] = useState(true);
 
   // Per-section error flags. Replaces the previous silent
@@ -182,6 +198,7 @@ export default function DashboardPage() {
     documents: boolean;
     riskyCompanies: boolean;
     criticalDates: boolean;
+    announcements: boolean;
   }>({
     tasks: false,
     demands: false,
@@ -189,11 +206,19 @@ export default function DashboardPage() {
     documents: false,
     riskyCompanies: false,
     criticalDates: false,
+    announcements: false,
   });
 
   // Bumped by the "Tekrar dene" button in the error branch to re-fire
   // the data-loading useEffect without restructuring the fetch.
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Duyuru compose/remove state. yonetici-only surfaces; the DB refuses
+  // anyone else regardless of what the UI shows.
+  const [announceOpen, setAnnounceOpen] = useState(false);
+  const [announceText, setAnnounceText] = useState("");
+  const [announceSaving, setAnnounceSaving] = useState(false);
+  const [announceError, setAnnounceError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -204,6 +229,7 @@ export default function DashboardPage() {
     let contractsCatchError = false;
     let documentsCatchError = false;
     let criticalDatesCatchError = false;
+    let announcementsCatchError = false;
     (async () => {
       const supabase = createClient();
       // Oturum sahibinin id'si — "bana atanan" daraltmasının anahtarı.
@@ -223,6 +249,7 @@ export default function DashboardPage() {
         allContractRows,
         allDocumentRows,
         allCriticalDateRows,
+        recentAnnouncements,
       ] = await Promise.all([
         // companies: fetch id+name+risk+legacy_mock_id. Single query
         // covers the Toplam Firma KPI (count via data.length), the
@@ -277,6 +304,14 @@ export default function DashboardPage() {
           console.error("[dashboard] listAllCriticalDates:", err);
           criticalDatesCatchError = true;
           return [] as CriticalDateRow[];
+        }),
+        // Duyurular — tenant-scoped under RLS, newest first. Same explicit
+        // failure capture as the readers above: an unreadable strip must not
+        // render as "no announcements".
+        listRecentAnnouncements(supabase).catch((err) => {
+          console.error("[dashboard] listRecentAnnouncements:", err);
+          announcementsCatchError = true;
+          return [] as AnnouncementRow[];
         }),
       ]);
       if (cancelled) return;
@@ -432,6 +467,7 @@ export default function DashboardPage() {
       setEksikEvraklar(mappedEksikEvraklar);
       setRiskyCompanies(mappedRiskyCompanies);
       setCriticalDates(allCriticalDateRows);
+      setAnnouncements(recentAnnouncements);
       // Surface per-section reader failures explicitly. Supabase
       // direct queries expose `.error` on the response object; service
       // readers were instrumented above with their `.catch` arm.
@@ -442,6 +478,7 @@ export default function DashboardPage() {
         documents: documentsCatchError,
         riskyCompanies: companiesRes.error !== null,
         criticalDates: criticalDatesCatchError,
+        announcements: announcementsCatchError,
       });
       setSignalsLoading(false);
     })();
@@ -454,6 +491,41 @@ export default function DashboardPage() {
   // Re-fires the load `useEffect` by bumping the dependency. Cheap and
   // consistent across cards; no per-card refetch wiring.
   const handleRetry = () => setRefreshKey((k) => k + 1);
+
+  // --- Duyuru write handlers ------------------------------------------------
+  // Both go through server actions: `announcements.tenant_id` is server-
+  // resolved and can never come from a client payload. After a successful
+  // write the existing refreshKey mechanism re-fires the load effect — no
+  // separate refetch wiring, and the strip re-reads through RLS.
+
+  async function handleCreateAnnouncement() {
+    if (announceSaving) return;
+    const body = announceText.trim();
+    if (body.length === 0) {
+      setAnnounceError("Duyuru metni bos olamaz.");
+      return;
+    }
+    setAnnounceSaving(true);
+    setAnnounceError(null);
+    const result = await createAnnouncementAction({ body });
+    setAnnounceSaving(false);
+    if (!result.ok) {
+      setAnnounceError(result.error);
+      return;
+    }
+    setAnnounceText("");
+    setAnnounceOpen(false);
+    setRefreshKey((k) => k + 1);
+  }
+
+  async function handleDeleteAnnouncement(id: string) {
+    const result = await deleteAnnouncementAction(id);
+    if (!result.ok) {
+      console.error("[dashboard] deleteAnnouncementAction:", result.error);
+      return;
+    }
+    setRefreshKey((k) => k + 1);
+  }
 
   async function handleGenerateDraft() {
     // Real workforce_summary + companies. RLS on both tables auto-scopes
@@ -847,14 +919,79 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Duyurular — management priority strip, hidden for muhasebe */}
+        {/* Duyurular — Batch 10 Phase 2 management-announcement strip on real
+            `announcements` truth. One-directional by design: no reply, no
+            reaction, no read-state. Compose/remove are yonetici-only here, and
+            RLS refuses everyone else regardless of what this renders.
+
+            Still hidden for muhasebe, preserving the behaviour that shipped.
+            NOTE: CHANGELOG.md:96 records this strip as "visible to all roles"
+            while ROLE_MATRIX.md:351 says announcement-style surfaces must not
+            default to management-wide visibility. Three sources disagree; the
+            code keeps its existing behaviour and the contradiction is recorded
+            in TASK_ROADMAP as a docs decision rather than being silently
+            resolved here. */}
         {role !== "muhasebe" && (
           <div className={CARD}>
-            <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
-              <Megaphone size={12} />
-              Duyurular
-            </h3>
-            <EmptyState title="Duyuru akışı henüz bağlı değil." size="card" />
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5`}>
+                <Megaphone size={12} />
+                Duyurular
+              </h3>
+              {role === "yonetici" && (
+                <button
+                  type="button"
+                  onClick={() => { setAnnounceText(""); setAnnounceError(null); setAnnounceOpen(true); }}
+                  className={`${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
+                >
+                  Duyuru Ekle
+                </button>
+              )}
+            </div>
+            <AsyncSection
+              isLoading={signalsLoading}
+              hasError={signalErrors.announcements}
+              onRetry={handleRetry}
+            >
+              {announcements.length === 0 ? (
+                <EmptyState title="Henüz duyuru yok." size="card" />
+              ) : (
+                <div className="space-y-0">
+                  {announcements.map((a, idx) => (
+                    <div
+                      key={a.id}
+                      className={clsx("py-2.5", idx < announcements.length - 1 && LIST_DIVIDER)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>
+                            {a.body}
+                          </p>
+                          {/* created_at is a timestamptz; formatDateTR only
+                              parses YYYY-MM-DD, so the date part is sliced off
+                              first. Passing the raw value would render a
+                              mangled string without erroring. */}
+                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                            {formatDateTR(a.created_at.slice(0, 10))}
+                          </p>
+                        </div>
+                        {role === "yonetici" && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAnnouncement(a.id)}
+                            aria-label="Duyuruyu kaldır"
+                            title="Duyuruyu kaldır"
+                            className={`${TEXT_MUTED} hover:text-red-600 flex-shrink-0 transition-colors`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </AsyncSection>
           </div>
         )}
 
@@ -868,6 +1005,58 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Duyuru compose modal — yonetici-only. Uses the shared ModalShell so
+          Escape handling matches the rest of the app (topmost modal only). */}
+      <ModalShell
+        open={announceOpen}
+        onClose={() => { if (!announceSaving) setAnnounceOpen(false); }}
+        title="Yeni Duyuru"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setAnnounceOpen(false)}
+              disabled={announceSaving}
+              className={`${TYPE_BODY} ${TEXT_BODY} px-3 py-1.5 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-50`}
+            >
+              Vazgeç
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateAnnouncement}
+              disabled={announceSaving || announceText.trim().length === 0}
+              className={`${TYPE_BODY} px-3 py-1.5 ${RADIUS_SM} bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50`}
+            >
+              {announceSaving ? "Kaydediliyor…" : "Yayınla"}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-2">
+          <textarea
+            value={announceText}
+            onChange={(e) => setAnnounceText(e.target.value)}
+            maxLength={ANNOUNCEMENT_MAX_LENGTH}
+            rows={4}
+            placeholder="Duyuru metni"
+            className={`w-full border ${BORDER_DEFAULT} ${RADIUS_SM} px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}
+          />
+          <div className="flex items-center justify-between">
+            {/* Announcements cannot be edited after publishing — delete is the
+                only correction path, so the cost of a typo is stated up front. */}
+            <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>
+              Yayınlanan duyuru düzenlenemez, yalnızca kaldırılabilir.
+            </p>
+            <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>
+              {announceText.trim().length}/{ANNOUNCEMENT_MAX_LENGTH}
+            </p>
+          </div>
+          {announceError && (
+            <p className={`${TYPE_CAPTION} text-red-600`}>{announceError}</p>
+          )}
+        </div>
+      </ModalShell>
 
       {/* Morning hotel email draft modal */}
       {draftOpen && (

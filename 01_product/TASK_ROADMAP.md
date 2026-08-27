@@ -726,6 +726,40 @@ KPI rol-farkında hale getirilmeli.
 
 ---
 
+## Duyurular Görünürlüğü — Üç Kaynak Üç Şey Söylüyor (2026-08-27)
+
+Batch 10 Phase 2 Duyurular şeridi gerçek truth'a bağlanırken çıktı: aynı
+görünürlük sorusuna üç ayrı kaynak üç farklı cevap veriyor.
+
+| Kaynak | Ne diyor |
+|---|---|
+| `dashboard/page.tsx` | Şerit `muhasebe`'ye **gizli** (`role !== "muhasebe"`) |
+| `CHANGELOG.md:96` | Batch 10 Phase 2 "**visible to all roles**" olarak kapandı |
+| `ROLE_MATRIX.md:351` | "duyuru benzeri yüzeyler … **yönetim geneli görünürlük otomatik açılmamalıdır**" |
+
+Üçü aynı anda doğru olamaz. `ROLE_MATRIX` ile kod aynı yöne bakıyor
+(varsayılan geniş görünürlük yok), `CHANGELOG` tek başına ayrı düşüyor.
+
+**Bu tur ne yapıldı:** hiçbiri. Kod mevcut davranışını korudu
+(`muhasebe`'ye gizli), RLS ise geniş bırakıldı — `announcements_select`
+prod `critical_dates` deseninin birebir aynısı, altı rol + tenant. Yani
+görünürlük kararı UI katmanında duruyor, DB'ye taşınmadı. Bu bilinçli:
+görünürlük bir docs kararı, DDL kararı değil, ve DDL'e gömülürse Step 3'ün
+rol yeniden-yazımında ikinci kez çözülmesi gerekirdi.
+
+**Karara bağlanacak:** üç kaynaktan hangisi düzeltilecek. Seçenekler
+birbirini dışlıyor — ya `CHANGELOG.md:96` koda göre düzeltilir
+(`muhasebe` hariç), ya kod `CHANGELOG`'a göre açılır ve o zaman
+`ROLE_MATRIX.md:351`'in "otomatik açılmaz" maddesine karşı açık bir
+gerekçe yazılır.
+
+**Not:** bu Bildirimler (C) kararından bağımsız. C hâlâ Batch 10'un üç
+closeout kaydındaki "notification/push/badge introduced değil" ifadesinin
+açıkça geri alınmasını gerektiriyor; Duyurular'ın truth'a bağlanması o
+kararı ne değiştirir ne de ima eder.
+
+---
+
 ## Lint Yok — Açık Karar (2026-08-10)
 
 `npm run lint` bu projede çalışmıyor: ESLint kurulu değil, config dosyası yok,
