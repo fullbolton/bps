@@ -726,6 +726,39 @@ KPI rol-farkında hale getirilmeli.
 
 ---
 
+## k) Rol-bazlı smoke YAPILAMIYOR — seed hesaplarla oturum açılamıyor (2026-08-27)
+
+Duyurular smoke'unda çıktı: 5 maddeden ikisi (`operasyon` şeridi görür ama
+yazamaz · `muhasebe`'de kart hiç yok) **canlıda denenemedi**, çünkü seed
+hesaplara (`@bps.local`) oturum açılamıyor. Kodda ve RLS'te doğrulanmış
+durumda, canlıda değil.
+
+**Bu boşluk Duyurular'a özgü değil ve asıl maliyeti orada da değil.**
+`yonetici` dışındaki hiçbir rolün gerçek davranışı canlıda gözlenemiyor.
+Bugüne kadar bu tolere edilebilirdi çünkü rol koşulları tek tek ve küçüktü.
+
+**Step 3 bunu tolere edemez.** Step 3 rol modelini 6 → 4'e indiriyor ve
+politikaları tek seferde yeniden yazıyor (durable disabled state, profiles
+tenant üyeliği, task write bypass, Tenant Part B — dördü aynı politikalara
+dokunuyor). O yeniden yazımın doğruluğu **yalnız** rol bazlı canlı gözlemle
+kanıtlanabilir: `operasyon` gerçekten yalnız kendine atanan görevleri mi
+görüyor, `muhasebe` finansal dışında neyi görüyor, emekli hesap gerçekten
+kapalı mı. Bunların hiçbiri kod okumasıyla kapanmaz — bugün tam da bu
+yüzden "kodda doğru, canlıda denenmedi" yazmak zorunda kaldık.
+
+**Yapılacak (Step 3 BAŞLAMADAN önce):** her rol için oturum açılabilir bir
+test hesabı. Seed hesapların neden giriş yapamadığı ölçülmeli (parola mı
+kurulmamış, e-posta doğrulaması mı bekliyor, auth'ta karşılığı mı yok) —
+ölçülmeden çözüm seçilmemeli.
+
+**Not:** `goruntuleyici` için bu ayrıca kritik. Rol modeli kararında o rolün
+hiçbir yere eşlenemediği ve rolde bırakmanın hesabı KAPATMADIĞI kayıtlı
+(`tasks_insert`/`tasks_update`'te `goruntuleyici → then true`). Erişimi kesen
+tek şey auth ban. Ban'ın gerçekten kestiğini canlıda görmeden CONTRACT
+adımına geçilmemeli.
+
+---
+
 ## Duyurular Görünürlüğü — Üç Kaynak Üç Şey Söylüyor (2026-08-27)
 
 Batch 10 Phase 2 Duyurular şeridi gerçek truth'a bağlanırken çıktı: aynı
