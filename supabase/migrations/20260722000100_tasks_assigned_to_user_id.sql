@@ -21,7 +21,7 @@
 -- ON DELETE SET NULL: removing a profile must not delete work history; the task
 -- survives and simply becomes unassigned.
 --
--- ⚠ WRITTEN BUT NOT APPLIED. Additive and safe on its own (nullable column
+-- ✅ APPLIED 2026-08-10, ledger repaired. Additive and safe on its own (nullable column
 --    plus an index, no policy or constraint change).
 --
 -- ⚠⚠ DEPLOY ORDER IS NOT OPTIONAL: APPLY THIS *BEFORE* DEPLOYING THE CODE.

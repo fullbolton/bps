@@ -38,7 +38,7 @@
 -- fonksiyon + aynı adla trigger (paylaşılan tek fonksiyon DEĞİL — ev
 -- konvansiyonu bu).
 --
--- ⚠ WRITTEN BUT NOT APPLIED.
+-- ✅ APPLIED 2026-08-27, ledger repaired. Verified: both triggers BEFORE + enabled.
 -- ==========================================================================
 
 

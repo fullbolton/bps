@@ -26,7 +26,7 @@
 --    and is the smallest way to fix the defect, but the underlying gap —
 --    production schema that lives nowhere as code — is not addressed here.
 --
--- ⚠ WRITTEN BUT NOT APPLIED.
+-- ✅ APPLIED 2026-08-10, ledger repaired.
 --
 -- ⚠⚠ RUN THIS FILE IN ONE GO — do not paste it into the SQL editor in pieces.
 --    PART 2 drops each unique index before recreating it. Executed as a
