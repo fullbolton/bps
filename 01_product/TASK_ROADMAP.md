@@ -726,36 +726,51 @@ KPI rol-farkında hale getirilmeli.
 
 ---
 
-## k) Rol-bazlı smoke YAPILAMIYOR — seed hesaplarla oturum açılamıyor (2026-08-27)
+## k) Rol-bazlı smoke — engel altyapıda değil, parolalarda (2026-08-27)
 
-Duyurular smoke'unda çıktı: 5 maddeden ikisi (`operasyon` şeridi görür ama
-yazamaz · `muhasebe`'de kart hiç yok) **canlıda denenemedi**, çünkü seed
-hesaplara (`@bps.local`) oturum açılamıyor. Kodda ve RLS'te doğrulanmış
-durumda, canlıda değil.
+Duyurular smoke'unda 5 maddeden ikisi (`operasyon` şeridi görür ama yazamaz ·
+`muhasebe`'de kart hiç yok) canlıda denenemedi. İlk teşhis "seed hesaplarla
+oturum açılamıyor" idi ve üç hipotez kuruldu: parola kurulmamış ·
+`email_confirmed_at` null + Confirm email açık · `banned_until` dolu.
 
-**Bu boşluk Duyurular'a özgü değil ve asıl maliyeti orada da değil.**
-`yonetici` dışındaki hiçbir rolün gerçek davranışı canlıda gözlenemiyor.
-Bugüne kadar bu tolere edilebilirdi çünkü rol koşulları tek tek ve küçüktü.
+**ÖLÇÜLDÜ — üçü de elendi. Hesaplar sağlam:**
 
-**Step 3 bunu tolere edemez.** Step 3 rol modelini 6 → 4'e indiriyor ve
-politikaları tek seferde yeniden yazıyor (durable disabled state, profiles
-tenant üyeliği, task write bypass, Tenant Part B — dördü aynı politikalara
-dokunuyor). O yeniden yazımın doğruluğu **yalnız** rol bazlı canlı gözlemle
-kanıtlanabilir: `operasyon` gerçekten yalnız kendine atanan görevleri mi
-görüyor, `muhasebe` finansal dışında neyi görüyor, emekli hesap gerçekten
-kapalı mı. Bunların hiçbiri kod okumasıyla kapanmaz — bugün tam da bu
-yüzden "kodda doğru, canlıda denenmedi" yazmak zorunda kaldık.
+| hesap | confirmed | banned | parola | son giriş | rol |
+|---|---|---|---|---|---|
+| `yonetici@bps.local` | ✅ | — | var | 2026-04-05 | yonetici |
+| `satis@bps.local` | ✅ | — | var | 2026-04-05 | partner |
+| `operasyon@bps.local` | ✅ | — | var | 2026-04-04 | operasyon |
+| `muhasebe@bps.local` | ✅ | — | var | 2026-04-05 | muhasebe |
+| `ik@bps.local` | ✅ | — | var | 2026-04-05 | ik |
+| `goruntuleyici@bps.local` | ✅ | — | var | 2026-05-21 | goruntuleyici |
+| `furkanyahsi@partnerstaff…` | ✅ | — | var | 2026-08-16 | yonetici |
 
-**Yapılacak (Step 3 BAŞLAMADAN önce):** her rol için oturum açılabilir bir
-test hesabı. Seed hesapların neden giriş yapamadığı ölçülmeli (parola mı
-kurulmamış, e-posta doğrulaması mı bekliyor, auth'ta karşılığı mı yok) —
-ölçülmeden çözüm seçilmemeli.
+`auth.users` = 7 · `profiles` = 7, tam eşleşme (FK zaten garantiliyordu:
+`profiles.id references auth.users(id)`). **Altısı da daha önce giriş yapmış** —
+yani hesaplar çalışıyor, altyapıda kırık yok.
 
-**Not:** `goruntuleyici` için bu ayrıca kritik. Rol modeli kararında o rolün
-hiçbir yere eşlenemediği ve rolde bırakmanın hesabı KAPATMADIĞI kayıtlı
-(`tasks_insert`/`tasks_update`'te `goruntuleyici → then true`). Erişimi kesen
-tek şey auth ban. Ban'ın gerçekten kestiğini canlıda görmeden CONTRACT
-adımına geçilmemeli.
+**Gerçek sebep: parolalar bilinmiyor.** Kod veya DB tarafında düzeltilecek
+hiçbir şey yok. (k) bir altyapı işi değil, bir erişim işi.
+
+**Yapılacak:** altı rol hesabının parolası temin edilir ya da Supabase
+Dashboard'dan geçici parola atanır. Sonrası doğrudan smoke.
+
+**Step 3 için anlamı — ilk sanılandan iyi.** Step 3 altı rolü dörde indirip
+politikaları tek seferde yeniden yazıyor; doğruluğu yalnız rol-bazlı canlı
+gözlemle kanıtlanabilir (`operasyon` gerçekten yalnız kendine atanan görevleri
+mi görüyor · `muhasebe` finansal dışında neyi görüyor · emekli hesap gerçekten
+kapalı mı). Bunun için gereken altyapı **zaten var ve çalışıyor**; tek eksik
+parola. En keskin ucu `goruntuleyici`: hiçbir hedef role eşlenemiyor, rolde
+bırakmak hesabı KAPATMIYOR (`tasks_insert`/`tasks_update` → `then true`),
+erişimi kesen tek şey auth ban — ve o hesabın 21 Mayıs'ta giriş yapabildiği
+artık ölçülmüş durumda. Ban'ın gerçekten kestiği görülmeden CONTRACT adımına
+geçilmemeli.
+
+**Yöntem notu.** İlk teşhis ("oturum açılamıyor") bir gözlemdi, sebep değil;
+üç hipotez ondan türetildi ve üçü de yanlıştı. Ölçüm yine de boşa gitmedi —
+hesapların Step 3 smoke'una hazır olduğunu kanıtladı. Ders: belirti ile sebebi
+ayır, ve belirtiyi aktarırken bilinen kısıtı (bu vakada "parolalar bende yok")
+baştan söyle.
 
 ---
 

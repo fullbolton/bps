@@ -58,6 +58,13 @@ function LoginForm() {
     });
 
     if (authError) {
+      // The message shown to the user stays deliberately generic — it must not
+      // reveal whether an account exists (enumeration). The real reason goes to
+      // the console only: `email_not_confirmed`, `invalid_credentials` and
+      // `user_banned` are indistinguishable on screen, and a smoke round was
+      // spent narrowing them by hand (2026-08-27) before the answer turned out
+      // to be a forgotten password.
+      console.error("[login] signInWithPassword:", authError.message);
       setError("Giriş başarısız. E-posta veya şifre hatalı.");
       setLoading(false);
       return;
