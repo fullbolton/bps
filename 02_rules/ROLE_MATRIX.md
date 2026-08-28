@@ -348,7 +348,12 @@ Pratik karşılıklar:
 - operasyon için yetkili erişimi, yalnızca telefon ve e-posta gibi operasyonel koordinasyon gereken temel iletişim alanlarını güncelleme yetkisidir
 - `ik` için personel talebi görüntüleme `Firma bağlamında salt okunur` olarak tanımlanır; bu yalnızca Firma Detay > Talepler sekmesi bağlamında salt okunur erişim anlamına gelir, ana Talepler sayfasına erişim vermez
 - `ik` için görev erişimi sınırlıdır: oluşturma ve durum değiştirme yapabilir, mevcut görevlerde atanan kişiyi değiştiremez
-- gelecekte announcement / duyuru benzeri yüzeyler tanımlanırsa varsayılan görünürlük rol ve bağlam ilgili olmalı; yönetim geneli görünürlük otomatik açılmamalıdır
+- **erişim ifadeleri KATMAN belirtmek zorundadır.** "Tüm roller görür" tek başına eksik bir cümledir: RLS için doğru olup UI için yanlış olabilir. Bir yüzeyin görünürlüğü yazılırken hangi katmanın kastedildiği açıkça söylenir — `RLS: …` ve `UI: …` ayrı ayrı. Kural yalnız yazım disiplini değil: katman belirtilmeyen bir ifade, UI'ın RLS'ten dar olduğu her yerde iki farklı okumaya açık kalır ve ikisi de metne dayanabilir. (Kaynak vaka: Duyurular, 2026-08-27 — aşağıda.)
+- **Duyurular (Dashboard) görünürlüğü — katman katman:**
+  - **RLS:** altı rol de okur (`yonetici`, `operasyon`, `ik`, `muhasebe`, `goruntuleyici`, `partner`), tenant sınırı içinde. Prod ölçümüyle doğrulandı; emsali `critical_dates_select` ile birebir aynı. Yazma (`INSERT`/`DELETE`) yalnız `yonetici`. `UPDATE` policy'si yok — düzenleme DB sınırında kapalı.
+  - **UI:** `muhasebe`'ye Duyurular kartı **gösterilmez**. Bu bir **ürün kararıdır, güvenlik kararı değildir** — `muhasebe` finansal yüzeyle sınırlı bir bakım aktörü, duyuru ise operasyonel sinyal. RLS'i daraltmakla değil, kartı render etmemekle uygulanır.
+  - İkisi bilerek ayrışıktır: güvenlik sınırı RLS'te, ürün kararı UI'da. Ürün kararı değişirse RLS'e dokunulmaz.
+- gelecekte announcement / duyuru benzeri yüzeyler tanımlanırsa varsayılan görünürlük rol ve bağlam ilgili olmalı; yönetim geneli görünürlük otomatik açılmamalıdır — bu madde **UI katmanı** hakkındadır; RLS'in geniş okuma vermesi bu maddeye aykırı değildir
 - `Finansal Özet` şirket geneli management-wide visibility olarak yönetici yüzeyidir; **partner için portföyle sınırlı finansal görünürlük HOLD'dur (read-only kalırsa Faz B), aktif değildir** ve hiçbir durumda global finans ekranına dönüşmez
 
 ---

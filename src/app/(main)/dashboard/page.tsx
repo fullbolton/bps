@@ -924,13 +924,13 @@ export default function DashboardPage() {
             reaction, no read-state. Compose/remove are yonetici-only here, and
             RLS refuses everyone else regardless of what this renders.
 
-            Still hidden for muhasebe, preserving the behaviour that shipped.
-            NOTE: CHANGELOG.md:96 records this strip as "visible to all roles"
-            while ROLE_MATRIX.md:351 says announcement-style surfaces must not
-            default to management-wide visibility. Three sources disagree; the
-            code keeps its existing behaviour and the contradiction is recorded
-            in TASK_ROADMAP as a docs decision rather than being silently
-            resolved here. */}
+            Hidden for muhasebe — and that hiding lives ONLY here. RLS lets all
+            six roles read announcements within the tenant (measured in prod,
+            identical to critical_dates_select); muhasebe is filtered out at the
+            UI because announcements are an operational signal and muhasebe is
+            scoped to the financial surface. Product decision, not a security
+            one: if it is ever reversed, this condition goes away and no policy
+            changes. See ROLE_MATRIX.md for the layer-by-layer rule. */}
         {role !== "muhasebe" && (
           <div className={CARD}>
             <div className="flex items-center justify-between mb-3">

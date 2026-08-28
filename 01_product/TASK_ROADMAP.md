@@ -390,7 +390,9 @@ Scope completed:
 - `Phase 2`
   - Dashboard-only `Duyurular` section
   - yonetici-authored announcements
-  - visible to all roles
+  - visible to all roles **at the RLS layer** (six roles read within the tenant); the UI
+    does not render the card for `muhasebe` — a product decision, not a security one.
+    Recorded without the layer split at the time; corrected 2026-08-27, behaviour unchanged.
   - compact one-directional management-announcement strip
   - local demo state only
 
@@ -774,37 +776,54 @@ baştan söyle.
 
 ---
 
-## Duyurular Görünürlüğü — Üç Kaynak Üç Şey Söylüyor (2026-08-27)
+## Duyurular Görünürlüğü — Çelişki Değilmiş, Katman Belirsizliğiymiş (2026-08-27)
 
-Batch 10 Phase 2 Duyurular şeridi gerçek truth'a bağlanırken çıktı: aynı
-görünürlük sorusuna üç ayrı kaynak üç farklı cevap veriyor.
+İlk teşhis "üç kaynak üç şey söylüyor, biri düzeltilmeli" idi. **Yanlış
+çerçeveleme.** Prod ölçümü şunu gösterdi:
 
-| Kaynak | Ne diyor |
+```
+announcements_select  → muhasebe VAR
+critical_dates_select → muhasebe VAR   (emsal tutarlı)
+```
+
+RLS `muhasebe`'ye okuma **veriyor**. Gizleme yalnızca UI'da. Yani kod ile RLS
+arasında bir çelişki hiç yoktu — o ayrım bilinçliydi (güvenlik sınırı RLS'te,
+ürün kararı UI'da).
+
+**Gerçek kusur: hiçbir ifade hangi katmanı tarif ettiğini söylemiyordu.**
+"Tüm roller görür" cümlesi RLS için DOĞRU, UI için YANLIŞ — ve katman
+yazılmadığı için ikisi de metne dayanabiliyordu. Üç kaynağın hiçbiri yanlış
+değildi; üçü de eksikti.
+
+**Çözüm — üçü de katman belirtilerek yazıldı, davranış değişmedi:**
+
+| Katman | Kural |
 |---|---|
-| `dashboard/page.tsx` | Şerit `muhasebe`'ye **gizli** (`role !== "muhasebe"`) |
-| `CHANGELOG.md:96` | Batch 10 Phase 2 "**visible to all roles**" olarak kapandı |
-| `ROLE_MATRIX.md:351` | "duyuru benzeri yüzeyler … **yönetim geneli görünürlük otomatik açılmamalıdır**" |
+| **RLS** | altı rol okur (`muhasebe` dahil), tenant sınırı içinde; yazma yalnız `yonetici`; `UPDATE` policy'si yok |
+| **UI** | `muhasebe`'ye kart gösterilmez — **ürün kararı**, güvenlik kararı değil |
+| **Gerekçe** | `muhasebe` finansal yüzeyle sınırlı bakım aktörü; duyuru operasyonel sinyal |
 
-Üçü aynı anda doğru olamaz. `ROLE_MATRIX` ile kod aynı yöne bakıyor
-(varsayılan geniş görünürlük yok), `CHANGELOG` tek başına ayrı düşüyor.
+Kalıcı kural `ROLE_MATRIX.md`'ye yazıldı: erişim ifadeleri katman belirtmek
+zorundadır. Ürün kararı ileride değişirse RLS'e dokunulmaz — kart render
+edilir, o kadar.
 
-**Bu tur ne yapıldı:** hiçbiri. Kod mevcut davranışını korudu
-(`muhasebe`'ye gizli), RLS ise geniş bırakıldı — `announcements_select`
-prod `critical_dates` deseninin birebir aynısı, altı rol + tenant. Yani
-görünürlük kararı UI katmanında duruyor, DB'ye taşınmadı. Bu bilinçli:
-görünürlük bir docs kararı, DDL kararı değil, ve DDL'e gömülürse Step 3'ün
-rol yeniden-yazımında ikinci kez çözülmesi gerekirdi.
+### Aynı belirsizlik başka yerde var mı — tarandı, kapandı
 
-**Karara bağlanacak:** üç kaynaktan hangisi düzeltilecek. Seçenekler
-birbirini dışlıyor — ya `CHANGELOG.md:96` koda göre düzeltilir
-(`muhasebe` hariç), ya kod `CHANGELOG`'a göre açılır ve o zaman
-`ROLE_MATRIX.md:351`'in "otomatik açılmaz" maddesine karşı açık bir
-gerekçe yazılır.
+`00_core`, `01_product`, `02_rules` içinde "tüm roller / all roles / hiçbir rol"
+taraması yapıldı. Üç aday çıktı, ikisi elendi:
 
-**Not:** bu Bildirimler (C) kararından bağımsız. C hâlâ Batch 10'un üç
-closeout kaydındaki "notification/push/badge introduced değil" ifadesinin
-açıkça geri alınmasını gerektiriyor; Duyurular'ın truth'a bağlanması o
-kararı ne değiştirir ne de ima eder.
+- `REVIEW_STANDARD.md:78` ("no role silently gains new power") — kural cümlesi,
+  bir yüzeyin erişim tarifi değil. Yanlış pozitif.
+- `SCREEN_SPEC.md:13` + `CHANGELOG.md:74` (Kritik Tarihler, "all roles …
+  yonetici-only create/edit") — katman yazılmamış ama **zararsız**, çünkü orada
+  UI ile RLS aynı şeyi söylüyor: `kurumsal-tarihler/page.tsx:52`'deki
+  `isYonetici` yalnız yazmayı gate'liyor, okumayı değil.
+
+**Taramanın verdiği kural:** katman belirsizliği ancak **UI, RLS'ten dar
+olduğunda** zarara dönüşür. Duyurular'da öyleydi; Kritik Tarihler'de değil. Bu
+yüzden ayrı bir açık kalem açılmadı — bugün itibarıyla ayrışan tek yüzey
+Duyurular ve o da katmanlı yazıldı. Yeni bir yüzey UI'ı RLS'ten daraltırsa
+`ROLE_MATRIX` kuralı zaten devrede.
 
 ---
 
