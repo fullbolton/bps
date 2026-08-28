@@ -131,7 +131,7 @@ Direct UI-to-database access is forbidden. Every data flow passes through the se
 | `operasyon` | Operational execution | Talep, iş gücü, görev, evrak, randevu. No finance, no settings. |
 | `ik` | Document compliance | Evraklar (full), İş Gücü (read), Görevler (limited). No commercial access. |
 | `muhasebe` | Financial summary maintenance | Finansal Özet (full upload/review/confirm), Ticari Özet (read-only). No operations. |
-| `goruntuleyici` | Bounded read-only | All visible surfaces, zero mutation capability. |
+| `goruntuleyici` | Bounded read-only | Dashboard, firma listesi, firma detayında bounded read-only, kurumsal kritik tarihler, duyurular. **NOT all surfaces** — sözleşme, talep, iş gücü, görev ve evrak okuması yoktur (ROLE_MATRIX §4, RLS'te de böyle uygulanmış). Zero mutation capability. |
 
 ### Authorization Logic
 - `partner` sees ONLY assigned portfolio companies — enforced by RLS

@@ -328,9 +328,17 @@ Aşağıdaki tablo ürün seviyesinde önerilen başlangıç yetkilerini göster
 | Finansal Özet özet veri bakımı (yükle/incele/onayla) | Evet | Hayır | Hayır | Hayır | Evet | Hayır |
 | Kurumsal Kritik Tarihler görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Evet | Evet | Evet | Evet |
 | Kurumsal Kritik Tarihler oluşturma / düzenleme | Evet | Hayır | Hayır | Hayır | Hayır | Hayır |
+| Duyuru görüntüleme (Dashboard şeridi) | Evet | HOLD (read-only kalırsa Faz B) | Evet | Evet | **RLS Evet / UI Hayır** | Evet |
+| Duyuru yayınlama / kaldırma | Evet | Hayır | Hayır | Hayır | Hayır | Hayır |
 | Rapor görüntüleme | Evet | HOLD (read-only kalırsa Faz B) | Sınırlı | Yalnızca iş gücü | Riskli firma + partner özet | Sınırlı |
 | Ayarlar erişimi | Evet | Hayır | Hayır | Hayır | Hayır | Hayır |
 | Kullanıcı / rol yönetimi | Evet | Hayır | Hayır | Hayır | Hayır | Hayır |
+
+> **Duyuru görüntüleme — `muhasebe` hücresi neden çift değer taşıyor (2026-08-27):** RLS altı rolün de
+> okumasına izin verir; UI kartı `muhasebe`'ye render etmez. Bu bir **ürün kararıdır, güvenlik kararı
+> değildir** — `muhasebe` finansal yüzeyle sınırlı bir bakım aktörü, duyuru ise operasyonel sinyal. Karar
+> tersine dönerse yalnız UI koşulu kalkar, hiçbir policy değişmez. Tablodaki diğer hücreler için böyle bir
+> ayrım yoktur: onlarda RLS ile UI aynı şeyi söyler. Ayrıntı için §5'teki katman kuralı.
 
 > **Partner sütunu (2026-06-04):** Tüm `HOLD` hücreleri partner FROZEN/HOLD kararı gereğidir — aktif yetki değildir, koda uygulanmaz. **Contact create + Yetkili Ekle current truth = yönetici-only (Patch 2 `dace43d`).** `HOLD (read-only kalırsa Faz B)` işaretli satırların read-only olarak partner'a açık kalıp kalmayacağı Faz B kararıdır. `Kurumsal Kritik Tarihler görüntüleme` partner hücresi de `HOLD (read-only kalırsa Faz B)` yapılmıştır — frozen matris içinde **canlı partner istisnası bırakılmamıştır**. Partner'ın zaten `Hayır` olduğu satırlar (Finansal Özet bakımı, Kritik Tarih oluşturma, Ayarlar, Kullanıcı/rol) değişmemiştir.
 

@@ -807,6 +807,48 @@ Kalıcı kural `ROLE_MATRIX.md`'ye yazıldı: erişim ifadeleri katman belirtmek
 zorundadır. Ürün kararı ileride değişirse RLS'e dokunulmaz — kart render
 edilir, o kadar.
 
+### İkinci tarama: 19 tablonun SELECT rol kapsamı (prod, tam sayım)
+
+Katman kuralı yazıldıktan sonra bütün SELECT policy'lerinin rol kapsamı tek tek
+sayıldı. Üç aday çelişki çıktı; **ikisi ölçümde eridi.**
+
+| Aday | Sonuç |
+|---|---|
+| (1) `muhasebe` ↔ duyuru | **Gerçekti**, katman belirsizliğiydi — yukarıda kapandı |
+| (2) `goruntuleyici` ↔ ROLE_MATRIX | **Çelişki DEĞİL** — aşağıya bak |
+| (3) `profiles` rol koşulsuz | **Çelişki DEĞİL**, ama altında başka bir şey var — aşağıya bak |
+
+**(2) `goruntuleyici` yalnız 3 tablo okuyor — ve bu doğru.**
+Okuyabildikleri: `companies`, `critical_dates`, `announcements`. İlk okuma bunu
+"ROLE_MATRIX bounded read-only diyor ama RLS hiçbir şey göstermiyor" diye
+çerçeveledi. **ROLE_MATRIX §4 tam tersini söylüyor:** sözleşme görüntüleme
+`Hayır` · personel talebi `Hayır` · aktif iş gücü `Hayır` · görev `Hayır` ·
+evrak `Hayır`; dashboard ve firma listesi `Evet`. RLS bunu birebir uyguluyor, ve
+`create_contracts.sql:11` kısıtı zaten "Per ROLE_MATRIX.md §4 … ik /
+goruntuleyici hayır" diye gerekçelendiriyor.
+
+Yanlış olan üst kaynak değil, **özeti**: `CLAUDE.md` rol tablosu bunu "all
+visible surfaces" diye yazıyordu — o dosya kendi başında "sits BELOW all of the
+above" dediği halde bir tur boyunca çelişki sanıldı. Düzeltildi (2026-08-27).
+**Açık kalem açılmadı: ortada uyumsuzluk yok.**
+
+**(3) `profiles` ve `sector_templates` rol koşulu taşımıyor — ikisi de bilinçli.**
+`sector_templates` bir sözlük tablosu (8 seed satır, hassas veri yok).
+`profiles_select_authenticated` `using (true)` ve gerekçesi migration yorumunda
+yazılı: not/görev/randevu kayıtlarını yazar adıyla göstermek için her
+authenticated kullanıcı profilleri okuyabilmeli.
+
+**Ama asıl mesele rol değil, tenant.** `profiles`'ta `tenant_id` yok; okuma
+rol-koşulsuz olduğu için değil, **tenant-koşulsuz** olduğu için kapsamsız. Bu
+zaten kayıtlı: Step 3 (b) "profiles'a tenant üyeliği + picker'ı kapsamlama", ve
+G3 gate'inin neden makine kontrolü değil insan beyanı olduğunun da sebebi bu.
+**Yeni kalem açılmadı — mevcut Step 3 (b) kalemi doğru yeri zaten tarif ediyor.**
+
+**Bu turun yöntem çıktısı:** üç "çelişki"den biri gerçekti. Diğer ikisi,
+kaynağın kendisi değil onun bir özeti ya da bir yan özelliği okunarak
+üretilmişti. Bir çelişki iddiası da en az bir ölçüm iddiası kadar
+doğrulanmak zorunda.
+
 ### Aynı belirsizlik başka yerde var mı — tarandı, kapandı
 
 `00_core`, `01_product`, `02_rules` içinde "tüm roller / all roles / hiçbir rol"
