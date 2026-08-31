@@ -813,10 +813,14 @@ sahip kolonu eklenirse bildirim `owner` stratejisine geçmelidir — `tasks`'ta
 
 ### o) `contract_expiry_emails_sent` emekli, düşürülmedi
 
-Defter `notification_log`'a taşındı. Eski tablo 0 satır taşıyordu ve flag hiç
-açılmadı, yani taşınacak geçmiş yoktu. Tablo yine de DROP edilmedi: drop geri
-alınamaz ve "0 satır" ölçümü tek bir oturumda alındı. Düşürülmesi ayrı ve
-bilinçli bir karar.
+Defter `notification_log`'a taşındı. Damgalar migration içindeki
+`ON CONFLICT DO NOTHING` backfill'i ile taşınır — **kaç satır olduğundan
+bağımsız olarak**, çünkü sayı hâlâ kesin değil: bir prod raporu `0` dedi,
+`CHANGELOG.md:38` `2` diyor. Apply anındaki ölçüm `eski=0 / yeni=0` çıktı ama
+bu tek bir andır, çelişkiyi kapatmaz — karar zaten sayıdan bağımsız kuruldu.
+
+Tablo DROP edilmedi: drop geri alınamaz ve yanlış taraftaysak veri gider.
+Düşürülmesi ayrı ve bilinçli bir karar.
 
 ### p) Günlük/haftalık özet (digest) — hâlâ bloklu
 
@@ -858,7 +862,14 @@ gömmek olurdu.
 
 `contract_expiry` **değişmedi**: partner'a gitmesi daha önce kabul edilmiş,
 yaşayan bir istisna. Bir istisnanın varlığı yeni bir yüzeyi aynı role otomatik
-açmaz — bu ayrım koda da yazıldı (`includePartners` bayrağı).
+açmaz — bu ayrım koda yazıldı (`includePartners`).
+
+**Codex 3. tur düzeltmesi:** bayrak ilk hâlde yalnız appointment tarafında
+tüketiliyordu. Contract yolu kendi hard-coded akışını kullanıyor, ayrıca
+`partner_company_assignments` sorgusu bayrağa bakmadan koşuyordu. Davranış
+güvenliydi ama **"istisna bayrakla taşınıyor" iddiası doğru değildi** — yorum
+doğruydu, kod değildi. İki yol da artık bayrağı okuyor ve bayrak `false`'a
+çekilirse ilgili sorgular hiç koşmuyor.
 
 **Partner HOLD'dan çıkarsa** üçü birden yeniden değerlendirilir ve o gün
 `current_user_has_company_scope` eşleniği bir kontrolle gelir.
@@ -927,7 +938,8 @@ niyet beyanıdır, çalışan davranış değil.
 
 ### v) Cron sessiz başarısızlık — `errors` doluyken HTTP 200
 
-`contract_expiry_emails_sent` 4 ay boyunca flag AÇIKKEN sıfır satır taşıdı.
+`contract_expiry_emails_sent` flag AÇIK olduğu söylenen dört ay boyunca sıfır
+satır taşıdı (apply anında da 0 ölçüldü).
 Kodda bunu açıklayan yol bulundu:
 
 ```

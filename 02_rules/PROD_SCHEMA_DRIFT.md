@@ -39,7 +39,7 @@ yanlış sonuca götürür:
 
 | Kategori | 10 Ağustos | 27 Ağustos | Sebep |
 |---|---:|---:|---|
-| Prod tablo | 21 | **23** | `announcements` (repo'dan) + `notification_log` (repo'dan, uygulanmayı bekliyor) |
+| Prod tablo | 21 | **23** | `announcements` (repo'dan) + `notification_log` (repo'dan, **uygulandı 2026-08-27**) |
 | Repo tablo | 17 | **19** | aynı ikisi |
 | Trigger | 14 | **16** | `documents_set_updated_at` + `critical_dates_set_updated_at` (repo'dan, `20260810000200`) |
 

@@ -91,7 +91,12 @@ export async function loadTenantScope(
       loaded && (byTenant.get(tenantId)?.has(profileId) ?? false),
   };
 
-  return { scope, error: error ? `tenant_memberships fetch failed: ${error.message}` : undefined };
+  return {
+    scope,
+    error: error
+      ? `tenant_memberships fetch failed: ${error.message}`
+      : undefined,
+  };
 }
 
 /** Aynı kişi iki yoldan gelebilir (hem yönetici hem atanmış partner). */
@@ -111,7 +116,11 @@ export async function fetchProfilesByRoles(
     .select("id, email, display_name, role")
     .in("role", roles as UserRole[]);
 
-  if (error) return { rows: [], error: `profiles(${roles.join(",")}) fetch failed: ${error.message}` };
+  if (error)
+    return {
+      rows: [],
+      error: `profiles(${roles.join(",")}) fetch failed: ${error.message}`,
+    };
   return { rows: (data ?? []).filter(hasEmail) };
 }
 
@@ -126,7 +135,11 @@ export async function fetchProfilesByIds(
     .select("id, email, display_name, role")
     .in("id", ids);
 
-  if (error) return { byId: new Map(), error: `profiles by id fetch failed: ${error.message}` };
+  if (error)
+    return {
+      byId: new Map(),
+      error: `profiles by id fetch failed: ${error.message}`,
+    };
   return { byId: new Map((data ?? []).filter(hasEmail).map((p) => [p.id, p])) };
 }
 
@@ -149,44 +162,55 @@ export async function resolveCompanyRecipients(
   const yonetici = await fetchProfilesByRoles(client, ["yonetici"]);
   if (yonetici.error) errors.push(yonetici.error);
 
-  const { data: pcaRows, error: pcaError } = await client
-    .from("partner_company_assignments")
-    .select("partner_user_id, company_id")
-    .in("company_id", companyIds);
-  if (pcaError) errors.push(`partner_company_assignments fetch failed: ${pcaError.message}`);
-
   const partnerIdsByCompany = new Map<string, Set<string>>();
   const allPartnerIds = new Set<string>();
-  for (const row of pcaRows ?? []) {
-    let set = partnerIdsByCompany.get(row.company_id);
-    if (!set) {
-      set = new Set<string>();
-      partnerIdsByCompany.set(row.company_id, set);
+
+  // Atama sorgusu da bayrağa TABİ. İlk hâlde yalnız profil sorgusu gate'liydi
+  // ve bu, "partner'ı dışarıda bırakan çağrılar için sorgu hiç koşmaz"
+  // yorumunu yanlış kılıyordu — yorum doğruydu, kod değildi.
+  if (opts.includePartners) {
+    const { data: pcaRows, error: pcaError } = await client
+      .from("partner_company_assignments")
+      .select("partner_user_id, company_id")
+      .in("company_id", companyIds);
+    if (pcaError)
+      errors.push(
+        `partner_company_assignments fetch failed: ${pcaError.message}`,
+      );
+
+    for (const row of pcaRows ?? []) {
+      let set = partnerIdsByCompany.get(row.company_id);
+      if (!set) {
+        set = new Set<string>();
+        partnerIdsByCompany.set(row.company_id, set);
+      }
+      set.add(row.partner_user_id);
+      allPartnerIds.add(row.partner_user_id);
     }
-    set.add(row.partner_user_id);
-    allPartnerIds.add(row.partner_user_id);
   }
 
   let partnerById = new Map<string, RecipientRow>();
-  // Partner'ı dışarıda bırakan çağrılar için atama sorgusu hiç koşmaz —
   // partner'ın okuma görünürlüğü ROLE_MATRIX'te HOLD ve her yüzey ona
   // açılmaz (bkz. notification-kinds.ts, appointment_reminder notu).
-  if (opts.includePartners && allPartnerIds.size > 0) {
+  if (allPartnerIds.size > 0) {
     const { data: partnerRows, error: partnerError } = await client
       .from("profiles")
       .select("id, email, display_name, role")
       .in("id", Array.from(allPartnerIds))
       .eq("role", "partner");
-    if (partnerError) errors.push(`partner profiles fetch failed: ${partnerError.message}`);
-    partnerById = new Map((partnerRows ?? []).filter(hasEmail).map((p) => [p.id, p]));
+    if (partnerError)
+      errors.push(`partner profiles fetch failed: ${partnerError.message}`);
+    partnerById = new Map(
+      (partnerRows ?? []).filter(hasEmail).map((p) => [p.id, p]),
+    );
   }
 
   for (const companyId of companyIds) {
     const partners = !opts.includePartners
       ? []
       : Array.from(partnerIdsByCompany.get(companyId) ?? [])
-      .map((pid) => partnerById.get(pid))
-      .filter((r): r is RecipientRow => r !== undefined);
+          .map((pid) => partnerById.get(pid))
+          .filter((r): r is RecipientRow => r !== undefined);
     byCompany.set(companyId, dedupeRecipients([...yonetici.rows, ...partners]));
   }
 

@@ -282,9 +282,14 @@ async function collectDocumentExpiry(
  * Yarınki ziyaretler.
  *
  * `appointments` tablosunda sorumlu kolonu YOK (ölçüldü) — kayıttan bir sahip
- * çıkarılamıyor. Bu yüzden alıcı firma tarafı: `yonetici` + o firmanın
- * `partner`'ları, yani `contract_expiry` ile aynı strateji. Randevuya gerçek
- * bir sahip kolonu eklenirse bu `owner` stratejisine geçmelidir.
+ * çıkarılamıyor. Bu yüzden alıcı firma tarafı: **yalnız `yonetici`.**
+ *
+ * `contract_expiry` ile aynı strateji AMA aynı alıcı kümesi DEĞİL: orada
+ * partner da var, burada yok (`includePartners: false`). Partner'ın okuma
+ * görünürlüğü ROLE_MATRIX'te HOLD; contract-expiry'nin partner'a gitmesi
+ * kabul edilmiş yaşayan bir istisna ve bir istisna yeni bir yüzeyi aynı role
+ * otomatik açmaz. Randevuya gerçek bir sahip kolonu eklenirse strateji
+ * `owner`'a geçmelidir.
  */
 async function collectAppointmentReminder(
   client: Client,
@@ -442,7 +447,11 @@ async function sendGrouped(
     // 3. Gönderim başarısız — bu mailin BÜTÜN damgalarını geri al, yoksa
     //    kalemler "gönderildi" görünür ve bir daha hiç denenmez.
     result.mailsFailed++;
-    result.errors.push(`send failed (${kind} → ${recipient.email}): ${send.error ?? "unknown"}`);
+    // Adres DEĞİL, profil id. Bu dizinin tamamı cron uçunda `console.error`
+    // ile Vercel loglarına yazılıyor; e-posta adresi oraya düşmemeli.
+    // `recipient.id` korelasyon için yeterli — kim olduğu `profiles`'tan
+    // bakılır, log tek başına kişisel veri taşımaz.
+    result.errors.push(`send failed (${kind} → profile ${recipient.id}): ${send.error ?? "unknown"}`);
     for (const item of stamped) {
       const rb = await rollbackStamp(client, {
         kind,

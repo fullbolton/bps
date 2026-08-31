@@ -43,7 +43,10 @@ import type { UserRole } from "@/context/AuthContext";
 import { computeRemainingDays } from "@/lib/services/contracts";
 import { sendEmail } from "./resend-transport";
 import { stampNotification, rollbackStamp } from "./notification-log";
-import { NOTIFICATION_THRESHOLDS } from "@/lib/notification-kinds";
+import {
+  NOTIFICATION_THRESHOLDS,
+  NOTIFICATION_RECIPIENTS,
+} from "@/lib/notification-kinds";
 import { loadTenantScope } from "./notification-recipients";
 
 type AdminClient = SupabaseClient<Database>;
@@ -121,7 +124,10 @@ export async function runContractExpiryRecallBatch(
 
   const fromAddress =
     process.env.BPS_EMAIL_FROM ?? "BPS Bildirim <bildirim@bpsys.net>";
-  const appUrl = (process.env.BPS_APP_URL ?? "https://bpsys.net").replace(/\/$/, "");
+  const appUrl = (process.env.BPS_APP_URL ?? "https://bpsys.net").replace(
+    /\/$/,
+    "",
+  );
 
   // 1. Fetch candidate contracts — active, non-null end_date. The date
   //    window is filtered client-side because Postgres can't compute
@@ -146,7 +152,11 @@ export async function runContractExpiryRecallBatch(
     const remaining = computeRemainingDays(c.end_date, now);
     if (remaining === null) continue;
     if (remaining < 0 || remaining > CONTRACT_EXPIRY_THRESHOLD_DAYS) continue;
-    candidates.push({ contract: c, companyName: "—", remainingDays: remaining });
+    candidates.push({
+      contract: c,
+      companyName: "—",
+      remainingDays: remaining,
+    });
     companyIds.add(c.company_id);
   }
 
@@ -189,26 +199,41 @@ export async function runContractExpiryRecallBatch(
   );
 
   // 4. Pre-fetch partner assignments keyed by company.
-  const { data: pcaRows, error: pcaError } = await client
-    .from("partner_company_assignments")
-    .select("partner_user_id, company_id")
-    .in("company_id", Array.from(companyIds));
-
-  if (pcaError) {
-    result.errors.push(`partner_company_assignments fetch failed: ${pcaError.message}`);
-    return result;
-  }
+  //
+  //    Partner dahil edilip edilmeyeceği `NOTIFICATION_RECIPIENTS` üzerinden
+  //    OKUNUR, burada sabitlenmez. contract_expiry partner'a giden TEK tiptir
+  //    ve bu yaşayan, kabul edilmiş bir istisnadır — ama istisnanın nerede
+  //    olduğu tek yerden görülmeli. Bayrak `false`'a çekilirse bu sorgular hiç
+  //    koşmaz ve alıcı listesi yalnız yönetici kalır; kod değişikliği gerekmez.
+  const ceStrategy = NOTIFICATION_RECIPIENTS.contract_expiry;
+  const includePartners =
+    ceStrategy.mode === "company" ? ceStrategy.includePartners : false;
 
   const partnerIdsByCompany = new Map<string, Set<string>>();
   const allPartnerIds = new Set<string>();
-  for (const row of pcaRows ?? []) {
-    let set = partnerIdsByCompany.get(row.company_id);
-    if (!set) {
-      set = new Set<string>();
-      partnerIdsByCompany.set(row.company_id, set);
+
+  if (includePartners) {
+    const { data: pcaRows, error: pcaError } = await client
+      .from("partner_company_assignments")
+      .select("partner_user_id, company_id")
+      .in("company_id", Array.from(companyIds));
+
+    if (pcaError) {
+      result.errors.push(
+        `partner_company_assignments fetch failed: ${pcaError.message}`,
+      );
+      return result;
     }
-    set.add(row.partner_user_id);
-    allPartnerIds.add(row.partner_user_id);
+
+    for (const row of pcaRows ?? []) {
+      let set = partnerIdsByCompany.get(row.company_id);
+      if (!set) {
+        set = new Set<string>();
+        partnerIdsByCompany.set(row.company_id, set);
+      }
+      set.add(row.partner_user_id);
+      allPartnerIds.add(row.partner_user_id);
+    }
   }
 
   // 5. Resolve partner profiles (filter by role = 'partner' as a
@@ -224,7 +249,9 @@ export async function runContractExpiryRecallBatch(
       .eq("role", "partner");
 
     if (partnerError) {
-      result.errors.push(`partner profiles fetch failed: ${partnerError.message}`);
+      result.errors.push(
+        `partner profiles fetch failed: ${partnerError.message}`,
+      );
       return result;
     }
     partnerProfileById = new Map(
@@ -252,7 +279,9 @@ export async function runContractExpiryRecallBatch(
   const { scope, error: scopeError } = await loadTenantScope(client);
   if (scopeError) result.errors.push(scopeError);
   if (!scope.loaded) {
-    result.errors.push("tenant scope unavailable — hiç mail gönderilmedi (fail-closed)");
+    result.errors.push(
+      "tenant scope unavailable — hiç mail gönderilmedi (fail-closed)",
+    );
     return result;
   }
 
@@ -326,7 +355,7 @@ export async function runContractExpiryRecallBatch(
         result.recipientsFailed++;
         pushError(
           result,
-          `send failed for contract ${c.contract.id} / ${recipient.email}: ${send.error ?? "unknown"}`,
+          `send failed for contract ${c.contract.id} / profile ${recipient.id}: ${send.error ?? "unknown"}`,
         );
         continue;
       }
