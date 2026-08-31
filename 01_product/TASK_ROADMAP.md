@@ -776,6 +776,226 @@ baştan söyle.
 
 ---
 
+## Bildirimler B (e-posta) — açık kalemler (2026-08-27)
+
+Batch 10'un "notification/push/badge yok" kararının **yalnız e-posta kısmı**
+geri alındı. Push, badge ve uygulama içi bildirim merkezi kapalı — A aşaması.
+Uygulama sırası: **B (e-posta) → C (dashboard sinyalleri) → A (in-app merkez)**.
+
+### l) `tasks.due_date` `text`, `date` olmalı
+
+Gecikme bildirimi bu kolonu karşılaştırmak zorunda ama kolon herhangi bir metni
+tutabiliyor. Kod tarafına `isIsoDate` süzgeci konuldu: ISO olmayan değer
+karşılaştırmaya girmiyor, **atlanıyor**. Bu bir siper, çözüm değil — süzgece
+takılan bir satır sessizce bildirilmez.
+
+Dönüşüm ayrı bir kalem: `date`'e almak veri dönüşümü + form + servis + tip
+değişikliği demek, ve mevcut satırların hepsinin ISO olduğu doğrulanmalı.
+
+### m) `gecikti` statüsünü yazan otomatik bir mekanizma yok
+
+Ölçüldü: `tasks.due_date` uygulamada hiçbir yerde karşılaştırılmıyor, yani
+`gecikti` yalnız elle set ediliyor olabilir. Bildirim bu yüzden **iki kaynağı
+birden** kullanıyor: `status = 'gecikti'` VEYA (`acik`/`devam_ediyor` + termin
+geçmiş). Tek başına statüye bakılsaydı, kimse elle işaretlemedikçe hiç bildirim
+çıkmazdı.
+
+Asıl soru açık: gecikme bir **türetme** mi olmalı (statü hiç yazılmaz, her yerde
+`due_date`'ten hesaplanır) yoksa bir **statü** mü (bir yerde otomatik yazılır)?
+İkisi bir arada bugün tutarlı ama iki truth'a yakın duruyor.
+
+### n) `appointments` tablosunda sorumlu kolonu yok
+
+`appointment_reminder` bu yüzden kayıttan bir sahip çıkaramıyor ve firma
+tarafına düşüyor (`yonetici` + o firmanın `partner`'ları). Randevuya gerçek bir
+sahip kolonu eklenirse bildirim `owner` stratejisine geçmelidir — `tasks`'ta
+`assigned_to_user_id` ile yapılanın aynısı.
+
+### o) `contract_expiry_emails_sent` emekli, düşürülmedi
+
+Defter `notification_log`'a taşındı. Eski tablo 0 satır taşıyordu ve flag hiç
+açılmadı, yani taşınacak geçmiş yoktu. Tablo yine de DROP edilmedi: drop geri
+alınamaz ve "0 satır" ölçümü tek bir oturumda alındı. Düşürülmesi ayrı ve
+bilinçli bir karar.
+
+### p) Günlük/haftalık özet (digest) — hâlâ bloklu
+
+Bu turda yapılan gruplama **tip içinde** kalır: bir alıcı bir tipten günde en
+fazla bir mail alır. Digest ise tipleri **tek** mailde birleştirir ve
+`TASK_ROADMAP`'te Contract Expiry canlı pilotuna sıralama-bloklu duruyor. Bu
+tur o kararı ne verdi ne de ima etti.
+
+### r) Codex C/FAIL turu — dördü düzeltildi, ikisi benim ölçüm hatamdı
+
+İlk teslim Codex'ten **C / FAIL** aldı. Dört must-fix'in ikisi doğrudan yanlış
+ölçümdü:
+
+| Bulgu | Sonuç |
+|---|---|
+| `contracts`/`tasks`'ta DELETE policy yok iddiası | **YANLIŞTI.** `grep "FOR DELETE"` case-sensitive'di; dosyaların çoğu `for delete` yazıyor. Tam sayım: **12 tabloda** DELETE policy var (`tasks:96`, `contracts:295` dahil). Gerekçe düzeltildi — karar değişmedi, çünkü zararsızlık silinebilirlikten değil defterin append-only doğasından geliyor |
+| "eski tabloda 0 satır" iddiası | **Tek rapora dayanıyordu**, ve `CHANGELOG.md:38` tersini söylüyor ("2 satır, 23505 doğru skip etti"). Çözüm sayımı doğrulamak değil, **karara sayımı gereksiz kılmak**: migration'a `ON CONFLICT DO NOTHING` backfill'i eklendi — satır varsa taşınır, yoksa no-op |
+| `isIsoDate` gevşek | **Doğru.** `Date.parse("2026-02-30")` NaN değil, sessizce `2026-03-02` üretiyor (ölçüldü). Round-trip karşılaştırması eklendi |
+| `task_overdue` yetki genişletiyor | **Doğru ve kendi kuralımın ihlali.** `assigned_to_user_id` herhangi bir profili gösterebilir; `muhasebe`/`goruntuleyici` bir kullanıcıya atanmış görev, onun açamayacağı bir kaydı maille anlatırdı. `TASK_READABLE_ROLES` kapısı eklendi, okuyamayan atanan → yönetici yedeği |
+
+### s) `partner` bildirimlerin DIŞINDA — kapatılmış boşluk, açık ürün kararı
+
+İlk hâlde `partner` `TASK_READABLE_ROLES` içindeydi ve boşluk "teorik" sayılmıştı
+("atama zaten portföy içinden yapılır"). **Üç ölçüm bunu çürüttü** (Codex 2. tur):
+
+- Tenant üyeliği filtresi tenant'ı doğrular, `partner_company_assignments`'ı
+  **doğrulamaz** — partner'ın o görevin firmasına atanmış olduğu hiçbir yerde
+  kontrol edilmiyordu.
+- Assignee picker'ın tenant/firma kapsamsız olduğu zaten kayıtlı (Step 3 b),
+  yani portföy dışı atama gerçekten mümkün.
+- **FROZEN/HOLD olmak e-posta teslimatını durdurmaz.** Login gate'i ne yaparsa
+  yapsın, cron o adrese mail atar.
+
+**Karar: `partner` çıkarıldı** — hem `task_overdue`'dan hem
+`appointment_reminder`'dan. Scope kontrolü yazmak alternatifti; seçilmedi,
+çünkü `ROLE_MATRIX` §4'te partner'ın **bütün** hücreleri `HOLD` ve aktif yetkisi
+olmayan bir rol için portföy altyapısı yazmak, verilmemiş bir ürün kararını koda
+gömmek olurdu.
+
+`contract_expiry` **değişmedi**: partner'a gitmesi daha önce kabul edilmiş,
+yaşayan bir istisna. Bir istisnanın varlığı yeni bir yüzeyi aynı role otomatik
+açmaz — bu ayrım koda da yazıldı (`includePartners` bayrağı).
+
+**Partner HOLD'dan çıkarsa** üçü birden yeniden değerlendirilir ve o gün
+`current_user_has_company_scope` eşleniği bir kontrolle gelir.
+
+Pratik sonuç: partner'a atanmış geciken görev sahipsiz muamelesi görür ve
+yöneticiye bildirilir. İş görünmez olmaz, yalnız doğru kişiye gider.
+
+### t) İki `dedupeRecipients` farklı davranıyor
+
+`contract-expiry-email.ts` alıcıları **e-posta adresine** göre tekilleştiriyor,
+paylaşılan `notification-recipients.ts` ise **profil id'sine** göre. Aynı
+adresi paylaşan iki profil, ilkinde bir mail alır, ikincisinde iki.
+
+Bugün fark üretmiyor (paylaşılan adres yok) ama iki ayrı doğru davranış
+tanımlıymış gibi duruyor. Birleştirme, contract-expiry akışının refactor'ünü
+gerektirdiği için bu turda yapılmadı — kasıtlı, kayıtlı.
+
+### Ops kapıları ve CUTOVER SIRASI (B canlıya çıkmadan)
+
+**Sıra keyfî değil.** Naif sıra ("migration → deploy") bir pencere bırakıyor:
+migration uygulandıktan sonra ama deploy'dan önce ESKİ cron çalışırsa, yeni
+damgayı ESKİ tabloya yazar. Backfill o anın fotoğrafını çektiği için o damga
+yeni deftere geçmez ve ileride **duplicate mail** üretir. (Codex bulgusu,
+2026-08-27.)
+
+Pencere yalnız eski flag açıkken gerçek — bugün kapalı — ama sıra ona
+güvenmemeli, doğrulamalı.
+
+```
+1. Eski flag'i KAPAT:   BPS_CONTRACT_EXPIRY_EMAIL_ENABLED = (unset ya da "false")
+2. DOĞRULA: cron'u elle tetikle → cevap {ok:true, skipped:true} olmalı.
+   Skip görülmeden ilerlenmez — "kapalı sanıyorduk" bir ölçüm değildir.
+3. Migration'ı uygula (tablo + backfill).
+4. DOĞRULA: select count(*) from contract_expiry_emails_sent;      → E
+            select count(*) from notification_log
+             where kind = 'contract_expiry';                        → N
+   N >= E olmalı. N < E ise backfill eksik kalmıştır, DEPLOY ETME.
+5. Deploy et. Yeni flag KAPALI: BPS_NOTIFICATION_EMAILS_ENABLED unset.
+   Bu adımda eski cron yolu kodda artık YOK (route silindi, vercel.json yeni
+   yolu gösteriyor) — yani 1-2 penceresi kapanmış olur.
+6. DOĞRULA: yeni cron'u elle tetikle → {ok:true, skipped:true}.
+7. Ancak bundan sonra: BPS_NOTIFICATION_EMAILS_ENABLED = "true".
+```
+
+4. adımdaki iki sayı, tabloda kaç satır olduğu tartışmasını da kapatır — bugün
+iki kaynak çelişiyor (bir prod raporu "0", `CHANGELOG.md:38` "2 satır" diyor) ve
+backfill kararı bilerek bu sayıdan bağımsız kuruldu.
+
+**Ortak ops kapıları** (Contract Expiry'den devralındı): Resend hesabı ·
+`bpsys.net` üzerinde DKIM/SPF/DMARC · `CRON_SECRET` · `BPS_EMAIL_FROM` ·
+migration prod'da. `BPS_CONTRACT_EXPIRY_EMAIL_ENABLED` artık okunmuyor.
+
+### u) Feature flag değişimi + redeploy AYRILMAZ İKİLİ
+
+Ölçüldü (2026-08-27): `BPS_CONTRACT_EXPIRY_EMAIL_ENABLED` Vercel'de değiştirildi
+ama **çalışan deployment eski değeri taşımaya devam etti.** Redeploy şarttı ve
+yapıldı.
+
+Bu, bugün kapatılan başka bir sınıfın kardeşi: `updated_at` kolonu trigger'ıyla
+birlikte gelmeliydi; flag da redeploy'uyla birlikte. **Yarısını yapmak, işi
+yapmış görünüp yapmamaktır** — ve ikisinde de arıza sessizdir, hata vermez.
+
+**Kural:** bir flag değiştirildikten sonra, o flag'in yeni değerini okuyan bir
+koşu görülmeden değişiklik "uygulandı" sayılmaz. Env panelindeki değer bir
+niyet beyanıdır, çalışan davranış değil.
+
+### v) Cron sessiz başarısızlık — `errors` doluyken HTTP 200
+
+`contract_expiry_emails_sent` 4 ay boyunca flag AÇIKKEN sıfır satır taşıdı.
+Kodda bunu açıklayan yol bulundu:
+
+```
+stamp atılır → sendEmail ok:false → stamp ROLLBACK → net sonuç 0 satır
+```
+
+`sendEmail`, `RESEND_API_KEY` yoksa **fırlatmaz**, `{ok:false}` döner
+(`resend-transport.ts:51`). Hata `result.errors`'a yazılır, cron `console.error`
+ile loglar — **ama HTTP 200 döner.** Vercel cron paneli "başarılı" gösterir ve
+Hobby planında log saklanmadığı için hiçbir iz kalmaz.
+
+Yedi erken `return` yolunun hepsi de damga atmadan çıkar (contracts fetch ·
+pencere boş · companies · yonetici · partner assignments · partner profiles).
+Yani boş tablo tek başına "hiç çalışmadı" demek DEĞİL.
+
+**Kapatıldı (kısmen):** yeni cron ucu, hiç mail gönderilmediği HÂLDE hata
+varsa artık **HTTP 500** döner. Kısmi başarı 200 kalır — bir tip düştü diye
+tümü başarısız sayılmaz. Bu, "hepsi başarısız" durumunu Vercel'in başarısızlık
+sinyaline bağlar.
+
+**Açık kalan:** hata sayısı/nedeni hâlâ yalnız logda. Kalıcı çözüm bir koşu
+özeti kaydı olurdu (`notification_log`'a değil, ayrı bir çalıştırma defterine) —
+bu B'nin kapsamı değil, C ya da sonrası.
+
+**⚠ Bu soru CEVAPLANMADAN yeni flag AÇILMAMALI.** Migration apply güvenli
+(backfill 0 satırda no-op), ama flag açılırsa aynı sessizlik dört tipte birden
+tekrarlanabilir. Ayırt edici ölçüm: Vercel'de `RESEND_API_KEY` tanımlı mı ·
+`select id, status, end_date, (end_date::date - current_date) from contracts`
+ile pencerede `aktif` sözleşme var mıydı.
+
+### w) Çalıştığını görebilmek, çalışmasından ayrı bir gereksinim
+
+Cron [Run] ile tetiklendiğinde Vercel'de yalnız `GET · 200 · /api/cron/...`
+satırı kalıyor — **response gövdesi loglanmıyor.** Eski uç hiç `console.log`
+yazmadığı için cron'un ne yaptığı ancak DB'den dolaylı okunabiliyordu: "0 satır
+var, demek ki skip etti" gibi bir çıkarım, ölçüm değil.
+
+`u)` ve `v)` ile aynı aile:
+- **u)** flag değişti ama çalışan deployment eskisini taşıyor
+- **v)** hata var ama HTTP 200 dönüyor
+- **w)** koşu oldu ama ne yaptığı görünmüyor
+
+Üçünde de arıza sessiz ve üçü de "yaptım" ile "yaptığı görüldü" arasındaki
+farktan doğuyor.
+
+**Kapatıldı:** yeni uç üç noktada log yazıyor — koşu başlangıcı (`RUN START`),
+tip başına özet (`found/sent/skipped/cross_tenant_dropped/failed`) ve **skip
+yolu** (`SKIPPED — flag not true`). Skip logu özellikle önemliydi: bugün
+doğrulanan davranış tam olarak oydu ve logda hiç görünmedi.
+
+**Açık kalan:** Hobby planında runtime log saklama süresi çok kısa; bugün 05:30
+koşusunun logu erişilemedi. Log yazmak, logun SAKLANDIĞI anlamına gelmez. Kalıcı
+çözüm bir koşu özeti kaydı (DB'de ayrı bir çalıştırma defteri) — B'nin kapsamı
+değil, C ya da sonrası.
+
+### q) Tenant kapsamı `tenant_memberships`'e bağlı — repo dışı bir tabloya
+
+Bildirim alıcıları `tenant_memberships` üzerinden tenant'a daraltılıyor, çünkü
+`profiles`'ta `tenant_id` YOK. Bu tablo repo migration'larında yaratılmıyor
+(`PROD_SCHEMA_DRIFT.md`), yani **sıfırdan kurulan bir ortamda daraltma
+çalışmaz** — kod fail-closed davranır ve hiç mail göndermez, ama bu bir çözüm
+değil bir siper.
+
+Kalıcı çözüm Step 3 (b): `profiles`'a tenant üyeliği. O geldiğinde bu bağımlılık
+kalkar ve alıcı sorguları doğrudan tenant filtreleyebilir.
+
+---
+
 ## Duyurular Görünürlüğü — Çelişki Değilmiş, Katman Belirsizliğiymiş (2026-08-27)
 
 İlk teşhis "üç kaynak üç şey söylüyor, biri düzeltilmeli" idi. **Yanlış
