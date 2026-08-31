@@ -137,6 +137,74 @@ Fail signs:
 
 ---
 
+### 9. Measurement Discipline Check
+
+Every claim in a review — including the reviewer's own — has to be traceable to
+something that was actually run. This section exists because five distinct
+failures of this kind were recorded in a single day (2026-08-27), and four of
+them passed type-checking, `grep`, and a green test suite before being caught.
+
+**The five recognised shapes:**
+
+1. **A body search does not see what a function calls.** `prosrc ilike '%raise%'`
+   reported "no RAISE"; the `RAISE` lived in a nested function and the trigger
+   really was rejecting rows. PL/pgSQL bodies are plain text and `pg_depend`
+   does not record calls.
+2. **A substring match on an identifier conflates different variables.** A search
+   for `company_id IS NULL` matched `v_contract_company_id` instead of
+   `p_expected_company_id` — and produced the opposite conclusion.
+3. **A naive text replacement mutates the wrong occurrence.** `replace(...,1)`
+   hit the wrong one of five identical guards; a `.update(` search mutated a
+   comment. Two rules then looked "broken" when the test had simply landed
+   somewhere else. **An unverified negative test is not a test.**
+4. **`null` means different things on either side of a comparison.**
+   `g.assigned_to_user_id !== (user?.id ?? null)` — with no session, `null !==
+   null` is false, so a "my tasks" filter shows exactly the UNOWNED tasks as
+   "mine". Type-checking accepts both forms.
+5. **A filtered search is not a count.** `grep -rn "FOR DELETE"` was
+   case-sensitive while most migrations write `for delete`; the miss became the
+   stated rationale for a design decision ("these tables cannot be deleted from")
+   and shipped into a migration comment before review caught it.
+
+**A sixth shape belongs to agents rather than queries:** an agent without the
+tool to measure something may produce a plausible value for it instead of
+declining. A fabricated sha256 was pasted into an apply step in exactly this way.
+It was caught only because a second agent computed the real one. **An agent that
+cannot measure a thing must say so and name who can — never fill the field.**
+
+**Counter-measures, required for any claim a review depends on:**
+
+- **Count fully, do not filter.** Pull the complete list (`pg_proc`, `pg_class`,
+  `pg_policies`, `pg_trigger`, `pg_event_trigger`) and diff against the repo. Three
+  successive filtered counts missed three separate categories.
+- **Case-insensitive, or it is not a count.** SQL keywords appear in both cases
+  across this repo.
+- **Absence is proved by a full listing, never by an empty filtered query.**
+  `where cmd = 'UPDATE'` returning nothing also returns nothing when the table
+  does not exist. List every row and count them instead.
+- **Read the body before asserting behaviour.**
+- **Mutate by line, then read back.**
+- **Prove each rule has been seen red at least once.** `qa:static`'s 14 rules were
+  each negative-tested.
+- **Handle `null` branches first and explicitly.**
+- **A claim of contradiction needs verifying as much as a claim of measurement.**
+  Of three "contradictions" raised in one day, two evaporated on measurement —
+  each had been produced by reading a *summary* of a source (`CLAUDE.md`) or a
+  *side property* of one (a missing role condition mistaken for a missing tenant
+  condition) rather than the source itself.
+
+**A symptom is not a cause.** "I cannot sign in" produced three hypotheses
+(password unset / email unconfirmed / banned); all three were wrong and the real
+answer was that the passwords were not known. State the known constraint up front.
+
+**A repo policy definition is not evidence about production.** See
+`PROD_SCHEMA_DRIFT.md` and `RLS_ACCESS_MATRIX.md`: prod and repo currently
+disagree on both tenant and role boundaries. A review that reads
+`supabase/migrations/` and concludes "this role can see X" is unsound unless it
+also states which layer and which snapshot it is describing.
+
+---
+
 ## Review Output Format
 Each review should return:
 - overall result: `PASS`, `WARN`, or `FAIL`

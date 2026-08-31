@@ -288,7 +288,8 @@ When documents conflict, follow this priority:
 3. `SKILLS.md`
 4. `PRODUCT_STRUCTURE.md`
 5. `SCREEN_SPEC.md`, `TASK_ROADMAP.md`
-6. `WORKFLOW_RULES.md`, `STATUS_DICTIONARY.md`, `ROLE_MATRIX.md`
+6. `WORKFLOW_RULES.md`, `STATUS_DICTIONARY.md`, `ROLE_MATRIX.md`, `RLS_ACCESS_MATRIX.md`, `PROD_SCHEMA_DRIFT.md`
+   - Son ikisi **prod ölçümünün fotoğrafıdır**, canlı gerçek değil. Veritabanı erişimi/şeması hakkında bir iddia kurmadan önce oku — repo'daki migration tanımları prod'un kanıtı DEĞİL (ikisi hem tenant hem rol sınırlarında ayrışıyor). Kullanmadan önce ölçüm tarihine bak.
 7. `ARCHITECTURE.md`, `TECH_STACK_DECISION.md` (synthesis / technical-direction layer only)
 8. `CHANGELOG.md` (historical record only)
 

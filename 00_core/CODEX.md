@@ -74,8 +74,27 @@ It guides stack and implementation boundaries, but it must not override workflow
 `01_product/REAL_DATA_MIGRATION_MASTER_PLAN.md` is an authoritative migration-governance file.
 It defines phased real-data migration intent, batch order, and guardrails, but it must not override workflow, status, role rules, or prematurely define final SQL/schema detail.
 
+Read these ALWAYS before making any claim about database access, roles, or schema:
+- `02_rules/RLS_ACCESS_MATRIX.md` — which role reads which table, at which layer
+- `02_rules/PROD_SCHEMA_DRIFT.md` — what production contains that this repo does not
+
+**Why these two are not optional.** A reviewer restricted to this repo sees only
+`supabase/migrations/`, and those definitions are NOT what production runs. Both
+tenant and role boundaries currently differ between the two: production is
+narrower, the repo is stale. Concluding "this role can see X" from a migration
+file is unsound. Concrete cases that mislead without these files: a comment
+saying a policy "has not landed yet" when it exists in production; `tenant_id`
+being `NOT NULL` with no default; `financial_summaries` constraints.
+
+**Both files are SNAPSHOTS, not live truth**, and each states the date it was
+measured. Before relying on either, ask: *when was this measured, and has any DDL
+reached production since?* If yes, the measurement must be refreshed before a
+decision is built on it — the refresh queries are in the files. Production has
+been observed drifting from this repo three times in a single day, so treating a
+snapshot as current is a known failure mode, not a hypothetical one.
+
 Read these conditionally when relevant:
-- `02_rules/REVIEW_STANDARD.md` for execution-batch reviews, design reviews, or closeout checks
+- `02_rules/REVIEW_STANDARD.md` for execution-batch reviews, design reviews, or closeout checks — §9 (Measurement Discipline) applies to the reviewer's own claims, not only to the code under review
 - `02_rules/MIGRATION_SAFETY.md` only when live internal usage and real data exist, and a contract-level change is being evaluated
 - `00_core/CHANGELOG.md` when reconciling recent documentation decisions, and always update it after authoritative documentation changes
 
