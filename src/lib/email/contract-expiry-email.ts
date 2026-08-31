@@ -5,11 +5,15 @@
  * the 30-day approaching-expiry window, enumerates recipients per the
  * V1 rule (yonetici globally + partner assigned to the contract's
  * company), and sends one Turkish operational alert per recipient.
- * Idempotency state in `contract_expiry_emails_sent` guarantees each
- * (contract, recipient, threshold=30) combination is sent at most once.
+ * Idempotency state moved to `notification_log` (2026-08-27) — the old
+ * `contract_expiry_emails_sent` table is retired and its rows were backfilled
+ * by `20260827000200`. The key is the same triple, generalised with a kind:
+ * (kind='contract_expiry', entity_id=contract, recipient, threshold_key='30d')
+ * is sent at most once. The write order is unchanged: STAMP FIRST, SEND
+ * SECOND, roll the stamp back if the send fails.
  *
  * Scope discipline:
- *   - One domain: contract expiry. No evrak, görev, risk, kritik tarih.
+ *   - One domain: contract expiry. Other kinds live in notification-batches.ts.
  *   - One threshold: 30 days (`getApproachingLevel("approaching")`).
  *   - No digest, no reply flow, no in-app surface, no opt-out UI.
  *   - contracts.responsible is display-only; NEVER used for routing.
@@ -21,7 +25,16 @@
  *     yonetici emails by RLS. Cron is a system-level job, not a user
  *     action, so service-role bypass is correct here.
  *   - Errors per contract/recipient are logged and swallowed so the
- *     batch loop can finish.
+ *     batch loop can finish. One exception: a FAILED ROLLBACK is reported
+ *     loudly, because that row would sit as "sent" forever and its mail
+ *     would never go out.
+ *
+ * KNOWN DUPLICATION: this file keeps its own `RecipientRow` and
+ * `dedupeRecipients` while `notification-recipients.ts` defines equivalents.
+ * They are NOT identical — this one dedupes by e-mail address, the shared one
+ * by profile id. Two profiles sharing an address would get one mail here and
+ * two there. Left as-is deliberately (surgical change; this flow was not
+ * refactored), recorded as a follow-up in TASK_ROADMAP.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -29,14 +42,23 @@ import type { Database, ContractRow } from "@/types/database.types";
 import type { UserRole } from "@/context/AuthContext";
 import { computeRemainingDays } from "@/lib/services/contracts";
 import { sendEmail } from "./resend-transport";
+import { stampNotification, rollbackStamp } from "./notification-log";
+import { NOTIFICATION_THRESHOLDS } from "@/lib/notification-kinds";
+import { loadTenantScope } from "./notification-recipients";
 
 type AdminClient = SupabaseClient<Database>;
 
 /**
  * The single threshold for V1. Matches `getApproachingLevel("approaching")`
  * in `src/lib/services/contracts.ts` and the `<= 30` ternaries in the
- * Sözleşmeler list, Firma Detay, and Raporlar views. Any change here
- * must also update the CHECK constraint on `contract_expiry_emails_sent`.
+ * Sözleşmeler list, Firma Detay, and Raporlar views.
+ *
+ * Changing this value no longer touches a CHECK constraint: the retired
+ * `contract_expiry_emails_sent` pinned it with `CHECK (threshold_days = 30)`,
+ * but `notification_log` stores a free-form `threshold_key` and constrains
+ * only `kind`. What DOES matter is that `threshold_key` is part of the
+ * idempotency primary key — changing `NOTIFICATION_THRESHOLDS.contract_expiry`
+ * makes every past send look unsent and re-mails it. Change deliberately.
  */
 export const CONTRACT_EXPIRY_THRESHOLD_DAYS = 30;
 
@@ -49,6 +71,8 @@ export interface BatchRunResult {
   recipientsSent: number;
   /** How many were already stamped as sent and correctly skipped. */
   recipientsSkippedIdempotent: number;
+  /** Alıcının üye olmadığı tenant'a ait olduğu için düşen alıcı sayısı. */
+  recipientsDroppedCrossTenant: number;
   /** Recipients attempted but failed at transport or idempotency write. */
   recipientsFailed: number;
   /** Captured error messages, capped to avoid unbounded log growth. */
@@ -77,8 +101,9 @@ interface ContractWithCompany {
  *
  * 1. Fetch active contracts with end_date inside `[0, 30]` days from now.
  * 2. For each, resolve the company name and enumerate recipients.
- * 3. For each (contract, recipient) pair, skip if already stamped; else
- *    send email and stamp on success.
+ * 3. For each (contract, recipient) pair: drop it if the recipient is not a
+ *    member of the contract's tenant, skip it if already stamped, otherwise
+ *    STAMP FIRST and then send — rolling the stamp back if the send fails.
  */
 export async function runContractExpiryRecallBatch(
   client: AdminClient,
@@ -89,6 +114,7 @@ export async function runContractExpiryRecallBatch(
     recipientsAttempted: 0,
     recipientsSent: 0,
     recipientsSkippedIdempotent: 0,
+    recipientsDroppedCrossTenant: 0,
     recipientsFailed: 0,
     errors: [],
   };
@@ -208,17 +234,28 @@ export async function runContractExpiryRecallBatch(
     );
   }
 
-  // 6. Loop per contract × recipient. Per-recipient idempotency is
-  //    enforced by attempting to write the stamp row BEFORE sending the
-  //    email, with ON CONFLICT DO NOTHING + returning the written row.
-  //    If the row already existed (zero rows returned), we treat this
-  //    as "already sent" and skip without calling the vendor.
+  // 6. Loop per contract × recipient. Per-recipient idempotency is enforced by
+  //    writing the stamp row into `notification_log` BEFORE sending. The insert
+  //    is a plain INSERT: a duplicate raises Postgres 23505, which
+  //    `stampNotification` reports as "already_sent" and we skip without
+  //    calling the vendor. (There is no ON CONFLICT clause — the error IS the
+  //    signal.)
   //
-  //    Writing-first is deliberately chosen over send-first-then-stamp
-  //    so a crash between send and stamp cannot cause a duplicate send
-  //    on the next run. A crash between stamp and send means a single
+  //    Stamp-first is deliberately chosen over send-first-then-stamp so a
+  //    crash between the two cannot cause a duplicate send on the next run. A crash between stamp and send means a single
   //    recipient silently missed one mail — acceptable V1 trade. The
   //    next threshold tier (if ever added) would give a second chance.
+  // TENANT KAPSAMI. `profiles`'ta tenant_id olmadığı için "bütün yönetici
+  // profilleri" sorgusu bütün tenant'ları getirir; filtre olmadan her yönetici
+  // BAŞKA tenant'ların sözleşme bildirimlerini alırdı. Harita yüklenemezse
+  // hiç mail gönderilmez (fail-closed) — sızdırmaktansa bir koşu kaçmak.
+  const { scope, error: scopeError } = await loadTenantScope(client);
+  if (scopeError) result.errors.push(scopeError);
+  if (!scope.loaded) {
+    result.errors.push("tenant scope unavailable — hiç mail gönderilmedi (fail-closed)");
+    return result;
+  }
+
   for (const c of candidates) {
     const recipients = dedupeRecipients([
       ...yoneticiRecipients,
@@ -228,36 +265,34 @@ export async function runContractExpiryRecallBatch(
     ]);
 
     for (const recipient of recipients) {
+      // Alıcı, sözleşmenin tenant'ında üye değilse bu kayıt ona ait değildir.
+      if (!scope.isMember(c.contract.tenant_id, recipient.id)) {
+        result.recipientsDroppedCrossTenant++;
+        continue;
+      }
       result.recipientsAttempted++;
 
-      const stampInsert = await client
-        .from("contract_expiry_emails_sent")
-        .insert({
-          contract_id: c.contract.id,
-          recipient_profile_id: recipient.id,
-          threshold_days: CONTRACT_EXPIRY_THRESHOLD_DAYS,
-        })
-        .select("contract_id")
-        .maybeSingle();
-
-      if (stampInsert.error) {
-        // Duplicate PK = idempotency skip (Postgres code 23505).
-        // Any other error = real failure.
-        const code = (stampInsert.error as { code?: string }).code;
-        if (code === "23505") {
-          result.recipientsSkippedIdempotent++;
-          continue;
-        }
+      // Ledger moved to `notification_log` (2026-08-27). Same key shape,
+      // generalised: (kind, entity_id, recipient, threshold_key). The write
+      // order is unchanged — stamp first, send second, roll back on failure.
+      const stampKey = {
+        kind: "contract_expiry" as const,
+        entityId: c.contract.id,
+        recipientProfileId: recipient.id,
+        thresholdKey: NOTIFICATION_THRESHOLDS.contract_expiry,
+        tenantId: c.contract.tenant_id,
+      };
+      const stamp = await stampNotification(client, stampKey);
+      if (stamp.status === "already_sent") {
+        result.recipientsSkippedIdempotent++;
+        continue;
+      }
+      if (stamp.status === "failed") {
         result.recipientsFailed++;
         pushError(
           result,
-          `stamp insert failed for contract ${c.contract.id} / recipient ${recipient.id}: ${stampInsert.error.message}`,
+          `stamp insert failed for contract ${c.contract.id} / recipient ${recipient.id}: ${stamp.error}`,
         );
-        continue;
-      }
-      if (!stampInsert.data) {
-        // Unexpected — treat as skip to be safe.
-        result.recipientsSkippedIdempotent++;
         continue;
       }
 
@@ -278,13 +313,16 @@ export async function runContractExpiryRecallBatch(
       });
 
       if (!send.ok) {
-        // Roll back the idempotency stamp so the next run retries.
-        await client
-          .from("contract_expiry_emails_sent")
-          .delete()
-          .eq("contract_id", c.contract.id)
-          .eq("recipient_profile_id", recipient.id)
-          .eq("threshold_days", CONTRACT_EXPIRY_THRESHOLD_DAYS);
+        // Roll back the idempotency stamp so the next run retries. A failed
+        // rollback is NOT swallowed: that row would sit as "sent" forever and
+        // the mail would never go out.
+        const rb = await rollbackStamp(client, stampKey);
+        if (!rb.ok) {
+          pushError(
+            result,
+            `ROLLBACK FAILED for contract ${c.contract.id} / recipient ${recipient.id}: ${rb.error ?? "unknown"} — bu kalem bir daha denenmeyecek`,
+          );
+        }
         result.recipientsFailed++;
         pushError(
           result,

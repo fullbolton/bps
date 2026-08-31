@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "qa:static": "node scripts/qa-static.mjs"
+    "qa:static": "node scripts/qa-static.mjs",
+    "qa:unit": "node scripts/qa-unit.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",

@@ -21,6 +21,7 @@ import type { AppointmentMeetingType } from "@/lib/appointment-types";
 import type { TaskSourceType } from "@/lib/task-sources";
 import type { DocumentCategory } from "@/lib/document-categories";
 import type { CriticalDateType, CriticalDatePriority } from "@/lib/critical-date-types";
+import type { NotificationKind } from "@/lib/notification-kinds";
 import type {
   FirmaDurumu,
   SozlesmeDurumu,
@@ -1080,6 +1081,73 @@ export interface Database {
       // approaching-expiry mail for this contract". Service role only —
       // RLS enabled, no user policies attached.
       // ---------------------------------------------------------------------
+      // ---------------------------------------------------------------------
+      // notification_log — e-mail notification idempotency ledger
+      // ---------------------------------------------------------------------
+      // Mirrors `supabase/migrations/20260827000200_create_notification_log.sql`.
+      // System-owned: written only by the cron service_role client. RLS is on
+      // with ZERO policies: a user-context READ comes back empty, and a
+      // user-context WRITE fails closed with an RLS error. That asymmetry is
+      // the intended boundary, not a bug.
+      //
+      // Supersedes `contract_expiry_emails_sent` (retired, kept undropped).
+      //
+      // No Update shape: the ledger is append-only. A stamp is either inserted
+      // or deleted (rollback after a failed send) — never amended.
+      // ---------------------------------------------------------------------
+      // ---------------------------------------------------------------------
+      // tenant_memberships — REPO DIŞI TABLO, read-only kullanım
+      // ---------------------------------------------------------------------
+      // Bu tabloyu hiçbir repo migration'ı yaratmıyor; prod'da var ve şeması
+      // `02_rules/PROD_SCHEMA_DRIFT.md`'de kayıtlı. Tipi buraya, Faz 2'yi
+      // beklemeden, TEK bir zorunluluk yüzünden eklendi: `profiles`'ta
+      // `tenant_id` YOK, dolayısıyla bildirim alıcılarını tenant'a göre
+      // daraltmanın başka yolu yok.
+      //
+      // YALNIZ OKUMA. Cron'un service_role istemcisi okur (tabloda RLS açık
+      // ve policy sıfır — kullanıcı bağlamından erişilemez, bu kasıtlı).
+      // Hiçbir yazma yolu yok ve eklenmemeli: üyelik yönetimi Faz 2 / Step 3.
+      //
+      // ⚠ Sıfırdan kurulan bir DB'de bu tablo YOKTUR ve tenant daraltması
+      //   çalışmaz. Aynı kısıt `current_user_active_tenant()` için de geçerli.
+      // ---------------------------------------------------------------------
+      tenant_memberships: {
+        Row: {
+          id: string;
+          user_id: string;
+          tenant_id: string;
+          created_at: string;
+        };
+        // Yazma yolu yok — bilerek boş.
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      notification_log: {
+        Row: {
+          kind: NotificationKind;
+          entity_id: string;
+          recipient_profile_id: string;
+          threshold_key: string;
+          tenant_id: string;
+          sent_at: string;
+        };
+        Insert: {
+          kind: NotificationKind;
+          entity_id: string;
+          recipient_profile_id: string;
+          threshold_key: string;
+          // REQUIRED — NOT NULL with no DEFAULT, and it must come from the
+          // triggering record's own tenant, never from the session.
+          tenant_id: string;
+          sent_at?: string;
+        };
+        // Append-only by design — see the note above.
+        Update: Record<string, never>;
+        Relationships: [
+          { foreignKeyName: "notification_log_recipient_profile_id_fkey"; columns: ["recipient_profile_id"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       contract_expiry_emails_sent: {
         Row: {
           contract_id: string;
@@ -1203,6 +1271,13 @@ export type CriticalDateUpdate = Database["public"]["Tables"]["critical_dates"][
 // (no UPDATE policy in the migration, empty Update type).
 export type AnnouncementRow = Database["public"]["Tables"]["announcements"]["Row"];
 export type AnnouncementInsert = Database["public"]["Tables"]["announcements"]["Insert"];
+
+// No Update alias — notification_log is append-only.
+export type NotificationLogRow = Database["public"]["Tables"]["notification_log"]["Row"];
+export type NotificationLogInsert = Database["public"]["Tables"]["notification_log"]["Insert"];
+
+// Read-only: repo-dışı tablo, yazma yolu yok.
+export type TenantMembershipRow = Database["public"]["Tables"]["tenant_memberships"]["Row"];
 
 export type PartnerCompanyAssignmentRow =
   Database["public"]["Tables"]["partner_company_assignments"]["Row"];
