@@ -807,7 +807,8 @@ Asıl soru açık: gecikme bir **türetme** mi olmalı (statü hiç yazılmaz, h
 ### n) `appointments` tablosunda sorumlu kolonu yok
 
 `appointment_reminder` bu yüzden kayıttan bir sahip çıkaramıyor ve firma
-tarafına düşüyor (`yonetici` + o firmanın `partner`'ları). Randevuya gerçek bir
+tarafına düşüyor: **yalnız tenant-kapsamlı `yonetici`.** Partner DAHİL DEĞİL
+(`includePartners: false`) — bkz. (s). Randevuya gerçek bir
 sahip kolonu eklenirse bildirim `owner` stratejisine geçmelidir — `tasks`'ta
 `assigned_to_user_id` ile yapılanın aynısı.
 
@@ -938,8 +939,14 @@ niyet beyanıdır, çalışan davranış değil.
 
 ### v) Cron sessiz başarısızlık — `errors` doluyken HTTP 200
 
-`contract_expiry_emails_sent` flag AÇIK olduğu söylenen dört ay boyunca sıfır
-satır taşıdı (apply anında da 0 ölçüldü).
+`contract_expiry_emails_sent` flag AÇIK olduğu söylenen dört aylık dönemde
+sıfır satır taşıdığı **bildirildi** — ve bu sayı TARTIŞMALI: bir prod raporu
+`0`, `CHANGELOG.md:38` ise "2 satır, 23505 doğru skip etti" diyor.
+
+Kesin olan tek ölçüm apply anına ait: `eski=0 / yeni=0`. O tek bir andır ve
+geçmiş dönem hakkında bir şey söylemez. **Aşağıdaki açıklama, sıfır olduğu
+varsayımıyla değil, sıfır OLABİLECEĞİ için yazıldı** — kod yolu her iki
+durumda da geçerli.
 Kodda bunu açıklayan yol bulundu:
 
 ```

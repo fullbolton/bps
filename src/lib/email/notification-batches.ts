@@ -53,6 +53,7 @@ import { stampNotification, rollbackStamp } from "@/lib/email/notification-log";
 import { sendEmail } from "@/lib/email/resend-transport";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { UserRole } from "@/context/AuthContext";
+import { safeDbError, safeSendError } from "./safe-error";
 
 type Client = SupabaseClient<Database>;
 
@@ -148,7 +149,7 @@ async function collectTaskOverdue(
     .in("status", ["acik", "devam_ediyor", "gecikti"]);
 
   if (error) {
-    errors.push(`tasks fetch failed: ${error.message}`);
+    errors.push(`tasks fetch failed: ${safeDbError(error)}`);
     return { byRecipient, found: 0, errors };
   }
 
@@ -245,7 +246,7 @@ async function collectDocumentExpiry(
     .lte("validity_date", upper);
 
   if (error) {
-    errors.push(`documents fetch failed: ${error.message}`);
+    errors.push(`documents fetch failed: ${safeDbError(error)}`);
     return { byRecipient, found: 0, errors };
   }
   if ((rows ?? []).length === 0) return { byRecipient, found: 0, errors };
@@ -306,7 +307,7 @@ async function collectAppointmentReminder(
     .eq("meeting_date", target);
 
   if (error) {
-    errors.push(`appointments fetch failed: ${error.message}`);
+    errors.push(`appointments fetch failed: ${safeDbError(error)}`);
     return { byRecipient, found: 0, errors };
   }
   if ((rows ?? []).length === 0) return { byRecipient, found: 0, errors };
@@ -451,7 +452,7 @@ async function sendGrouped(
     // ile Vercel loglarına yazılıyor; e-posta adresi oraya düşmemeli.
     // `recipient.id` korelasyon için yeterli — kim olduğu `profiles`'tan
     // bakılır, log tek başına kişisel veri taşımaz.
-    result.errors.push(`send failed (${kind} → profile ${recipient.id}): ${send.error ?? "unknown"}`);
+    result.errors.push(`send failed (${kind} → profile ${recipient.id}): ${safeSendError(send)}`);
     for (const item of stamped) {
       const rb = await rollbackStamp(client, {
         kind,

@@ -27,6 +27,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { runContractExpiryRecallBatch } from "@/lib/email/contract-expiry-email";
 import { runNotificationBatch, type KindRunResult } from "@/lib/email/notification-batches";
+import { safeThrown } from "@/lib/email/safe-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     results.push({
       kind: "contract_expiry",
-      fatal: err instanceof Error ? err.message : "unknown",
+      fatal: safeThrown(err),
     });
   }
 
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
     try {
       results.push(await runNotificationBatch(adminClient, kind, now, { fromAddress, appUrl }));
     } catch (err) {
-      results.push({ kind, fatal: err instanceof Error ? err.message : "unknown" });
+      results.push({ kind, fatal: safeThrown(err) });
     }
   }
 

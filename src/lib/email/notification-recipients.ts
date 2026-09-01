@@ -19,6 +19,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import type { UserRole } from "@/context/AuthContext";
+import { safeDbError } from "./safe-error";
 
 type Client = SupabaseClient<Database>;
 
@@ -94,7 +95,7 @@ export async function loadTenantScope(
   return {
     scope,
     error: error
-      ? `tenant_memberships fetch failed: ${error.message}`
+      ? `tenant_memberships fetch failed: ${safeDbError(error)}`
       : undefined,
   };
 }
@@ -119,7 +120,7 @@ export async function fetchProfilesByRoles(
   if (error)
     return {
       rows: [],
-      error: `profiles(${roles.join(",")}) fetch failed: ${error.message}`,
+      error: `profiles(${roles.join(",")}) fetch failed: ${safeDbError(error)}`,
     };
   return { rows: (data ?? []).filter(hasEmail) };
 }
@@ -138,7 +139,7 @@ export async function fetchProfilesByIds(
   if (error)
     return {
       byId: new Map(),
-      error: `profiles by id fetch failed: ${error.message}`,
+      error: `profiles by id fetch failed: ${safeDbError(error)}`,
     };
   return { byId: new Map((data ?? []).filter(hasEmail).map((p) => [p.id, p])) };
 }
@@ -175,7 +176,7 @@ export async function resolveCompanyRecipients(
       .in("company_id", companyIds);
     if (pcaError)
       errors.push(
-        `partner_company_assignments fetch failed: ${pcaError.message}`,
+        `partner_company_assignments fetch failed: ${safeDbError(pcaError)}`,
       );
 
     for (const row of pcaRows ?? []) {
@@ -199,7 +200,7 @@ export async function resolveCompanyRecipients(
       .in("id", Array.from(allPartnerIds))
       .eq("role", "partner");
     if (partnerError)
-      errors.push(`partner profiles fetch failed: ${partnerError.message}`);
+      errors.push(`partner profiles fetch failed: ${safeDbError(partnerError)}`);
     partnerById = new Map(
       (partnerRows ?? []).filter(hasEmail).map((p) => [p.id, p]),
     );

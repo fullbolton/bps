@@ -48,6 +48,7 @@ import {
   NOTIFICATION_RECIPIENTS,
 } from "@/lib/notification-kinds";
 import { loadTenantScope } from "./notification-recipients";
+import { safeDbError, safeSendError } from "./safe-error";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -142,7 +143,7 @@ export async function runContractExpiryRecallBatch(
     .not("end_date", "is", null);
 
   if (contractError) {
-    result.errors.push(`contracts fetch failed: ${contractError.message}`);
+    result.errors.push(`contracts fetch failed: ${safeDbError(contractError)}`);
     return result;
   }
 
@@ -172,7 +173,7 @@ export async function runContractExpiryRecallBatch(
     .in("id", Array.from(companyIds));
 
   if (companyError) {
-    result.errors.push(`companies fetch failed: ${companyError.message}`);
+    result.errors.push(`companies fetch failed: ${safeDbError(companyError)}`);
     return result;
   }
 
@@ -191,7 +192,7 @@ export async function runContractExpiryRecallBatch(
     .eq("role", "yonetici");
 
   if (yoneticiError) {
-    result.errors.push(`yonetici fetch failed: ${yoneticiError.message}`);
+    result.errors.push(`yonetici fetch failed: ${safeDbError(yoneticiError)}`);
     return result;
   }
   const yoneticiRecipients: RecipientRow[] = (yoneticiRows ?? []).filter(
@@ -220,7 +221,7 @@ export async function runContractExpiryRecallBatch(
 
     if (pcaError) {
       result.errors.push(
-        `partner_company_assignments fetch failed: ${pcaError.message}`,
+        `partner_company_assignments fetch failed: ${safeDbError(pcaError)}`,
       );
       return result;
     }
@@ -250,7 +251,7 @@ export async function runContractExpiryRecallBatch(
 
     if (partnerError) {
       result.errors.push(
-        `partner profiles fetch failed: ${partnerError.message}`,
+        `partner profiles fetch failed: ${safeDbError(partnerError)}`,
       );
       return result;
     }
@@ -355,7 +356,7 @@ export async function runContractExpiryRecallBatch(
         result.recipientsFailed++;
         pushError(
           result,
-          `send failed for contract ${c.contract.id} / profile ${recipient.id}: ${send.error ?? "unknown"}`,
+          `send failed for contract ${c.contract.id} / profile ${recipient.id}: ${safeSendError(send)}`,
         );
         continue;
       }

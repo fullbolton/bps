@@ -20,6 +20,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import type { NotificationKind } from "@/lib/notification-kinds";
+import { safeDbError } from "./safe-error";
 
 type Client = SupabaseClient<Database>;
 
@@ -60,7 +61,7 @@ export async function stampNotification(
   if (error) {
     const code = (error as { code?: string }).code;
     if (code === "23505") return { status: "already_sent" };
-    return { status: "failed", error: error.message };
+    return { status: "failed", error: safeDbError(error) };
   }
 
   // Beklenmeyen: hata yok ama satır dönmedi. Bu bir RLS senaryosu DEĞİL —
@@ -89,6 +90,6 @@ export async function rollbackStamp(
     .eq("recipient_profile_id", key.recipientProfileId)
     .eq("threshold_key", key.thresholdKey);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: safeDbError(error) };
   return { ok: true };
 }

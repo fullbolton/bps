@@ -34,7 +34,13 @@ export interface SendEmailResult {
   ok: boolean;
   /** Resend's email id on success. */
   id?: string;
-  /** Vendor error message when ok = false. */
+  /**
+   * Vendor error message when ok = false.
+   *
+   * ⚠ LOGLANMAZ. Resend, reddettiği adresi bu metnin içinde tekrar edebilir;
+   * `safe-error.ts` bilerek yalnız `status`'ü okur. Bu alanı bir log satırına
+   * koyan değişiklik, kapatılmış bir PII sızıntısını geri açar.
+   */
   error?: string;
   /** HTTP status, useful in logs. */
   status?: number;
