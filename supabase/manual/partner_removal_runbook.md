@@ -172,6 +172,57 @@ dışında kalırdı.
 bir ara durum, izolasyon testini anlamsız kılar. Ayrım yalnız yazarken işi
 kolaylaştırmak için.
 
+### Bulunan desenler — 4/30 policy okundu (2026-08-27)
+
+**Tek tip `DROP`/`CREATE` yetmiyor: her desen kendi yeniden yazımını istiyor.**
+
+**DESEN A — rol listesi** (`announcements_select`, `critical_dates_select`)
+İkisi **birebir aynı metin**, `roles = {public}`:
+```sql
+USING (current_user_role() = ANY (ARRAY['yonetici','operasyon','ik','muhasebe','goruntuleyici','partner'])
+       AND tenant_id = current_user_active_tenant())
+```
+→ Düzeltme: `ARRAY`'den `'partner'` çıkar, gerisi aynı. En basit hâl.
+
+**DESEN B — `CASE` dalı** (`companies_select_role_or_scope`)
+```sql
+CASE current_user_role()
+  WHEN 'yonetici'      THEN tenant_id = current_user_active_tenant()
+  ... (operasyon · ik · muhasebe · goruntuleyici aynı)
+  WHEN 'partner'       THEN current_user_has_company_scope(id)
+  ELSE false
+END
+```
+→ Düzeltme: `partner` WHEN dalı komple silinir.
+⚠ **Scope fonksiyonu burada `id` ile çağrılıyor**, diğer tablolarda `company_id`
+bekleniyor ama **ölçülmedi**. Bu fark tek başına "desenler benzer, gerisi tahmin
+edilir" fikrini çürütüyor.
+
+**DESEN C — `OR` bloğu** (`financial_summaries_select`)
+```sql
+((current_user_role() = ANY (ARRAY['yonetici','muhasebe']))
+ OR ((current_user_role() = 'partner') AND (company_id IS NOT NULL)
+     AND current_user_has_company_scope(company_id)))
+AND tenant_id = current_user_active_tenant()
+```
+→ Düzeltme: `OR`'un ikinci bacağı komple silinir ve ifade **sadeleşir**:
+```sql
+current_user_role() = ANY (ARRAY['yonetici','muhasebe'])
+AND tenant_id = current_user_active_tenant()
+```
+`company_id IS NOT NULL` kontrolü de partner'la birlikte gider — kaldırmanın
+RLS'i sadeleştirdiğinin somut örneği.
+
+⚠ **Üç desen 4 policy'den çıktı. Kalan 26'da dördüncü/beşinci desen OLMADIĞI
+kanıtlanmadı** — yalnız ilk dörtte üç tane olduğu ölçüldü. Dört örnekten desen
+çıkarıp 26'sına uygulamak, filtreyle sayım yapmanın aynısı olur.
+
+**Okunmayı bekleyen 26 policy:** `appointments`(3) · `contacts`(4) ·
+`contracts`(3) · `documents`(3) · `notes`(4) · `staffing_demands`(3) ·
+`tasks`(3) · `workforce_summary`(3).
+`notes` en karmaşığı — `delete_broad` / `update_own_or_broad` gibi başka hiçbir
+tabloda olmayan adlar taşıyor, kendi mantığı var.
+
 ### ⛔ Hâlâ eksik: tam `qual` / `with_check` metinleri
 
 Yukarıdaki tablo **kapsamı** verir, **geri dönüşü vermez.** Her policy'nin
