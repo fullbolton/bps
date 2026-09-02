@@ -117,9 +117,10 @@ export async function GET(request: NextRequest) {
 
   // 5. SESSİZ BAŞARISIZLIK KAPISI. `sendEmail` fırlatmaz — `RESEND_API_KEY`
   //    yoksa ya da vendor reddederse `{ok:false}` döner, damga geri alınır ve
-  //    net sonuç "hiçbir şey olmamış" gibi görünür. Eski akış bu yüzden dört ay
-  //    boyunca HTTP 200 dönerken tek satır bile yazmadı ve kimse fark etmedi
-  //    (TASK_ROADMAP v).
+  //    net sonuç "hiçbir şey olmamış" gibi görünür. Eski akışın dört ay boyunca
+  //    HTTP 200 dönerken tek satır bile yazmadığı BİLDİRİLDİ — o sayı tartışmalı
+  //    (bkz. TASK_ROADMAP v), ama bu kapının gerekçesi sayıya bağlı değil:
+  //    sessizce başarısız olabilen bir yol, sayısı ne olursa olsun kapatılır.
   //
   //    Kural: HİÇ mail gitmediği HALDE hata varsa bu bir başarısızlıktır ve
   //    Vercel'in başarısızlık sinyaline bağlanır. Kısmi başarı 200 kalır — bir

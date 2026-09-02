@@ -49,10 +49,28 @@ export function safeSendError(result: {
   return "transport=no-status";
 }
 
-/** Beklenmeyen exception'ın loglanabilir kısmı. */
+/**
+ * Beklenmeyen exception'ın loglanabilir kısmı.
+ *
+ * ⚠ `err.name` OKUNMAZ — ve bu ilk hâlde yapılmış bir hataydı (Codex 5. tur).
+ *   `Error.name` yazılabilir bir instance alanıdır; ölçüldü:
+ *
+ *     const e = new Error("boom");
+ *     e.name = "recipient@example.com";
+ *     // eski kod → "thrown=recipient@example.com"
+ *
+ *   `constructor.name` de kurtarmaz, o da yeniden tanımlanabilir (ölçüldü) ve
+ *   ayrıca minification'da değişir. Tek güvenli yol SABİT bir `instanceof`
+ *   eşlemesidir: dönen değerler bu dosyada yazılı sabitlerden biridir, dışarıdan
+ *   gelen hiçbir metin geçemez.
+ *
+ * `err.message` de okunmuyor — nereden geldiği bilinmiyor.
+ */
 export function safeThrown(err: unknown): string {
-  // `err.message` BİLEREK okunmuyor: nereden geldiği bilinmiyor, içeriği
-  // garanti edilemez. Sınıf adı teşhis için yeterli bir başlangıç.
-  if (err instanceof Error) return `thrown=${err.name}`;
+  if (err instanceof TypeError) return "thrown=TypeError";
+  if (err instanceof RangeError) return "thrown=RangeError";
+  if (err instanceof SyntaxError) return "thrown=SyntaxError";
+  if (err instanceof ReferenceError) return "thrown=ReferenceError";
+  if (err instanceof Error) return "thrown=Error";
   return "thrown=unknown";
 }

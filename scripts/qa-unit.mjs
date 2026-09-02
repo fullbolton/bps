@@ -77,6 +77,58 @@ for (const [input, expected, why] of cases) {
 }
 
 // ---------------------------------------------------------------------------
+// 2b. safeThrown — yazılabilir `Error.name` sızdırmamalı
+// ---------------------------------------------------------------------------
+// Kaynak: src/lib/email/safe-error.ts
+// Bu fonksiyonun ilk hâli `err.name` okuyordu ve `Error.name` YAZILABİLİR bir
+// instance alanı olduğu için serbest metni loga taşıyordu. Aşağıdaki ilk iki
+// vaka tam olarak o sızıntıyı temsil ediyor.
+function safeThrown(err) {
+  if (err instanceof TypeError) return "thrown=TypeError";
+  if (err instanceof RangeError) return "thrown=RangeError";
+  if (err instanceof SyntaxError) return "thrown=SyntaxError";
+  if (err instanceof ReferenceError) return "thrown=ReferenceError";
+  if (err instanceof Error) return "thrown=Error";
+  return "thrown=unknown";
+}
+
+const mutatedName = new Error("boom");
+mutatedName.name = "recipient@example.com";
+class RenamedError extends Error {}
+Object.defineProperty(RenamedError, "name", { value: "leak@example.com" });
+
+const thrownCases = [
+  [mutatedName, "thrown=Error", "YAZILABİLİR name — eski kod bunu loga taşıyordu"],
+  [new RenamedError("x"), "thrown=Error", "constructor.name da yeniden tanımlanabilir"],
+  [new TypeError("t"), "thrown=TypeError", "gerçek tip korunmalı"],
+  [new RangeError("r"), "thrown=RangeError", "gerçek tip korunmalı"],
+  ["düz metin", "thrown=unknown", "Error olmayan"],
+  [{ name: "leak@x.com" }, "thrown=unknown", "sahte error nesnesi"],
+  [null, "thrown=unknown", "null"],
+];
+
+console.log("\nsafeThrown  (kaynak: src/lib/email/safe-error.ts)");
+for (const [input, expected, why] of thrownCases) {
+  const got = safeThrown(input);
+  const ok = got === expected;
+  if (!ok) failed++;
+  const label = (input === null ? "null" : typeof input === "object" && input instanceof Error ? input.constructor.name : JSON.stringify(input)).slice(0, 14).padEnd(14);
+  console.log(`  ${ok ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m"} ${label} → ${got.padEnd(20)}${ok ? "" : ` (beklenen ${expected})`}`);
+  if (!ok) console.log(`       ${why}`);
+}
+
+// safe-error.ts'in serbest metin okumadığını statik olarak da doğrula.
+const safeSrc = readFileSync(join(here, "..", "src", "lib", "email", "safe-error.ts"), "utf8");
+const forbidden = [/err\.name/, /constructor\.name/, /error\.message/, /result\.error\b/];
+console.log("\nsafe-error.ts serbest metin okumuyor mu");
+for (const pat of forbidden) {
+  const body = safeSrc.split("\n").filter((l) => !l.trim().startsWith("*") && !l.trim().startsWith("//")).join("\n");
+  const hit = pat.test(body);
+  if (hit) failed++;
+  console.log(`  ${hit ? "\x1b[31mFAIL\x1b[0m" : "\x1b[32mPASS\x1b[0m"} ${String(pat).padEnd(22)} ${hit ? "← KOD İÇİNDE OKUNUYOR, sızıntı riski" : "okunmuyor"}`);
+}
+
+// ---------------------------------------------------------------------------
 // 3. Kopya ↔ kaynak eşitliği — testin kendi kopyasını doğrulamasını engeller
 // ---------------------------------------------------------------------------
 const norm = (s) => s.replace(/\s+/g, " ").trim();
@@ -109,7 +161,7 @@ if (!found) {
   }
 }
 
-console.log(`\n${cases.length} vaka + 1 eşitlik kontrolü · ${failed} FAIL`);
+console.log(`\n${cases.length + thrownCases.length} vaka + 1 eşitlik + 4 statik kontrol · ${failed} FAIL`);
 if (failed > 0) {
   console.error("qa:unit FAILED");
   process.exit(1);
