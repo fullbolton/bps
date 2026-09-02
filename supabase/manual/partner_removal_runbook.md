@@ -1,7 +1,7 @@
 # Partner Rolünü Kaldırma — Runbook
 
 **Karar:** partner rolü kalkıyor (2026-08-27, Furkan). Kesin.
-**Durum:** ⚠ HAZIRLIK — **policy bölümü prod dökümü olmadan yazılamaz, boş.**
+**Durum:** ⚠ HAZIRLIK — kapsam ÖLÇÜLDÜ (30 policy), **tam metinler bekliyor.**
 **Sıra:** bu iş → izolasyon testi → Faz 2 → Step 3'ün kalanı.
 
 ---
@@ -67,8 +67,8 @@ partner'la ilgisi olmadığı **gözle doğrulanmalıdır**, varsayılmaz.
 ⚠ Bu çıktı **alınmadan hiçbir DDL yazılmaz.** Geri dönüş planı bu dökümün
 kendisidir; onsuz bir hata geri alınamaz hâle gelir.
 
-**Durum: ALINMADI** — Supabase SQL Editor 2026-08-27 oturumunda açılmadı
-(4 deneme, tab grubu sıfırlandıktan sonra tekrarlayan bilinen sorun).
+**Durum: KISMEN ALINDI** (2026-08-27) — sayım ve tablo dağılımı elde, tam
+`qual`/`with_check` metinleri henüz değil. Ayrıntı: ADIM 2.
 
 ---
 
@@ -87,8 +87,8 @@ varsayılan `NO ACTION` — o profilin yarattığı bir kayıt varsa FK ihlali d
 | `partner_company_assignments.partner_user_id` | `CASCADE` | 0 satır — konusuz |
 | `contract_expiry_emails_sent` · `notification_log` | `CASCADE` | 0 satır — konusuz |
 
-**Silmeden önce çalıştır** (repo ölçümüdür; prod'da farklı olabilir — çıktı
-boş değilse silme planı değişir):
+**ÇALIŞTIRILDI 2026-08-27 — SONUÇ TEMİZ:** `hesap_var=1` · `doc=0` · `crit=0` ·
+`mizan=0` → silme reddedilmez. Sorgu, tekrar doğrulama için duruyor:
 
 ```sql
 with p as (select id from public.profiles where email = 'satis@bps.local')
@@ -135,16 +135,79 @@ değişikliği onları kırar.
 
 ## ADIM 2 — Policy'lerden partner dallarını kaldır
 
-> **⛔ BU BÖLÜM BOŞ — prod dökümü bekliyor.**
->
-> Döküm geldiğinde buraya şunlar yazılacak:
-> - Değişecek policy'lerin tam listesi (tablo · policyname · cmd)
-> - Her biri için ÖNCEKİ `qual` / `with_check` metni — **geri dönüş budur**
-> - Partner dalı çıkarılmış YENİ metin
-> - `DROP POLICY` + `CREATE POLICY` sırası, tek transaction'da
->
-> Kör yazılmayacak. Repo'daki 18 dosya kapsamı **tahmin etmek** için bile
-> kullanılmayacak: prod ile ayrıştığı üç kez ölçüldü.
+### Kapsam — ÖLÇÜLDÜ (2026-08-27, prod `pg_policies`)
+
+**60 policy'nin 31'i** partner'a dokunuyor. Bir tanesi tabloyla birlikte
+düşeceği için **düzeltilecek gerçek sayı 30.**
+
+| Tablo | Adet | scope dallı | Not |
+|---|---:|---:|---|
+| `announcements` | 1 | 0 | ⚠ bugün yazıldı, zaten kaldırılacak listede |
+| `appointments` | 3 | 3 | |
+| `companies` | 1 | 1 | |
+| `contacts` | 4 | 4 | |
+| `contracts` | 3 | 3 | |
+| `critical_dates` | 1 | 0 | |
+| `documents` | 3 | 3 | |
+| `financial_summaries` | 1 | 1 | |
+| `notes` | 4 | 4 | |
+| `partner_company_assignments` | 1 | 0 | **DÜZELTİLMEYECEK** — ADIM 5'te tabloyla düşer |
+| `staffing_demands` | 3 | 3 | |
+| `tasks` | 3 | 3 | |
+| `workforce_summary` | 3 | 3 | |
+| **TOPLAM** | **31** | **28** | aritmetik tam, sayımla eşleşti |
+
+**`company_scope` tamamen partner'ın içinde:** `partner=31 · scope=28 · birleşim=31`.
+Yani `current_user_has_company_scope()` çağıran ama metninde "partner" geçmeyen
+policy YOK. Ölçülmeden bilinemezdi; tersi çıksaydı üç policy sessizce kapsam
+dışında kalırdı.
+
+### İki kategori — yazma sırasını böler, uygulamayı BÖLMEZ
+
+- **2 basit** (`announcements_select`, `critical_dates_select`) — `scope` dalı
+  yok, yalnız rol listesinden bir eleman çıkarılacak.
+- **28 karmaşık** — `current_user_has_company_scope()` dalı da sökülecek.
+
+⚠ **Migration BÖLÜNMEZ, tek transaction.** Yarısı partner'sız yarısı partner'lı
+bir ara durum, izolasyon testini anlamsız kılar. Ayrım yalnız yazarken işi
+kolaylaştırmak için.
+
+### ⛔ Hâlâ eksik: tam `qual` / `with_check` metinleri
+
+Yukarıdaki tablo **kapsamı** verir, **geri dönüşü vermez.** Her policy'nin
+ÖNCEKİ metni alınmadan hiçbir `DROP POLICY` yazılmaz — geri dönüş planı o
+metinlerin kendisidir.
+
+Tablo başına tek sorgu (çıktı kısa kalsın diye; uzun çıktılar bu araçta
+bloklandı):
+
+```sql
+select policyname, cmd, roles, qual, with_check
+  from pg_policies
+ where schemaname='public' and tablename='<TABLO>'
+   and (coalesce(qual,'')||coalesce(with_check,'')) ~* '(partner|company_scope)'
+ order by cmd, policyname;
+```
+
+`<TABLO>` sırası: `announcements` · `appointments` · `companies` · `contacts` ·
+`contracts` · `critical_dates` · `documents` · `financial_summaries` · `notes` ·
+`staffing_demands` · `tasks` · `workforce_summary`
+(`partner_company_assignments` atlanır — düzeltilmeyecek.)
+
+Çıktı bloklanırsa satır satır oku:
+
+```sql
+select policyname, cmd,
+       (regexp_split_to_table(qual, E'\n'))[1] as qual_satir
+  from pg_policies
+ where schemaname='public' and tablename='<TABLO>';
+```
+
+### Yazıldığında buraya girecek
+
+- Her policy için ÖNCEKİ metin — **geri dönüş bloğu**
+- Partner dalı çıkarılmış YENİ metin
+- `DROP POLICY` + `CREATE POLICY`, **tek transaction'da**
 
 ---
 
