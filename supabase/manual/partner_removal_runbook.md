@@ -40,13 +40,29 @@ taşıyor, repo sıfır. Partner dallarını repo'ya bakarak kaldırmak, prod'da
 olmayanı silmeye ya da olanı kaçırmaya çalışmaktır.
 
 ```sql
--- KAPSAM + GERİ DÖNÜŞ. Çıktı bu dosyanın "Policy değişiklikleri" bölümünü
--- doldurur VE değiştirilen her policy'nin ÖNCESİNİ saklar.
+-- 1) ÖNCE SAYIM — kaç policy'nin kapsam dışında kaldığı görülsün.
+select
+  count(*) filter (where (coalesce(qual,'')||coalesce(with_check,'')) ilike '%partner%')       as partner_gecen,
+  count(*) filter (where (coalesce(qual,'')||coalesce(with_check,'')) ilike '%company_scope%') as scope_gecen,
+  count(*)                                                                                     as toplam_policy
+  from pg_policies where schemaname = 'public';
+
+-- 2) TAM LİSTE — İKİ desen birden.
 select tablename, policyname, cmd, roles, qual, with_check
   from pg_policies
  where schemaname = 'public'
+   and (coalesce(qual,'')||coalesce(with_check,'')) ~* '(partner|company_scope)'
  order by tablename, cmd, policyname;
 ```
+
+⚠ **Neden iki desen:** `current_user_has_company_scope()` partner'a özel bir
+fonksiyondur, ama onu çağıran bir policy'nin `qual` metninde "partner" kelimesi
+GEÇMEYEBİLİR. Yalnız `%partner%` aramak o policy'leri sessizce kaçırır — bugün
+`grep "FOR DELETE"` ile yapılan hatanın aynı ailesi (`REVIEW_STANDARD` §9).
+
+⚠ **Filtre bir sayım değildir.** 1. sorgu, kapsanan policy sayısını toplamla
+birlikte verir; ikisi arasındaki fark "dışarıda kalan" demektir ve o farkın
+partner'la ilgisi olmadığı **gözle doğrulanmalıdır**, varsayılmaz.
 
 ⚠ Bu çıktı **alınmadan hiçbir DDL yazılmaz.** Geri dönüş planı bu dökümün
 kendisidir; onsuz bir hata geri alınamaz hâle gelir.
@@ -76,16 +92,23 @@ boş değilse silme planı değişir):
 
 ```sql
 with p as (select id from public.profiles where email = 'satis@bps.local')
-select 'documents'      as tablo, count(*) from public.documents      where created_by  in (select id from p)
-union all
-select 'critical_dates', count(*)          from public.critical_dates where created_by  in (select id from p)
-union all
-select 'mizan_uploads',  count(*)          from public.mizan_uploads  where uploaded_by in (select id from p);
+select
+  (select count(*) from p)                                                             as hesap_var,
+  (select count(*) from public.documents      where created_by  in (select id from p)) as doc,
+  (select count(*) from public.critical_dates where created_by  in (select id from p)) as crit,
+  (select count(*) from public.mizan_uploads   where uploaded_by in (select id from p)) as mizan;
 ```
 
-**Üçü de 0 ise** silme temiz geçer. Biri 0'dan büyükse iki seçenek: o kayıtların
-`created_by`'ını başka bir profile taşımak, ya da hesabı silmeyip auth'ta devre
-dışı bırakmak. **Karar o anda verilir, tahminle ilerlenmez.**
+⚠ **`hesap_var` sütunu zorunlu, süs değil.** Hesap yoksa alt sorgu boş küme
+döner ve üç sayaç da `0` çıkar — yani "silme temiz geçer" görüntüsü, hesabın
+hiç var olmadığı durumda da oluşur. Bu, `notification_log` doğrulamasında
+öğrenilenin aynısı: **boş sonuç iki farklı şey anlamına gelebilir.**
+`hesap_var = 0` ise diğer üç sıfır hiçbir şey kanıtlamaz.
+
+**`hesap_var = 1` VE üçü de 0 ise** silme temiz geçer. Biri 0'dan büyükse iki
+seçenek: o kayıtların `created_by`'ını başka bir profile taşımak, ya da hesabı
+silmeyip auth'ta devre dışı bırakmak. **Karar o anda verilir, tahminle
+ilerlenmez.**
 
 ---
 
