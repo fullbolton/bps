@@ -172,7 +172,7 @@ dışında kalırdı.
 bir ara durum, izolasyon testini anlamsız kılar. Ayrım yalnız yazarken işi
 kolaylaştırmak için.
 
-### Bulunan desenler — 4/30 policy okundu (2026-08-27)
+### Bulunan desenler — 8/30 policy okundu (2026-08-27)
 
 **Tek tip `DROP`/`CREATE` yetmiyor: her desen kendi yeniden yazımını istiyor.**
 
@@ -212,6 +212,40 @@ AND tenant_id = current_user_active_tenant()
 ```
 `company_id IS NOT NULL` kontrolü de partner'la birlikte gider — kaldırmanın
 RLS'i sadeleştirdiğinin somut örneği.
+
+**`notes` — 4 policy, hepsi DESEN B, ama üç incelik var (2026-08-27)**
+
+Dördüncü desen çıkmadı; **incelikler çıktı** ve üçü de migration'ı etkiliyor.
+
+1. **`notes_delete_broad` yalnız İKİ dal taşıyor** (`yonetici`, `partner`).
+   Partner çıkınca geriye tek dal kalır ve `CASE` anlamsızlaşır — düz ifadeye
+   sadeleşmeli:
+   ```sql
+   USING (current_user_role() = 'yonetici' AND tenant_id = current_user_active_tenant())
+   ```
+   `financial_summaries`'ten sonra **sadeleşmenin ikinci kanıtı.**
+
+2. **`notes_insert_role_or_scope`: `CASE` bir `AND`'in İÇİNDE.**
+   ```sql
+   (author_id = auth.uid()) AND CASE ... END
+   ```
+   ⚠ Naif "partner WHEN'ini sil" yaklaşımı **dış guard'ı da düşürebilir**.
+   `author_id` koşulu korunmalı. Tek tip şablonun neden yetmediğinin en net
+   örneği.
+
+3. **`notes_update_own_or_broad`: `QUAL` ve `WITH_CHECK` BİREBİR AYNI.**
+   Migration **ikisini de** yazmalı. Birini atlamak, okunabilen ama
+   yazılamayan (ya da tersi) bir asimetri üretir ve arıza **sessiz** olur.
+
+   ⚠ **Genel uyarı:** kalan altı `UPDATE` policy'sinde (`appointments`,
+   `contacts`, `contracts`, `documents`, `tasks`, `workforce_summary`) `QUAL`
+   ve `WITH_CHECK` **ayrı ayrı** okunmalı. Aynı olduklarını varsaymak da,
+   farklı olduklarını varsaymak da ölçüm değildir.
+
+**Scope argümanı tablodan tabloya DEĞİŞİYOR — doğrulandı:**
+`companies` → `current_user_has_company_scope(id)` ·
+`notes` → `current_user_has_company_scope(company_id)`.
+Her policy'de argüman **okunacak**, kopyalanmayacak.
 
 ⚠ **Üç desen 4 policy'den çıktı. Kalan 26'da dördüncü/beşinci desen OLMADIĞI
 kanıtlanmadı** — yalnız ilk dörtte üç tane olduğu ölçüldü. Dört örnekten desen
