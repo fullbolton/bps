@@ -386,9 +386,16 @@ CREATE POLICY workforce_summary_update ON public.workforce_summary
   );
 
 -- --- contracts (3) — insert ve update İKİ DALLIYDI → CASE düşüyor ---
+-- ⚠ POLICY ADLARI `_role_or_scope` EKLİ. İlk yazımda bu ek düşmüştü çünkü ham
+--   metinler `contracts_select :: SELECT` diye KISALTILARAK aktarılmıştı.
+--   Uygulansaydı: DROP hiçbir şey yapmaz (o adda policy yok), CREATE YENİ bir
+--   policy yaratır, eski partner'lı policy YERİNDE KALIR — ve permissive
+--   policy'ler OR ile birleştiği için partner sözleşmelere erişmeye DEVAM
+--   ederdi. Migration ise "başarılı" dönerdi.
+--   Prod ad listesiyle diff'lenerek yakalandı.
 -- SADELEŞME 4/6 ve 5/6.
-DROP POLICY IF EXISTS contracts_select ON public.contracts;
-CREATE POLICY contracts_select ON public.contracts
+DROP POLICY IF EXISTS contracts_select_role_or_scope ON public.contracts;
+CREATE POLICY contracts_select_role_or_scope ON public.contracts
   FOR SELECT USING (
     CASE current_user_role()
       WHEN 'yonetici'::text  THEN tenant_id = current_user_active_tenant()
@@ -397,15 +404,15 @@ CREATE POLICY contracts_select ON public.contracts
     END
   );
 
-DROP POLICY IF EXISTS contracts_insert ON public.contracts;
-CREATE POLICY contracts_insert ON public.contracts
+DROP POLICY IF EXISTS contracts_insert_role_or_scope ON public.contracts;
+CREATE POLICY contracts_insert_role_or_scope ON public.contracts
   FOR INSERT WITH CHECK (
     current_user_role() = 'yonetici'::text
     AND tenant_id = current_user_active_tenant()
   );
 
-DROP POLICY IF EXISTS contracts_update ON public.contracts;
-CREATE POLICY contracts_update ON public.contracts
+DROP POLICY IF EXISTS contracts_update_role_or_scope ON public.contracts;
+CREATE POLICY contracts_update_role_or_scope ON public.contracts
   FOR UPDATE
   USING (
     current_user_role() = 'yonetici'::text
