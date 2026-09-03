@@ -4,7 +4,7 @@
 -- Karar: partner rolü kalkıyor (2026-08-27, Furkan). Kesin.
 -- Runbook: supabase/manual/partner_removal_runbook.md
 --
--- ⚠ WRITTEN, NOT APPLIED. ⚠ EKSİK — `notes` (4 policy) henüz yazılmadı.
+-- ⚠ WRITTEN, NOT APPLIED. 30/30 policy yazıldı.
 --
 -- ==========================================================================
 -- BU DOSYA NEDEN 30 AYRI BLOK, TEK ŞABLON DEĞİL
@@ -417,19 +417,67 @@ CREATE POLICY contracts_update ON public.contracts
   );
 
 
--- ==========================================================================
--- ⛔ EKSİK — `notes` (4 policy)
--- ==========================================================================
--- notes_select_role_or_scope   :: SELECT
--- notes_insert_role_or_scope   :: INSERT  ⚠ CASE bir AND'in İÇİNDE
---                                          (author_id = auth.uid()) AND CASE…
---                                          dış guard KORUNMALI
--- notes_update_own_or_broad    :: UPDATE  ⚠ QUAL = WITH_CHECK, ikisi de
--- notes_delete_broad           :: DELETE  ⚠ İKİ DALLI → CASE düşer (SADELEŞME 6/6)
---
--- Ham metinleri alınmadan yazılmayacak. Bu dosya `notes` bloğu eklenmeden
--- UYGULANMAZ — eksik bir migration, partner'ı yarım bırakır.
--- ==========================================================================
+-- --- notes (4) — üç incelik birden burada ---
+-- ⚠ Dal SIRASI korunuyor: kaynakta yonetici → partner → operasyon → ik.
+--   Partner ORTADAN siliniyor, kalanların sırası değişmiyor.
+
+DROP POLICY IF EXISTS notes_select_role_or_scope ON public.notes;
+CREATE POLICY notes_select_role_or_scope ON public.notes
+  FOR SELECT USING (
+    CASE current_user_role()
+      WHEN 'yonetici'::text  THEN tenant_id = current_user_active_tenant()
+      WHEN 'operasyon'::text THEN tenant_id = current_user_active_tenant()
+      WHEN 'ik'::text        THEN tenant_id = current_user_active_tenant()
+      ELSE false
+    END
+  );
+
+-- ⚠ İNCELİK 2 — CASE bir AND'in İÇİNDE. Dış `author_id = auth.uid()` guard'ı
+--   KORUNUYOR; yalnız partner WHEN'i siliniyor. Bu guard'ı düşürmek, herkesin
+--   başkası adına not yazabilmesi demekti.
+DROP POLICY IF EXISTS notes_insert_role_or_scope ON public.notes;
+CREATE POLICY notes_insert_role_or_scope ON public.notes
+  FOR INSERT WITH CHECK (
+    (author_id = auth.uid())
+    AND CASE current_user_role()
+      WHEN 'yonetici'::text  THEN tenant_id = current_user_active_tenant()
+      WHEN 'operasyon'::text THEN tenant_id = current_user_active_tenant()
+      WHEN 'ik'::text        THEN tenant_id = current_user_active_tenant()
+      ELSE false
+    END
+  );
+
+-- ⚠ İNCELİK 3 — QUAL ve WITH_CHECK birebir aynı, İKİSİ de yazılıyor.
+-- ⚠ Dallar ASİMETRİK ve öyle kalıyor: yonetici tüm tenant'ı,
+--   operasyon/ik yalnız KENDİ yazdığı notu günceller. Bu partner'la ilgili
+--   değil; dokunulmuyor.
+DROP POLICY IF EXISTS notes_update_own_or_broad ON public.notes;
+CREATE POLICY notes_update_own_or_broad ON public.notes
+  FOR UPDATE
+  USING (
+    CASE current_user_role()
+      WHEN 'yonetici'::text  THEN tenant_id = current_user_active_tenant()
+      WHEN 'operasyon'::text THEN ((author_id = auth.uid()) AND (tenant_id = current_user_active_tenant()))
+      WHEN 'ik'::text        THEN ((author_id = auth.uid()) AND (tenant_id = current_user_active_tenant()))
+      ELSE false
+    END
+  )
+  WITH CHECK (
+    CASE current_user_role()
+      WHEN 'yonetici'::text  THEN tenant_id = current_user_active_tenant()
+      WHEN 'operasyon'::text THEN ((author_id = auth.uid()) AND (tenant_id = current_user_active_tenant()))
+      WHEN 'ik'::text        THEN ((author_id = auth.uid()) AND (tenant_id = current_user_active_tenant()))
+      ELSE false
+    END
+  );
+
+-- ⚠ İKİ DALLIYDI → tek dal kaldı → CASE düşüyor. SADELEŞME 6/6.
+DROP POLICY IF EXISTS notes_delete_broad ON public.notes;
+CREATE POLICY notes_delete_broad ON public.notes
+  FOR DELETE USING (
+    current_user_role() = 'yonetici'::text
+    AND tenant_id = current_user_active_tenant()
+  );
 
 COMMIT;
 
