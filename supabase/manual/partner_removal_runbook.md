@@ -364,7 +364,88 @@ Ve `tasks`'ta `ik` **üçünde de** var. Yani iki benzer tablo farklı davranıy
 `notes` en karmaşığı — `delete_broad` / `update_own_or_broad` gibi başka hiçbir
 tabloda olmayan adlar taşıyor, kendi mantığı var.
 
-### ⛔ Hâlâ eksik: tam `qual` / `with_check` metinleri
+### Yazılan bloklar — tablo tablo
+
+Her blok iki parça taşır: **ÖNCESİ** (geri dönüş) ve **SONRASI** (uygulanacak).
+Öncesi ham `pg_policies` çıktısıdır, özet değil.
+
+---
+
+#### `documents` — 3 policy ✅ YAZILDI
+
+⚠ **Bu tabloda sadeleşme kuralı UYGULANMAZ.** "2 dallı `CASE` → düz ifade"
+kuralı rol dallanması içindir. Burada `CASE` **veri** üzerinden dallanıyor
+(`contract_id IS NULL`), partner çıksa da iki dal kalır ve `CASE` **korunur**.
+Kuralı körü körüne uygulamak policy'yi bozardı.
+
+**ÖNCESİ — geri dönüş:**
+
+```sql
+-- documents_select :: SELECT · QUAL
+(((current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text])) OR ((current_user_role() = 'partner'::text) AND current_user_has_company_scope(company_id))) AND (tenant_id = current_user_active_tenant()))
+
+-- documents_update :: UPDATE · QUAL ve WITH CHECK BİREBİR AYNI
+(
+CASE
+    WHEN (contract_id IS NULL) THEN ((current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text])) OR ((current_user_role() = 'partner'::text) AND current_user_has_company_scope(company_id)))
+    ELSE ((current_user_role() = 'yonetici'::text) OR ((current_user_role() = 'partner'::text) AND current_user_has_company_scope(company_id)))
+END AND (tenant_id = current_user_active_tenant()))
+
+-- documents_insert :: INSERT · WITH CHECK (qual yok)
+-- update ile BİREBİR AYNI metin
+```
+
+**SONRASI — uygulanacak:**
+
+```sql
+DROP POLICY IF EXISTS documents_select ON public.documents;
+CREATE POLICY documents_select ON public.documents
+  FOR SELECT USING (
+    current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text])
+    AND tenant_id = current_user_active_tenant()
+  );
+
+DROP POLICY IF EXISTS documents_insert ON public.documents;
+CREATE POLICY documents_insert ON public.documents
+  FOR INSERT WITH CHECK (
+    CASE
+      WHEN contract_id IS NULL
+        THEN current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text])
+      ELSE current_user_role() = 'yonetici'::text
+    END
+    AND tenant_id = current_user_active_tenant()
+  );
+
+DROP POLICY IF EXISTS documents_update ON public.documents;
+CREATE POLICY documents_update ON public.documents
+  FOR UPDATE
+  USING (
+    CASE
+      WHEN contract_id IS NULL
+        THEN current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text])
+      ELSE current_user_role() = 'yonetici'::text
+    END
+    AND tenant_id = current_user_active_tenant()
+  )
+  WITH CHECK (
+    CASE
+      WHEN contract_id IS NULL
+        THEN current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text])
+      ELSE current_user_role() = 'yonetici'::text
+    END
+    AND tenant_id = current_user_active_tenant()
+  );
+```
+
+**Kontrol listesi — bu blokta hangi incelikler geçerliydi:**
+- ✅ (3) `QUAL` ve `WITH_CHECK` ayrı ayrı yazıldı (`update`)
+- ✅ (5) partner **iki daldan da** silindi — tek yerden silmek sessiz hata olurdu
+- ⛔ (1) sadeleşme kuralı **uygulanmadı** — dallanma veri üzerinden, `CASE` korundu
+- `documents_select` DESEN C olduğu için `OR` bacağı düştü ve dış parantez sadeleşti
+
+---
+
+### ⛔ Kalan tablolar — tam metin bekliyor
 
 Yukarıdaki tablo **kapsamı** verir, **geri dönüşü vermez.** Her policy'nin
 ÖNCEKİ metni alınmadan hiçbir `DROP POLICY` yazılmaz — geri dönüş planı o
