@@ -172,7 +172,7 @@ dışında kalırdı.
 bir ara durum, izolasyon testini anlamsız kılar. Ayrım yalnız yazarken işi
 kolaylaştırmak için.
 
-### Bulunan desenler — 8/30 policy okundu (2026-08-27)
+### Bulunan desenler — 12/30 policy okundu (2026-08-27)
 
 **Tek tip `DROP`/`CREATE` yetmiyor: her desen kendi yeniden yazımını istiyor.**
 
@@ -247,7 +247,42 @@ Dördüncü desen çıkmadı; **incelikler çıktı** ve üçü de migration'ı 
 `notes` → `current_user_has_company_scope(company_id)`.
 Her policy'de argüman **okunacak**, kopyalanmayacak.
 
-⚠ **Üç desen 4 policy'den çıktı. Kalan 26'da dördüncü/beşinci desen OLMADIĞI
+**DESEN D — `CASE` + `EXISTS` alt sorgusu** (`contacts` ×4, 2026-08-27)
+
+**Dördüncü desen 12. policy'de çıktı.** Sekizde durup genelleme yapılsaydı
+kaçırılacaktı.
+
+```sql
+WHEN 'yonetici' THEN EXISTS (
+  SELECT 1 FROM companies c
+   WHERE c.id = contacts.company_id
+     AND c.tenant_id = current_user_active_tenant())
+```
+
+**Sebebi yapısal:** `contacts` tablosunda `tenant_id` kolonu **YOK**. Tenant'ı
+`companies` üzerinden `EXISTS` ile türetiyor. Diğer tablolarda düz
+`tenant_id = current_user_active_tenant()` karşılaştırması var.
+
+⚠ **Migration bu `EXISTS`'i KOPYALAMALI, düz karşılaştırmaya ÇEVİRMEMELİ.**
+Çevirirse `contacts`'ta var olmayan bir kolona referans verir ve policy hata
+verir. Bu, kaçırılsaydı sessiz değil gürültülü bir arıza olurdu — ama yine de
+kaçırılmamalıydı.
+
+**`contacts` dört policy — iki yeni incelik:**
+
+- `contacts_delete` ve `contacts_insert` **iki dallı** → partner çıkınca
+  `CASE` sadeleşmeli. **Üçüncü ve dördüncü sadeleşme kanıtı.**
+- `contacts_insert`'te **dış `AND` guard'ı YOK** — `CASE` doğrudan
+  `WITH_CHECK`'in kendisi. `notes_insert`'te vardı. Yani **sarmalama tablodan
+  tabloya değişiyor, iki yönde de**: kimi yerde dış guard var, kimi yerde yok.
+  Her policy kendi sarmalıyla okunacak.
+- `contacts_update`: `QUAL` = `WITH_CHECK`, `notes_update` gibi. İkisi de
+  yazılacak.
+
+**Scope argümanı:** `contacts` → `(company_id)`, `companies` → `(id)`.
+İki farklı argüman doğrulandı.
+
+⚠ **Dört desen 12 policy'den çıktı. Kalan 26'da dördüncü/beşinci desen OLMADIĞI
 kanıtlanmadı** — yalnız ilk dörtte üç tane olduğu ölçüldü. Dört örnekten desen
 çıkarıp 26'sına uygulamak, filtreyle sayım yapmanın aynısı olur.
 
