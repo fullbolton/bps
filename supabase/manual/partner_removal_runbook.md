@@ -1,7 +1,23 @@
 # Partner Rolünü Kaldırma — Runbook
 
 **Karar:** partner rolü kalkıyor (2026-08-27, Furkan). Kesin.
-**Durum:** ✅ HAZIR — 30/30 policy okundu, migration yazıldı, parmak izi doğrulandı. **Uygulama Furkan'ın onayında.**
+**Durum:** ✅ **ADIM 1–2 UYGULANDI VE DOĞRULANDI (2026-08-27).** Defter 33 → 34.
+Kalan: izolasyon testi (ADIM 3) → CHECK + DROP'lar (ADIM 4–5) → kod temizliği (ADIM 6).
+
+**Uygulama sonucu — tek satırlık doğrulama:**
+
+| | değer | beklenen |
+|---|---:|---|
+| `auth_kalan` | 0 | ✅ hesap silindi |
+| `profil_kalan` | 0 | ✅ cascade çalıştı |
+| `partner_rolu` | 0 | ✅ partner rolünde kimse yok |
+| `partner_policy` | **1** | ✅ yalnız `partner_company_assignments`, o da ADIM 5'te düşecek |
+| `contracts_policy` | 4 | ✅ üçü düzeltildi + `contracts_delete_admin` (partner içermiyordu) |
+| `toplam_policy` | **60** | ✅ **değişmedi** — 30 DROP + 30 CREATE net sıfır, çift policy YOK |
+
+⚠ `toplam_policy` en kritik sütun: ad hatası tekrarlansaydı 63 olurdu (üç eski
+partner'lı policy yerinde kalır, üç yenisi eklenirdi). 60 kalması, `contracts`
+ad düzeltmesinin tuttuğunun kanıtı.
 **Sıra:** bu iş → izolasyon testi → Faz 2 → Step 3'ün kalanı.
 
 ---
