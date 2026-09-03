@@ -533,8 +533,24 @@ export default function FirmaDetayPage({
         disabled: passivating,
       },
     ] : []),
-    // Reactivate — yonetici-only, only on a pasif firma (mirror of passivate).
-    ...(role === "yonetici" && firma && firma.durum === "pasif" ? [
+    // Reactivate — yonetici-only, on any firma that is not already aktif.
+    //
+    // ⚠ ÖLÇÜLDÜ (2026-09-03): bu koşul `=== "pasif"` idi ve passivate'in aynası
+    // DEĞİLDİ. Passivate `!== "pasif"` ile aday'ı da kapsıyor, reactivate ise
+    // yalnız pasif'i kapsıyordu. Sonuç: bir `aday` firmanın tek yaşam döngüsü
+    // hamlesi pasife gitmekti; aktife alma yolu ekranda YOKTU.
+    //
+    // Üç durumlu bir döngüde `!== "pasif"` ile `=== "pasif"` birbirinin aynası
+    // değil — eski yorum ("mirror of passivate") iki durumlu bir dünyada
+    // yazılmıştı ve `aday` eklendiğinde sessizce yanlışlaştı.
+    //
+    // Bu, firmalar listesine "Yeni Firma" eklenmeden önce de vardı (randevu ve
+    // talep formlarından doğan firmalar da `aday`), ama o yol dar olduğu için
+    // görünmüyordu. Liste ekranı firma eklemenin ANA yolu olunca çıkmaz oldu.
+    //
+    // `reactivateCompanyAction` tarafında değişiklik gerekmiyor: eylemin durum
+    // ön koşulu hiç yoktu, yalnız düğmenin görünürlük koşulu dardı.
+    ...(role === "yonetici" && firma && firma.durum !== "aktif" ? [
       {
         label: reactivating ? "Aktife alınıyor…" : "Aktife Al",
         onClick: () => { void handleReactivate(); },

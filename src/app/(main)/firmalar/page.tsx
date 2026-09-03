@@ -4,10 +4,48 @@
  * Firmalar list — reads company shell from real Supabase truth.
  * Enrichment via UUID-keyed direct queries for all companies.
  * No mock dependency for enrichment or partner display.
+ *
+ * ---------------------------------------------------------------------------
+ * "YENİ FİRMA" — neden bugüne kadar yoktu, neden şimdi var
+ * ---------------------------------------------------------------------------
+ * Bu ekran baştan beri SALT OKUNURDU; regresyon değil. Firma yaratmanın tek
+ * yolu Excel import'tu, sonra B batch'te inline yaratma eklendi ama BİLEREK
+ * yalnız randevu ve talep formlarına bağlandı ("ilişkinin başladığı yerler").
+ *
+ * Eksik ancak yeni bir kiracı kurulunca görünür oldu: Mek Group'ta 0 firma var
+ * ve o kiracıda firma eklemenin doğrudan yolu yok. Kalan yol — "firma eklemek
+ * için önce randevu oluştur" — bir kurulum akışı değil.
+ *
+ * Omurga zaten hazırdı (createCompanyAction · NewCompanyModal · mükerrer
+ * uyarısı); eksik olan yalnız tetikleyiciydi.
+ *
+ * ---------------------------------------------------------------------------
+ * ÜÇ KARAR
+ * ---------------------------------------------------------------------------
+ * 1. DURUM `aday` — randevu akışıyla AYNI. Ayrı bir durum vermek, `status`'ü
+ *    firmanın kendisi hakkında değil "hangi kapıdan girdiği" hakkında bir alan
+ *    yapardı; ve bu ayrım kayıtta hiçbir yerde saklanmadığı için sonradan
+ *    ayıklanamazdı. Hata maliyeti de asimetrik: `aday` → `aktif` tek tık,
+ *    yanlışlıkla `aktif` doğan bir firma ise portföyü şişirir ve sessizdir.
+ *    ⚠ Bu karar tek başına bir ÇIKMAZ üretiyordu — bkz. firmalar/[id] sayfası,
+ *      "Aktife Al" düğmesi. Orada düzeltildi; ikisi birlikte geçerli.
+ *
+ * 2. BUTON yonetici-only. Güvenlik sınırı DEĞİL — o sınır zaten iki katmanda
+ *    var (server action rol guard'ı + `companies_insert_yonetici` policy'si).
+ *    Buradaki tek amaç, basıldığında kesin başarısız olacak bir düğmeyi
+ *    göstermemek. `kurumsal-tarihler` ekranındaki desenin aynısı.
+ *
+ * 3. BAŞARI SONRASI listede kalınır, detaya gidilmez: ilk kurulumda firmalar
+ *    arka arkaya eklenir ve her seferinde detaya sıçramak akışı keser.
+ *    ⚠ Ama liste yenilemek TEK BAŞINA yetmiyor: aktif bir filtre varsa yeni
+ *      `aday` firma listeye düşmez ve kullanıcı işlemin başarısız olduğunu
+ *      sanar. Bu yüzden arama ve filtreler TEMİZLENİR — kaydın görünür olduğu
+ *      garanti edilir, "oldu mu olmadı mı" belirsizliği bırakılmaz.
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
 import {
   PageHeader,
@@ -17,6 +55,9 @@ import {
   StatusBadge,
   RiskBadge,
 } from "@/components/ui";
+import NewCompanyModal from "@/components/modals/NewCompanyModal";
+import type { CreatedCompany } from "@/components/modals/NewCompanyModal";
+import { useRole } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
 import { SECTOR_LABELS } from "@/lib/sector-codes";
@@ -79,6 +120,11 @@ const COLUMNS: ColumnDef<FirmaListRow>[] = [
 export default function FirmalarPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { role } = useRole();
+  const isYonetici = role === "yonetici";
+
+  const [newOpen, setNewOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({ durum: "", risk: "", sektor: "", sehir: "" });
@@ -91,6 +137,10 @@ export default function FirmalarPage() {
   const [primaryNameById, setPrimaryNameById] = useState<Record<string, string>>({});
   const [activeContractById, setActiveContractById] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  // Yeniden yükleme, mevcut effect'i TEKRAR çalıştırarak yapılıyor. Yükleyiciyi
+  // dışarı almak, effect'in `active` iptal guard'ını her çağrı için ayrı ayrı
+  // kurma özelliğini kaybettirirdi.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -129,7 +179,7 @@ export default function FirmalarPage() {
       }
     })();
     return () => { active = false; };
-  }, [supabase]);
+  }, [supabase, reloadKey]);
 
   // ---------------------------------------------------------------------------
   // Dynamic filter config — no mock dependency
@@ -200,6 +250,28 @@ export default function FirmalarPage() {
     });
   }, [search, filters, companies, primaryNameById, activeContractById]);
 
+  /**
+   * Modal kapandığında: kayıt GÖRÜNÜR olmalı, yoksa "oldu mu" belirsizliği
+   * kalır. Aktif bir filtre yeni `aday` firmayı listeden düşürebileceği için
+   * arama ve filtreler temizlenir, sonra liste yeniden okunur.
+   *
+   * `origin` olmadan buradaki cümle iki durumdan birinde yalan olurdu:
+   * mükerrer listesinden mevcut bir firma seçmek "eklendi" değildir.
+   */
+  const handleCompanyCreated = useCallback(
+    (company: CreatedCompany, origin: "created" | "existing") => {
+      setSearch("");
+      setFilters({ durum: "", risk: "", sektor: "", sehir: "" });
+      setReloadKey((k) => k + 1);
+      setNotice(
+        origin === "created"
+          ? `${company.name} eklendi — durumu "aday". Aktife almak için firma detayına girin.`
+          : `${company.name} zaten kayıtlı — listede.`,
+      );
+    },
+    [],
+  );
+
   const rowActions: RowAction<FirmaListRow>[] = [
     { label: "Detaya Git", onClick: (row) => router.push(`/firmalar/${row.id}`) },
   ];
@@ -215,8 +287,37 @@ export default function FirmalarPage() {
 
   return (
     <>
-      <PageHeader title="Firmalar" subtitle="Firma portfoyu" />
+      <PageHeader
+        title="Firmalar"
+        subtitle="Firma portfoyu"
+        actions={
+          isYonetici
+            ? [
+                {
+                  label: "Yeni Firma",
+                  onClick: () => {
+                    setNotice(null);
+                    setNewOpen(true);
+                  },
+                  icon: <Plus size={16} />,
+                },
+              ]
+            : undefined
+        }
+      />
       <div className="space-y-4">
+        {notice && (
+          <div className="flex items-start justify-between gap-3 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+            <span>{notice}</span>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              className="shrink-0 text-xs text-green-700 hover:underline"
+            >
+              Kapat
+            </button>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
             <SearchInput placeholder="Firma, yetkili, sektor ara..." onChange={handleSearch} />
@@ -229,10 +330,30 @@ export default function FirmalarPage() {
           rowKey="id"
           rowActions={rowActions}
           onRowClick={(row) => router.push(`/firmalar/${row.id}`)}
-          emptyTitle="Firma bulunamadi"
-          emptyDescription="Arama veya filtre kriterlerinizi degistirin."
+          emptyTitle={
+            companies.length === 0 ? "Portfoyde firma yok" : "Firma bulunamadi"
+          }
+          emptyDescription={
+            // İKİ AYRI DURUM, İKİ AYRI CÜMLE. Kiracıda hiç firma yokken
+            // "filtrelerinizi degistirin" demek, kullanıcıyı olmayan bir
+            // filtreyi aramaya gönderir — Mek Group'ta görülen tam olarak buydu.
+            companies.length === 0
+              ? isYonetici
+                ? "Bu kiracida henuz firma yok. Yukaridaki \u201cYeni Firma\u201d ile ekleyebilirsiniz."
+                : "Bu kiracida henuz firma yok."
+              : "Arama veya filtre kriterlerinizi degistirin."
+          }
         />
       </div>
+
+      {/* yonetici-only: RLS ve server action zaten kapatıyor, bu üçüncü katman. */}
+      {isYonetici && (
+        <NewCompanyModal
+          open={newOpen}
+          onClose={() => setNewOpen(false)}
+          onCreated={handleCompanyCreated}
+        />
+      )}
     </>
   );
 }

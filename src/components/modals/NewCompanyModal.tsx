@@ -39,10 +39,20 @@ interface NewCompanyModalProps {
   onClose: () => void;
   /**
    * Yaratılan VEYA mükerrer listesinden seçilen firma. Çağıran bunu select'e
-   * yerleştirir ve listesini yeniler. İki durum tek callback: çağıran
-   * açısından sonuç aynı — elinde kullanılabilir bir firma var.
+   * yerleştirir ve listesini yeniler. İki durum tek callback: SELECT ALANI
+   * olan çağıranlar açısından sonuç aynı — elinde kullanılabilir bir firma var.
+   *
+   * `origin` bu iki durumu yine de ayırt edilebilir tutar. Select alanı olan
+   * çağıranlar (randevu · talep) parametreyi yok sayar. Firmalar LİSTESİ ise
+   * ayırmak zorunda: orada kullanıcıya bir sonuç cümlesi yazılıyor ve
+   * "eklendi" demek, mükerrer listesinden mevcut bir firma seçildiğinde
+   * DOĞRU DEĞİL. Tek callback'te birleştirmek o cümleyi iki durumdan birinde
+   * yalan yapardı.
    */
-  onCreated: (company: CreatedCompany) => void;
+  onCreated: (
+    company: CreatedCompany,
+    origin: "created" | "existing",
+  ) => void;
 }
 
 export default function NewCompanyModal({
@@ -68,7 +78,7 @@ export default function NewCompanyModal({
   }
 
   function handleSelectExisting(match: DuplicateMatch) {
-    onCreated({ id: match.id, name: match.name });
+    onCreated({ id: match.id, name: match.name }, "existing");
     resetAndClose();
   }
 
@@ -89,7 +99,10 @@ export default function NewCompanyModal({
       );
 
       if (result.ok) {
-        onCreated({ id: result.companyId, name: result.companyName });
+        onCreated(
+          { id: result.companyId, name: result.companyName },
+          "created",
+        );
         resetAndClose();
         return;
       }
