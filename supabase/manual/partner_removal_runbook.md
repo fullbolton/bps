@@ -1,7 +1,7 @@
 # Partner Rolünü Kaldırma — Runbook
 
 **Karar:** partner rolü kalkıyor (2026-08-27, Furkan). Kesin.
-**Durum:** ⚠ HAZIRLIK — kapsam + desenler TAM ÖLÇÜLDÜ (30/30), **migration için tam `qual` metinleri bekliyor.**
+**Durum:** ✅ HAZIR — 30/30 policy okundu, migration yazıldı, parmak izi doğrulandı. **Uygulama Furkan'ın onayında.**
 **Sıra:** bu iş → izolasyon testi → Faz 2 → Step 3'ün kalanı.
 
 ---
@@ -67,8 +67,8 @@ partner'la ilgisi olmadığı **gözle doğrulanmalıdır**, varsayılmaz.
 ⚠ Bu çıktı **alınmadan hiçbir DDL yazılmaz.** Geri dönüş planı bu dökümün
 kendisidir; onsuz bir hata geri alınamaz hâle gelir.
 
-**Durum: KISMEN ALINDI** (2026-08-27) — sayım ve tablo dağılımı elde, tam
-`qual`/`with_check` metinleri henüz değil. Ayrıntı: ADIM 2.
+**Durum: TAM ALINDI** (2026-08-27) — 30/30 policy, ham metin + md5 parmak izi.
+Geri dönüş planı ADIM 2'de.
 
 ---
 
@@ -620,16 +620,32 @@ EOF
 30 blok tek tek yazıldı ve aynı gövde 12 kez tutarlı üretildi — bunu göz değil
 parmak izi doğruladı.
 
-⚠ **İKİ GRUP BÜYÜDÜ, doğrulanmayı bekliyor.** `workforce_summary` insert/update
+✅ **İKİ GRUP BÜYÜDÜ — DOĞRULANDI (2026-08-27).** `workforce_summary` insert/update
 `appointments` grubuna, `tasks_update` + `workforce_summary_select` de `tasks`
 grubuna katıldı. Beklenen: prod'da zaten aynı metni taşıyorlardı
 (`[yonetici, operasyon, partner]` ve `[yonetici, operasyon, ik, partner]`),
 partner çıkınca aynı kalıyorlar.
 
-**Ama bu bir HİPOTEZ** — o dördünün prod md5'i alınmadı ("eksik 4"). Doğrulama:
-`workforce_summary` insert/update → `fdc2140a23`, `tasks_update` +
-`workforce_summary_select` → `2b56216693` çıkmalı. Çıkmazsa varsayım yanlıştır
-ve o üç blok yeniden okunur.
+Eksik 4'ün prod md5'i alındı ve **dördü de beklenen gruba düştü**:
+
+```
+tasks_update             md5q = md5wc = 2b56216693   ✅ beklenen
+workforce_summary_select md5q         = 2b56216693   ✅ beklenen
+workforce_summary_insert md5wc        = fdc2140a23   ✅ beklenen
+workforce_summary_update md5q = md5wc = fdc2140a23   ✅ beklenen
+```
+
+Yani `workforce_summary` insert/update prod'da `appointments` ile **zaten aynı
+metni taşıyordu**; partner çıkınca aynı kalıyorlar. Grup büyümesi beklenen
+davranış, sapma değil. **Hipotez sonuç oldu.**
+
+**7 `UPDATE` policy'sinin hepsinde `md5q = md5wc`** ayrıca doğrulandı —
+`QUAL` ve `WITH_CHECK` birebir aynı, ve migration ikisini de yazıyor.
+
+### PARMAK İZİ TARAFI KAPANDI
+
+Prod 30/30 ölçüldü, migration 30/30 yazıldı, grup yapısı birebir korundu.
+Uygulama öncesi diff için başka ölçüm gerekmiyor.
 
 ---
 
