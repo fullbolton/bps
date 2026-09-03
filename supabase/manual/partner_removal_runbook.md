@@ -172,7 +172,23 @@ dışında kalırdı.
 bir ara durum, izolasyon testini anlamsız kılar. Ayrım yalnız yazarken işi
 kolaylaştırmak için.
 
-### Bulunan desenler — 12/30 policy okundu (2026-08-27)
+### Bulunan desenler — 21/30 policy okundu (2026-08-27)
+
+| Desen | Adet | Nerede |
+|---|---:|---|
+| A rol listesi | 2 | `announcements` · `critical_dates` |
+| B `CASE`(rol) | 11 | `companies` · `notes`×4 · `appointments`×3 · `contracts`×3 |
+| C `OR` bloğu | 2 | `financial_summaries` · `documents_select` |
+| D `CASE`+`EXISTS` | 4 | `contacts`×4 |
+| E `CASE`(veri)+`OR` | 2 | `documents_insert` · `documents_update` |
+| **TOPLAM** | **21** | okunan sayıyla eşleşti |
+
+**Sadeleşme: 6** (`financial_summaries` · `notes_delete` · `contacts_delete` ·
+`contacts_insert` · `contracts_insert` · `contracts_update`)
+**İncelik: 5** (dal sayısı · `CASE` sarmalı · `QUAL`=`WITH_CHECK` ·
+`EXISTS`/düz · `CASE` koşulu veri)
+**Kalan: 9** — `staffing_demands`(3) · `tasks`(3) · `workforce_summary`(3)
+
 
 **Tek tip `DROP`/`CREATE` yetmiyor: her desen kendi yeniden yazımını istiyor.**
 
@@ -282,7 +298,38 @@ kaçırılmamalıydı.
 **Scope argümanı:** `contacts` → `(company_id)`, `companies` → `(id)`.
 İki farklı argüman doğrulandı.
 
-⚠ **Dört desen 12 policy'den çıktı. Kalan 26'da dördüncü/beşinci desen OLMADIĞI
+**DESEN E — `CASE` koşulu ROL DEĞİL, VERİ** (`documents_insert`, `documents_update`)
+
+**Beşinci desen 21. policy'de çıktı** — ve şimdiye kadarki en tehlikelisi.
+
+```sql
+CASE
+  WHEN contract_id IS NULL THEN (role = ANY['yonetici','operasyon','ik']
+                                 OR (role='partner' AND scope(company_id)))
+  ELSE                          (role='yonetici'
+                                 OR (role='partner' AND scope(company_id)))
+END
+AND tenant_id = current_user_active_tenant()
+```
+
+`CASE current_user_role()` değil, `CASE WHEN contract_id IS NULL`. Dallanma
+**role göre değil veriye göre**, ve **her dalın içinde ayrı bir partner
+bacağı** var.
+
+⚠⚠ **Partner İKİ AYRI YERDEN silinmeli.** Tek yerden silmek yarısını bırakır —
+ve bu **SESSİZ** olur. Diğer dört desende kaçırma gürültülüydü (policy patlar,
+kolon bulunamaz); burada policy çalışmaya devam eder ve partner bir veri
+koşulunda hâlâ erişebilir.
+
+`documents_select` ise DESEN C (OR bloğu), `financial_summaries` gibi. Yani
+**tek tablo iki farklı desen taşıyabiliyor** — tablo bazında genelleme de
+yapılamaz.
+
+**`appointments` (3) ve `contracts` (3):** yeni desen yok, hepsi DESEN B.
+`contracts_insert` ve `contracts_update` iki dallı → **beşinci ve altıncı
+sadeleşme.**
+
+⚠ **Beş desen 21 policy'den çıktı. Kalan 26'da dördüncü/beşinci desen OLMADIĞI
 kanıtlanmadı** — yalnız ilk dörtte üç tane olduğu ölçüldü. Dört örnekten desen
 çıkarıp 26'sına uygulamak, filtreyle sayım yapmanın aynısı olur.
 
