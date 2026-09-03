@@ -1,7 +1,7 @@
 # Partner Rolünü Kaldırma — Runbook
 
 **Karar:** partner rolü kalkıyor (2026-08-27, Furkan). Kesin.
-**Durum:** ⚠ HAZIRLIK — kapsam ÖLÇÜLDÜ (30 policy), **tam metinler bekliyor.**
+**Durum:** ⚠ HAZIRLIK — kapsam + desenler TAM ÖLÇÜLDÜ (30/30), **migration için tam `qual` metinleri bekliyor.**
 **Sıra:** bu iş → izolasyon testi → Faz 2 → Step 3'ün kalanı.
 
 ---
@@ -172,22 +172,35 @@ dışında kalırdı.
 bir ara durum, izolasyon testini anlamsız kılar. Ayrım yalnız yazarken işi
 kolaylaştırmak için.
 
-### Bulunan desenler — 21/30 policy okundu (2026-08-27)
+### Desenler — 30/30 OKUNDU, TAMAMLANDI (2026-08-27)
 
 | Desen | Adet | Nerede |
 |---|---:|---|
-| A rol listesi | 2 | `announcements` · `critical_dates` |
-| B `CASE`(rol) | 11 | `companies` · `notes`×4 · `appointments`×3 · `contracts`×3 |
-| C `OR` bloğu | 2 | `financial_summaries` · `documents_select` |
+| A rol listesi (`ANY ARRAY`) | 2 | `announcements_select` · `critical_dates_select` |
+| B `CASE`(rol) | 20 | `companies`1 · `notes`4 · `appointments`3 · `contracts`3 · `staffing_demands`3 · `tasks`3 · `workforce_summary`3 |
+| C `OR` bloğu | 2 | `financial_summaries_select` · `documents_select` |
 | D `CASE`+`EXISTS` | 4 | `contacts`×4 |
 | E `CASE`(veri)+`OR` | 2 | `documents_insert` · `documents_update` |
-| **TOPLAM** | **21** | okunan sayıyla eşleşti |
+| **TOPLAM** | **30** | ✓ okunan sayıyla eşleşti |
+
+**Altıncı desen ÇIKMADI.** Beş desenin 30 policy'yi kapsadığı artık ölçülmüş
+durumda — dördüncü desen 12., beşinci 21. policy'de çıkmıştı, yani hiçbir
+noktada "yeter" demek savunulabilir değildi.
+
+**Sadeleşme: 6** — `financial_summaries_select` · `notes_delete_broad` ·
+`contacts_delete` · `contacts_insert` · `contracts_insert` · `contracts_update`
+
+**Scope argümanı:** `companies` → `(id)` · diğer 29 → `(company_id)`
 
 **Sadeleşme: 6** (`financial_summaries` · `notes_delete` · `contacts_delete` ·
 `contacts_insert` · `contracts_insert` · `contracts_update`)
-**İncelik: 5** (dal sayısı · `CASE` sarmalı · `QUAL`=`WITH_CHECK` ·
-`EXISTS`/düz · `CASE` koşulu veri)
-**Kalan: 9** — `staffing_demands`(3) · `tasks`(3) · `workforce_summary`(3)
+**ALTI İNCELİK — migration kontrol listesi:**
+1. **Dal sayısı** — 2 dallı `CASE`'ler partner çıkınca düz ifadeye sadeleşmeli
+2. **`CASE` sarmalı** — `notes_insert`'te dış `AND` guard var, `contacts_insert`'te yok
+3. **`QUAL` vs `WITH_CHECK`** — 7 `UPDATE` policy'sinin hepsinde ikisi de var, ikisi de yazılmalı
+4. **`EXISTS` vs düz** — `contacts`'ta `tenant_id` kolonu YOK, tenant `companies` üzerinden türetiliyor
+5. **`CASE` koşulu veri olabilir** — `documents`'ta `contract_id IS NULL`; partner İKİ daldan silinmeli, tek yerden silmek SESSİZ hata
+6. **Aynı tabloda farklı dal listeleri** — `workforce_summary`'de `ik` select'te var, insert/update'te yok
 
 
 **Tek tip `DROP`/`CREATE` yetmiyor: her desen kendi yeniden yazımını istiyor.**
@@ -329,10 +342,22 @@ yapılamaz.
 `contracts_insert` ve `contracts_update` iki dallı → **beşinci ve altıncı
 sadeleşme.**
 
-⚠ **Beş desen 21 policy'den çıktı. Kalan 26'da dördüncü/beşinci desen OLMADIĞI
-kanıtlanmadı** — yalnız ilk dörtte üç tane olduğu ölçüldü. Dört örnekten desen
-çıkarıp 26'sına uygulamak, filtreyle sayım yapmanın aynısı olur.
+**ALTINCI İNCELİK — aynı tabloda dal listesi DEĞİŞİYOR** (`workforce_summary`)
 
+```
+insert (WC)      : CASE [yonetici, operasyon, partner]        ← ik YOK
+select (QUAL)    : CASE [yonetici, operasyon, ik, partner]    ← ik VAR
+update (QUAL=WC) : CASE [yonetici, operasyon, partner]        ← ik YOK
+```
+
+`ik` okuyabiliyor ama yazamıyor. Bilinçli bir tasarım olabilir — ama migration
+yazarken **"tablonun üç policy'si aynı" varsayımı yanlış olurdu.**
+
+Ve `tasks`'ta `ik` **üçünde de** var. Yani iki benzer tablo farklı davranıyor:
+**tablo bazında da, tablolar arası benzerlikle de genelleme yapılamaz.**
+
+`staffing_demands` (3): yeni desen yok, `appointments` ile birebir aynı yapı.
+`tasks` (3): yeni desen yok, 4 dallı.
 **Okunmayı bekleyen 26 policy:** `appointments`(3) · `contacts`(4) ·
 `contracts`(3) · `documents`(3) · `notes`(4) · `staffing_demands`(3) ·
 `tasks`(3) · `workforce_summary`(3).
