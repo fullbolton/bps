@@ -75,6 +75,8 @@ export interface Database {
           email: string;
           display_name: string;
           role: UserRole;
+          /** Platform admin bayrağı — ROL DEĞİL. Yalnız /admin ağacı için. */
+          is_platform_admin: boolean;
           unit: ProfileUnit | null;
           created_at: string;
           updated_at: string;
@@ -1111,6 +1113,25 @@ export interface Database {
       // ⚠ Sıfırdan kurulan bir DB'de bu tablo YOKTUR ve tenant daraltması
       //   çalışmaz. Aynı kısıt `current_user_active_tenant()` için de geçerli.
       // ---------------------------------------------------------------------
+      // ---------------------------------------------------------------------
+      // tenants — REPO DIŞI TABLO, read-only ve YALNIZ RPC üzerinden
+      // ---------------------------------------------------------------------
+      // PostgREST'e kapalı (RLS açık, policy 0, grant yok). Doğrudan
+      // `.from("tenants")` çağrısı sessizce boş döner — bu KASITLI.
+      // Erişim `admin_*` RPC'leri üzerinden. Tip yalnız dönüş şekli için var.
+      // ---------------------------------------------------------------------
+      tenants: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       tenant_memberships: {
         Row: {
           id: string;
@@ -1185,6 +1206,52 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      // -----------------------------------------------------------------
+      // Platform Admin RPC'leri — 20260827000400_platform_admin_rpcs.sql
+      // -----------------------------------------------------------------
+      // Hepsi SECURITY DEFINER ve kendi içinde `is_platform_admin()` kapısı
+      // taşıyor; yetkisiz çağrı 42501 ile düşer. `tenants` /
+      // `tenant_memberships` PostgREST'e kapalı olduğu için erişimin TEK
+      // yolu bunlar — doğrudan tablo okuması sessizce boş döner.
+      // -----------------------------------------------------------------
+      is_platform_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      admin_list_tenants: {
+        Args: Record<string, never>;
+        Returns: {
+          tenant_id: string;
+          slug: string;
+          name: string;
+          uye_sayisi: number;
+          firma: number;
+          sozlesme: number;
+          gorev: number;
+        }[];
+      };
+      admin_list_users: {
+        Args: Record<string, never>;
+        Returns: {
+          user_id: string;
+          email: string;
+          display_name: string;
+          role: UserRole;
+          is_platform_admin: boolean;
+          tenant_slug: string | null;
+          uyelik_sayisi: number;
+        }[];
+      };
+      // Rol ve üyeliği ATOMİK atar. İki ayrı çağrıya bölünemez —
+      // supabase-js transaction desteklemiyor ve yarım durum sessizdir.
+      admin_assign_role_and_tenant: {
+        Args: { p_user_id: string; p_role: string; p_tenant_id: string };
+        Returns: undefined;
+      };
+      admin_create_tenant: {
+        Args: { p_slug: string; p_name: string };
+        Returns: string;
+      };
       current_user_role: {
         Args: Record<string, never>;
         Returns: string;
