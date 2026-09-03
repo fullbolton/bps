@@ -445,6 +445,129 @@ CREATE POLICY documents_update ON public.documents
 
 ---
 
+#### `contacts` — 4 policy ✅ YAZILDI
+
+Dördü de DESEN D (`CASE` + `EXISTS`). `contacts`'ta `tenant_id` kolonu YOK;
+tenant `companies` üzerinden türetiliyor ve **bu `EXISTS` aynen korunuyor** —
+düz karşılaştırmaya çevirmek olmayan bir kolona referans verirdi.
+
+Sadeleşme kuralı burada **GEÇERLİ** (`documents`'ın tersine), çünkü dallanma
+rol üzerinden:
+- `select` · `update` → partner çıkınca **2 rol dalı** kalır (`yonetici`,
+  `operasyon`) → `CASE` **korunur**, yalnız `WHEN` silinir
+- `insert` · `delete` → partner çıkınca **tek dal** kalır → `CASE` anlamsızlaşır,
+  düz ifadeye iner
+
+⚠ `select`/`update`'te kalan iki dal **aynı `EXISTS`'i** döndürüyor, yani
+teknik olarak `ANY(ARRAY[...])` ile birleştirilebilirdi. **Birleştirilmedi:**
+minimum değişiklik ilkesi (yalnız partner dalı çıkar) ve `workforce_summary`
+örneği — aynı tabloda rol dalları farklılaşabiliyor, birleştirmek o esnekliği
+kapatır.
+
+**ÖNCESİ — geri dönüş:**
+
+```sql
+-- contacts_select_role_or_scope :: SELECT · QUAL   (WITH CHECK: null)
+CASE current_user_role()
+    WHEN 'yonetici'::text THEN (EXISTS ( SELECT 1
+       FROM companies c
+      WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+    WHEN 'operasyon'::text THEN (EXISTS ( SELECT 1
+       FROM companies c
+      WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+    WHEN 'partner'::text THEN current_user_has_company_scope(company_id)
+    ELSE false
+END
+
+-- contacts_insert_role_or_scope :: INSERT · WITH CHECK   (QUAL: null)
+CASE current_user_role()
+    WHEN 'yonetici'::text THEN (EXISTS ( SELECT 1
+       FROM companies c
+      WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+    WHEN 'partner'::text THEN current_user_has_company_scope(company_id)
+    ELSE false
+END
+
+-- contacts_update_role_or_scope :: UPDATE · QUAL ve WITH CHECK BİREBİR AYNI
+--   (select ile aynı metin: yonetici + operasyon + partner)
+
+-- contacts_delete_role_or_scope :: DELETE · QUAL   (WITH CHECK: null)
+--   (insert ile aynı metin: yonetici + partner)
+```
+
+**SONRASI — uygulanacak:**
+
+```sql
+DROP POLICY IF EXISTS contacts_select_role_or_scope ON public.contacts;
+CREATE POLICY contacts_select_role_or_scope ON public.contacts
+  FOR SELECT USING (
+    CASE current_user_role()
+      WHEN 'yonetici'::text THEN (EXISTS ( SELECT 1
+         FROM companies c
+        WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+      WHEN 'operasyon'::text THEN (EXISTS ( SELECT 1
+         FROM companies c
+        WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+      ELSE false
+    END
+  );
+
+-- İKİ DALLIYDI → tek dal kaldı → CASE düştü
+DROP POLICY IF EXISTS contacts_insert_role_or_scope ON public.contacts;
+CREATE POLICY contacts_insert_role_or_scope ON public.contacts
+  FOR INSERT WITH CHECK (
+    current_user_role() = 'yonetici'::text
+    AND EXISTS ( SELECT 1
+       FROM companies c
+      WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant())))
+  );
+
+DROP POLICY IF EXISTS contacts_update_role_or_scope ON public.contacts;
+CREATE POLICY contacts_update_role_or_scope ON public.contacts
+  FOR UPDATE
+  USING (
+    CASE current_user_role()
+      WHEN 'yonetici'::text THEN (EXISTS ( SELECT 1
+         FROM companies c
+        WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+      WHEN 'operasyon'::text THEN (EXISTS ( SELECT 1
+         FROM companies c
+        WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+      ELSE false
+    END
+  )
+  WITH CHECK (
+    CASE current_user_role()
+      WHEN 'yonetici'::text THEN (EXISTS ( SELECT 1
+         FROM companies c
+        WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+      WHEN 'operasyon'::text THEN (EXISTS ( SELECT 1
+         FROM companies c
+        WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant()))))
+      ELSE false
+    END
+  );
+
+-- İKİ DALLIYDI → tek dal kaldı → CASE düştü
+DROP POLICY IF EXISTS contacts_delete_role_or_scope ON public.contacts;
+CREATE POLICY contacts_delete_role_or_scope ON public.contacts
+  FOR DELETE USING (
+    current_user_role() = 'yonetici'::text
+    AND EXISTS ( SELECT 1
+       FROM companies c
+      WHERE ((c.id = contacts.company_id) AND (c.tenant_id = current_user_active_tenant())))
+  );
+```
+
+**Kontrol listesi:**
+- ✅ (1) sadeleşme — `insert` ve `delete` tek dala indi, `CASE` düştü
+- ✅ (3) `QUAL` + `WITH_CHECK` — `update`'te ikisi de yazıldı
+- ✅ (4) `EXISTS` **aynen korundu**, düz karşılaştırmaya çevrilmedi
+- ✅ (2) dış sarmal yok — `CASE` doğrudan ifadenin kendisi (`notes`'un tersine)
+- `contacts.company_id` niteleyicisi `EXISTS` içinde korundu
+
+---
+
 ### ⛔ Kalan tablolar — tam metin bekliyor
 
 Yukarıdaki tablo **kapsamı** verir, **geri dönüşü vermez.** Her policy'nin
