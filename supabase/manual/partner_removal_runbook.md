@@ -568,6 +568,71 @@ CREATE POLICY contacts_delete_role_or_scope ON public.contacts
 
 ---
 
+### Migration doğrulaması — parmak izi, göz kararı değil
+
+Prod'da **aynı md5'e sahip policy'ler birebir aynı metni taşıyor.** Migration'da
+da aynı kalmalılar: biri farklıysa o blokta elle bir sapma var demektir.
+
+Migration dosyasındaki gövdeleri aynı yöntemle grupla:
+
+```bash
+python3 - <<'EOF'
+import io, re, hashlib
+from collections import defaultdict
+src = io.open("supabase/migrations/20260827000300_remove_partner_role.sql", encoding="utf-8").read()
+body = "\n".join(l for l in src.split("\n") if not l.strip().startswith("--"))
+blocks = re.findall(r"CREATE POLICY (\w+) ON public\.(\w+)(.*?);\s*(?=DROP POLICY|COMMIT|$)", body, re.S)
+def exprs(txt):
+    out = []
+    for kw in ("USING", "WITH CHECK"):
+        for m in re.finditer(kw + r"\s*\(", txt):
+            i = m.end() - 1; depth = 0; j = i
+            while j < len(txt):
+                if txt[j] == "(": depth += 1
+                elif txt[j] == ")":
+                    depth -= 1
+                    if depth == 0: break
+                j += 1
+            out.append((kw, txt[i+1:j]))
+    return out
+g = defaultdict(list)
+for name, table, rest in blocks:
+    for kw, e in exprs(rest):
+        h = hashlib.md5(re.sub(r"\s+", " ", e).strip().encode()).hexdigest()[:10]
+        g[h].append(f"{name}({kw.split()[0].lower()})")
+for h, n in sorted(g.items(), key=lambda x: -len(x[1])):
+    print(h, len(n), ", ".join(sorted(n)))
+EOF
+```
+
+**2026-08-27 sonucu — grup yapısı KORUNDU, sapma yok:**
+
+| Prod (partner'lı) | Migration | |
+|---|---|---|
+| `8a11e3eb06` ×3 | `b97fbd9a14` 4 ifade | ✅ |
+| `4121015f09` documents | `2207635b80` 3 ifade | ✅ |
+| `6f9fc31ea1` contacts 3-dallı | `1a7b43ac5d` 3 ifade | ✅ |
+| `4ff155da95` Desen A | `09c9681560` 2 ifade | ✅ |
+| `256748a24e` contacts 2-dallı | `c3e199b0b8` 2 ifade | ✅ |
+| `b61d0ef6b4` notes_update | `16553442f0` q=wc | ✅ |
+| 4 tekil | 4 tekil | ✅ aynı dördü |
+
+30 blok tek tek yazıldı ve aynı gövde 12 kez tutarlı üretildi — bunu göz değil
+parmak izi doğruladı.
+
+⚠ **İKİ GRUP BÜYÜDÜ, doğrulanmayı bekliyor.** `workforce_summary` insert/update
+`appointments` grubuna, `tasks_update` + `workforce_summary_select` de `tasks`
+grubuna katıldı. Beklenen: prod'da zaten aynı metni taşıyorlardı
+(`[yonetici, operasyon, partner]` ve `[yonetici, operasyon, ik, partner]`),
+partner çıkınca aynı kalıyorlar.
+
+**Ama bu bir HİPOTEZ** — o dördünün prod md5'i alınmadı ("eksik 4"). Doğrulama:
+`workforce_summary` insert/update → `fdc2140a23`, `tasks_update` +
+`workforce_summary_select` → `2b56216693` çıkmalı. Çıkmazsa varsayım yanlıştır
+ve o üç blok yeniden okunur.
+
+---
+
 ### ⛔ Kalan tablolar — tam metin bekliyor
 
 Yukarıdaki tablo **kapsamı** verir, **geri dönüşü vermez.** Her policy'nin
