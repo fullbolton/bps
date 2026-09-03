@@ -113,6 +113,16 @@ eksikliği **tek bir ekranda** görünür.
 | Finansal Özet | ☐ | ☐ | ☐ |
 | Ayarlar — Kullanıcılar | ☐ | ☐ | ☐ |
 
+⚠ **`Firma Detay > Yetkililer` (contacts) özel dikkat:** `contacts` tablosunda
+`tenant_id` kolonu **YOK** (2026-08-27 ölçümü). Tenant izolasyonu `companies`
+üzerinden `EXISTS` alt sorgusuyla **dolaylı** kuruluyor — dört policy'sinin
+dördü de öyle.
+
+Sonucu: bu ekranın izolasyonu `companies`'in izolasyonuna **bağımlı**.
+`companies` policy'si doğru ama `contacts`'ın `EXISTS`'i yanlışsa sızıntı
+**yalnız burada** görünür, ve genel bir gezinti bu ikisini ayırt edemez.
+Ayrıca doğrulanmalı.
+
 ⚠ **Ayarlar > Kullanıcılar özel dikkat:** `profiles` tablosunda `tenant_id` YOK
 ve `profiles_select_authenticated` `using (true)` ile tanımlı. Yani bu ekranın
 **bütün tenant'ların kullanıcılarını göstermesi bekleniyor** — bu bilinen ve
