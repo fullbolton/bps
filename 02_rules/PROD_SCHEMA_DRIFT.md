@@ -72,6 +72,29 @@ grant'i yok → **PostgREST üzerinden tamamen erişilemez**, erişim yalnız
 **Bu KASITLI ve GÜVENLİDİR.** Bir migration yazarken "policy eksik" sanılıp
 doldurulmamalıdır. Aynı desen `notification_log` için de bilinçli seçildi.
 
+### ⚠ GRANT'ler de drift alanı — `profiles` üzerinde olası canlı açık (2026-09-04)
+
+Repo'daki tek grant `grant update (display_name)`. Ama Supabase `public`
+şemadaki her tabloya **varsayılan olarak tablo seviyesinde ALL** verir ve Faz 0
+bunu REVOKE etmedi. Tablo seviyesi UPDATE duruyorsa kolon grant'i hiçbir şeyi
+daraltmaz ve `profiles_update_own` yalnız `auth.uid() = id` denetlediği için
+**her kullanıcı kendi `role`'ünü `yonetici` yapabilir.** "Disallow
+self-promotion" policy'de yorum, kontrol değil.
+
+Ölçüm (prod, tek satır — `true` görülürse açık BUGÜN canlı):
+
+```sql
+select has_table_privilege ('authenticated','public.profiles','UPDATE')        as tablo_update,
+       has_column_privilege('authenticated','public.profiles','role','UPDATE') as role_yazabilir,
+       has_column_privilege('anon','public.profiles','display_name','UPDATE')  as anon_yazabilir;
+```
+
+Düzeltme ölçümden bağımsız ve yazıldı: `20260904000200_profiles_update_grants.sql`
+— tablo seviyesini kaldırır, `display_name`'i geri verir, katalogdaki her
+kolonu fail-closed doğrular. **Diğer 18 tablo için aynı soru açık:** onlarda
+policy'ler kolon bazında güvenmiyor (rol/tenant koşulu satır bazında), ama
+"grant ne diyor" ölçülmedi. Faz 2 kaydına girer.
+
 ---
 
 ## ⚠️ `db push` yasağı — iki gerekçe, ikisi de ölçülmüş

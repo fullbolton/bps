@@ -6,6 +6,13 @@
 -- FAZ 2 (tenant admin, /ayarlar) bu dosyanın kapsamında DEĞİL.
 --
 -- ⚠ WRITTEN, NOT APPLIED.
+-- ⚠ UYGULAMA SIRASI: 20260904000200 (grant) → 20260904000100 (tenant kapsamı)
+--   → BU DOSYA. Bölüm 1'deki ön kontrol grant migration'ını ŞART koşar.
+--
+-- Codex turu 1 (2026-09-04) — üç bulgu, üçü de bu dosyada/kodda kapatıldı:
+--   P1 bayrağın yazma yetkisi yorumla varsayılıyordu → bölüm 1, fail-closed
+--   P1 tenant değişince eski JWT claim'i yaşıyordu → bölüm 5, oturum iptali
+--   P2 page.tsx ham Error.message gösteriyordu   → src/app/admin/page.tsx
 --
 -- ==========================================================================
 -- NEDEN — ölçülmüş bir hata sınıfı
@@ -83,13 +90,25 @@ COMMENT ON COLUMN public.profiles.is_platform_admin IS
   'RLS policies has to know about it.';
 
 -- ⚠ Bu kolon `profiles_update_own` policy'siyle kullanıcı tarafından
---   DEĞİŞTİRİLEBİLİR olmamalı. Mevcut policy `with check (auth.uid() = id)`
---   taşıyor ve kolon bazlı kısıt YOK — ama `grant update (display_name)` ile
---   yalnız o kolona yetki verilmiş durumda, yani PostgREST üzerinden bu kolon
---   yazılamaz. Grant listesi değişirse bu koruma kalkar.
---   Doğrulama: `select column_name from information_schema.column_privileges
---               where table_name='profiles' and grantee='authenticated'
---                 and privilege_type='UPDATE';`  → yalnız display_name
+--   DEĞİŞTİRİLEBİLİR olmamalı. Policy yalnız `auth.uid() = id` denetliyor;
+--   kolonu koruyan tek şey grant. İlk sürüm bunu YORUMLA VARSAYIYORDU (Codex
+--   P1): prod'da tablo seviyesinde UPDATE grant'i varsa — Supabase'in
+--   varsayılanı tam olarak bu — kullanıcı kendi satırında bayrağı açar, layout
+--   ve dört RPC kapısının hepsini geçer. Grant'ler 20260904000200'de normalize
+--   ediliyor; burada FAIL-CLOSED doğrulanıyor: tutmazsa bu migration uygulanmaz.
+DO $$
+BEGIN
+  IF has_table_privilege('authenticated', 'public.profiles', 'UPDATE') THEN
+    RAISE EXCEPTION 'ön kontrol: authenticated tablo seviyesinde UPDATE taşıyor — önce 20260904000200 uygula';
+  END IF;
+  IF has_column_privilege('authenticated', 'public.profiles', 'is_platform_admin', 'UPDATE')
+     OR has_column_privilege('anon', 'public.profiles', 'is_platform_admin', 'UPDATE') THEN
+    RAISE EXCEPTION 'ön kontrol: is_platform_admin kullanıcı tarafından yazılabilir — önce 20260904000200 uygula';
+  END IF;
+  IF has_column_privilege('authenticated', 'public.profiles', 'role', 'UPDATE') THEN
+    RAISE EXCEPTION 'ön kontrol: role kullanıcı tarafından yazılabilir (kendi kendine terfi) — önce 20260904000200 uygula';
+  END IF;
+END $$;
 
 
 -- ==========================================================================
@@ -200,6 +219,18 @@ $$;
 -- ⚠ Üyelik EKLENMİYOR, DEĞİŞTİRİLİYOR (bkz. KARAR 3): önce kullanıcının bütün
 --   üyelikleri silinir, sonra tek üyelik yazılır. Çift üyelik yapısal olarak
 --   imkânsız.
+-- Oturum iptali auth.sessions'a DELETE ister. Fonksiyon sahibinin (bu
+-- migration'ı koşturan rol) yetkisi ŞİMDİ doğrulanır — ilk kullanımda değil.
+DO $$
+BEGIN
+  IF to_regclass('auth.sessions') IS NULL THEN
+    RAISE EXCEPTION 'ön kontrol: auth.sessions yok — oturum iptali yazılamaz';
+  END IF;
+  IF NOT has_table_privilege('auth.sessions', 'DELETE') THEN
+    RAISE EXCEPTION 'ön kontrol: % rolünün auth.sessions üzerinde DELETE yetkisi yok', current_user;
+  END IF;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.admin_assign_role_and_tenant(
   p_user_id   uuid,
   p_role      text,
@@ -211,6 +242,8 @@ VOLATILE
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_membership_changes boolean;
 BEGIN
   IF NOT public.is_platform_admin() THEN
     RAISE EXCEPTION 'not authorized' USING ERRCODE = '42501';
@@ -224,6 +257,13 @@ BEGIN
     RAISE EXCEPTION 'tenant not found' USING ERRCODE = '23503';
   END IF;
 
+  -- Üyelik kümesi DEĞİŞİYOR MU — oturum iptali kararı için, yazmadan önce.
+  -- "Tam olarak {p_tenant_id}" ise değişmiyor (yalnız rol düzeltmesi).
+  v_membership_changes :=
+       (SELECT count(*) FROM public.tenant_memberships WHERE user_id = p_user_id) <> 1
+    OR NOT EXISTS (SELECT 1 FROM public.tenant_memberships
+                    WHERE user_id = p_user_id AND tenant_id = p_tenant_id);
+
   -- Rol CHECK'i tabloda zaten var; burada tekrar edilmiyor ki iki yerde
   -- ayrışmasın. Geçersiz rol, UPDATE sırasında CHECK ihlaliyle döner ve
   -- transaction'ın tamamını geri alır.
@@ -232,6 +272,26 @@ BEGIN
   DELETE FROM public.tenant_memberships WHERE user_id = p_user_id;
   INSERT INTO public.tenant_memberships (user_id, tenant_id)
   VALUES (p_user_id, p_tenant_id);
+
+  -- ÜÇÜNCÜ PARÇA: OTURUM (Codex P1). Rol canlı okunur (`current_user_role()`
+  -- → profiles.role), ama tenant bir JWT CLAIM'idir: `custom_access_token_hook`
+  -- üyelikten `active_tenant_id`'yi token ÜRETİLİRKEN yazar. Üyelik burada
+  -- değişse de kullanıcının elindeki token eski tenant'ı taşımaya devam eder
+  -- ve refresh oldukça YENİLENİR. Yani rol+üyelik atomik ama oturum eski —
+  -- bir başka yarım durum.
+  --
+  -- Oturumlar silinince refresh ARTIK MÜMKÜN DEĞİL: kullanıcı en geç JWT
+  -- süresi dolunca yeniden giriş yapar ve hook doğru claim'i yazar. Sıfır
+  -- üyelikten bire geçen Mek Group kullanıcısı için de bu gerekli — aksi
+  -- halde düzeltme yapılmış görünür ama token yenilenene kadar ekran boş kalır.
+  --
+  -- KALAN PENCERE: mevcut access token süresi (proje ayarı, varsayılan 3600 s).
+  -- Bu pencerede eski token eski tenant'ı okur. Tam kapatmak
+  -- `current_user_active_tenant()`'ın claim'i canlı üyelikle doğrulamasını
+  -- ister; o fonksiyon repo dışında ve gövdesi elimizde yok — ayrı karar.
+  IF v_membership_changes THEN
+    DELETE FROM auth.sessions WHERE user_id = p_user_id;
+  END IF;
 END;
 $$;
 
@@ -240,7 +300,9 @@ COMMENT ON FUNCTION public.admin_assign_role_and_tenant(uuid, text, uuid) IS
   'separately failed three times in a row while setting up the Mek Group tenant, '
   'each time silently: the user could log in and simply saw nothing. Membership '
   'is REPLACED rather than added, because custom_access_token_hook only issues a '
-  'claim for a single membership and a second one would silently remove all access.';
+  'claim for a single membership and a second one would silently remove all access. '
+  'When the membership set changes, the user''s auth.sessions are deleted so the '
+  'stale active_tenant_id claim cannot be refreshed; the user re-logs in.';
 
 
 -- ==========================================================================

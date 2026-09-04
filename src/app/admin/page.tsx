@@ -1,5 +1,9 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { listTenants, listUsers } from "@/lib/services/platform-admin";
+import {
+  listTenants,
+  listUsers,
+  PlatformAdminError,
+} from "@/lib/services/platform-admin";
 import type { AdminTenantRow, AdminUserRow } from "@/lib/services/platform-admin";
 import AdminClient from "./AdminClient";
 
@@ -24,7 +28,11 @@ export default async function AdminPage() {
   } catch (err) {
     tenants = [];
     users = [];
-    loadError = err instanceof Error ? err.message : "Veri okunamadı.";
+    // Yalnız kendi hata sınıfımızın mesajı gösterilir — o mesajlar SQLSTATE
+    // kodundan üretiliyor. Beklenmeyen/transport hatasının serbest metni
+    // kullanıcıya ulaşmaz (Codex P2; actions.ts'teki kuralın aynısı).
+    loadError =
+      err instanceof PlatformAdminError ? err.message : "Veri okunamadı.";
   }
 
   return (

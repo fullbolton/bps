@@ -129,6 +129,12 @@ export async function currentUserIsPlatformAdmin(client: Client): Promise<boolea
  * siler. `custom_access_token_hook` yalnız tek üyelikte claim yazdığı için,
  * ikinci bir üyelik kullanıcının erişimini SESSİZCE sıfırlardı.
  *
+ * ⚠ OTURUM (Codex P1): tenant bir JWT claim'i; üyelik değişince kullanıcının
+ * elindeki token eski tenant'ı taşımaya devam ederdi. RPC, üyelik kümesi
+ * değiştiğinde `auth.sessions`'ı siler — refresh imkânsızlaşır, kullanıcı en
+ * geç JWT süresi dolunca yeniden girer ve doğru claim'i alır. Yalnız rol
+ * düzeltmesinde (aynı tenant) oturum korunur; rol canlı okunur.
+ *
  * ⚠ BİLİNEN SONUÇ (20260904000100 ile birlikte): kullanıcı başka tenant'a
  * taşınırsa, eski tenant'ta ona atalı görevler "başka kiracının üyesine atalı"
  * duruma düşer ve `tasks_update` WITH CHECK'i o görevlerin HER güncellemesini

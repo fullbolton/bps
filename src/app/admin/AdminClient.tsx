@@ -304,6 +304,9 @@ export default function AdminClient({
           Rol ve kiracı <strong>tek işlemde</strong> kaydedilir; biri başarısız olursa
           ikisi de yazılmaz. Mevcut üyelik <strong>değiştirilir</strong>, üstüne
           eklenmez — ikinci bir üyelik kullanıcının erişimini sessizce sıfırlardı.
+          Kiracı değişirse kullanıcının <strong>oturumları sonlandırılır</strong> ve
+          yeniden giriş yapması gerekir: kiracı bilgisi oturum jetonunda taşınır,
+          eski jeton eski kiracıyı gösterirdi.
         </p>
       </section>
     </div>
