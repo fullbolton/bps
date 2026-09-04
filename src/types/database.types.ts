@@ -1269,6 +1269,26 @@ export interface Database {
         Args: Record<string, never>;
         Returns: string;
       };
+      // Çağıranın aktif tenant'ındaki profiller (migration 20260904000100).
+      // Tenant parametresi YOK — sunucu tarafında claim'den çözülür.
+      active_tenant_profiles: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          email: string;
+          display_name: string;
+          role: UserRole;
+          is_platform_admin: boolean;
+          unit: ProfileUnit | null;
+          created_at: string;
+          updated_at: string;
+        }[];
+      };
+      // tasks RLS WITH CHECK'inin çağırdığı fonksiyonun aynısı.
+      is_active_tenant_member: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
       derive_financial_summaries_from_mizan: {
         Args: { p_upload_id: string };
         Returns: number;

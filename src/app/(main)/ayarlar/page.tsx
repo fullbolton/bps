@@ -11,6 +11,7 @@ import {
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
+import { listActiveTenantProfiles } from "@/lib/services/profiles";
 import type { TabItem, ColumnDef } from "@/types/ui";
 
 // ---------------------------------------------------------------------------
@@ -214,9 +215,15 @@ const BIRIM_DISPLAY: Record<string, string> = {
 // Kullanıcılar Tab — real profiles read (yonetici-only surface)
 // ---------------------------------------------------------------------------
 // Replaces the previous KULLANICILAR mock. The page is already yonetici-gated
-// at the parent; RLS on `profiles` permits yonetici to read all rows. Maps
-// the profile shape into AyarUserEntry so the existing COLUMNS_USERS and
-// DataTable render identically to before. Honest empty state when no rows.
+// at the parent. Maps the profile shape into AyarUserEntry so the existing
+// COLUMNS_USERS and DataTable render identically to before. Honest empty
+// state when no rows.
+//
+// Reads through the service layer's tenant-scoped reader (2026-09-04). This
+// tab used to run its own raw `from("profiles")` query — bypassing the service
+// layer AND, because that query had no tenant filter, listing every tenant's
+// users. Same leak as the assignee picker, second call site. qa:static R14
+// now fails on a raw profiles query in any page.
 // ---------------------------------------------------------------------------
 
 const ROL_DISPLAY: Record<string, string> = {
@@ -237,22 +244,20 @@ function UsersTab() {
     let cancelled = false;
     (async () => {
       const supabase = createClient();
-      const { data, error: fetchError } = await supabase
-        .from("profiles")
-        .select("id, display_name, role, email")
-        .order("display_name", { ascending: true });
-      if (cancelled) return;
-      if (fetchError) {
-        setError("Kullanıcılar yüklenemedi.");
-        setUsers([]);
-      } else {
-        const mapped: AyarUserEntry[] = (data ?? []).map((p) => ({
+      try {
+        const rows = await listActiveTenantProfiles(supabase);
+        if (cancelled) return;
+        const mapped: AyarUserEntry[] = rows.map((p) => ({
           id: p.id,
           ad: p.display_name,
           rol: ROL_DISPLAY[p.role] ?? p.role,
           eposta: p.email,
         }));
         setUsers(mapped);
+      } catch {
+        if (cancelled) return;
+        setError("Kullanıcılar yüklenemedi.");
+        setUsers([]);
       }
       setLoading(false);
     })();

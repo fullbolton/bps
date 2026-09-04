@@ -112,6 +112,9 @@ eksikliği **tek bir ekranda** görünür.
 | Raporlar | ☐ | ☐ | ☐ |
 | Finansal Özet | ☐ | ☐ | ☐ |
 | Ayarlar — Kullanıcılar | ☐ | ☐ | ☐ |
+| Görevler — Yeni Görev → **atanan seçicisi** | ☐ | ☐ | ☐ |
+| Randevular — Görev Oluştur → **atanan seçicisi** | ☐ | ☐ | ☐ |
+| **YAZMA:** yabancı tenant üyesine görev atama (doğrudan PostgREST, bkz. verify §7-B) | ☐ reddedilmeli | ☐ reddedilmeli | ☐ kendi üyesine BAŞARMALI |
 
 ⚠ **`Firma Detay > Yetkililer` (contacts) özel dikkat:** `contacts` tablosunda
 `tenant_id` kolonu **YOK** (2026-08-27 ölçümü). Tenant izolasyonu `companies`
@@ -123,11 +126,13 @@ Sonucu: bu ekranın izolasyonu `companies`'in izolasyonuna **bağımlı**.
 **yalnız burada** görünür, ve genel bir gezinti bu ikisini ayırt edemez.
 Ayrıca doğrulanmalı.
 
-⚠ **Ayarlar > Kullanıcılar özel dikkat:** `profiles` tablosunda `tenant_id` YOK
-ve `profiles_select_authenticated` `using (true)` ile tanımlı. Yani bu ekranın
-**bütün tenant'ların kullanıcılarını göstermesi bekleniyor** — bu bilinen ve
-kayıtlı bir boşluk (Step 3 b), sızıntı bulgusu olarak raporlanmaz ama
-**doğrulanmalı**: gösterdiği şey beklenenle aynı mı.
+⚠ **Ayarlar > Kullanıcılar ve iki atanan seçicisi — beklenti migration'a bağlı:**
+`profiles`'ta `tenant_id` YOK. **`20260904000100` uygulanmadıysa** bu üç yüzey
+bütün tenant'ların kullanıcılarını gösterir ve yabancı üyeye atama kabul edilir —
+2026-09-04'te Mek Group'ta canlı görüldü; bilinen ve kapatılmakta olan sızıntı.
+**Uygulandıysa** yalnız aktif tenant'ın üyeleri görünmeli ve yabancı üyeye
+atama `42501` ile düşmeli. Hangi durumda olunduğu test kaydına yazılır;
+"beklendiği gibi" tek başına yazılmaz.
 
 ---
 

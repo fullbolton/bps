@@ -52,6 +52,26 @@ Asıl boşluk rol değil **tenant**: `profiles`'ta `tenant_id` yok, dolayısıyl
 okuma tenant-kapsamlı değil. Kullanıcı seçici (picker) bu yüzden kapsamsız ve
 `G3` gate'i bu yüzden bir sorgu değil insan beyanıdır. Kayıt: Step 3 (b).
 
+**2026-09-04 — boşluk artık teorik değil, CANLI ve İKİ YÖNLÜ ölçüldü.** Mek Group
+kullanıcısı görev seçicisinde Partner Staff kullanıcılarını görüyor (okuma) ve
+yöneticisi onlara görev atayabiliyor (yazma: `tasks_insert/update` WITH CHECK
+yalnız görevin tenant'ını denetliyor, atananın değil).
+
+Düzeltme yazıldı, **UYGULANMADI**: `20260904000100_profiles_tenant_scope.sql`.
+Uygulanınca bu tablodaki satır şuna döner:
+
+| Kapsam | Tablolar |
+|---|---|
+| **Kendi satırı + aktif tenant'ın üyeleri** (rol koşulu yok) | `profiles` |
+
+`tenant_id` kolonu EKLENMEDİ — üyelik `tenant_memberships`'te ve tekil kolon
+ileride çok-tenant üyeliği yanlışlar. Kapsam `is_active_tenant_member(uuid)`
+(`SECURITY DEFINER`) üzerinden; doğrudan `EXISTS` yazılamazdı, çünkü policy
+ifadesi çağıranın yetkisiyle koşar ve `tenant_memberships`'te `authenticated`
+grant'i yok. Aynı fonksiyon `tasks_insert/update` WITH CHECK'ine atanan guard'ı
+olarak girdi. Uygulama katmanı bağımsız ikinci kat: `active_tenant_profiles()`
+RPC'si; kapsamsız okuyucu silindi, `qa:static` R14 geri gelmesini FAIL yapar.
+
 ---
 
 ## 2. ⚠️ REPO ↔ PROD AYRIŞMASI — `db push` yasağının ikinci gerekçesi

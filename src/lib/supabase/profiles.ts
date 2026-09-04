@@ -58,22 +58,54 @@ export async function selectProfileById(
 }
 
 /**
- * Fetch all profiles. Phase 0 only allows authenticated reads (per RLS policy
- * profiles_select_authenticated). Phase 1+ may add scope filtering.
+ * Profiles that are members of the caller's ACTIVE TENANT, ordered by
+ * display_name.
+ *
+ * This replaced an unscoped `select *` (2026-09-04). That reader was the
+ * cross-tenant leak: `profiles` has no tenant_id and its SELECT policy was
+ * `using (true)`, so the assignee picker listed every tenant's users and let a
+ * yonetici assign a task to another tenant's staff. It was "the filter the
+ * developer forgot" — except there was nothing to filter BY from the browser:
+ * membership lives in `tenant_memberships`, which is closed to PostgREST.
+ *
+ * So the scope is resolved server-side inside the RPC, from the caller's own
+ * claim, with no tenant argument to get wrong. The unscoped reader is gone
+ * rather than deprecated: a function that cannot be called cannot be
+ * forgotten. qa:static R14 fails if it comes back.
+ *
+ * This is an application-layer guarantee INDEPENDENT of the profiles RLS
+ * policy (which is narrowed by the same migration, 20260904000100). Either
+ * layer alone closes the read leak; both are kept on purpose.
  */
-export async function selectAllProfiles(
+export async function selectActiveTenantProfiles(
   client: Client,
 ): Promise<ProfileRow[]> {
-  const { data, error } = await client
-    .from("profiles")
-    .select("*")
-    .order("display_name", { ascending: true });
+  const { data, error } = await client.rpc("active_tenant_profiles");
 
   if (error) {
     throw new Error(`profiles select failed: ${error.message}`);
   }
 
-  return data ?? [];
+  return (data ?? []) as ProfileRow[];
+}
+
+/**
+ * Is the given profile a member of the caller's active tenant?
+ *
+ * Same SECURITY DEFINER function the tasks RLS WITH CHECK calls, so the
+ * service-layer answer and the database's answer cannot disagree. Used before
+ * writing an assignee, to turn a would-be RLS rejection into a Turkish message.
+ * Fail-closed: an RPC error is reported as "not a member".
+ */
+export async function isActiveTenantMember(
+  client: Client,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await client.rpc("is_active_tenant_member", {
+    p_user_id: userId,
+  });
+  if (error) return false;
+  return data === true;
 }
 
 // ---------------------------------------------------------------------------

@@ -128,6 +128,12 @@ export async function currentUserIsPlatformAdmin(client: Client): Promise<boolea
  * ⚠ Üyelik EKLENMİYOR, DEĞİŞTİRİLİYOR: RPC önce kullanıcının bütün üyeliklerini
  * siler. `custom_access_token_hook` yalnız tek üyelikte claim yazdığı için,
  * ikinci bir üyelik kullanıcının erişimini SESSİZCE sıfırlardı.
+ *
+ * ⚠ BİLİNEN SONUÇ (20260904000100 ile birlikte): kullanıcı başka tenant'a
+ * taşınırsa, eski tenant'ta ona atalı görevler "başka kiracının üyesine atalı"
+ * duruma düşer ve `tasks_update` WITH CHECK'i o görevlerin HER güncellemesini
+ * yeniden atanana kadar reddeder. Sessiz değil (RLS hatası görünür), ama
+ * taşımadan önce bilinmeli. Tespit: profiles_tenant_scope_post_apply_verify §6.
  */
 export async function assignRoleAndTenant(
   client: Client,

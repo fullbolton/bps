@@ -30,6 +30,9 @@
  *   R5  passivate-status-only            → an extra key added to the payload
  *   R12 pre-deploy-gates-recorded        → seen red throughout the gate work
  *   R13 table-rls-enabled                → a CREATE TABLE with no ENABLE RLS
+ *   R14 profiles-read-scoped             → (2026-09-04) the unscoped reader
+ *                                          symbol planted back, and a raw
+ *                                          profiles query planted in a page
  * All seven WARN rules were negative-tested the same way:
  *   W1  package-migration-drift          → seen amber whenever a migration sat
  *                                          uncommitted in the working tree
@@ -517,6 +520,45 @@ const FAIL = "FAIL";
   } else {
     record(WARN, "unreachable-component", WARN,
       `nothing renders: ${orphans.sort().join(", ")}`);
+  }
+})();
+
+// R14 — profiles reads are tenant-scoped BY CONSTRUCTION (2026-09-04).
+// The cross-tenant leak was an unscoped `select *` on profiles — "the filter
+// the developer forgot". The fix did not add a filter; it removed the reader
+// that could be called without one (`selectAllProfiles` / `listProfiles`) and
+// replaced it with an RPC that resolves the tenant server-side. This rule keeps
+// that true:
+//   (a) neither unscoped symbol exists anywhere under src
+//   (b) no raw `.from("profiles")` in any .tsx under src/app — page components
+//       go through the service layer, whose only list reader is the scoped RPC.
+//       Server files (actions.ts, route.ts) are .ts and are not in scope; their
+//       reads are self-reads by id or service_role (R1 confines the latter).
+// Comment lines are ignored in both branches: commented-out code is not a
+// query, and the first clean run of this rule went red on its own rationale
+// comment in ayarlar/page.tsx — a rule that fails on the sentence explaining
+// it is measuring the wrong thing.
+(() => {
+  const offenders = [];
+  for (const f of walk("src")) {
+    if (!f.endsWith(".ts") && !f.endsWith(".tsx")) continue;
+    const src = read(f);
+    if (!src) continue;
+    const rel = f.split("\\").join("/");
+    src.split("\n").forEach((l, i) => {
+      const isComment = /^\s*(\/\/|\*|\/\*)/.test(l);
+      if (!isComment && (/\bselectAllProfiles\b/.test(l) || /\blistProfiles\(/.test(l))) {
+        offenders.push(`${rel}:${i + 1} unscoped reader`);
+      }
+      if (!isComment && rel.startsWith("src/app") && rel.endsWith(".tsx") && /from\("profiles"\)/.test(l)) {
+        offenders.push(`${rel}:${i + 1} raw profiles query in page`);
+      }
+    });
+  }
+  if (offenders.length === 0) {
+    record(FAIL, "profiles-read-scoped", PASS, "no unscoped profiles reader; pages read via scoped RPC");
+  } else {
+    record(FAIL, "profiles-read-scoped", FAIL, offenders.join(", "));
   }
 })();
 

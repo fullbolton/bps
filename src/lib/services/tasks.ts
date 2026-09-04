@@ -47,7 +47,10 @@ import {
   updateTask as updateTaskRaw,
 } from "@/lib/supabase/tasks";
 import { requireCompanyByLegacyMockId } from "@/lib/services/companies";
-import { selectProfileById } from "@/lib/supabase/profiles";
+import {
+  selectProfileById,
+  isActiveTenantMember,
+} from "@/lib/supabase/profiles";
 
 type Client = SupabaseClient<Database>;
 
@@ -172,10 +175,15 @@ const UUID_SHAPE =
  * write can still set the two columns independently until the STEP 3 rewrite
  * constrains it.
  *
- * NOTE — tenant scope: `profiles` carries no tenant_id today, so this cannot
- * yet verify that the assignee belongs to the caller's tenant. Same gap as the
- * child-table RLS work; closing it belongs to the role/RLS rewrite, which must
- * add tenant membership to profiles and constrain assignment accordingly.
+ * TENANT SCOPE (2026-09-04): the assignee must be a member of the caller's
+ * active tenant. Verified here through `is_active_tenant_member` — the SAME
+ * SECURITY DEFINER function the tasks RLS WITH CHECK calls — so this check and
+ * the database's cannot disagree. Two layers on purpose: the RLS guard is the
+ * boundary; this one turns the rejection into a Turkish message before SQL.
+ *
+ * Membership is checked BEFORE the profile fetch: after migration
+ * 20260904000100 a cross-tenant profile is not visible at all, and the
+ * "bulunamadı, listeyi yenileyin" message would have been true but misleading.
  */
 async function resolveAssignee(
   client: Client,
@@ -189,6 +197,12 @@ async function resolveAssignee(
   // the domain error the UI knows how to show.
   if (!UUID_SHAPE.test(id)) {
     throw new TaskValidationError("Atanan kullanıcı kimliği geçersiz.");
+  }
+
+  if (!(await isActiveTenantMember(client, id))) {
+    throw new TaskValidationError(
+      "Atanan kullanıcı bu kiracının üyesi değil.",
+    );
   }
 
   const profile = await selectProfileById(client, id);

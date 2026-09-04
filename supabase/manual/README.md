@@ -73,6 +73,15 @@ select email, display_name, role, created_at from profiles order by email;
   **do not ship the picker.** Leave the marker as-is; the durable fix is tenant
   membership on `profiles` in Step 3.
 
+> **2026-09-04 — G1 and G3 are historically true and currently void.** The
+> markers above are left untouched (they record a measurement that was correct
+> on 2026-08-10). Since then `tenant_count` went 1 → 4 and nobody re-ran G1;
+> the picker showed Partner Staff users to a Mek Group yönetici, and a task
+> could be assigned across tenants. An attestation is not a query. The durable
+> fix these gates deferred is now written: `20260904000100_profiles_tenant_scope.sql`
+> (**not applied**). Once applied, the picker is scoped by construction and
+> these two gates stop being the enforcement.
+
 ### G2 — migration before deploy (blocks the görev code)
 
 The task paths that carry an assignee — `createTask` (Yeni Görev, and the

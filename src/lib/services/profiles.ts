@@ -30,7 +30,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, ProfileRow } from "@/types/database.types";
 import {
   selectProfileById,
-  selectAllProfiles,
+  selectActiveTenantProfiles,
   updateProfile,
 } from "@/lib/supabase/profiles";
 
@@ -80,12 +80,17 @@ export async function getProfileById(
 }
 
 /**
- * List all profiles visible to the caller per RLS.
- * Used by future Ayarlar > Kullanici Yonetimi (yonetici-only) and by author
- * lookup helpers in notes / tasks / etc. once those domains migrate.
+ * List the profiles in the caller's ACTIVE TENANT — the user pickers
+ * (Görevler, Randevular → Görev Oluştur) and Ayarlar > Kullanıcılar.
+ *
+ * Renamed from `listProfiles` (2026-09-04) so the scope is visible at every
+ * call site. The old name read as "all profiles" and that is exactly what it
+ * returned — across tenants. There is no unscoped list reader any more.
  */
-export async function listProfiles(client: Client): Promise<ProfileRow[]> {
-  return selectAllProfiles(client);
+export async function listActiveTenantProfiles(
+  client: Client,
+): Promise<ProfileRow[]> {
+  return selectActiveTenantProfiles(client);
 }
 
 // ---------------------------------------------------------------------------

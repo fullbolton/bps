@@ -25,7 +25,7 @@ import { NewTaskModal } from "@/components/modals";
 // scoped), replacing the earlier MOCK_FIRMALAR UI dictionary.
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
-import { listProfiles } from "@/lib/services/profiles";
+import { listActiveTenantProfiles } from "@/lib/services/profiles";
 import type { CompanyRow, ProfileRow } from "@/types/database.types";
 import {
   listAllTasks,
@@ -290,7 +290,7 @@ export default function GorevlerPage() {
     let active = true;
     (async () => {
       try {
-        const rows = await listProfiles(supabase);
+        const rows = await listActiveTenantProfiles(supabase);
         if (active) { setAllProfiles(rows); setProfilesDurum("ready"); }
       } catch {
         if (active) { setAllProfiles([]); setProfilesDurum("error"); }

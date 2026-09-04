@@ -50,7 +50,7 @@ import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
 import type { AppointmentRow } from "@/types/database.types";
 import { selectAllCompanies } from "@/lib/supabase/companies";
-import { listProfiles } from "@/lib/services/profiles";
+import { listActiveTenantProfiles } from "@/lib/services/profiles";
 import type { CompanyRow, ProfileRow } from "@/types/database.types";
 import type {
   ColumnDef,
@@ -260,7 +260,7 @@ export default function RandevularPage() {
     let active = true;
     (async () => {
       try {
-        const rows = await listProfiles(supabase);
+        const rows = await listActiveTenantProfiles(supabase);
         if (active) { setAllProfiles(rows); setProfilesDurum("ready"); }
       } catch {
         if (active) { setAllProfiles([]); setProfilesDurum("error"); }
