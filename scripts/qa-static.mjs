@@ -539,13 +539,25 @@ const FAIL = "FAIL";
 // comment in ayarlar/page.tsx — a rule that fails on the sentence explaining
 // it is measuring the wrong thing.
 //
+//   (c) every raw `.from("profiles")` chain anywhere under src must be keyed
+//       by id — `.eq("id", …)` or `.in("id", …)` before the statement ends.
+//       That is the shape of every legitimate raw read left (self-reads). A
+//       list read with no id key is the original leak under a new name, which
+//       is what Codex round 2 showed (a) and (b) would miss. Allow-listed:
+//       src/lib/email/* (service_role, filtered by role/ids, tenant-scoped by
+//       loadTenantScope; R1 confines the key) and src/app/api/* (healthz
+//       head-count under service_role).
+//
 // KNOWN LIMITS (Codex, 2026-09-05) — this rule is a tripwire, not a proof of
 // the application layer's scope guarantee. It catches both quote styles,
-// whitespace and NEWLINES inside the call, but NOT: a dynamic table name
-// (`from(t)`), a query built in a .ts helper under src/app, or a table alias.
-// The security boundary does not rest on it — the profiles RLS policy and the
-// SECURITY DEFINER RPC hold regardless. Do not widen it to .ts under src/app:
-// actions.ts files carry legitimate self-reads by id (firmalar/[id]/actions.ts).
+// whitespace (including between `from` and `(`) and newlines inside the call,
+// and an unkeyed chain under any name. It does NOT catch: a dynamic table
+// name (`from(t)`), a table alias, a query assembled across statements, or a
+// keyed-looking chain whose key is not really the caller (e.g. `.in("id",
+// everyId)`). The security boundary does not rest on it — the profiles RLS
+// policy and the SECURITY DEFINER RPC hold regardless. Do not widen (b) to .ts
+// under src/app: actions.ts files carry legitimate self-reads by id — (c)
+// covers those by requiring the key instead.
 (() => {
   const offenders = [];
   for (const f of walk("src")) {
@@ -563,13 +575,25 @@ const FAIL = "FAIL";
     // (b) runs over the WHOLE source, not line by line: `\s*` spans newlines, so
     // `.from(\n  "profiles"\n)` is caught (Codex bypass, 2026-09-05). The
     // comment test is applied to the line where the match starts.
-    if (rel.startsWith("src/app") && rel.endsWith(".tsx")) {
-      const re = /\.from\(\s*["']profiles["']\s*\)/g;
-      let m;
-      while ((m = re.exec(src)) !== null) {
-        const lineIdx = src.slice(0, m.index).split("\n").length - 1;
-        if (isComment(lines[lineIdx])) continue;
+    const re = /\.from\s*\(\s*["']profiles["']\s*\)/g;
+    const inPage = rel.startsWith("src/app") && rel.endsWith(".tsx");
+    const allowUnkeyed = rel.startsWith("src/lib/email/") || rel.startsWith("src/app/api/");
+    let m;
+    while ((m = re.exec(src)) !== null) {
+      const lineIdx = src.slice(0, m.index).split("\n").length - 1;
+      if (isComment(lines[lineIdx])) continue;
+      if (inPage) {
         offenders.push(`${rel}:${lineIdx + 1} raw profiles query in page`);
+      }
+      // (c) the chain from this match to the end of the statement must carry
+      // an id key. `;` ends the statement; a chain built across statements is
+      // a documented limit.
+      if (!allowUnkeyed) {
+        const end = src.indexOf(";", m.index);
+        const chain = src.slice(m.index, end === -1 ? src.length : end);
+        if (!/\.(eq|in)\s*\(\s*["']id["']/.test(chain)) {
+          offenders.push(`${rel}:${lineIdx + 1} profiles chain not keyed by id`);
+        }
       }
     }
   }

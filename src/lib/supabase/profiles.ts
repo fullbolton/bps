@@ -112,7 +112,13 @@ export async function isActiveTenantMember(
   if (error) {
     throw new Error(`membership check failed: ${error.message}`);
   }
-  return data === true;
+  // A boolean function that answers with anything but a boolean has not
+  // answered. `{ data: null, error: null }` used to read as "not a member"
+  // (Codex round 2) — it is "could not verify", and the caller says so.
+  if (typeof data !== "boolean") {
+    throw new Error("membership check returned no boolean answer");
+  }
+  return data;
 }
 
 // ---------------------------------------------------------------------------

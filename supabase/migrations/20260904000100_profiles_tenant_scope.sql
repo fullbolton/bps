@@ -111,10 +111,23 @@
 -- ==========================================================================
 -- Ön kontrol (e) "çapraz-tenant atama yok" der; policy DDL'i tablo kilidini
 -- daha sonra alır. Arada, eski policy altında, tam öyle bir görev yazılabilir;
--- migration başarıyla commit eder ve o satır güncellenemez kalır. BEGIN'den
--- hemen sonra `tasks` üzerinde SHARE ROW EXCLUSIVE alınıyor: INSERT/UPDATE/
--- DELETE'in ROW EXCLUSIVE'iyle çatışır, transaction sonuna kadar tutulur,
--- okuyucuları engellemez. Kontrol ile DDL aynı kilit altında.
+-- migration başarıyla commit eder ve o satır güncellenemez kalır. Kontrol ile
+-- DDL aynı kilit altında olmalı.
+--
+-- İLK SÜRÜM (Codex turu 2 düzeltti): SHARE ROW EXCLUSIVE alıp "okuyucuları
+-- engellemez" demişti. İki hata: (1) DROP/CREATE POLICY zaten ACCESS EXCLUSIVE
+-- alır ve transaction sonuna kadar tutar — okuyucular DDL boyunca ZATEN
+-- bekler; (2) zayıftan güçlüye YÜKSELTME döngü yaratabilir: bir transaction
+-- tasks'ı okumuş (ACCESS SHARE tutuyor), sonra yazmak isteyip bizim SHARE ROW
+-- EXCLUSIVE'imizin arkasında bekliyor; biz DDL için ACCESS EXCLUSIVE isteyip
+-- ONUN ACCESS SHARE'inin bitmesini bekliyoruz → deadlock.
+--
+-- DOĞRUSU: gereken en güçlü kilit BAŞTAN, iki tabloya birden, tek cümlede
+-- (profiles, tasks). Yükseltme yok → kendi yarattığımız döngü yok. Bedeli
+-- açıkça yazılı: transaction boyunca (birkaç katalog cümlesi, saniyeler)
+-- profiles ve tasks OKUNAMAZ da. Tablolar-arası deadlock genel olarak
+-- dışlanamaz; olursa PostgreSQL'in dedektörü bir tarafı düşürür — bizim
+-- tarafımız düşerse migration temiz geri alınır (hiçbir şey yarım kalmaz).
 --
 -- ==========================================================================
 -- DOĞRULAMA MİGRATION'IN İÇİNDE — sessiz yarım durum imkânsız
@@ -134,8 +147,9 @@
 
 BEGIN;
 
--- KARAR 7: kontrol ile DDL arasında yazma yarışı yok. Transaction sonuna kadar.
-LOCK TABLE public.tasks IN SHARE ROW EXCLUSIVE MODE;
+-- KARAR 7: en güçlü kilit BAŞTAN, yükseltme yok. profiles ve tasks bu
+-- transaction boyunca yazılamaz VE okunamaz (saniyeler).
+LOCK TABLE public.profiles, public.tasks IN ACCESS EXCLUSIVE MODE;
 
 -- --------------------------------------------------------------------------
 -- 0) ÖN KONTROLLER — biri tutmazsa hiçbir şey değişmez
@@ -160,6 +174,25 @@ BEGIN
      AND column_name IN ('user_id', 'tenant_id');
   IF v_n <> 2 THEN
     RAISE EXCEPTION 'ön kontrol: tenant_memberships(user_id, tenant_id) bekleniyordu, % kolon bulundu', v_n;
+  END IF;
+
+  -- UNIQUE(user_id, tenant_id) — repo'da tanımı YOK, yalnız ölçüm notu vardı
+  -- (Codex turu 2: "yorumda var, kanıtı yok"). Burada ölçülüyor: tam bu iki
+  -- kolon üzerinde, kısmi olmayan bir unique index. Hook'un `v_count = 1`
+  -- mantığı ve admin RPC'sinin küme hesabı buna dayanır — mükerrer satır
+  -- aynı tenant'ı iki üyelik gibi gösterip claim'i düşürürdü.
+  SELECT count(*) INTO v_n
+    FROM pg_index i
+    JOIN pg_class t     ON t.oid = i.indrelid
+    JOIN pg_namespace n ON n.oid = t.relnamespace
+   WHERE n.nspname = 'public' AND t.relname = 'tenant_memberships'
+     AND i.indisunique AND i.indpred IS NULL
+     AND (SELECT array_agg(a.attname::text ORDER BY a.attname)
+            FROM pg_attribute a
+           WHERE a.attrelid = t.oid AND a.attnum = ANY (i.indkey))
+         = ARRAY['tenant_id', 'user_id'];
+  IF v_n = 0 THEN
+    RAISE EXCEPTION 'ön kontrol: tenant_memberships(user_id, tenant_id) üzerinde UNIQUE yok — KARAR 6 ve hook buna dayanır';
   END IF;
 
   -- b) Policy ADLARI — contracts dersi. Ad yanlışsa DROP no-op olur.
