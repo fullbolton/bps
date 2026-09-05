@@ -69,7 +69,10 @@ ileride çok-tenant üyeliği yanlışlar. Kapsam `is_active_tenant_member(uuid)
 (`SECURITY DEFINER`) üzerinden; doğrudan `EXISTS` yazılamazdı, çünkü policy
 ifadesi çağıranın yetkisiyle koşar ve `tenant_memberships`'te `authenticated`
 grant'i yok. Aynı fonksiyon `tasks_insert/update` WITH CHECK'ine atanan guard'ı
-olarak girdi. Uygulama katmanı bağımsız ikinci kat: `active_tenant_profiles()`
+olarak girdi. **Claim bir ipucu, üyelik tablosu gerçek:** iki fonksiyon da
+tenant'ı `current_user_verified_tenant()`'tan alır — JWT claim'i yalnız çağıran
+o tenant'ta hâlâ üyeyse geçerli sayılır; taşınmış kullanıcının eski token'ı
+bu yüzeylerde fail-closed olur (diğer 43 policy'de değil — bilinen, ayrı karar). Uygulama katmanı bağımsız ikinci kat: `active_tenant_profiles()`
 RPC'si; kapsamsız okuyucu silindi, `qa:static` R14 geri gelmesini FAIL yapar.
 
 ---

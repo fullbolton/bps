@@ -5,7 +5,7 @@
 -- bu dosya ek kanıttır, tek kanıt değil.
 -- ==========================================================================
 
--- 1) Fonksiyonlar — beklenen 2 satır, ikisinde de prosecdef=t, provolatile=s
+-- 1) Fonksiyonlar — beklenen 3 satır, üçünde de prosecdef=t, provolatile=s
 select proname,
        prosecdef                          as security_definer,
        provolatile                        as volatility,   -- 's' = STABLE
@@ -13,17 +13,17 @@ select proname,
        length(prosrc)                     as char
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public'
-   and proname in ('is_active_tenant_member', 'active_tenant_profiles')
+   and proname in ('current_user_verified_tenant', 'is_active_tenant_member', 'active_tenant_profiles')
  order by proname;
 
--- 2) Grant'ler — beklenen: authenticated=t · anon=f · PUBLIC=f (her iki fonksiyon)
+-- 2) Grant'ler — beklenen: authenticated=t · anon=f · PUBLIC=f (her üç fonksiyon)
 select p.proname,
        has_function_privilege('authenticated', p.oid, 'EXECUTE') as authenticated,
        has_function_privilege('anon',          p.oid, 'EXECUTE') as anon,
        has_function_privilege('public',        p.oid, 'EXECUTE') as public_role
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public'
-   and proname in ('is_active_tenant_member', 'active_tenant_profiles')
+   and proname in ('current_user_verified_tenant', 'is_active_tenant_member', 'active_tenant_profiles')
  order by p.proname;
 
 -- 3) profiles policy'leri — beklenen TAM 2 satır:
@@ -84,3 +84,15 @@ select t.id, t.title, t.status, t.tenant_id as gorev_tenant,
 --         200 dönerse yazma guard'ı yok demektir.
 --      C) Aynı tenant'tan bir üyeye atama → BAŞARILI olmalı (C olmadan A ve B
 --         anlamsız: her şeyi reddeden bir policy de A ve B'yi geçer).
+
+-- 8) ESKİ CLAIM — KARAR 6'nın davranış testi (gerçek oturumla, SQL editor değil).
+--    Bir kullanıcıyı admin panelinden A'dan B'ye taşı; oturumu silinir ama
+--    elindeki access token süresi dolana kadar geçerli ve A claim'i taşır.
+--    O token ile (süre dolmadan) doğrudan PostgREST:
+--      GET  /rest/v1/rpc/active_tenant_profiles          → BOŞ liste beklenir
+--      GET  /rest/v1/profiles?select=id                  → yalnız KENDİ satırı
+--      POST /rest/v1/tasks {tenant_id: A, assigned_to_user_id: <A üyesi>}
+--                                                        → 42501 beklenir
+--    A'nın verisi dönüyorsa current_user_verified_tenant() claim'i doğrulamıyor.
+--    ⚠ Bu test yalnız YENİ yüzeyleri kanıtlar; diğer 43 policy eski claim'e
+--      JWT süresi boyunca güvenmeye devam eder (bilinen, ayrı karar).

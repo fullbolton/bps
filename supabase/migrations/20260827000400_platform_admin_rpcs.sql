@@ -286,8 +286,10 @@ BEGIN
   -- halde düzeltme yapılmış görünür ama token yenilenene kadar ekran boş kalır.
   --
   -- KALAN PENCERE: mevcut access token süresi (proje ayarı, varsayılan 3600 s).
-  -- Bu pencerede eski token eski tenant'ı okur. Tam kapatmak
-  -- `current_user_active_tenant()`'ın claim'i canlı üyelikle doğrulamasını
+  -- Bu pencerede eski token, claim'e güvenen 43 tenant policy'sinde eski
+  -- tenant'ı okur. profiles okuması ve görev atanan guard'ı (20260904000100,
+  -- KARAR 6) claim'i canlı üyelikle doğruluyor — orada pencere yok. Kalanını
+  -- kapatmak `current_user_active_tenant()`'ın aynı doğrulamayı yapmasını
   -- ister; o fonksiyon repo dışında ve gövdesi elimizde yok — ayrı karar.
   IF v_membership_changes THEN
     DELETE FROM auth.sessions WHERE user_id = p_user_id;

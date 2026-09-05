@@ -95,7 +95,12 @@ export async function selectActiveTenantProfiles(
  * Same SECURITY DEFINER function the tasks RLS WITH CHECK calls, so the
  * service-layer answer and the database's answer cannot disagree. Used before
  * writing an assignee, to turn a would-be RLS rejection into a Turkish message.
- * Fail-closed: an RPC error is reported as "not a member".
+ *
+ * THROWS on RPC error — it does not return false (Codex P2). "Not a member"
+ * and "could not verify" are different facts: a same-tenant member hit by a
+ * transient RPC failure must not be told they are outside the tenant. The
+ * caller stops the write either way, with the right message. Same contract as
+ * the rest of this file: typed answer or throw.
  */
 export async function isActiveTenantMember(
   client: Client,
@@ -104,7 +109,9 @@ export async function isActiveTenantMember(
   const { data, error } = await client.rpc("is_active_tenant_member", {
     p_user_id: userId,
   });
-  if (error) return false;
+  if (error) {
+    throw new Error(`membership check failed: ${error.message}`);
+  }
   return data === true;
 }
 

@@ -90,6 +90,33 @@
 -- fonksiyon. qa:static R14 geri gelmesini FAIL yapar.
 --
 -- ==========================================================================
+-- KARAR 6 — CLAIM BİR İPUCU, ÜYELİK TABLOSU GERÇEK (Codex P1, 2026-09-05)
+-- ==========================================================================
+-- `current_user_active_tenant()` JWT'deki claim'i döner. Claim token
+-- ÜRETİLİRKEN yazılır; üyelik sonradan değişse de token süresi dolana kadar
+-- yaşar. İlk sürüm bu değere güveniyordu: A'dan B'ye taşınmış bir kullanıcı,
+-- elindeki eski A token'ıyla `active_tenant_profiles()`'tan A'nın profillerini
+-- almaya, `is_active_tenant_member()` ile A üyeliklerini sorgulamaya devam
+-- ederdi.
+--
+-- Düzeltme `current_user_active_tenant()`'a DOKUNMUYOR (gövdesi repo dışında,
+-- elimizde yok): yeni yardımcı `current_user_verified_tenant()` claim'i yalnız
+-- çağıranın o tenant'ta HÂLÂ üyeliği varsa döner, yoksa NULL. İki fonksiyon da
+-- tenant'ı ondan alır. Eski claim ne eski tenant'a ne yenisine erişim verir —
+-- yalnız fail-closed olur. 43 tenant policy'si claim'e güvenmeye devam ediyor;
+-- o pencere admin RPC'sinin oturum iptaliyle JWT süresine sınırlı (000400).
+--
+-- ==========================================================================
+-- KARAR 7 — ÖN KONTROL İLE DDL ARASI KİLİT (Codex P1, 2026-09-05)
+-- ==========================================================================
+-- Ön kontrol (e) "çapraz-tenant atama yok" der; policy DDL'i tablo kilidini
+-- daha sonra alır. Arada, eski policy altında, tam öyle bir görev yazılabilir;
+-- migration başarıyla commit eder ve o satır güncellenemez kalır. BEGIN'den
+-- hemen sonra `tasks` üzerinde SHARE ROW EXCLUSIVE alınıyor: INSERT/UPDATE/
+-- DELETE'in ROW EXCLUSIVE'iyle çatışır, transaction sonuna kadar tutulur,
+-- okuyucuları engellemez. Kontrol ile DDL aynı kilit altında.
+--
+-- ==========================================================================
 -- DOĞRULAMA MİGRATION'IN İÇİNDE — sessiz yarım durum imkânsız
 -- ==========================================================================
 -- `contracts` dersi (20260827000300): policy adı yanlışsa DROP no-op olur,
@@ -101,11 +128,14 @@
 --
 -- GERİ DÖNÜŞ: 20260407000000 (profiles_select_authenticated, `using (true)`)
 -- ve 20260827000300 satır 299–328 (tasks_insert / tasks_update). Fonksiyonlar
--- DROP FUNCTION ile düşer; sıra: önce policy'ler, sonra fonksiyonlar
--- (policy'ler fonksiyona bağımlı).
+-- DROP FUNCTION ile düşer; sıra: önce policy'ler, sonra is_active_tenant_member
+-- + active_tenant_profiles, en son current_user_verified_tenant (bağımlılık).
 -- ==========================================================================
 
 BEGIN;
+
+-- KARAR 7: kontrol ile DDL arasında yazma yarışı yok. Transaction sonuna kadar.
+LOCK TABLE public.tasks IN SHARE ROW EXCLUSIVE MODE;
 
 -- --------------------------------------------------------------------------
 -- 0) ÖN KONTROLLER — biri tutmazsa hiçbir şey değişmez
@@ -176,12 +206,40 @@ END $$;
 
 
 -- --------------------------------------------------------------------------
+-- 1a) Yardımcı: current_user_verified_tenant() — KARAR 6
+-- --------------------------------------------------------------------------
+-- Claim'deki tenant'ı, yalnız çağıranın orada HÂLÂ üyeliği varsa döner.
+-- UNIQUE(user_id, tenant_id) olduğu için en fazla bir satır; satır yoksa
+-- NULL (SQL fonksiyonu, boş sonuç → NULL). Tenant claim'i yoksa da NULL.
+CREATE OR REPLACE FUNCTION public.current_user_verified_tenant()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT m.tenant_id
+    FROM public.tenant_memberships m
+   WHERE m.user_id   = auth.uid()
+     AND m.tenant_id = public.current_user_active_tenant();
+$$;
+
+COMMENT ON FUNCTION public.current_user_verified_tenant() IS
+  'The caller''s active-tenant claim, returned ONLY while the caller still holds '
+  'a membership in that tenant; NULL otherwise. The claim is minted at token time '
+  'and outlives membership changes, so it is a hint — tenant_memberships is the truth.';
+
+REVOKE ALL ON FUNCTION public.current_user_verified_tenant() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_user_verified_tenant() TO authenticated;
+
+
+-- --------------------------------------------------------------------------
 -- 1) Yardımcı: is_active_tenant_member(uuid)
 -- --------------------------------------------------------------------------
--- "Bu profil, çağıranın aktif tenant'ının üyesi mi?" Policy'lerin içinden
--- çağrılır; SECURITY DEFINER olduğu için kapalı üyelik tablosunu okuyabilir.
--- Tenant NULL ise (üyelik yok) EXISTS false döner — fail-closed.
--- STABLE: aynı sorgu içinde aynı girdi için tekrar hesaplanmaz.
+-- "Bu profil, çağıranın DOĞRULANMIŞ tenant'ının üyesi mi?" Policy'lerin
+-- içinden çağrılır; SECURITY DEFINER olduğu için kapalı üyelik tablosunu
+-- okuyabilir. Tenant NULL ise (üyelik yok ya da eski claim) EXISTS false
+-- döner — fail-closed. STABLE: aynı sorguda aynı girdi için tekrar hesaplanmaz.
 CREATE OR REPLACE FUNCTION public.is_active_tenant_member(p_user_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -193,14 +251,15 @@ AS $$
     SELECT 1
       FROM public.tenant_memberships m
      WHERE m.user_id   = p_user_id
-       AND m.tenant_id = public.current_user_active_tenant()
+       AND m.tenant_id = public.current_user_verified_tenant()
   );
 $$;
 
 COMMENT ON FUNCTION public.is_active_tenant_member(uuid) IS
-  'True when the given profile id is a member of the caller''s active tenant. '
-  'SECURITY DEFINER so RLS policies can consult the closed tenant_memberships '
-  'table. Returns false when the caller has no active tenant (fail-closed).';
+  'True when the given profile id is a member of the caller''s VERIFIED active '
+  'tenant (claim + live membership). SECURITY DEFINER so RLS policies can consult '
+  'the closed tenant_memberships table. False when the caller has no verified '
+  'tenant (fail-closed).';
 
 REVOKE ALL ON FUNCTION public.is_active_tenant_member(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_active_tenant_member(uuid) TO authenticated;
@@ -209,8 +268,8 @@ GRANT EXECUTE ON FUNCTION public.is_active_tenant_member(uuid) TO authenticated;
 -- --------------------------------------------------------------------------
 -- 2) RPC: active_tenant_profiles() — uygulama katmanının kapsamlı okuyucusu
 -- --------------------------------------------------------------------------
--- Parametre YOK: tenant çağıranın claim'inden çözülür. Sıralama seçicinin
--- beklediği gibi (display_name), eski selectAllProfiles ile aynı.
+-- Parametre YOK: tenant çağıranın DOĞRULANMIŞ claim'inden çözülür (KARAR 6).
+-- Sıralama seçicinin beklediği gibi (display_name), eski selectAllProfiles ile aynı.
 CREATE OR REPLACE FUNCTION public.active_tenant_profiles()
 RETURNS SETOF public.profiles
 LANGUAGE sql
@@ -224,7 +283,7 @@ AS $$
      SELECT 1
        FROM public.tenant_memberships m
       WHERE m.user_id   = p.id
-        AND m.tenant_id = public.current_user_active_tenant()
+        AND m.tenant_id = public.current_user_verified_tenant()
    )
    ORDER BY p.display_name;
 $$;
@@ -341,10 +400,10 @@ BEGIN
   SELECT count(*) INTO v_n
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
    WHERE n.nspname='public'
-     AND p.proname IN ('is_active_tenant_member','active_tenant_profiles')
+     AND p.proname IN ('current_user_verified_tenant','is_active_tenant_member','active_tenant_profiles')
      AND p.prosecdef AND p.provolatile = 's';
-  IF v_n <> 2 THEN
-    RAISE EXCEPTION 'son kontrol: % fonksiyon SECURITY DEFINER+STABLE (2 bekleniyordu)', v_n;
+  IF v_n <> 3 THEN
+    RAISE EXCEPTION 'son kontrol: % fonksiyon SECURITY DEFINER+STABLE (3 bekleniyordu)', v_n;
   END IF;
 END $$;
 

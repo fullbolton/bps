@@ -538,6 +538,14 @@ const FAIL = "FAIL";
 // query, and the first clean run of this rule went red on its own rationale
 // comment in ayarlar/page.tsx — a rule that fails on the sentence explaining
 // it is measuring the wrong thing.
+//
+// KNOWN LIMITS (Codex, 2026-09-05) — this rule is a tripwire, not a proof of
+// the application layer's scope guarantee. It catches both quote styles and
+// whitespace inside the call, but NOT: a dynamic table name, a query built in
+// a .ts helper under src/app, or a table alias. The security boundary does not
+// rest on it — the profiles RLS policy and the SECURITY DEFINER RPC hold
+// regardless. Do not widen it to .ts under src/app: actions.ts files carry
+// legitimate self-reads by id (firmalar/[id]/actions.ts).
 (() => {
   const offenders = [];
   for (const f of walk("src")) {
@@ -550,7 +558,7 @@ const FAIL = "FAIL";
       if (!isComment && (/\bselectAllProfiles\b/.test(l) || /\blistProfiles\(/.test(l))) {
         offenders.push(`${rel}:${i + 1} unscoped reader`);
       }
-      if (!isComment && rel.startsWith("src/app") && rel.endsWith(".tsx") && /from\("profiles"\)/.test(l)) {
+      if (!isComment && rel.startsWith("src/app") && rel.endsWith(".tsx") && /\.from\(\s*["']profiles["']\s*\)/.test(l)) {
         offenders.push(`${rel}:${i + 1} raw profiles query in page`);
       }
     });

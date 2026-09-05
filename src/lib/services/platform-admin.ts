@@ -133,7 +133,9 @@ export async function currentUserIsPlatformAdmin(client: Client): Promise<boolea
  * elindeki token eski tenant'ı taşımaya devam ederdi. RPC, üyelik kümesi
  * değiştiğinde `auth.sessions`'ı siler — refresh imkânsızlaşır, kullanıcı en
  * geç JWT süresi dolunca yeniden girer ve doğru claim'i alır. Yalnız rol
- * düzeltmesinde (aynı tenant) oturum korunur; rol canlı okunur.
+ * düzeltmesinde (aynı tenant) oturum korunur; rol canlı okunur. Kalan pencere
+ * yalnız claim'e güvenen 43 policy için; profiles okuması ve görev atanan
+ * guard'ı claim'i canlı üyelikle doğrular (20260904000100, KARAR 6).
  *
  * ⚠ BİLİNEN SONUÇ (20260904000100 ile birlikte): kullanıcı başka tenant'a
  * taşınırsa, eski tenant'ta ona atalı görevler "başka kiracının üyesine atalı"

@@ -199,7 +199,18 @@ async function resolveAssignee(
     throw new TaskValidationError("Atanan kullanıcı kimliği geçersiz.");
   }
 
-  if (!(await isActiveTenantMember(client, id))) {
+  // Üç durum, üç sonuç: üye → devam; üye değil → ret; DOĞRULANAMADI → ret ama
+  // farklı mesajla. Aynı tenant'ın üyesine geçici bir RPC hatasında "üyesi
+  // değil" demek yanlış olurdu (Codex P2). Yazma her iki durumda da durur.
+  let member: boolean;
+  try {
+    member = await isActiveTenantMember(client, id);
+  } catch {
+    throw new TaskValidationError(
+      "Atanan kullanıcının kiracı üyeliği doğrulanamadı. Tekrar deneyin.",
+    );
+  }
+  if (!member) {
     throw new TaskValidationError(
       "Atanan kullanıcı bu kiracının üyesi değil.",
     );
