@@ -40,8 +40,9 @@
  *                                          each red, each restored; `?.eq` and
  *                                          a semicolon-in-comment inside a
  *                                          keyed chain stay green; an
- *                                          unreadable file, a parse error and
- *                                          a zero-file scan each red
+ *                                          unreadable file, a parse error, a
+ *                                          zero-file scan, a blocked subdir and
+ *                                          a symlink loop each red
  * All seven WARN rules were negative-tested the same way:
  *   W1  package-migration-drift          → seen amber whenever a migration sat
  *                                          uncommitted in the working tree
@@ -101,7 +102,17 @@ function walk(relDir, out = []) {
   }
   for (const name of entries) {
     const relPath = join(relDir, name);
-    const st = statSync(join(ROOT, relPath));
+    // A stat failure (ELOOP on a symlink loop, EACCES, a vanished entry) used
+    // to throw here and take the WHOLE harness down with no report — exit 1,
+    // but no rule line (Codex round 6, reproduced with `src/lib/x -> ..`).
+    // This walker is deliberately lenient (text rules), so the entry is
+    // skipped; R14 uses its own strict traversal that reports such errors.
+    let st;
+    try {
+      st = statSync(join(ROOT, relPath));
+    } catch {
+      continue;
+    }
     if (st.isDirectory()) {
       if (name === "node_modules" || name === ".next") continue;
       walk(relPath, out);
@@ -572,7 +583,8 @@ const FAIL = "FAIL";
 // KNOWN LIMITS — a tripwire, not a proof of the application layer's scope
 // guarantee. Precisely what it does NOT do:
 //   FALSE NEGATIVES (pass, should not): a dynamic table name (`from(t)`); a
-//     table alias; a builder stored in a variable and keyed in a later
+//     dynamic METHOD name (`c[m]("profiles")` — a constant `c["from"]` IS
+//     caught); a table alias; a builder stored in a variable and keyed in a later
 //     statement (the first statement fails loudly — see below — so this is
 //     not silent); and the most likely real one — a key that is not the
 //     caller: `.in("id", everyId)` looks filtered and proves nothing about
@@ -620,14 +632,14 @@ const FAIL = "FAIL";
         parent = node.parent;
         continue;
       }
-      if (ts.isPropertyAccessExpression(parent) && parent.expression === node) {
+      if (isMemberOf(parent, node)) {
         node = parent;
         parent = node.parent;
         continue;
       }
       if (ts.isCallExpression(parent) && parent.expression === node) {
         const callee = parent.expression;
-        const name = ts.isPropertyAccessExpression(callee) ? callee.name.text : null;
+        const name = memberName(callee);
         calls.push({ name, args: parent.arguments });
         node = parent;
         parent = node.parent;
@@ -640,6 +652,21 @@ const FAIL = "FAIL";
 
   const isStr = (n) => ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n);
   const strOf = (n) => (n && isStr(n) ? n.text : null);
+  // `a.b` and `a["b"]` are the same member access to the runtime; the rule
+  // must not tell them apart (Codex round 6: `c["from"]("profiles")` was
+  // invisible because only PropertyAccessExpression was recognised). A
+  // computed name that is not a constant string (`c[m](...)`) is genuinely
+  // dynamic and stays a documented limit.
+  const memberName = (expr) => {
+    if (ts.isPropertyAccessExpression(expr)) return expr.name.text;
+    if (ts.isElementAccessExpression(expr) && isStr(expr.argumentExpression)) {
+      return expr.argumentExpression.text;
+    }
+    return null;
+  };
+  const isMemberOf = (parent, node) =>
+    (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent))
+    && parent.expression === node;
 
   function keyedBy(calls, columns) {
     return calls.some((c) => c.name && KEY_CALLS.has(c.name) && columns.has(strOf(c.args[0])));
@@ -659,11 +686,47 @@ const FAIL = "FAIL";
   // file the parser rejects each become a FAIL, never a silent skip. The PASS
   // line reports how many files were actually parsed, so "verified nothing"
   // cannot look like "verified everything".
-  const files = walk("src").filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"));
+  // Strict traversal for THIS rule (Codex round 6): the shared walk() swallows
+  // readdirSync errors and returns the partial list, so a blocked subdirectory
+  // made R14 say "1 files parsed … PASS" while a file beneath it was neither
+  // parsed nor reported. Here every directory or stat error is an offender, a
+  // symlink loop ends in a controlled FAIL (depth cap; ELOOP is caught), and
+  // nothing is excluded — node_modules/.next do not exist under src.
+  function walkStrict(relDir, out, errors, depth = 0) {
+    if (depth > 64) {
+      errors.push(`${relDir} depth > 64 — symlink loop?`);
+      return;
+    }
+    let entries;
+    try {
+      entries = readdirSync(join(ROOT, relDir));
+    } catch (e) {
+      errors.push(`${relDir} unreadable dir (${e && e.code ? e.code : "error"})`);
+      return;
+    }
+    for (const name of entries) {
+      const relPath = join(relDir, name);
+      let st;
+      try {
+        st = statSync(join(ROOT, relPath));
+      } catch (e) {
+        errors.push(`${relPath} stat failed (${e && e.code ? e.code : "error"})`);
+        continue;
+      }
+      if (st.isDirectory()) walkStrict(relPath, out, errors, depth + 1);
+      else out.push(relPath);
+    }
+  }
+  const listed = [];
+  const scanErrors = [];
+  walkStrict("src", listed, scanErrors);
+  const files = listed.filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"));
   if (files.length === 0) {
-    record(FAIL, "profiles-read-scoped", FAIL, "no .ts/.tsx under src — rule verified nothing");
+    record(FAIL, "profiles-read-scoped", FAIL,
+      scanErrors.length ? scanErrors.join(", ") : "no .ts/.tsx under src — rule verified nothing");
     return;
   }
+  for (const e of scanErrors) offenders.push(e.split("\\").join("/"));
   let parsed = 0;
   for (const f of files) {
     const rel = f.split("\\").join("/");
@@ -707,8 +770,7 @@ const FAIL = "FAIL";
 
     const visit = (node) => {
       if (ts.isCallExpression(node)
-          && ts.isPropertyAccessExpression(node.expression)
-          && node.expression.name.text === "from"
+          && memberName(node.expression) === "from"
           && node.arguments.length >= 1
           && strOf(node.arguments[0]) === "profiles") {
         const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
