@@ -3,8 +3,10 @@
  * BPS QA Mini Harness V1 — qa:static
  *
  * Custom static guard checks over the repo text. Node built-in only — no
- * dependencies, no DB, no network, no credential reads. Complements (does
- * NOT run) `tsc --noEmit` and `next build`; run those separately.
+ * dependencies, no DB, no network, no credential reads — with one stated
+ * exception: R14 parses source with the project's `typescript` devDependency
+ * and FAILS if it cannot be loaded. Complements (does NOT run) `tsc --noEmit`
+ * and `next build`; run those separately.
  *
  * ⚠ `npm run lint` does NOT work in this project (verified 2026-08-10):
  * ESLint is not installed and not configured — no config file, no dependency,
@@ -30,9 +32,14 @@
  *   R5  passivate-status-only            → an extra key added to the payload
  *   R12 pre-deploy-gates-recorded        → seen red throughout the gate work
  *   R13 table-rls-enabled                → a CREATE TABLE with no ENABLE RLS
- *   R14 profiles-read-scoped             → (2026-09-04) the unscoped reader
- *                                          symbol planted back, and a raw
- *                                          profiles query planted in a page
+ *   R14 profiles-read-scoped             → (2026-09-04/05) the unscoped reader
+ *                                          symbol planted back; a raw profiles
+ *                                          query planted in a page; an unkeyed
+ *                                          chain under a new name; an ASI
+ *                                          borrow; a paren-in-comment borrow —
+ *                                          each red, each restored; `?.eq` and
+ *                                          a semicolon-in-comment inside a
+ *                                          keyed chain stay green
  * All seven WARN rules were negative-tested the same way:
  *   W1  package-migration-drift          → seen amber whenever a migration sat
  *                                          uncommitted in the working tree
@@ -59,6 +66,12 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "node:path";
+import { createRequire } from "node:module";
+
+// R14 parses TypeScript with the project's own `typescript` package (the one
+// `tsc` runs). It is loaded lazily inside the rule and the rule fails closed
+// if it is missing. Everything else stays Node built-in only.
+const require = createRequire(import.meta.url);
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FIRMA_ACTIONS = "src/app/(main)/firmalar/[id]/actions.ts";
@@ -529,105 +542,134 @@ const FAIL = "FAIL";
 // that could be called without one (`selectAllProfiles` / `listProfiles`) and
 // replaced it with an RPC that resolves the tenant server-side. This rule keeps
 // that true:
-//   (a) neither unscoped symbol exists anywhere under src
-//   (b) no raw `.from("profiles")` in any .tsx under src/app — page components
-//       go through the service layer, whose only list reader is the scoped RPC.
-//       Server files (actions.ts, route.ts) are .ts and are not in scope; their
-//       reads are self-reads by id or service_role (R1 confines the latter).
-// Comment lines are ignored in both branches: commented-out code is not a
-// query, and the first clean run of this rule went red on its own rationale
-// comment in ayarlar/page.tsx — a rule that fails on the sentence explaining
-// it is measuring the wrong thing.
+//   (a) neither unscoped symbol exists anywhere under src (comment lines are
+//       ignored — commented-out code is not a query)
+//   (b) no raw `.from("profiles")` call in any .tsx under src/app — page
+//       components go through the service layer, whose only list reader is the
+//       scoped RPC. Server files (actions.ts, route.ts) are .ts; (c) covers
+//       them by requiring the key instead.
+//   (c) every raw `.from("profiles")` call chain anywhere under src must be
+//       keyed by id — `.eq("id", …)` or `.in("id", …)` in the SAME call chain.
+//       That is the shape of every legitimate raw read left (self-reads). A
+//       list read with no id key is the original leak under a new name. In
+//       src/lib/email/* and src/app/api/* (service_role paths; R1 confines the
+//       key) the chain must still be filtered — by id, by role, or a head-only
+//       count — rather than being exempt outright.
 //
-//   (c) every raw `.from("profiles")` chain anywhere under src must be keyed
-//       by id — `.eq("id", …)` or `.in("id", …)` inside the chain. That is the
-//       shape of every legitimate raw read left (self-reads). A list read with
-//       no id key is the original leak under a new name, which is what Codex
-//       round 2 showed (a) and (b) would miss. In src/lib/email/* and
-//       src/app/api/* (service_role paths; R1 confines the key) the chain must
-//       still be filtered — by id, by role, or a head-only count — rather than
-//       being exempt outright (Codex round 3: an exemption waived (c) entirely).
+// (b) and (c) walk the REAL syntax tree (Codex round 4, 2026-09-05). Three
+// text-based scanners came before this one and each was shown to be wrong in
+// a way that mattered: line splitting missed a call broken across lines; a
+// `;`-delimited slice let a semicolon-free next statement lend its key; a
+// paren-depth scanner counted `(` and `;` inside comments and strings as code,
+// so a `/* ( */` could borrow the next query's filter, and `?.` continuation
+// was cut. The parser already in this repo (typescript, the one `tsc` runs)
+// knows what a call chain is; comments and strings are not code to it, and
+// optional chaining is just another property access. If the module cannot be
+// loaded the rule FAILS — it does not fall back to a weaker scanner.
 //
-// KNOWN LIMITS (Codex, 2026-09-05) — this rule is a tripwire, not a proof of
-// the application layer's scope guarantee. It catches both quote styles,
-// whitespace (including between `from` and `(`) and newlines inside the call,
-// an unkeyed chain under any name, and a semicolon-free next statement cannot
-// lend its key. Precisely what it does NOT do:
+// KNOWN LIMITS — a tripwire, not a proof of the application layer's scope
+// guarantee. Precisely what it does NOT do:
 //   FALSE NEGATIVES (pass, should not): a dynamic table name (`from(t)`); a
-//     table alias; a builder stored in a variable and keyed later (`const q =
-//     from("profiles"); … q.eq("id")` — the first statement fails loudly, see
-//     below, so this is not silent); and the most likely real one — a key that
-//     is not the caller: `.in("id", everyId)` looks filtered and proves nothing
-//     about tenant scope.
-//   FALSE POSITIVES (fail, should not): a builder assigned unkeyed and keyed in
-//     a later statement. Loud, not silent — rewrite as one chain.
+//     table alias; a builder stored in a variable and keyed in a later
+//     statement (the first statement fails loudly — see below — so this is
+//     not silent); and the most likely real one — a key that is not the
+//     caller: `.in("id", everyId)` looks filtered and proves nothing about
+//     tenant scope. head-only counts in src/app/api pass by design.
+//   FALSE POSITIVES (fail, should not): a builder assigned unkeyed and keyed
+//     in a later statement. Loud, not silent — rewrite as one chain.
 // The security boundary does not rest on it — the profiles RLS policy and the
-// SECURITY DEFINER RPC hold regardless. Do not widen (b) to .ts under src/app:
-// actions.ts files carry legitimate self-reads by id — (c) covers those by
-// requiring the key instead.
-// Scan a method chain from `start`: stop at `;` outside parens, or at a line
-// break outside parens whose next line does not begin with `.`.
-function chainFrom(src, start) {
-  let depth = 0;
-  let i = start;
-  while (i < src.length) {
-    const ch = src[i];
-    if (ch === "(" || ch === "[" || ch === "{") depth++;
-    else if (ch === ")" || ch === "]" || ch === "}") depth = Math.max(0, depth - 1);
-    else if (ch === ";" && depth === 0) break;
-    else if (ch === "\n" && depth === 0) {
-      const rest = src.slice(i + 1);
-      if (!/^\s*\./.test(rest)) break;
-    }
-    i++;
-  }
-  return src.slice(start, i);
-}
-
+// SECURITY DEFINER RPC hold regardless.
 (() => {
+  let ts;
+  try {
+    ts = require("typescript");
+  } catch {
+    record(FAIL, "profiles-read-scoped", FAIL,
+      "typescript module not loadable — R14 cannot parse; run npm install");
+    return;
+  }
+
+  const KEY_CALLS = new Set(["eq", "in"]);
+
+  // From a `.from("profiles")` call, climb the chain it starts: every call
+  // whose receiver is the chain so far. Returns the calls after `from`.
+  function callsAfter(fromCall) {
+    const calls = [];
+    let node = fromCall;
+    let parent = node.parent;
+    while (parent) {
+      if (ts.isPropertyAccessExpression(parent) && parent.expression === node) {
+        node = parent;
+        parent = node.parent;
+        continue;
+      }
+      if (ts.isCallExpression(parent) && parent.expression === node) {
+        const callee = parent.expression;
+        const name = ts.isPropertyAccessExpression(callee) ? callee.name.text : null;
+        calls.push({ name, args: parent.arguments });
+        node = parent;
+        parent = node.parent;
+        continue;
+      }
+      break;
+    }
+    return calls;
+  }
+
+  const isStr = (n) => ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n);
+  const strOf = (n) => (n && isStr(n) ? n.text : null);
+
+  function keyedBy(calls, columns) {
+    return calls.some((c) => c.name && KEY_CALLS.has(c.name) && columns.has(strOf(c.args[0])));
+  }
+  function headOnly(calls) {
+    return calls.some((c) => c.name === "select" && c.args[1]
+      && ts.isObjectLiteralExpression(c.args[1])
+      && c.args[1].properties.some((pr) => ts.isPropertyAssignment(pr)
+        && ts.isIdentifier(pr.name) && pr.name.text === "head"
+        && pr.initializer.kind === ts.SyntaxKind.TrueKeyword));
+  }
+
   const offenders = [];
   for (const f of walk("src")) {
     if (!f.endsWith(".ts") && !f.endsWith(".tsx")) continue;
     const src = read(f);
     if (!src) continue;
     const rel = f.split("\\").join("/");
-    const lines = src.split("\n");
-    const isComment = (l) => /^\s*(\/\/|\*|\/\*)/.test(l);
-    lines.forEach((l, i) => {
-      if (!isComment(l) && (/\bselectAllProfiles\b/.test(l) || /\blistProfiles\(/.test(l))) {
+
+    // (a) — text-based on purpose: a symbol name, not syntax.
+    src.split("\n").forEach((l, i) => {
+      if (/^\s*(\/\/|\*|\/\*)/.test(l)) return;
+      if (/\bselectAllProfiles\b/.test(l) || /\blistProfiles\(/.test(l)) {
         offenders.push(`${rel}:${i + 1} unscoped reader`);
       }
     });
-    // (b) runs over the WHOLE source, not line by line: `\s*` spans newlines, so
-    // `.from(\n  "profiles"\n)` is caught (Codex bypass, 2026-09-05). The
-    // comment test is applied to the line where the match starts.
-    const re = /\.from\s*\(\s*["']profiles["']\s*\)/g;
+
     const inPage = rel.startsWith("src/app") && rel.endsWith(".tsx");
-    const allowUnkeyed = rel.startsWith("src/lib/email/") || rel.startsWith("src/app/api/");
-    let m;
-    while ((m = re.exec(src)) !== null) {
-      const lineIdx = src.slice(0, m.index).split("\n").length - 1;
-      if (isComment(lines[lineIdx])) continue;
-      if (inPage) {
-        offenders.push(`${rel}:${lineIdx + 1} raw profiles query in page`);
+    const serviceRolePath = rel.startsWith("src/lib/email/") || rel.startsWith("src/app/api/");
+    const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true,
+      rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+
+    const visit = (node) => {
+      if (ts.isCallExpression(node)
+          && ts.isPropertyAccessExpression(node.expression)
+          && node.expression.name.text === "from"
+          && node.arguments.length >= 1
+          && strOf(node.arguments[0]) === "profiles") {
+        const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+        if (inPage) offenders.push(`${rel}:${line} raw profiles query in page`);
+        const calls = callsAfter(node);
+        const keyed = serviceRolePath
+          ? keyedBy(calls, new Set(["id", "role"])) || headOnly(calls)
+          : keyedBy(calls, new Set(["id"]));
+        if (!keyed) offenders.push(`${rel}:${line} profiles chain not keyed`);
       }
-      // (c) the method chain starting at this match must carry a key. The chain
-      // is scanned, not split at `;` (Codex round 3): it continues while parens
-      // are open, and across a line break only if the next line starts with
-      // `.` — so a semicolon-free next statement (ASI) cannot lend its key, and
-      // a multi-line argument does not cut the chain short.
-      const chain = chainFrom(src, m.index);
-      const keyed = allowUnkeyed
-        // service_role paths: filtered by id or role, or a head-only count.
-        ? /\.(eq|in)\s*\(\s*["'](id|role)["']|head:\s*true/.test(chain)
-        : /\.(eq|in)\s*\(\s*["']id["']/.test(chain);
-      if (!keyed) {
-        offenders.push(`${rel}:${lineIdx + 1} profiles chain not keyed`);
-      }
-    }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
   }
   if (offenders.length === 0) {
-    record(FAIL, "profiles-read-scoped", PASS, "no unscoped profiles reader; pages read via scoped RPC");
+    record(FAIL, "profiles-read-scoped", PASS, "no unscoped profiles reader; every raw chain keyed; pages read via scoped RPC");
   } else {
     record(FAIL, "profiles-read-scoped", FAIL, offenders.join(", "));
   }

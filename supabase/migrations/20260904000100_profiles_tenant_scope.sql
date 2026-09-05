@@ -126,12 +126,15 @@
 -- (profiles, tasks). Yükseltme yok → kendi yarattığımız döngü yok. Bedeli
 -- açıkça yazılı: transaction boyunca profiles ve tasks OKUNAMAZ da.
 --
--- SÜRE (Codex turu 3): "saniyeler" GARANTİ DEĞİL. İki bileşen var —
+-- SÜRE (Codex turu 3-4): "saniyeler" GARANTİ DEĞİL. İki bileşen var —
 -- (1) kilidin alınması: uzun bir okuma tasks'ta ACCESS SHARE tutuyorsa
 --     bekleriz, ve LOCK iki tabloyu SIRAYLA alır: profiles alınmış,
 --     tasks beklenirken profiles ZATEN kilitli. Bu yüzden `lock_timeout`
---     var — sınır aşılırsa migration temiz düşer, elle tekrar denenir;
---     süresiz asılı kalmaz.
+--     var — ama dikkat, HER KİLİT BEKLEMESİNE AYRI uygulanır: iki kilit
+--     toplamda 15 s'yi aşabilir, ve alındıktan sonraki taramayı ya da
+--     migration'ın toplam süresini sınırlamaz. Sınır aşılırsa migration
+--     temiz düşer (profiles kilidi de bırakılır), YENİ transaction'la elle
+--     tekrar denenir; süresiz asılı kalmaz.
 -- (2) transaction'ın kendisi: ön kontrol (e) tasks'ı tarar. Bugün küçük
 --     bir tablo; büyüdükçe bu pencere büyür. Ölçülmemiş bir "saniyeler"
 --     yerine sınırlı-ve-düşer davranışı yazılı.
@@ -158,8 +161,8 @@
 BEGIN;
 
 -- KARAR 7: en güçlü kilit BAŞTAN, yükseltme yok. profiles ve tasks bu
--- transaction boyunca yazılamaz VE okunamaz. Kilit 15 s içinde alınamazsa
--- transaction düşer (SET LOCAL — yalnız bu transaction'a etki eder).
+-- transaction boyunca yazılamaz VE okunamaz. Her kilit beklemesi en fazla
+-- 15 s; aşılırsa transaction düşer (SET LOCAL — yalnız bu transaction'a).
 SET LOCAL lock_timeout = '15s';
 LOCK TABLE public.profiles, public.tasks IN ACCESS EXCLUSIVE MODE;
 
@@ -206,11 +209,13 @@ BEGIN
     JOIN pg_namespace n ON n.oid = t.relnamespace
    WHERE n.nspname = 'public' AND t.relname = 'tenant_memberships'
      AND i.indisunique AND i.indisvalid AND i.indisready AND i.indislive
+     AND i.indimmediate                       -- ertelenebilir değil: çift, commit'e kadar değil ANINDA reddedilir
      AND i.indpred IS NULL AND i.indexprs IS NULL
      AND i.indnkeyatts = 2
      AND (SELECT array_agg(a.attname::text ORDER BY a.attname)
             FROM generate_series(0, i.indnkeyatts - 1) AS k
-            JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = i.indkey[k])
+            JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = i.indkey[k]
+           WHERE a.attnotnull)                -- NULL'lu çift UNIQUE'i geçer; iki kolon da NOT NULL olmalı
          = ARRAY['tenant_id', 'user_id'];
   IF v_n = 0 THEN
     RAISE EXCEPTION 'ön kontrol: tenant_memberships(user_id, tenant_id) üzerinde UNIQUE yok — KARAR 6 ve hook buna dayanır';

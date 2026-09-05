@@ -296,6 +296,9 @@ BEGIN
   -- KARAR 6) claim'i canlı üyelikle doğruluyor — orada pencere yok. Kalanını
   -- kapatmak `current_user_active_tenant()`'ın aynı doğrulamayı yapmasını
   -- ister; o fonksiyon repo dışında ve gövdesi elimizde yok — ayrı karar.
+  -- Sıfır satır silinmesi HATA DEĞİL: kullanıcının açık oturumu olmayabilir
+  -- (Codex turu 4). Aşağıdaki son kontrol RLS'in sessizce filtrelemeyeceğini
+  -- kanıtlar; oturumun var olduğunu değil.
   IF v_membership_changes THEN
     DELETE FROM auth.sessions WHERE user_id = p_user_id;
   END IF;
