@@ -13,6 +13,11 @@
 --   P1 bayrağın yazma yetkisi yorumla varsayılıyordu → bölüm 1, fail-closed
 --   P1 tenant değişince eski JWT claim'i yaşıyordu → bölüm 5, oturum iptali
 --   P2 page.tsx ham Error.message gösteriyordu   → src/app/admin/page.tsx
+-- Codex turu 2 (2026-09-05) — iki bulgu, ikisi de bölüm 5'te kapatıldı:
+--   P1 oturum iptali kararı kilitten ÖNCE hesaplanıyordu → satır kilidi önce
+--   P2 auth.sessions ön kontrolü yanlış rolü ve eksik yetkiyi ölçüyordu
+--      → gerçek proowner üzerinden USAGE + DELETE + SELECT(user_id) + RLS +
+--        refresh_tokens FK CASCADE, fonksiyon yaratıldıktan SONRA
 --
 -- ==========================================================================
 -- NEDEN — ölçülmüş bir hata sınıfı
@@ -219,18 +224,6 @@ $$;
 -- ⚠ Üyelik EKLENMİYOR, DEĞİŞTİRİLİYOR (bkz. KARAR 3): önce kullanıcının bütün
 --   üyelikleri silinir, sonra tek üyelik yazılır. Çift üyelik yapısal olarak
 --   imkânsız.
--- Oturum iptali auth.sessions'a DELETE ister. Fonksiyon sahibinin (bu
--- migration'ı koşturan rol) yetkisi ŞİMDİ doğrulanır — ilk kullanımda değil.
-DO $$
-BEGIN
-  IF to_regclass('auth.sessions') IS NULL THEN
-    RAISE EXCEPTION 'ön kontrol: auth.sessions yok — oturum iptali yazılamaz';
-  END IF;
-  IF NOT has_table_privilege('auth.sessions', 'DELETE') THEN
-    RAISE EXCEPTION 'ön kontrol: % rolünün auth.sessions üzerinde DELETE yetkisi yok', current_user;
-  END IF;
-END $$;
-
 CREATE OR REPLACE FUNCTION public.admin_assign_role_and_tenant(
   p_user_id   uuid,
   p_role      text,
@@ -249,7 +242,16 @@ BEGIN
     RAISE EXCEPTION 'not authorized' USING ERRCODE = '42501';
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = p_user_id) THEN
+  -- KULLANICI SATIRI ÖNCE KİLİTLENİR (Codex turu 2, P1). Aynı kullanıcı için
+  -- iki eşzamanlı çağrı, kilit sonraya kalsaydı, üyelik kümesini AYNI
+  -- başlangıç durumundan okurdu: A→B çağrısı "değişiyor", A→A çağrısı
+  -- "değişmiyor" hesaplar; ilki commit eder, ikincisi profile UPDATE kilidini
+  -- bekleyip B→A yazar ama önceden hesapladığı `false` yüzünden oturumları
+  -- SİLMEZ — B için açılmış oturum yaşamaya devam ederdi. FOR UPDATE ile ikinci
+  -- çağrı buradan geçemez; geçtiğinde (READ COMMITTED) taze snapshot'la
+  -- committed {B}'yi görür ve doğru hesaplar. Varlık kontrolü de aynı satır.
+  PERFORM 1 FROM public.profiles WHERE id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
     RAISE EXCEPTION 'user not found' USING ERRCODE = '23503';
   END IF;
 
@@ -257,8 +259,8 @@ BEGIN
     RAISE EXCEPTION 'tenant not found' USING ERRCODE = '23503';
   END IF;
 
-  -- Üyelik kümesi DEĞİŞİYOR MU — oturum iptali kararı için, yazmadan önce.
-  -- "Tam olarak {p_tenant_id}" ise değişmiyor (yalnız rol düzeltmesi).
+  -- Üyelik kümesi DEĞİŞİYOR MU — oturum iptali kararı için. Yukarıdaki kilit
+  -- altında; "tam olarak {p_tenant_id}" ise değişmiyor (yalnız rol düzeltmesi).
   v_membership_changes :=
        (SELECT count(*) FROM public.tenant_memberships WHERE user_id = p_user_id) <> 1
     OR NOT EXISTS (SELECT 1 FROM public.tenant_memberships
@@ -285,8 +287,8 @@ BEGIN
   -- üyelikten bire geçen Mek Group kullanıcısı için de bu gerekli — aksi
   -- halde düzeltme yapılmış görünür ama token yenilenene kadar ekran boş kalır.
   --
-  -- KALAN PENCERE: mevcut access token süresi (proje ayarı, varsayılan 3600 s).
-  -- Bu pencerede eski token, claim'e güvenen 43 tenant policy'sinde eski
+  -- KALAN PENCERE: mevcut access token'ın KALAN geçerlilik süresi (en fazla
+  -- proje ayarı, varsayılan 3600 s). Bu pencerede eski token, claim'e güvenen 43 tenant policy'sinde eski
   -- tenant'ı okur. profiles okuması ve görev atanan guard'ı (20260904000100,
   -- KARAR 6) claim'i canlı üyelikle doğruluyor — orada pencere yok. Kalanını
   -- kapatmak `current_user_active_tenant()`'ın aynı doğrulamayı yapmasını
@@ -305,6 +307,64 @@ COMMENT ON FUNCTION public.admin_assign_role_and_tenant(uuid, text, uuid) IS
   'claim for a single membership and a second one would silently remove all access. '
   'When the membership set changes, the user''s auth.sessions are deleted so the '
   'stale active_tenant_id claim cannot be refreshed; the user re-logs in.';
+
+-- SON KONTROL — oturum iptali GERÇEKTEN çalışacak mı (Codex turu 2, P2).
+-- İlk sürüm `has_table_privilege('auth.sessions','DELETE')` ile YALNIZ
+-- current_user'ı ölçüyordu. İki hata: (1) `DELETE ... WHERE user_id = ...`
+-- ayrıca auth şemasında USAGE ve user_id kolonunda SELECT ister; (2) CREATE OR
+-- REPLACE mevcut fonksiyonun SAHİBİNİ değiştirmez — fonksiyon current_user
+-- olarak değil, `proowner` olarak koşar. Ölçüm yanlış rolü ölçüyordu.
+-- Bu blok fonksiyon YARATILDIKTAN sonra, katalogdaki gerçek sahibi okur.
+-- Ayrıca: auth.sessions'ta RLS varsa sahibin geçebildiği, ve
+-- refresh_tokens → sessions FK'sinin ON DELETE CASCADE olduğu doğrulanır —
+-- CASCADE değilse DELETE FK ihlaliyle düşer ve her tenant değişikliği
+-- panelden yapılamaz hale gelir (görünür ama kilitleyici arıza).
+DO $$
+DECLARE
+  v_owner   name;
+  v_bypass  boolean;
+  v_rls     boolean;
+  v_tblown  oid;
+BEGIN
+  SELECT r.rolname, r.rolbypassrls INTO v_owner, v_bypass
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    JOIN pg_roles r     ON r.oid = p.proowner
+   WHERE n.nspname = 'public' AND p.proname = 'admin_assign_role_and_tenant';
+  IF v_owner IS NULL THEN
+    RAISE EXCEPTION 'son kontrol: admin_assign_role_and_tenant bulunamadı';
+  END IF;
+
+  IF to_regclass('auth.sessions') IS NULL THEN
+    RAISE EXCEPTION 'son kontrol: auth.sessions yok — oturum iptali çalışamaz';
+  END IF;
+  IF NOT has_schema_privilege(v_owner, 'auth', 'USAGE') THEN
+    RAISE EXCEPTION 'son kontrol: fonksiyon sahibi % auth şemasında USAGE taşımıyor', v_owner;
+  END IF;
+  IF NOT has_table_privilege(v_owner, 'auth.sessions', 'DELETE') THEN
+    RAISE EXCEPTION 'son kontrol: fonksiyon sahibi % auth.sessions üzerinde DELETE taşımıyor', v_owner;
+  END IF;
+  IF NOT has_column_privilege(v_owner, 'auth.sessions', 'user_id', 'SELECT') THEN
+    RAISE EXCEPTION 'son kontrol: fonksiyon sahibi % auth.sessions.user_id okuyamıyor', v_owner;
+  END IF;
+
+  SELECT c.relrowsecurity, c.relowner INTO v_rls, v_tblown
+    FROM pg_class c WHERE c.oid = to_regclass('auth.sessions');
+  IF v_rls AND NOT v_bypass AND NOT pg_has_role(v_owner, v_tblown, 'MEMBER') THEN
+    RAISE EXCEPTION 'son kontrol: auth.sessions RLS açık ve % rolü onu aşamıyor', v_owner;
+  END IF;
+
+  IF to_regclass('auth.refresh_tokens') IS NOT NULL AND NOT EXISTS (
+       SELECT 1 FROM pg_constraint
+        WHERE conrelid  = to_regclass('auth.refresh_tokens')
+          AND confrelid = to_regclass('auth.sessions')
+          AND contype   = 'f'
+          AND confdeltype = 'c') THEN
+    RAISE EXCEPTION 'son kontrol: auth.refresh_tokens → auth.sessions FK''si ON DELETE CASCADE değil — oturum silme FK ihlaliyle düşer';
+  END IF;
+
+  RAISE NOTICE 'oturum iptali doğrulandı: sahip=% bypassrls=%', v_owner, v_bypass;
+END $$;
 
 
 -- ==========================================================================

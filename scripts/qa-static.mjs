@@ -475,7 +475,7 @@ const FAIL = "FAIL";
   }
 })();
 
-// R14 — a component nothing renders (barrel re-exports do not count).
+// W7 — a component nothing renders (barrel re-exports do not count).
 //
 // NewCompanyModal was a demo for months: its submit logged to the console and
 // closed, it persisted nothing, and no screen opened it. It survived the mock
@@ -540,12 +540,12 @@ const FAIL = "FAIL";
 // it is measuring the wrong thing.
 //
 // KNOWN LIMITS (Codex, 2026-09-05) — this rule is a tripwire, not a proof of
-// the application layer's scope guarantee. It catches both quote styles and
-// whitespace inside the call, but NOT: a dynamic table name, a query built in
-// a .ts helper under src/app, or a table alias. The security boundary does not
-// rest on it — the profiles RLS policy and the SECURITY DEFINER RPC hold
-// regardless. Do not widen it to .ts under src/app: actions.ts files carry
-// legitimate self-reads by id (firmalar/[id]/actions.ts).
+// the application layer's scope guarantee. It catches both quote styles,
+// whitespace and NEWLINES inside the call, but NOT: a dynamic table name
+// (`from(t)`), a query built in a .ts helper under src/app, or a table alias.
+// The security boundary does not rest on it — the profiles RLS policy and the
+// SECURITY DEFINER RPC hold regardless. Do not widen it to .ts under src/app:
+// actions.ts files carry legitimate self-reads by id (firmalar/[id]/actions.ts).
 (() => {
   const offenders = [];
   for (const f of walk("src")) {
@@ -553,15 +553,25 @@ const FAIL = "FAIL";
     const src = read(f);
     if (!src) continue;
     const rel = f.split("\\").join("/");
-    src.split("\n").forEach((l, i) => {
-      const isComment = /^\s*(\/\/|\*|\/\*)/.test(l);
-      if (!isComment && (/\bselectAllProfiles\b/.test(l) || /\blistProfiles\(/.test(l))) {
+    const lines = src.split("\n");
+    const isComment = (l) => /^\s*(\/\/|\*|\/\*)/.test(l);
+    lines.forEach((l, i) => {
+      if (!isComment(l) && (/\bselectAllProfiles\b/.test(l) || /\blistProfiles\(/.test(l))) {
         offenders.push(`${rel}:${i + 1} unscoped reader`);
       }
-      if (!isComment && rel.startsWith("src/app") && rel.endsWith(".tsx") && /\.from\(\s*["']profiles["']\s*\)/.test(l)) {
-        offenders.push(`${rel}:${i + 1} raw profiles query in page`);
-      }
     });
+    // (b) runs over the WHOLE source, not line by line: `\s*` spans newlines, so
+    // `.from(\n  "profiles"\n)` is caught (Codex bypass, 2026-09-05). The
+    // comment test is applied to the line where the match starts.
+    if (rel.startsWith("src/app") && rel.endsWith(".tsx")) {
+      const re = /\.from\(\s*["']profiles["']\s*\)/g;
+      let m;
+      while ((m = re.exec(src)) !== null) {
+        const lineIdx = src.slice(0, m.index).split("\n").length - 1;
+        if (isComment(lines[lineIdx])) continue;
+        offenders.push(`${rel}:${lineIdx + 1} raw profiles query in page`);
+      }
+    }
   }
   if (offenders.length === 0) {
     record(FAIL, "profiles-read-scoped", PASS, "no unscoped profiles reader; pages read via scoped RPC");
