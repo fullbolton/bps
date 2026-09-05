@@ -124,10 +124,20 @@
 --
 -- DOĞRUSU: gereken en güçlü kilit BAŞTAN, iki tabloya birden, tek cümlede
 -- (profiles, tasks). Yükseltme yok → kendi yarattığımız döngü yok. Bedeli
--- açıkça yazılı: transaction boyunca (birkaç katalog cümlesi, saniyeler)
--- profiles ve tasks OKUNAMAZ da. Tablolar-arası deadlock genel olarak
--- dışlanamaz; olursa PostgreSQL'in dedektörü bir tarafı düşürür — bizim
--- tarafımız düşerse migration temiz geri alınır (hiçbir şey yarım kalmaz).
+-- açıkça yazılı: transaction boyunca profiles ve tasks OKUNAMAZ da.
+--
+-- SÜRE (Codex turu 3): "saniyeler" GARANTİ DEĞİL. İki bileşen var —
+-- (1) kilidin alınması: uzun bir okuma tasks'ta ACCESS SHARE tutuyorsa
+--     bekleriz, ve LOCK iki tabloyu SIRAYLA alır: profiles alınmış,
+--     tasks beklenirken profiles ZATEN kilitli. Bu yüzden `lock_timeout`
+--     var — sınır aşılırsa migration temiz düşer, elle tekrar denenir;
+--     süresiz asılı kalmaz.
+-- (2) transaction'ın kendisi: ön kontrol (e) tasks'ı tarar. Bugün küçük
+--     bir tablo; büyüdükçe bu pencere büyür. Ölçülmemiş bir "saniyeler"
+--     yerine sınırlı-ve-düşer davranışı yazılı.
+-- Tablolar-arası deadlock genel olarak dışlanamaz; olursa PostgreSQL'in
+-- dedektörü bir tarafı düşürür — bizim tarafımız düşerse migration temiz
+-- geri alınır (hiçbir şey yarım kalmaz).
 --
 -- ==========================================================================
 -- DOĞRULAMA MİGRATION'IN İÇİNDE — sessiz yarım durum imkânsız
@@ -148,7 +158,9 @@
 BEGIN;
 
 -- KARAR 7: en güçlü kilit BAŞTAN, yükseltme yok. profiles ve tasks bu
--- transaction boyunca yazılamaz VE okunamaz (saniyeler).
+-- transaction boyunca yazılamaz VE okunamaz. Kilit 15 s içinde alınamazsa
+-- transaction düşer (SET LOCAL — yalnız bu transaction'a etki eder).
+SET LOCAL lock_timeout = '15s';
 LOCK TABLE public.profiles, public.tasks IN ACCESS EXCLUSIVE MODE;
 
 -- --------------------------------------------------------------------------
@@ -181,15 +193,24 @@ BEGIN
   -- kolon üzerinde, kısmi olmayan bir unique index. Hook'un `v_count = 1`
   -- mantığı ve admin RPC'sinin küme hesabı buna dayanır — mükerrer satır
   -- aynı tenant'ı iki üyelik gibi gösterip claim'i düşürürdü.
+  -- Codex turu 3: ilk sürüm geçersiz (indisvalid=false) bir index'i, ifade
+  -- sütunlu bir index'i (indkey'de 0 → pg_attribute'ta satır yok, ad
+  -- karşılaştırmasından KAYBOLUR) ve INCLUDE sütunlarını ayırt etmiyordu —
+  -- (tenant_id, user_id, (x+0)) gibi bir index çift ikiliye izin verirken
+  -- kontrolü geçerdi. Şimdi: geçerli + hazır + canlı, kısmi değil, ifade yok,
+  -- TAM İKİ ANAHTAR sütun (indnkeyatts), ve yalnız anahtar sütunlar
+  -- karşılaştırılır (indkey'in ilk indnkeyatts girdisi). PK de geçer.
   SELECT count(*) INTO v_n
     FROM pg_index i
     JOIN pg_class t     ON t.oid = i.indrelid
     JOIN pg_namespace n ON n.oid = t.relnamespace
    WHERE n.nspname = 'public' AND t.relname = 'tenant_memberships'
-     AND i.indisunique AND i.indpred IS NULL
+     AND i.indisunique AND i.indisvalid AND i.indisready AND i.indislive
+     AND i.indpred IS NULL AND i.indexprs IS NULL
+     AND i.indnkeyatts = 2
      AND (SELECT array_agg(a.attname::text ORDER BY a.attname)
-            FROM pg_attribute a
-           WHERE a.attrelid = t.oid AND a.attnum = ANY (i.indkey))
+            FROM generate_series(0, i.indnkeyatts - 1) AS k
+            JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = i.indkey[k])
          = ARRAY['tenant_id', 'user_id'];
   IF v_n = 0 THEN
     RAISE EXCEPTION 'ön kontrol: tenant_memberships(user_id, tenant_id) üzerinde UNIQUE yok — KARAR 6 ve hook buna dayanır';

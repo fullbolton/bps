@@ -250,6 +250,9 @@ BEGIN
   -- SİLMEZ — B için açılmış oturum yaşamaya devam ederdi. FOR UPDATE ile ikinci
   -- çağrı buradan geçemez; geçtiğinde (READ COMMITTED) taze snapshot'la
   -- committed {B}'yi görür ve doğru hesaplar. Varlık kontrolü de aynı satır.
+  -- SÖZLEŞME: tenant_memberships'e yazan HER yol aynı satırı aynı şekilde
+  -- kilitlemeli (bugün tek yazar bu RPC + elle SQL). Kilitlemeyen bir yazar
+  -- bu serileştirmenin dışında kalır.
   PERFORM 1 FROM public.profiles WHERE id = p_user_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'user not found' USING ERRCODE = '23503';
@@ -322,17 +325,20 @@ COMMENT ON FUNCTION public.admin_assign_role_and_tenant(uuid, text, uuid) IS
 DO $$
 DECLARE
   v_owner   name;
+  v_super   boolean;
   v_bypass  boolean;
   v_rls     boolean;
+  v_force   boolean;
   v_tblown  oid;
 BEGIN
-  SELECT r.rolname, r.rolbypassrls INTO v_owner, v_bypass
+  -- Codex turu 3: proname ile arama bir OVERLOAD'un sahibini seçebilirdi.
+  -- Tam imza ile çözülüyor.
+  SELECT r.rolname, r.rolsuper, r.rolbypassrls INTO v_owner, v_super, v_bypass
     FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    JOIN pg_roles r     ON r.oid = p.proowner
-   WHERE n.nspname = 'public' AND p.proname = 'admin_assign_role_and_tenant';
+    JOIN pg_roles r ON r.oid = p.proowner
+   WHERE p.oid = to_regprocedure('public.admin_assign_role_and_tenant(uuid, text, uuid)');
   IF v_owner IS NULL THEN
-    RAISE EXCEPTION 'son kontrol: admin_assign_role_and_tenant bulunamadı';
+    RAISE EXCEPTION 'son kontrol: admin_assign_role_and_tenant(uuid,text,uuid) bulunamadı';
   END IF;
 
   IF to_regclass('auth.sessions') IS NULL THEN
@@ -348,22 +354,45 @@ BEGIN
     RAISE EXCEPTION 'son kontrol: fonksiyon sahibi % auth.sessions.user_id okuyamıyor', v_owner;
   END IF;
 
-  SELECT c.relrowsecurity, c.relowner INTO v_rls, v_tblown
+  -- RLS — çalışma zamanı semantiğiyle birebir (Codex turu 3). DELETE'i RLS
+  -- kısıtlamaz ANCAK: superuser ya da BYPASSRLS; ya da RLS zaten kapalı; ya da
+  -- sahip tablo sahibinin yetkilerini HEMEN devralıyor (USAGE — MEMBER yetmez)
+  -- VE FORCE ROW LEVEL SECURITY kapalı (FORCE açıkken tablo sahibi bile RLS'e
+  -- tabidir). Aksi halde DELETE "başarılı" döner ama sıfır satır siler —
+  -- tam olarak kaçınmaya çalıştığımız sessiz yarım durum.
+  SELECT c.relrowsecurity, c.relforcerowsecurity, c.relowner
+    INTO v_rls, v_force, v_tblown
     FROM pg_class c WHERE c.oid = to_regclass('auth.sessions');
-  IF v_rls AND NOT v_bypass AND NOT pg_has_role(v_owner, v_tblown, 'MEMBER') THEN
-    RAISE EXCEPTION 'son kontrol: auth.sessions RLS açık ve % rolü onu aşamıyor', v_owner;
+  IF NOT (
+       v_super OR v_bypass OR NOT v_rls
+       OR (pg_has_role(v_owner, v_tblown, 'USAGE') AND NOT v_force)
+  ) THEN
+    RAISE EXCEPTION 'son kontrol: auth.sessions RLS altında ve % rolü onu aşamıyor (rls=%, force=%)', v_owner, v_rls, v_force;
   END IF;
 
-  IF to_regclass('auth.refresh_tokens') IS NOT NULL AND NOT EXISTS (
-       SELECT 1 FROM pg_constraint
-        WHERE conrelid  = to_regclass('auth.refresh_tokens')
-          AND confrelid = to_regclass('auth.sessions')
-          AND contype   = 'f'
-          AND confdeltype = 'c') THEN
-    RAISE EXCEPTION 'son kontrol: auth.refresh_tokens → auth.sessions FK''si ON DELETE CASCADE değil — oturum silme FK ihlaliyle düşer';
+  -- FK — TAM ilişki: refresh_tokens(session_id) → sessions(id), ON DELETE
+  -- CASCADE. Tablo yoksa ATLANMAZ (Codex turu 3): oturum iptali refresh'in
+  -- düşmesine dayanıyor, refresh_tokens yoksa o dayanak yok demektir.
+  IF to_regclass('auth.refresh_tokens') IS NULL THEN
+    RAISE EXCEPTION 'son kontrol: auth.refresh_tokens yok — oturum iptali doğrulanamaz';
+  END IF;
+  IF NOT EXISTS (
+       SELECT 1
+         FROM pg_constraint k
+        WHERE k.conrelid  = to_regclass('auth.refresh_tokens')
+          AND k.confrelid = to_regclass('auth.sessions')
+          AND k.contype   = 'f'
+          AND k.confdeltype = 'c'
+          AND array_length(k.conkey, 1) = 1
+          AND (SELECT a.attname FROM pg_attribute a
+                WHERE a.attrelid = k.conrelid AND a.attnum = k.conkey[1]) = 'session_id'
+          AND (SELECT a.attname FROM pg_attribute a
+                WHERE a.attrelid = k.confrelid AND a.attnum = k.confkey[1]) = 'id') THEN
+    RAISE EXCEPTION 'son kontrol: auth.refresh_tokens(session_id) → auth.sessions(id) ON DELETE CASCADE FK''si yok — oturum silme ya FK ihlaliyle düşer ya refresh token''ları geride bırakır';
   END IF;
 
-  RAISE NOTICE 'oturum iptali doğrulandı: sahip=% bypassrls=%', v_owner, v_bypass;
+  RAISE NOTICE 'oturum iptali doğrulandı: sahip=% super=% bypassrls=% rls=% force=%',
+    v_owner, v_super, v_bypass, v_rls, v_force;
 END $$;
 
 

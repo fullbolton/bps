@@ -540,24 +540,50 @@ const FAIL = "FAIL";
 // it is measuring the wrong thing.
 //
 //   (c) every raw `.from("profiles")` chain anywhere under src must be keyed
-//       by id — `.eq("id", …)` or `.in("id", …)` before the statement ends.
-//       That is the shape of every legitimate raw read left (self-reads). A
-//       list read with no id key is the original leak under a new name, which
-//       is what Codex round 2 showed (a) and (b) would miss. Allow-listed:
-//       src/lib/email/* (service_role, filtered by role/ids, tenant-scoped by
-//       loadTenantScope; R1 confines the key) and src/app/api/* (healthz
-//       head-count under service_role).
+//       by id — `.eq("id", …)` or `.in("id", …)` inside the chain. That is the
+//       shape of every legitimate raw read left (self-reads). A list read with
+//       no id key is the original leak under a new name, which is what Codex
+//       round 2 showed (a) and (b) would miss. In src/lib/email/* and
+//       src/app/api/* (service_role paths; R1 confines the key) the chain must
+//       still be filtered — by id, by role, or a head-only count — rather than
+//       being exempt outright (Codex round 3: an exemption waived (c) entirely).
 //
 // KNOWN LIMITS (Codex, 2026-09-05) — this rule is a tripwire, not a proof of
 // the application layer's scope guarantee. It catches both quote styles,
 // whitespace (including between `from` and `(`) and newlines inside the call,
-// and an unkeyed chain under any name. It does NOT catch: a dynamic table
-// name (`from(t)`), a table alias, a query assembled across statements, or a
-// keyed-looking chain whose key is not really the caller (e.g. `.in("id",
-// everyId)`). The security boundary does not rest on it — the profiles RLS
-// policy and the SECURITY DEFINER RPC hold regardless. Do not widen (b) to .ts
-// under src/app: actions.ts files carry legitimate self-reads by id — (c)
-// covers those by requiring the key instead.
+// an unkeyed chain under any name, and a semicolon-free next statement cannot
+// lend its key. Precisely what it does NOT do:
+//   FALSE NEGATIVES (pass, should not): a dynamic table name (`from(t)`); a
+//     table alias; a builder stored in a variable and keyed later (`const q =
+//     from("profiles"); … q.eq("id")` — the first statement fails loudly, see
+//     below, so this is not silent); and the most likely real one — a key that
+//     is not the caller: `.in("id", everyId)` looks filtered and proves nothing
+//     about tenant scope.
+//   FALSE POSITIVES (fail, should not): a builder assigned unkeyed and keyed in
+//     a later statement. Loud, not silent — rewrite as one chain.
+// The security boundary does not rest on it — the profiles RLS policy and the
+// SECURITY DEFINER RPC hold regardless. Do not widen (b) to .ts under src/app:
+// actions.ts files carry legitimate self-reads by id — (c) covers those by
+// requiring the key instead.
+// Scan a method chain from `start`: stop at `;` outside parens, or at a line
+// break outside parens whose next line does not begin with `.`.
+function chainFrom(src, start) {
+  let depth = 0;
+  let i = start;
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === "(" || ch === "[" || ch === "{") depth++;
+    else if (ch === ")" || ch === "]" || ch === "}") depth = Math.max(0, depth - 1);
+    else if (ch === ";" && depth === 0) break;
+    else if (ch === "\n" && depth === 0) {
+      const rest = src.slice(i + 1);
+      if (!/^\s*\./.test(rest)) break;
+    }
+    i++;
+  }
+  return src.slice(start, i);
+}
+
 (() => {
   const offenders = [];
   for (const f of walk("src")) {
@@ -585,15 +611,18 @@ const FAIL = "FAIL";
       if (inPage) {
         offenders.push(`${rel}:${lineIdx + 1} raw profiles query in page`);
       }
-      // (c) the chain from this match to the end of the statement must carry
-      // an id key. `;` ends the statement; a chain built across statements is
-      // a documented limit.
-      if (!allowUnkeyed) {
-        const end = src.indexOf(";", m.index);
-        const chain = src.slice(m.index, end === -1 ? src.length : end);
-        if (!/\.(eq|in)\s*\(\s*["']id["']/.test(chain)) {
-          offenders.push(`${rel}:${lineIdx + 1} profiles chain not keyed by id`);
-        }
+      // (c) the method chain starting at this match must carry a key. The chain
+      // is scanned, not split at `;` (Codex round 3): it continues while parens
+      // are open, and across a line break only if the next line starts with
+      // `.` — so a semicolon-free next statement (ASI) cannot lend its key, and
+      // a multi-line argument does not cut the chain short.
+      const chain = chainFrom(src, m.index);
+      const keyed = allowUnkeyed
+        // service_role paths: filtered by id or role, or a head-only count.
+        ? /\.(eq|in)\s*\(\s*["'](id|role)["']|head:\s*true/.test(chain)
+        : /\.(eq|in)\s*\(\s*["']id["']/.test(chain);
+      if (!keyed) {
+        offenders.push(`${rel}:${lineIdx + 1} profiles chain not keyed`);
       }
     }
   }
