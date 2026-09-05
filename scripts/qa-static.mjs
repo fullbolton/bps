@@ -41,8 +41,12 @@
  *                                          a semicolon-in-comment inside a
  *                                          keyed chain stay green; an
  *                                          unreadable file, a parse error, a
- *                                          zero-file scan, a blocked subdir and
- *                                          a symlink loop each red
+ *                                          zero-file scan, a blocked subdir, a
+ *                                          symlink loop and a FIFO each red
+ *   R15 scan-integrity                   → (2026-09-05) a dangling symlink and a
+ *                                          FIFO under supabase/migrations — a
+ *                                          directory R14 never visits — each
+ *                                          red while R13 still printed
  * All seven WARN rules were negative-tested the same way:
  *   W1  package-migration-drift          → seen amber whenever a migration sat
  *                                          uncommitted in the working tree
@@ -91,33 +95,50 @@ function read(rel) {
   }
 }
 
-/** Recursively list files under a dir (relative paths from ROOT). */
+// Every traversal problem any rule's walk() meets lands here and becomes the
+// `scan-integrity` FAIL at the end of the run. History of this walker, in
+// three steps, each shown wrong by Codex: (1) it threw on a stat failure and
+// took the whole harness down with no report; (2) round 6 made it skip the
+// entry instead — and round 7 showed that R13, which scans a directory R14
+// never visits, then reported "1/1 PASS" over a listing with a file missing
+// from it; (3) now it skips the entry AND records why, centrally, so no rule
+// can pass on a partial listing without the harness going red.
+const SCAN_ERRORS = [];
+const errCode = (e) => (e && e.code ? e.code : "error");
+const fileType = (st) =>
+  st.isFIFO() ? "fifo" : st.isSocket() ? "socket" : st.isCharacterDevice() ? "chardev"
+  : st.isBlockDevice() ? "blockdev" : st.isSymbolicLink() ? "symlink" : "unknown";
+
+/** Recursively list REGULAR files under a dir (relative paths from ROOT). */
 function walk(relDir, out = []) {
   const abs = join(ROOT, relDir);
   let entries;
   try {
     entries = readdirSync(abs);
-  } catch {
+  } catch (e) {
+    SCAN_ERRORS.push(`${relDir.split("\\").join("/")} readdir: ${errCode(e)}`);
     return out;
   }
   for (const name of entries) {
     const relPath = join(relDir, name);
-    // A stat failure (ELOOP on a symlink loop, EACCES, a vanished entry) used
-    // to throw here and take the WHOLE harness down with no report — exit 1,
-    // but no rule line (Codex round 6, reproduced with `src/lib/x -> ..`).
-    // This walker is deliberately lenient (text rules), so the entry is
-    // skipped; R14 uses its own strict traversal that reports such errors.
+    const rel = relPath.split("\\").join("/");
     let st;
     try {
       st = statSync(join(ROOT, relPath));
-    } catch {
+    } catch (e) {
+      SCAN_ERRORS.push(`${rel} stat: ${errCode(e)}`);
       continue;
     }
     if (st.isDirectory()) {
       if (name === "node_modules" || name === ".next") continue;
       walk(relPath, out);
-    } else {
+    } else if (st.isFile()) {
       out.push(relPath);
+    } else {
+      // A FIFO named `pipe.ts` blocked readFileSync for good and the run never
+      // produced a result (Codex round 7). Special files are never opened;
+      // they are reported.
+      SCAN_ERRORS.push(`${rel} special: ${fileType(st)} (not read)`);
     }
   }
   return out;
@@ -588,7 +609,11 @@ const FAIL = "FAIL";
 //     statement (the first statement fails loudly — see below — so this is
 //     not silent); and the most likely real one — a key that is not the
 //     caller: `.in("id", everyId)` looks filtered and proves nothing about
-//     tenant scope. head-only counts in src/app/api pass by design.
+//     tenant scope; a call reached through reflection, bind or an alias
+//     (`Reflect.get(c, "from")`, `const f = c.from; f("profiles")`) — no data
+//     flow analysis here, by design. head-only counts in src/app/api pass by
+//     design. The scan is not an atomic snapshot: a file replaced between
+//     readdir and read is checked as read.
 //   FALSE POSITIVES (fail, should not): a builder assigned unkeyed and keyed
 //     in a later statement; a keyed chain passed through a helper
 //     (`keyed(c.from(...))`); a filter applied after `await`. All loud, not
@@ -714,7 +739,8 @@ const FAIL = "FAIL";
         continue;
       }
       if (st.isDirectory()) walkStrict(relPath, out, errors, depth + 1);
-      else out.push(relPath);
+      else if (st.isFile()) out.push(relPath);
+      else errors.push(`${relPath} special file (${fileType(st)}) — not read`);
     }
   }
   const listed = [];
@@ -790,6 +816,23 @@ const FAIL = "FAIL";
       `${parsed} files parsed; no unscoped profiles reader; every raw chain keyed; pages read via scoped RPC`);
   } else {
     record(FAIL, "profiles-read-scoped", FAIL, offenders.join(", "));
+  }
+})();
+
+// R15 — scan-integrity: no rule may pass on a partial listing.
+// Fed by the shared walk(): a directory it could not read, an entry it could
+// not stat, or a special file it refused to open. Each rule above already ran
+// on whatever listing it got; this line says whether that listing was whole.
+// FAIL severity: an unchecked file is not a checked file, whichever rule would
+// have checked it.
+(() => {
+  // Several rules walk the same tree, so the same entry can be recorded once
+  // per walk; report each distinct problem once.
+  const distinct = [...new Set(SCAN_ERRORS)];
+  if (distinct.length === 0) {
+    record(FAIL, "scan-integrity", PASS, "every walk() listed its directory completely");
+  } else {
+    record(FAIL, "scan-integrity", FAIL, distinct.join(", "));
   }
 })();
 
