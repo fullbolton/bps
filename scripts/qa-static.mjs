@@ -39,7 +39,9 @@
  *                                          borrow; a paren-in-comment borrow —
  *                                          each red, each restored; `?.eq` and
  *                                          a semicolon-in-comment inside a
- *                                          keyed chain stay green
+ *                                          keyed chain stay green; an
+ *                                          unreadable file, a parse error and
+ *                                          a zero-file scan each red
  * All seven WARN rules were negative-tested the same way:
  *   W1  package-migration-drift          → seen amber whenever a migration sat
  *                                          uncommitted in the working tree
@@ -576,7 +578,11 @@ const FAIL = "FAIL";
 //     caller: `.in("id", everyId)` looks filtered and proves nothing about
 //     tenant scope. head-only counts in src/app/api pass by design.
 //   FALSE POSITIVES (fail, should not): a builder assigned unkeyed and keyed
-//     in a later statement. Loud, not silent — rewrite as one chain.
+//     in a later statement; a keyed chain passed through a helper
+//     (`keyed(c.from(...))`); a filter applied after `await`. All loud, not
+//     silent — rewrite as one chain, key before the await.
+//   TRANSPARENT: `(expr)`, `expr!`, `expr as T`, `<T>expr`, `expr satisfies T`
+//     keep the same builder and do not break the chain.
 // The security boundary does not rest on it — the profiles RLS policy and the
 // SECURITY DEFINER RPC hold regardless.
 (() => {
@@ -591,6 +597,17 @@ const FAIL = "FAIL";
 
   const KEY_CALLS = new Set(["eq", "in"]);
 
+  // Wrappers that keep the SAME builder value: `(expr)`, `expr!`, `expr as T`,
+  // `<T>expr`, `expr satisfies T`. The climb passes through them (Codex round
+  // 5: a parenthesized keyed chain was a false alarm). It does NOT pass through
+  // `await` (the query has already run; filtering results is not scoping the
+  // query) or a call argument (`keyed(c.from(...))` — the helper's behaviour is
+  // not analysed, so the conservative answer is "not keyed").
+  const isTransparent = (n) =>
+    ts.isParenthesizedExpression(n) || ts.isNonNullExpression(n)
+    || ts.isAsExpression(n) || ts.isTypeAssertionExpression(n)
+    || (typeof ts.isSatisfiesExpression === "function" && ts.isSatisfiesExpression(n));
+
   // From a `.from("profiles")` call, climb the chain it starts: every call
   // whose receiver is the chain so far. Returns the calls after `from`.
   function callsAfter(fromCall) {
@@ -598,6 +615,11 @@ const FAIL = "FAIL";
     let node = fromCall;
     let parent = node.parent;
     while (parent) {
+      if (isTransparent(parent) && parent.expression === node) {
+        node = parent;
+        parent = node.parent;
+        continue;
+      }
       if (ts.isPropertyAccessExpression(parent) && parent.expression === node) {
         node = parent;
         parent = node.parent;
@@ -631,11 +653,27 @@ const FAIL = "FAIL";
   }
 
   const offenders = [];
-  for (const f of walk("src")) {
-    if (!f.endsWith(".ts") && !f.endsWith(".tsx")) continue;
-    const src = read(f);
-    if (!src) continue;
+  // FAIL-CLOSED ON THE SCAN ITSELF (Codex round 5): the shared read()/walk()
+  // helpers swallow errors — right for the text rules, wrong here, where an
+  // unread file is an unchecked file. Zero files, an unreadable file, or a
+  // file the parser rejects each become a FAIL, never a silent skip. The PASS
+  // line reports how many files were actually parsed, so "verified nothing"
+  // cannot look like "verified everything".
+  const files = walk("src").filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"));
+  if (files.length === 0) {
+    record(FAIL, "profiles-read-scoped", FAIL, "no .ts/.tsx under src — rule verified nothing");
+    return;
+  }
+  let parsed = 0;
+  for (const f of files) {
     const rel = f.split("\\").join("/");
+    let src;
+    try {
+      src = readFileSync(join(ROOT, f), "utf8"); // strict: an empty file is "", not null
+    } catch (e) {
+      offenders.push(`${rel} unreadable (${e && e.code ? e.code : "error"})`);
+      continue;
+    }
 
     // (a) — text-based on purpose: a symbol name, not syntax.
     src.split("\n").forEach((l, i) => {
@@ -649,6 +687,23 @@ const FAIL = "FAIL";
     const serviceRolePath = rel.startsWith("src/lib/email/") || rel.startsWith("src/app/api/");
     const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true,
       rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    // A file the parser could not fully parse has not been checked. `tsc`
+    // would catch the same error separately, but R14's own claim must not
+    // outrun R14's own evidence. (parseDiagnostics is a long-standing but
+    // non-public field; if it ever disappears, that too is a FAIL, not a pass.)
+    const diags = sf.parseDiagnostics;
+    if (!Array.isArray(diags)) {
+      offenders.push(`${rel} parse diagnostics unavailable — TypeScript API changed`);
+      continue;
+    }
+    if (diags.length > 0) {
+      const d = diags[0];
+      const line = sf.getLineAndCharacterOfPosition(d.start ?? 0).line + 1;
+      const text = ts.flattenDiagnosticMessageText(d.messageText, " ");
+      offenders.push(`${rel}:${line} parse error: ${text}`);
+      continue;
+    }
+    parsed++;
 
     const visit = (node) => {
       if (ts.isCallExpression(node)
@@ -669,7 +724,8 @@ const FAIL = "FAIL";
     visit(sf);
   }
   if (offenders.length === 0) {
-    record(FAIL, "profiles-read-scoped", PASS, "no unscoped profiles reader; every raw chain keyed; pages read via scoped RPC");
+    record(FAIL, "profiles-read-scoped", PASS,
+      `${parsed} files parsed; no unscoped profiles reader; every raw chain keyed; pages read via scoped RPC`);
   } else {
     record(FAIL, "profiles-read-scoped", FAIL, offenders.join(", "));
   }
