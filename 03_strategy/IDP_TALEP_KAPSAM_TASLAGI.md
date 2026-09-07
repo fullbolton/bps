@@ -171,6 +171,13 @@ kullanılmadığı için taşınacak veri yok). Türetilen durum tutarsızlık �
 yerleştirme yok" diye bir satır olamaz — tam olarak Mek Group kurulumundaki "yarım durum"
 sınıfının panzehiri.
 
+**⚠ `bitti` ≠ "bildirildi" (Claude Chat, 2026-09-08).** Bitiş tarihinin geçmesi takvim
+gerçeğidir; müşteriye "bitti" demek ("ikisine de bitişini bildireceğim") bir **olaydır**,
+tarih değil. İlk sürümde türetilen `bitti` yeter. **Geçiş sinyali:** "bankaya bildirildi mi"
+sorusu sorulduğunda — sabit personel gelince sorulacak — cevap yeni bir *durum* DEĞİL,
+timeline'a düşen bir **olay** olur (`müşteriye bildirildi`, kim, ne zaman; WORKFLOW_RULES 7
+zaten iz istiyor). Durum kümesi o gün de değişmez.
+
 ---
 
 ## 5. Mevcut `staffing_demands` ne olur
@@ -181,9 +188,22 @@ Modül "sektöre bağlı, ayrılabilir yüzey" (CLAUDE.md). İki yol:
   boşsa (ölçülmeli: `select count(*) from staffing_demands`) düşürülür.
 - **Yanına koy:** kadro talebi (headcount) ile ikame talebi iki ayrı şey; ikisi de kalır.
 
-**KAPANDI (Furkan, 2026-09-08): eski ekrana hiç kayıt girilmedi → YERİNE GEÇİLİR.**
-Ekran, servis, RLS yeniden yazılır; `staffing_demands` tablosu Step 3'ün temizliğinde
-düşer (önce prod'da `count(*) = 0` ölçülür — beyan değil, sorgu). "Kısmi doldu" fikri
+**Furkan (2026-09-08): eski ekrana hiç kayıt girilmedi → YERİNE GEÇİLİR.** Ekran, servis,
+RLS yeniden yazılır; `staffing_demands` Step 3'ün temizliğinde düşer.
+
+**⚠ Ölçülmeden kapanmaz:** Claude Chat aynı gün "staffing_demands'ta 1 satır var" dedi —
+kaynağı belirsiz, Furkan'ın beyanıyla çelişiyor. İki beyan, sıfır ölçüm. Karar şu sorguyla:
+
+```sql
+select count(*) as satir, min(created_at) as ilk, max(created_at) as son
+  from public.staffing_demands;
+-- satir > 0 ise:
+select id, company_id, position, requested_count, provided_count, status, created_at, created_by
+  from public.staffing_demands order by created_at;
+```
+
+`0` → yerine geç, düz. `1` ve smoke artığıysa (test firması / test tarihi) → yine yerine
+geç, satır temizlikte silinir. Gerçek bir talepse → yanına koy, taşıma planı yazılır. "Kısmi doldu" fikri
 kaybolmuyor: otel talebi için `kısmi_atandı` olarak, yerleştirme sayısından türetilerek
 geri geliyor (§4).
 
