@@ -35,22 +35,53 @@ Mevcut `staffing_demands` bununla uyuşmuyor (ölçüldü, `database.types.ts`):
 Uygulamanın bugüne kadar hiç kullanılmamış olmasının en somut açıklaması: günlük iş
 WhatsApp'ta akıyor, modelde karşılığı yok.
 
+### 1b. İkinci ölçüm — ops'un ÇIKTISI (Excel ekran görüntüleri, 2026-09-08)
+
+Ops ekibi banka yöneticilerine Excel'de kurduğu bir listeyi ekran görüntüsüyle atıyor:
+
+```
+S.NO | İL | İZİN TALEP EDEN ŞUBE ADI              | YERİNE GİDECEK GÖREVLİ
+  …  | İstanbul / Kocaeli / Sakarya | "… Şubesi", "… Bina 01. Kat", "… Müdürlüğü-… 12. Kat" | <İDP adı>
+```
+
+İkinci tablo başka bir bankanın **temizlik** listesi (`TEMİZLİK GÖREV LİSTESİ`). Dört çıkarım:
+
+1. **Çıktı, girdi kadar önemli.** BPS'in ilk somut değeri talep girişi değil, **firma bazlı
+   İDP listesi**: bugün elle yapılan Excel'in yerine, tek tıkla paylaşılabilir görünüm.
+   Rapor değil, günlük operasyon çıktısı.
+2. **İDP havuzu zaten var** (~20 görevli; üçü WhatsApp'takilerle aynı kişiler). Ad-bazlı
+   İDP kaydı olmadan liste üretilemez → §6-Q2 fiilen cevaplandı: **kayıt gerekli**, sınır
+   aynı (ad + kod + aktif/pasif; TC/telefon YOK).
+3. **Lokasyon = ad + şehir yeter.** Bina/kat/birim tek metinde; `İL` ayrı sütun.
+   Hiyerarşi (bina→kat) gerekmez, ad taşır. Kocaeli/Sakarya satırları bölgesel kapsam.
+4. **Listeler banka × hizmet hattı bazında** (temizlik / güvenlik / kapıcı / destek…).
+   Pozisyon serbest metin değil, **küçük bir liste** olmalı; İDP listesi ona göre süzülür.
+
+Tabloda **tarih sütunu yok** — listenin "bugünün planı" mı, "sabit dönem planı" mı olduğu
+belirsiz; talep modelinin gün mü dönem mi bazlı olacağını bu belirler (§6-Q7).
+
 ---
 
 ## 2. Önerilen birim ve varlıklar — en küçük küme
 
 ```
 Firma (banka)                      — var
-  └─ Lokasyon (şube / bina)        — YENİ  · ad, şehir, not · yetkili = contacts (opsiyonel bağ)
+  └─ Lokasyon (şube / bina / kat)  — YENİ  · ad, şehir, not · yetkili = contacts (opsiyonel bağ)
        └─ İDP Talebi               — YENİ (staffing_demands'ın yerine ya da yanına, §5)
-            · pozisyon (metin: "kapıcı", "giriş kat pys")
-            · yerine: kim (metin — ya da §6-Q1'e göre iş gücü kaydı)
-            · başlangıç · bitiş (tek gün = aynı tarih)
+            · pozisyon / hizmet hattı (KÜÇÜK LİSTE: temizlik · güvenlik · kapıcı · destek · …)
+            · yerine: kim (metin — ya da §6-Q1'e göre İDP/personel kaydı)
+            · başlangıç · bitiş (tek gün = aynı tarih; §6-Q7 dönem bazlıysa aralık)
             · talep eden yetkili (contacts, opsiyonel)
             · kanal (whatsapp | telefon | eposta — küçük enum, opsiyonel; §6-Q5)
             · durum (§4)
-            · atanan İDP: kim (§6-Q2), atayan, atanma zamanı
+            · atanan İDP → İDP kaydı, atayan, atanma zamanı
             · kaynak notu (mesaj metni, serbest)
+
+İDP Kaydı (havuz)                  — YENİ  · ad · kod · aktif/pasif · (tenant)  — BAŞKA HİÇBİR ŞEY
+                                      TC yok, telefon yok, adres yok, özlük yok (§3)
+
+ÇIKTI: Firma × [gün] İDP listesi   — YENİ görünüm · İl · Lokasyon · pozisyon · yerine gidecek görevli
+                                      bugünkü Excel'in birebir karşılığı; kopyala/paylaş, sonra PDF/e-posta
 ```
 
 **Firma Detay merkezde kalır:** Lokasyonlar ve İDP talepleri Firma Detay'ın sekmeleri;
@@ -108,16 +139,21 @@ bir modülü korumak için fazla. Satır varsa yanına.
 1. **"Yerine" kim?** İzne çıkan (Sebahat, Rabia, Nilgün) **bizim** yerleştirdiğimiz personel
    mi, bankanın kendi çalışanı mı? Bizimse "yerine" bir iş gücü kaydına bağlanır ve
    "bu lokasyondaki sabit personelimiz" bilgisi doğar; bankanınsa serbest metin kalır.
-2. **Kişi kaydı açılsın mı?** Bugün kişi bazlı iş gücü kaydı yok. İDP'yi bir kayda
-   bağlamak "Havagül bu ay 12 gün ikame yaptı" görünürlüğünü verir; ama kayıt yalnız
-   **ad + kod + aktif/pasif** olmalı, telefon/TC olmamalı (§3). Alternatif: v1'de serbest
-   ad, kişi kaydı sonra. Karar: kayıt açılırsa adı ne olur (`workers`? "İş Gücü Kişisi"?)
-   ve Aktif İş Gücü modülüyle ilişkisi.
+2. **İDP kaydı — artık "açılsın mı" değil, "adı ve yeri ne".** Excel listeleri ~20 kişilik
+   bir havuzun zaten yönetildiğini gösterdi (§1b); liste üretmek için kayıt şart. Sınır:
+   yalnız **ad + kod + aktif/pasif** (§3). Karar: varlığın adı (`idp_workers`? "İDP Havuzu")
+   ve Aktif İş Gücü (özet tablo) ile ilişkisi — ayrı mı, onun kişi bazlı hâli mi.
 3. **`staffing_demands` kaderi** (§5) — önce prod satır sayısı.
 4. **Durumlar** (§4) — A mı B mi.
 5. **Kanal alanı** gerekli mi, yoksa "kaynak notu" yeterli mi.
 6. **Roller:** `operasyon` açar/atar, `yonetici` her şey, `ik` Firma Detay'da salt okunur
    (ROLE_MATRIX §5.3 ile aynı), `muhasebe`/`goruntuleyici` yok. Aynen mi?
+7. **Listenin dönemi:** Excel'de tarih yok. Bu liste **her gün yeniden mi** üretiliyor
+   (günlük plan), yoksa **sabit bir dönem** için mi (haftalık/aylık izin planı)? Günlükse
+   talep = gün; dönemse talep = aralık ve liste "şu tarihte kim nerede" sorusuna cevap
+   verir. Modelin en büyük ayrımı bu.
+8. **Hizmet hattı listesi:** temizlik · güvenlik · kapıcı · destek — tam liste ne, banka
+   başına değişiyor mu, "PYS" bir hat mı bir firma adı mı?
 
 ---
 
@@ -127,6 +163,9 @@ bir modülü korumak için fazla. Satır varsa yanına.
   seç/yarat → pozisyon → yerine → tarih). Lokasyon inline yaratılabiliyor (NewCompanyModal
   deseni).
 - Atama tek adımda; atanınca durum otomatik; timeline'a iz düşer (WORKFLOW_RULES 7).
+- **Firma × gün İDP listesi** tek tıkla görünür ve kopyalanır (İl · Lokasyon · pozisyon ·
+  görevli) — ops artık Excel kurmaz. Bu, ilk sürümün "kullanıldı mı" ölçütüdür: liste
+  BPS'ten paylaşılıyorsa modül yaşıyor demektir.
 - Dashboard'da yalnız "bugün açık İDP" sinyali; Firma Detay'da lokasyon ve talep sekmeleri.
 - RLS: yeni tablolar `tenant_id` + rol koşullu, `R13` yeşil; `goruntuleyici` okuyamaz;
   çapraz-tenant izolasyon runbook'una iki satır eklenir.
