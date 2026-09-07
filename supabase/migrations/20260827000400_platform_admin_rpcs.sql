@@ -5,9 +5,14 @@
 -- FAZ 1: yalnız platform admin, /admin ağacında, tenant + kullanıcı yönetimi.
 -- FAZ 2 (tenant admin, /ayarlar) bu dosyanın kapsamında DEĞİL.
 --
--- ⚠ WRITTEN, NOT APPLIED.
+-- ✅ APPLIED 2026-09-05 (Furkan, SQL Editor) + VERIFIED + ledger repaired.
+--    Applied content sha256 0b4d48539c271c48121d2a156f83f1e4c6fffdb61b4ace042f3ec15a20b48338
+--    (this header note was added AFTER apply; the body below is unchanged).
+--    Sonra ölçüldü: kolon_1=1 (NOT NULL) · fonksiyon_5=5 (SECURITY DEFINER) ·
+--    grant_5=5 (authenticated var, anon yok) · bayrak_yazilabilir=false ·
+--    admin_sayisi=0 → ilk bayrak elle (bölüm 8), henüz açılmadı.
 -- ⚠ UYGULAMA SIRASI: 20260904000200 (grant) → 20260904000100 (tenant kapsamı)
---   → BU DOSYA. Bölüm 1'deki ön kontrol grant migration'ını ŞART koşar.
+--   → BU DOSYA — üçü de bu sırayla uygulandı.
 --
 -- Codex turu 1 (2026-09-04) — üç bulgu, üçü de bu dosyada/kodda kapatıldı:
 --   P1 bayrağın yazma yetkisi yorumla varsayılıyordu → bölüm 1, fail-closed
