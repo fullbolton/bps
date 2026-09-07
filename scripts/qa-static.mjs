@@ -833,6 +833,12 @@ const FAIL = "FAIL";
 // listed file that could not be read. Each rule above already ran on whatever
 // it got; this line says whether what it got was whole. FAIL severity: an
 // unchecked file is not a checked file, whichever rule would have checked it.
+//
+// EXACT STRENGTH OF THE GUARANTEE (Codex round 9): every listing and every
+// read completed WITHOUT ERROR. It does not prove the bytes decoded as the
+// author meant (a UTF-16 file read as UTF-8, an invalid byte inside a SQL
+// keyword) or that the content is an atomic snapshot. Those are not caught
+// here and are not claimed here.
 (() => {
   // Several rules walk the same tree, so the same entry can be recorded once
   // per walk; report each distinct problem once.
