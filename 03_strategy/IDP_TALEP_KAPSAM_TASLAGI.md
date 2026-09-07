@@ -60,28 +60,51 @@ S.NO | İL | İZİN TALEP EDEN ŞUBE ADI              | YERİNE GİDECEK GÖREVL
 Tabloda **tarih sütunu yok** — listenin "bugünün planı" mı, "sabit dönem planı" mı olduğu
 belirsiz; talep modelinin gün mü dönem mi bazlı olacağını bu belirler (§6-Q7).
 
+### 1c. Furkan'ın cevapları (2026-09-08) — üç şeyi netleştirdi
+
+1. **Liste haftalık çıkıyor; içeride veri günlük tutulur, rapora her gün bakılır.**
+   → Kayıt birimi **gün** (lokasyon × gün × görevli); haftalık liste bunun görünümü.
+   Tek yerde tutulan günlük kayıt hem haftalık çıktıyı hem günlük "bugün kim nerede"yi
+   üretir; Excel'in yapamadığı da bu.
+2. **Bugün yalnız Vakıfbank temizlik İDP programı.** Sonra güvenlik, sonra diğer
+   bankalar ve tesisler. → Model bankaya değil, **firma × hizmet hattı**na göre kurulur.
+3. **Belli bir süre sonra ihalesini aldığımız firmalara sabit personel gelecek.**
+   → "İhale alınan firma" BPS'te zaten var: **Sözleşme.** Vakıfbank temizlik İDP
+   programı bir sözleşmedir; güvenlik ikinci sözleşme; sabit personel aynı sözleşmenin
+   altına yerleşir. "Program" diye yeni varlık icat edilmez — çekirdek zincir
+   `Firma → Sözleşme → …` bunu taşır.
+   → Bugün izne çıkan kişi **bizim personelimiz değil** (temizlik kadrosu bankanın ya da
+   başka yüklenicinin); "yerine" bugün metin, sabit personel gelince kayda bağ. İkisi de
+   aynı alanla karşılanmalı (§2).
+
 ---
 
 ## 2. Önerilen birim ve varlıklar — en küçük küme
 
 ```
-Firma (banka)                      — var
-  └─ Lokasyon (şube / bina / kat)  — YENİ  · ad, şehir, not · yetkili = contacts (opsiyonel bağ)
-       └─ İDP Talebi               — YENİ (staffing_demands'ın yerine ya da yanına, §5)
-            · pozisyon / hizmet hattı (KÜÇÜK LİSTE: temizlik · güvenlik · kapıcı · destek · …)
-            · yerine: kim (metin — ya da §6-Q1'e göre İDP/personel kaydı)
-            · başlangıç · bitiş (tek gün = aynı tarih; §6-Q7 dönem bazlıysa aralık)
-            · talep eden yetkili (contacts, opsiyonel)
-            · kanal (whatsapp | telefon | eposta — küçük enum, opsiyonel; §6-Q5)
-            · durum (§4)
-            · atanan İDP → İDP kaydı, atayan, atanma zamanı
-            · kaynak notu (mesaj metni, serbest)
+Firma (banka / tesis)              — var
+  └─ Sözleşme                      — var · = "ihalesini aldığımız iş": Vakıfbank temizlik İDP programı
+       · hizmet hattı              — YENİ alan (KÜÇÜK LİSTE: temizlik · güvenlik · …, genişler)
+       └─ Lokasyon (şube/bina/kat) — YENİ · ad, şehir, not · firmaya bağlı (sözleşmeler arası ortak)
+                                      · yetkili = contacts (opsiyonel bağ)
+            └─ Yerleştirme (İDP Talebi) — YENİ (staffing_demands'ın yerine ya da yanına, §5)
+                 · sözleşme (→ hizmet hattı buradan gelir)
+                 · tür: idp | sabit   ← ileride sabit personel AYNI kayıt tipi
+                 · yerine: kim — metin (bugün) VEYA personel kaydı (sabit personel gelince); aynı alan çifti
+                 · başlangıç · bitiş — gün bazlı; tek gün = aynı tarih
+                 · talep eden yetkili (contacts, opsiyonel) · kanal (opsiyonel; §6-Q5)
+                 · durum (§4) · atanan görevli → Personel kaydı · atayan · atanma zamanı
+                 · kaynak notu (mesaj metni, serbest)
 
-İDP Kaydı (havuz)                  — YENİ  · ad · kod · aktif/pasif · (tenant)  — BAŞKA HİÇBİR ŞEY
-                                      TC yok, telefon yok, adres yok, özlük yok (§3)
+Personel kaydı (görevli)           — YENİ · ad · kod · tür (idp havuzu | sabit) · aktif/pasif · (tenant)
+                                      BAŞKA HİÇBİR ŞEY: TC yok, telefon yok, adres yok, özlük yok (§3)
+                                      Tek varlık: bugünkü İDP havuzu + yarınki sabit personel
 
-ÇIKTI: Firma × [gün] İDP listesi   — YENİ görünüm · İl · Lokasyon · pozisyon · yerine gidecek görevli
-                                      bugünkü Excel'in birebir karşılığı; kopyala/paylaş, sonra PDF/e-posta
+ÇIKTILAR:
+  · HAFTALIK LİSTE  firma × sözleşme × hafta → S.NO · İl · Lokasyon · yerine gidecek görevli
+                     bugünkü Excel'in birebir karşılığı; kopyala/paylaş, sonra PDF/e-posta
+  · GÜNLÜK GÖRÜNÜM  "bugün kim nerede" (ops) · Dashboard'da tek sinyal: bugün açık yerleştirme
+  · sonra: firma/sözleşme bazlı adam-gün (izinli büyüme alanı — emek görünürlüğü, puantaj değil)
 ```
 
 **Firma Detay merkezde kalır:** Lokasyonlar ve İDP talepleri Firma Detay'ın sekmeleri;
@@ -136,9 +159,8 @@ bir modülü korumak için fazla. Satır varsa yanına.
 
 ## 6. Karar isteyen sorular — işi değiştirenler
 
-1. **"Yerine" kim?** İzne çıkan (Sebahat, Rabia, Nilgün) **bizim** yerleştirdiğimiz personel
-   mi, bankanın kendi çalışanı mı? Bizimse "yerine" bir iş gücü kaydına bağlanır ve
-   "bu lokasyondaki sabit personelimiz" bilgisi doğar; bankanınsa serbest metin kalır.
+1. ~~"Yerine" kim?~~ **CEVAPLANDI (§1c):** bugün bizim personelimiz değil → metin;
+   sabit personel gelince kayda bağ. Aynı alan çifti (`replaced_name` + `replaced_worker_id`).
 2. **İDP kaydı — artık "açılsın mı" değil, "adı ve yeri ne".** Excel listeleri ~20 kişilik
    bir havuzun zaten yönetildiğini gösterdi (§1b); liste üretmek için kayıt şart. Sınır:
    yalnız **ad + kod + aktif/pasif** (§3). Karar: varlığın adı (`idp_workers`? "İDP Havuzu")
@@ -148,12 +170,15 @@ bir modülü korumak için fazla. Satır varsa yanına.
 5. **Kanal alanı** gerekli mi, yoksa "kaynak notu" yeterli mi.
 6. **Roller:** `operasyon` açar/atar, `yonetici` her şey, `ik` Firma Detay'da salt okunur
    (ROLE_MATRIX §5.3 ile aynı), `muhasebe`/`goruntuleyici` yok. Aynen mi?
-7. **Listenin dönemi:** Excel'de tarih yok. Bu liste **her gün yeniden mi** üretiliyor
-   (günlük plan), yoksa **sabit bir dönem** için mi (haftalık/aylık izin planı)? Günlükse
-   talep = gün; dönemse talep = aralık ve liste "şu tarihte kim nerede" sorusuna cevap
-   verir. Modelin en büyük ayrımı bu.
-8. **Hizmet hattı listesi:** temizlik · güvenlik · kapıcı · destek — tam liste ne, banka
-   başına değişiyor mu, "PYS" bir hat mı bir firma adı mı?
+7. ~~Listenin dönemi~~ **CEVAPLANDI (§1c):** liste haftalık, kayıt günlük. Yerleştirme
+   gün bazlı; haftalık liste görünüm.
+8. **Hizmet hattı listesi:** bugün yalnız **temizlik**, sırada **güvenlik**. Liste küçük ve
+   genişler; sözleşmeye bağlı (§2). Açık kalan: "PYS" bir hat mı, firma adı mı; "kapıcı"
+   temizlik altında mı ayrı mı.
+9. **Vakıfbank BPS'te bir sözleşme olarak var mı?** Yerleştirme sözleşmeye bağlanacaksa
+   ilk sözleşme kaydı (temizlik İDP, dönem, sorumlu) girilmiş olmalı — yoksa ilk iş o.
+   Sözleşme yoksa yerleştirme açılamamalı mı, yoksa sözleşme opsiyonel mi (ilk sürüm
+   için "opsiyonel, uyarı ver" öneririm; sözleşme kaydı ihaleyle birlikte gelir).
 
 ---
 
@@ -163,9 +188,12 @@ bir modülü korumak için fazla. Satır varsa yanına.
   seç/yarat → pozisyon → yerine → tarih). Lokasyon inline yaratılabiliyor (NewCompanyModal
   deseni).
 - Atama tek adımda; atanınca durum otomatik; timeline'a iz düşer (WORKFLOW_RULES 7).
-- **Firma × gün İDP listesi** tek tıkla görünür ve kopyalanır (İl · Lokasyon · pozisyon ·
-  görevli) — ops artık Excel kurmaz. Bu, ilk sürümün "kullanıldı mı" ölçütüdür: liste
-  BPS'ten paylaşılıyorsa modül yaşıyor demektir.
+- **Haftalık liste** (firma × sözleşme × hafta: S.NO · İl · Lokasyon · görevli) tek tıkla
+  görünür ve kopyalanır — bugünkü Excel'in birebir karşılığı; ops artık Excel kurmaz.
+  **Günlük görünüm** "bugün kim nerede"yi verir. İlk sürümün "kullanıldı mı" ölçütü:
+  haftalık liste BPS'ten paylaşılıyorsa modül yaşıyor demektir.
+- Sabit personel geldiğinde yeni tablo/yeni ekran gerekmez: aynı yerleştirme kaydı
+  `tür = sabit`, aynı personel kaydı. Bu, modelin doğru kurulduğunun testi.
 - Dashboard'da yalnız "bugün açık İDP" sinyali; Firma Detay'da lokasyon ve talep sekmeleri.
 - RLS: yeni tablolar `tenant_id` + rol koşullu, `R13` yeşil; `goruntuleyici` okuyamaz;
   çapraz-tenant izolasyon runbook'una iki satır eklenir.
@@ -173,8 +201,13 @@ bir modülü korumak için fazla. Satır varsa yanına.
 
 ---
 
-## 8. Sıra
+## 8. Sıra ve ufuk
 
 Bekleyen canlı smoke (Yeni Firma · /admin · seçici) → bu taslağın kapsam kapısı →
 plan (Claude Chat) → Step 3 sırasına yerleşir (RLS yeniden-yazımıyla aynı dönemde:
 yeni tablolar tenant koşullu policy'leriyle doğar).
+
+Ufuk (Furkan, 2026-09-08): Vakıfbank temizlik İDP → güvenlik → diğer bankalar → tesisler →
+ihale alınan firmalara sabit personel. Model bu sırayı **şema değiştirmeden** taşımalı:
+yeni hizmet hattı = listeye bir değer; yeni banka = firma + sözleşme + lokasyonlar; sabit
+personel = `tür = sabit`. Bunlardan biri yeni tablo istiyorsa model yanlış kurulmuştur.
