@@ -173,12 +173,15 @@ bir modülü korumak için fazla. Satır varsa yanına.
 7. ~~Listenin dönemi~~ **CEVAPLANDI (§1c):** liste haftalık, kayıt günlük. Yerleştirme
    gün bazlı; haftalık liste görünüm.
 8. **Hizmet hattı listesi:** bugün yalnız **temizlik**, sırada **güvenlik**. Liste küçük ve
-   genişler; sözleşmeye bağlı (§2). Açık kalan: "PYS" bir hat mı, firma adı mı; "kapıcı"
-   temizlik altında mı ayrı mı.
-9. **Vakıfbank BPS'te bir sözleşme olarak var mı?** Yerleştirme sözleşmeye bağlanacaksa
-   ilk sözleşme kaydı (temizlik İDP, dönem, sorumlu) girilmiş olmalı — yoksa ilk iş o.
-   Sözleşme yoksa yerleştirme açılamamalı mı, yoksa sözleşme opsiyonel mi (ilk sürüm
-   için "opsiyonel, uyarı ver" öneririm; sözleşme kaydı ihaleyle birlikte gelir).
+   genişler; sözleşmeye bağlı (§2). **"PYS" CEVAPLANDI (Furkan, 2026-09-08): hizmet hattı
+   DEĞİL, ekibin Vakıfbank için kullandığı ad.** → Listeye girmez; lokasyon adının parçası
+   olarak kalır ("PYS Güvenlik - Akyaka Bina 01. Kat"). Firma için kısa ad/takma ad alanı
+   şimdilik gerekmiyor — ekranda firma adı yazar. Açık kalan yalnız: "kapıcı" temizliğin
+   altında mı, ayrı hat mı (küçük).
+9. ~~Vakıfbank sözleşme olarak var mı?~~ **CEVAPLANDI: sözleşmeler yüklenecek.** Yerleştirme
+   sözleşmeye bağlanır. İlk sürümde bağ **opsiyonel + uyarı** kalsın: WhatsApp'tan talep
+   geldiğinde sözleşme henüz girilmemişse ops bloklanmasın, kayıt sonra bağlansın.
+   Sözleşme girildiğinde bağsız yerleştirmeler Firma Detay'da "sözleşmesiz" diye görünür.
 
 ---
 
