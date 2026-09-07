@@ -809,3 +809,67 @@ Yarın sabah post-08:30 cron incelemesi:
 - 23 Nisan öğleden sonra: B&P domain keşif egzersizi (30-45 dk paper exercise)
 - Bu hafta içi: Track B görüşme listesi doldurma + PDF upload Claude Code prompt'u → implementation
 - 27 Nisan Pazar gece: Track B 2 görüşme slot lock + Hafta 1 review (6-satır format)
+
+## 2026-09-08 — Handoff: profiles sızıntısı + admin paneli prod'da, Talep+Yerleştirme kapsamı kapıda
+
+### Session amacı (2026-09-04 → 09-08, tek uzun oturum)
+Canlı çapraz-tenant sızıntısı ve kendi kendine terfi açığı kapatıldı; platform admin
+paneli prod'a çıktı; `qa:static` 14 → 16 kural (R14 AST tabanlı profiles okuma kuralı,
+R15 tarama bütünlüğü); 9 Codex turu; push + deploy; Talep modelinin gerçek işe göre
+yeniden tanımı için kapsam taslağı. Ayrıntı: `00_core/CHANGELOG.md` üst ~14 satır.
+
+### PROD VERİTABANI — üçü de uygulandı, doğrulandı, defter hizalı
+| Migration | Ne | Kanıt |
+|---|---|---|
+| `20260904000200_profiles_update_grants` `27c086f6…` | tablo seviyesi UPDATE kalktı, yalnız `display_name` | önce `true/true/true` (**açık Faz 0'dan beri canlıydı** — her authenticated kullanıcı kendi rolünü `yonetici` yapabilirdi) → sonra `false/false/false`, display_name `true` |
+| `20260904000100_profiles_tenant_scope` `dee879c6…` | profiles SELECT `id = auth.uid() OR is_active_tenant_member(id)`; `tasks_insert/update` atanan guard'ı; `current_user_verified_tenant()` (claim canlı üyelikle doğrulanır); `active_tenant_profiles()` RPC | policy 60 değişmedi · qual doğru · 3 fonksiyon DEFINER+STABLE · grant 3 · guard 2/2 |
+| `20260827000400_platform_admin_rpcs` `0b4d4853…` (BEGIN/COMMIT eklendi) | `is_platform_admin` bayrak (rol değil) + 5 RPC; rol+üyelik+oturum tek RPC (`FOR UPDATE` önce, `auth.sessions` silinir) | `1·5·5·false·0`; ilk admin bayrağı **`furkanyahsi@gmail.com`** elle açıldı |
+Defter: pending yalnız bilinçli `20260722000200` (asistan). Repair'ler `--status applied <version>` ile, şema kanıtından sonra.
+
+### PROD KOD — push + deploy yapıldı
+`origin/main` `8f378e0` → `237e06c` (44 commit). Vercel `bps-pta7208eo` production Ready.
+Kimliksiz canlı kanıt (`www.bpsys.net`; apex www'ya 307): `/admin` → 307 `login?returnTo=/admin` ·
+`/api/cron/notifications` → 401 · eski `/api/cron/contract-expiry` → 404 · `/login` 200.
+Cron bayrağı `BPS_NOTIFICATION_EMAILS_ENABLED` `"true"` değilse **skip**. Vercel CLI bu makinede login'li.
+
+### LOKAL — 8 docs commit'i push edilmedi (kod yok)
+`e656a0f` deploy kaydı · `623e18a`…`7ea4e41` Talep+Yerleştirme kapsam taslağı turları.
+Push Furkan onayıyla; smoke sonucuyla birlikte tek push önerildi.
+
+### BEKLEYEN — sırayla
+1. **Kimlikli canlı smoke (Furkan, deploy'dan beri hiç bakılmadı):**
+   `/firmalar` "Yeni Firma" (Mek Group yönetici; ekle → `aday` listede; detayda "Aktife Al" görünür) ·
+   `/admin` (`furkanyahsi@gmail.com`; 4 kiracı + her satırda Üyelik = 1; başka hesap → `/dashboard`) ·
+   Mek Group seçicide **yalnız 3 mekgroup üyesi** + kendi üyesine atama **BAŞARIR** (verify §7 A/C — C olmadan A anlamsız).
+   Sonuç CHANGELOG'daki "kimlikli smoke bekliyor" kaydını kapatır.
+2. Docs commit'lerinin push'u (onay).
+3. **Talep + Yerleştirme kapsamı** — `03_strategy/IDP_TALEP_KAPSAM_TASLAGI.md` (DRAFT, karar değil).
+   Model: Talep (adet × dönem × pozisyon, sözleşmeye bağlı) + Yerleştirme (kişi × tarih); durum yerleştirme
+   sayısından TÜRETİLİR (`yeni · kısmi_atandı · atandı · bitti` + elle `beklemede/iptal`, "atandı" onaylı);
+   tek personel kaydı `tür = idp | sabit` (ad+kod+aktif, **TC/telefon YOK**); "yerine" metin→kayıt çifti;
+   eski `staffing_demands` **yerine geçilir** (tek satır 9 Nisan deneme kaydı, Claude Chat ölçtü).
+   Sıra: ChatGPT Chat kapsam kapısı → Claude Chat plan → kod, **Step 3 dönemiyle** (yeni tablolar tenant
+   koşullu policy'leriyle doğar). Kapı geçmeden kod YOK.
+4. Step 3 kalanı: `profiles.role` CHECK'ten partner · `partner_company_assignments` + `current_user_has_company_scope()` DROP ·
+   43 dosyalık partner kod temizliği · 43 policy hâlâ ham claim'e güveniyor (`current_user_active_tenant()` gövdesi repo dışı — ayrı karar) ·
+   `staffing_demands` satırı silinir · tenant izolasyon testi (`supabase/manual/tenant_isolation_test_runbook.md`).
+5. Faz 2: üç API rolünde Supabase varsayılanı 7 yetki (TRUNCATE dahil) tüm tablolarda — yalnız profiles UPDATE normalize edildi.
+6. Bildirim bayrağı açmadan önce "4 ay / 0 kayıt" sorusu (Vercel cron geçmişi).
+
+### KURALLAR — bu oturumda ölçülmüş, sonraki oturumda aynen
+- **DUR yalnız:** prod migration uygulaması ve push (Furkan). `db push` YASAK (repo policy tanımları prod'dan eski).
+- Claude **Code** prod MCP'ye bağlı DEĞİL → prod SQL'i Furkan koşar (tam metin sohbete + dosya eki; pano 4 kez bozuldu).
+  Claude **Chat** prod'a SALT-OKUNUR erişebiliyor — "erişemez" deme, sayı gelince kaynağını sor.
+- Panoya yükleme: `LC_ALL=en_US.UTF-8 pbcopy` (kabukta LANG boş; hash eşleşir ama GUI mojibake görür).
+- "Success" bir RAPOR; şema kanıtı tek satırlık SELECT ile; `repair` ondan sonra. Editör çoklu sorguda yalnız
+  son sonucu gösterir; `RAISE NOTICE` görünmeyebilir → ölçümü SELECT ile al.
+- Migration'lar kendini doğrular (ad ön kontrolü, policy sayısı değişmez, tam imzayla proowner, `LOCK … ACCESS EXCLUSIVE`
+  + `lock_timeout`); uygulanmamış dosya düzenlenebilir, uygulanmış dosyaya yalnız başlık notu (gövde hash'i kayıtlı).
+- `qa:static` 16 kural (R14 TypeScript AST ile profiles zincirlerini okur, `typescript` yoksa FAIL; R15 `scan-integrity`);
+  `qa:unit`; `tsc` + `build` ayrı koşulur; lint YOK. Boş çıktı geçti DEĞİLDİR — exit koduna bak.
+- Kişisel veri (TC, telefon) BPS'e, memory'ye, sohbete taşınmaz.
+
+### İlk okunacaklar
+`CODEX.md` (her zaman) · `00_core/CHANGELOG.md` üst 14 satır · `02_rules/RLS_ACCESS_MATRIX.md` · `02_rules/PROD_SCHEMA_DRIFT.md` ·
+`03_strategy/IDP_TALEP_KAPSAM_TASLAGI.md` · `supabase/manual/profiles_tenant_scope_post_apply_verify.sql` (§7 davranış testi) ·
+memory: `bps-deferred-security-backlog`, `talep-gercek-akisi-whatsapp`, `olcum-iddiayi-kanitlamali` (8 biçim), `pbcopy-utf8-locale`.
