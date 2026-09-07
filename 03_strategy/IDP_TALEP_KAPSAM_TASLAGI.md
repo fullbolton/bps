@@ -191,19 +191,19 @@ Modül "sektöre bağlı, ayrılabilir yüzey" (CLAUDE.md). İki yol:
 **Furkan (2026-09-08): eski ekrana hiç kayıt girilmedi → YERİNE GEÇİLİR.** Ekran, servis,
 RLS yeniden yazılır; `staffing_demands` Step 3'ün temizliğinde düşer.
 
-**⚠ Ölçülmeden kapanmaz:** Claude Chat aynı gün "staffing_demands'ta 1 satır var" dedi —
-kaynağı belirsiz, Furkan'ın beyanıyla çelişiyor. İki beyan, sıfır ölçüm. Karar şu sorguyla:
+**KAPANDI — ÖLÇÜMLE (Claude Chat, prod salt-okunur, 2026-09-08):**
 
-```sql
-select count(*) as satir, min(created_at) as ilk, max(created_at) as son
-  from public.staffing_demands;
--- satir > 0 ise:
-select id, company_id, position, requested_count, provided_count, status, created_at, created_by
-  from public.staffing_demands order by created_at;
+```
+staffing_demands: 1 satır
+  bd8690ae · Ege Temizlik · Garson · istenen 1 / sağlanan 0 · status=yeni
+  created 2026-04-09 · by furkanyahsi@partnerstaff
 ```
 
-`0` → yerine geç, düz. `1` ve smoke artığıysa (test firması / test tarihi) → yine yerine
-geç, satır temizlikte silinir. Gerçek bir talepse → yanına koy, taşıma planı yazılır. "Kısmi doldu" fikri
+Uygulamanın ilk günlerindeki tek deneme kaydı; beş aydır `yeni`'de, dokunulmamış.
+Dashboard'daki "Açık Personel Talepleri: Garson, 1 kişi" satırı buradan geliyor — Step 3
+temizliğine kadar Dashboard bir test kaydı gösteriyor demektir. **Furkan'ın "hiç
+girilmedi"si ile "1 satır" çelişmiyordu: biri anlam, biri sayı.** → YERİNE GEÇ, düz;
+taşınacak veri yok; satır Step 3 temizliğinde silinir. "Kısmi doldu" fikri
 kaybolmuyor: otel talebi için `kısmi_atandı` olarak, yerleştirme sayısından türetilerek
 geri geliyor (§4).
 
