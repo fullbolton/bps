@@ -57,8 +57,11 @@ kullanıcısı görev seçicisinde Partner Staff kullanıcılarını görüyor (
 yöneticisi onlara görev atayabiliyor (yazma: `tasks_insert/update` WITH CHECK
 yalnız görevin tenant'ını denetliyor, atananın değil).
 
-Düzeltme yazıldı, **UYGULANMADI**: `20260904000100_profiles_tenant_scope.sql`.
-Uygulanınca bu tablodaki satır şuna döner:
+Düzeltme **UYGULANDI 2026-09-05** (`20260904000100_profiles_tenant_scope.sql`;
+şema kanıtı: policy sayısı 60 değişmedi, profiles SELECT qual
+`((id = auth.uid()) OR is_active_tenant_member(id))`, 3 fonksiyon DEFINER+STABLE,
+tasks insert/update guard'ı 2/2). **Davranış testi gerçek oturumla henüz
+yapılmadı** — `tenant_isolation_test_runbook.md`. Bu tablodaki satır artık:
 
 | Kapsam | Tablolar |
 |---|---|

@@ -82,6 +82,11 @@
 -- ==========================================================================
 
 
+-- TEK TRANSACTION (2026-09-05, uygulama öncesi eklendi): kolon, beş fonksiyon,
+-- grant'ler ve iki DO-kontrolü ya birlikte girer ya hiçbiri. Editörün implicit
+-- transaction'ına dayanılmıyor — 000200 ve 000100 ile aynı disiplin.
+BEGIN;
+
 -- ==========================================================================
 -- 1) BAYRAK
 -- ==========================================================================
@@ -450,6 +455,8 @@ GRANT EXECUTE ON FUNCTION public.admin_list_users()                           TO
 GRANT EXECUTE ON FUNCTION public.admin_assign_role_and_tenant(uuid, text, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_create_tenant(text, text)              TO authenticated;
 
+
+COMMIT;
 
 -- ==========================================================================
 -- 8) İLK PLATFORM ADMIN — elle, bu dosyada DEĞİL

@@ -1,7 +1,14 @@
 -- ==========================================================================
 -- BPS — profiles'a tenant kapsamı + görev atananının tenant guard'ı
 -- ==========================================================================
--- ⚠ WRITTEN, NOT APPLIED.
+-- ✅ APPLIED 2026-09-05 (Furkan, SQL Editor) + VERIFIED + ledger repaired.
+--    Applied content sha256 dee879c6b69897d33cf54fde8f16f4bf0fc9f2e2e03950be9ec9c53c0313a775
+--    (this header note was added AFTER apply; the body below is unchanged).
+--    Ön uçuş: capraz_atama=0 · toplam_policy=60.
+--    Sonra:   toplam_policy=60 (değişmedi) · profiles 2 policy, SELECT qual =
+--             ((id = auth.uid()) OR is_active_tenant_member(id)) · fonksiyon_3=3
+--             (DEFINER+STABLE) · grant_3=3 (yalnız authenticated) · tasks_guard_2=2.
+--    Davranış testi (verify §7 A/B/C, gerçek oturumla) HENÜZ YAPILMADI.
 --
 -- Bulgu (2026-09-04, canlı, iki yönlü): Mek Group kullanıcısı görev atama
 -- seçicisinde Partner Staff kullanıcılarını görüyor (OKUMA sızıntısı) ve

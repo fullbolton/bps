@@ -527,7 +527,8 @@ bir ölçüm; değeri kimse yeniden koşmadan değişebilir.
 > **2026-09-04 — tam olarak bu oldu.** tenant_count 1 → 4 çıktı, kimse G1'i
 > yeniden koşmadı, ve Mek Group kullanıcısı seçicide Partner Staff'ı gördü;
 > yöneticisi onlara görev atayabildi. Step 3 (b) için migration yazıldı
-> (`20260904000100_profiles_tenant_scope.sql`, **uygulanmadı**): `tenant_id`
+> (`20260904000100_profiles_tenant_scope.sql`, **UYGULANDI 2026-09-05**, davranış
+> testi gerçek oturumla bekliyor): `tenant_id`
 > kolonu değil `tenant_memberships` üzerinden `SECURITY DEFINER` yardımcı;
 > profiles SELECT daraltıldı, `tasks_insert/update`'e atanan guard'ı, uygulama
 > katmanına kapsamlı RPC, `qa:static` R14. Admin panelinden ÖNCE uygulanacak.

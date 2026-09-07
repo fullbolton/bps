@@ -126,13 +126,12 @@ Sonucu: bu ekranın izolasyonu `companies`'in izolasyonuna **bağımlı**.
 **yalnız burada** görünür, ve genel bir gezinti bu ikisini ayırt edemez.
 Ayrıca doğrulanmalı.
 
-⚠ **Ayarlar > Kullanıcılar ve iki atanan seçicisi — beklenti migration'a bağlı:**
-`profiles`'ta `tenant_id` YOK. **`20260904000100` uygulanmadıysa** bu üç yüzey
-bütün tenant'ların kullanıcılarını gösterir ve yabancı üyeye atama kabul edilir —
-2026-09-04'te Mek Group'ta canlı görüldü; bilinen ve kapatılmakta olan sızıntı.
-**Uygulandıysa** yalnız aktif tenant'ın üyeleri görünmeli ve yabancı üyeye
-atama `42501` ile düşmeli. Hangi durumda olunduğu test kaydına yazılır;
-"beklendiği gibi" tek başına yazılmaz.
+⚠ **Ayarlar > Kullanıcılar ve iki atanan seçicisi:** `profiles`'ta `tenant_id`
+YOK; kapsam `20260904000100` ile geldi ve **2026-09-05'te UYGULANDI** (şema
+kanıtıyla). Beklenen: yalnız aktif tenant'ın üyeleri görünür, yabancı üyeye
+atama `42501` ile düşer. 2026-09-04'te Mek Group'ta canlı görülen sızıntının
+kapandığı **henüz gerçek oturumla doğrulanmadı** — bu tablonun A/B/C satırları
+o testtir; "migration uygulandı" tek başına "sızıntı kapandı" değildir.
 
 ---
 
