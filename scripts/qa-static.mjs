@@ -43,10 +43,11 @@
  *                                          unreadable file, a parse error, a
  *                                          zero-file scan, a blocked subdir, a
  *                                          symlink loop and a FIFO each red
- *   R15 scan-integrity                   → (2026-09-05) a dangling symlink and a
- *                                          FIFO under supabase/migrations — a
- *                                          directory R14 never visits — each
- *                                          red while R13 still printed
+ *   R15 scan-integrity                   → (2026-09-05) a dangling symlink, a
+ *                                          FIFO and a chmod-000 .sql under
+ *                                          supabase/migrations — a directory
+ *                                          R14 never visits — each red while
+ *                                          R13 still printed
  * All seven WARN rules were negative-tested the same way:
  *   W1  package-migration-drift          → seen amber whenever a migration sat
  *                                          uncommitted in the working tree
@@ -87,10 +88,19 @@ const CONTACTS_SERVICE = "src/lib/services/contacts.ts";
 
 // --- tiny helpers (no deps) ---------------------------------------------
 
+const SCAN_ERRORS = [];
+const errCode = (e) => (e && e.code ? e.code : "error");
+// Returns null on failure — the rules keep that contract — but the failure
+// itself is no longer silent: it is recorded for R15 (Codex round 8: a
+// migration that stat()ed fine and then failed to read was treated by R13 as
+// empty SQL, and the whole run exited 0). Every read() target is a fixed,
+// known path or a file the walker listed; none is optional, so a failed read
+// is always an unchecked file.
 function read(rel) {
   try {
     return readFileSync(join(ROOT, rel), "utf8");
-  } catch {
+  } catch (e) {
+    SCAN_ERRORS.push(`${rel.split("\\").join("/")} read: ${errCode(e)}`);
     return null;
   }
 }
@@ -103,8 +113,6 @@ function read(rel) {
 // never visits, then reported "1/1 PASS" over a listing with a file missing
 // from it; (3) now it skips the entry AND records why, centrally, so no rule
 // can pass on a partial listing without the harness going red.
-const SCAN_ERRORS = [];
-const errCode = (e) => (e && e.code ? e.code : "error");
 const fileType = (st) =>
   st.isFIFO() ? "fifo" : st.isSocket() ? "socket" : st.isCharacterDevice() ? "chardev"
   : st.isBlockDevice() ? "blockdev" : st.isSymbolicLink() ? "symlink" : "unknown";
@@ -819,18 +827,18 @@ const FAIL = "FAIL";
   }
 })();
 
-// R15 — scan-integrity: no rule may pass on a partial listing.
-// Fed by the shared walk(): a directory it could not read, an entry it could
-// not stat, or a special file it refused to open. Each rule above already ran
-// on whatever listing it got; this line says whether that listing was whole.
-// FAIL severity: an unchecked file is not a checked file, whichever rule would
-// have checked it.
+// R15 — scan-integrity: no rule may pass on a partial listing or an unread file.
+// Fed by the shared walk() and read(): a directory that could not be listed,
+// an entry that could not be stat()ed, a special file that was refused, or a
+// listed file that could not be read. Each rule above already ran on whatever
+// it got; this line says whether what it got was whole. FAIL severity: an
+// unchecked file is not a checked file, whichever rule would have checked it.
 (() => {
   // Several rules walk the same tree, so the same entry can be recorded once
   // per walk; report each distinct problem once.
   const distinct = [...new Set(SCAN_ERRORS)];
   if (distinct.length === 0) {
-    record(FAIL, "scan-integrity", PASS, "every walk() listed its directory completely");
+    record(FAIL, "scan-integrity", PASS, "every walk() listed completely and every read() succeeded");
   } else {
     record(FAIL, "scan-integrity", FAIL, distinct.join(", "));
   }
