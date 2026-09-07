@@ -89,6 +89,14 @@ select has_table_privilege ('authenticated','public.profiles','UPDATE')        a
        has_column_privilege('anon','public.profiles','display_name','UPDATE')  as anon_yazabilir;
 ```
 
+**ÖLÇÜLDÜ 2026-09-05 (prod, Furkan):** `tablo_update=true · role_yazabilir=true ·
+anon_yazabilir=true`. **Açık CANLIYDI.** Faz 0'dan bu yana her authenticated
+kullanıcı `PATCH /rest/v1/profiles?id=eq.<kendi-id> {"role":"yonetici"}` ile
+kendini yönetici yapabilirdi. `anon`'un grant'i RLS tarafından bloklanıyordu
+(anon için policy yok) ama grant duruyordu. Kullanılıp kullanılmadığı ayrı
+soru — `select email, role, updated_at from profiles order by updated_at desc`
+ile beklenen rol dağılımıyla karşılaştır.
+
 Düzeltme ölçümden bağımsız ve yazıldı: `20260904000200_profiles_update_grants.sql`
 — tablo seviyesini kaldırır, `display_name`'i geri verir, katalogdaki her
 kolonu fail-closed doğrular. **Diğer 18 tablo için aynı soru açık:** onlarda
