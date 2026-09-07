@@ -1,9 +1,16 @@
 -- ==========================================================================
 -- BPS — profiles UPDATE grant'lerinin normalize edilmesi
 -- ==========================================================================
--- ⚠ WRITTEN, NOT APPLIED.
--- ⚠ UYGULAMA SIRASI: BU DOSYA ÖNCE. Sonra 20260904000100 (tenant kapsamı),
---   sonra 20260827000400 (admin paneli — kendi ön kontrolü bunu şart koşar).
+-- ✅ APPLIED 2026-09-05 (Furkan, SQL Editor) + VERIFIED + ledger repaired.
+--    Applied content sha256 27c086f68c59df3e22e9f93c931785de932f3abf9e9a0750bc68bc7322a674c9
+--    (this header note was added AFTER apply; the body below is unchanged).
+--    ÖNCE ölçüldü:  tablo_update=true  role_yazabilir=true  anon_yazabilir=true
+--                   → açık CANLIYDI (Faz 0'dan beri).
+--    SONRA ölçüldü: tablo_update=false role_yazabilir=false anon_yazabilir=false
+--                   display_name_yazabilir=true (korundu).
+--    Grantor ölçümü: sahip=postgres, her grant grantor=postgres → REVOKE tuttu.
+-- ⚠ UYGULAMA SIRASI: bu dosya ÖNCE (yapıldı). Sonra 20260904000100 (tenant
+--   kapsamı), sonra 20260827000400 (admin paneli — ön kontrolü bunu şart koşar).
 --
 -- ==========================================================================
 -- NEDEN — Codex bulgusu (2026-09-04, P1) ve ardındaki daha büyük ihtimal

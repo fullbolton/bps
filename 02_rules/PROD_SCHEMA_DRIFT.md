@@ -97,7 +97,16 @@ kendini yönetici yapabilirdi. `anon`'un grant'i RLS tarafından bloklanıyordu
 soru — `select email, role, updated_at from profiles order by updated_at desc`
 ile beklenen rol dağılımıyla karşılaştır.
 
-Düzeltme ölçümden bağımsız ve yazıldı: `20260904000200_profiles_update_grants.sql`
+**KAPANDI 2026-09-05:** `20260904000200` uygulandı; sonrası
+`false/false/false`, `display_name_yazabilir=true`; defter repair'lendi. Grantor
+ölçümü: `profiles` sahibi `postgres`, tüm grant'ler grantor `postgres`; `anon`,
+`authenticated`, `service_role` üçünde de **yedi yetkinin yedisi** vardı
+(DELETE/INSERT/REFERENCES/SELECT/TRIGGER/TRUNCATE/UPDATE — Supabase varsayılanı).
+Yalnız UPDATE normalize edildi; kalan altısı API'den erişilemez (INSERT/DELETE'i
+RLS reddeder, TRUNCATE PostgREST'te yok) ama savunma derinliği için Faz 2'de
+tüm tablolarda ele alınmalı.
+
+Düzeltme: `20260904000200_profiles_update_grants.sql`
 — tablo seviyesini kaldırır, `display_name`'i geri verir, katalogdaki her
 kolonu fail-closed doğrular. **Diğer 18 tablo için aynı soru açık:** onlarda
 policy'ler kolon bazında güvenmiyor (rol/tenant koşulu satır bazında), ama
