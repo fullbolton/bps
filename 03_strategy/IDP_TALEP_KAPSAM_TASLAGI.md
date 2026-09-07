@@ -89,9 +89,8 @@ belirsiz; talep modelinin gün mü dönem mi bazlı olacağını bu belirler (§
   tarih aralığı). Eski ekranın "kısmi doldu" fikri otel için anlamlı — ama **tek modelde**,
   iki modül değil.
 - **Durum etiketi: "atandı" onaylandı.** Otel için "kısmen atandı" da gerekir (§4).
-- **İleride Partner Staff + Mek yönetimi tek tenant'ta birleşebilir.** Modeli bloklamaz;
-  her yeni tablo diğerleri gibi `tenant_id` taşır, birleşme = tablo başına tek UPDATE.
-  Not: admin paneli tek-üyelik varsayıyor; birleşme günü kullanıcı üyelikleri de taşınır.
+- **İleride Partner Staff + Mek yönetimi tek tenant'ta birleşebilir.** Bu taslak onu
+  bloklamaz (her yeni tablo `tenant_id` taşır); birleşmenin kendisi ayrı plandır (§8).
 
 ---
 
@@ -99,34 +98,54 @@ belirsiz; talep modelinin gün mü dönem mi bazlı olacağını bu belirler (§
 
 ```
 Firma (banka / tesis)              — var
-  └─ Sözleşme                      — var · = "ihalesini aldığımız iş": Vakıfbank temizlik İDP programı
-       · hizmet hattı              — YENİ alan (KÜÇÜK LİSTE: temizlik · güvenlik · …, genişler)
-       └─ Lokasyon (şube/bina/kat) — YENİ · ad, şehir, not · firmaya bağlı (sözleşmeler arası ortak)
-                                      · yetkili = contacts (opsiyonel bağ)
-            └─ TALEP (istek)             — YENİ, staffing_demands'ın YERİNE (§5)
-                 · sözleşme (opsiyonel + uyarı; hizmet hattı buradan gelir)
-                 · pozisyon (tenant'a göre küçük liste: temizlik · güvenlik · garson · hk · aşçı …)
-                 · adet (banka İDP: 1 · otel sezon: N)
-                 · dönem: başlangıç · bitiş (tek gün = aynı tarih; sezon = aralık)
-                 · yerine: kim — metin (bugün) VEYA personel kaydı (sabit personel gelince); aynı alan çifti
-                 · talep eden yetkili (contacts, opsiyonel) · kanal (opsiyonel; §6-Q5)
-                 · durum (§4 — yerleştirme sayısından TÜRETİLİR) · kaynak notu (mesaj metni)
-                 └─ YERLEŞTİRME (0..adet)  — YENİ
-                      · görevli → Personel kaydı · tür: idp | sabit
-                      · başlangıç · bitiş (talep dönemi içinde; sezon ortası değişim = ikinci satır)
-                      · atayan · atanma zamanı
+  ├─ Sözleşme                      — var · = "ihalesini aldığımız iş"; hizmet hattı alanı YENİ
+  │                                   (temizlik · güvenlik · … küçük liste)
+  ├─ Lokasyon (şube/bina/kat)      — YENİ · FİRMAYA bağlı (sözleşmeye değil: sözleşmeler arası ortak)
+  │                                   · ad, şehir, not · yetkili = contacts (opsiyonel bağ)
+  └─ TALEP (istek)                 — YENİ, staffing_demands'ın YERİNE (§5) · firma + lokasyon
+       · hizmet hattı — TALEPTE SEÇİLİR (sözleşme opsiyonel olduğu için yalnız oradan gelemez);
+         sözleşme sonradan bağlanınca firma VE hizmet hattı eşleşmeli, eşleşmiyorsa bağ reddedilir
+       · sözleşme (opsiyonel + "sözleşmesiz" uyarısı)
+       · pozisyon — hizmet hattından AYRI (kapıcı · garson · housekeeping · aşçı …; tenant başına liste)
+       · adet (banka İDP: 1 · otel sezon: N)
+       · dönem: başlangıç · bitiş (tek gün = aynı tarih; sezon = aralık)
+       · yerine: kim — metin (bugün) VEYA personel kaydı (sabit personel gelince); aynı alan çifti
+       · talep eden yetkili (contacts, opsiyonel)
+       · durum (§4 — GÜNLÜK doluluktan türetilir, elle olanlar öncelikli)
+       · operasyon notu — KISA, operasyonel; WhatsApp mesajı AYNEN YAPIŞTIRILMAZ (§3)
+       └─ YERLEŞTİRME (satır sayısı SINIRSIZ; sınır GÜNLÜK, aşağıda) — YENİ
+            · görevli → Personel Havuzu kaydı · tür: idp | sabit
+            · başlangıç · bitiş (talep dönemi içinde)
+            · atayan · atanma zamanı · iptal (zaman, sebep) · erken bitiş (zaman, sebep)
+            · satır SİLİNMEZ — biter ya da iptal olur; geçmiş korunur
 
-Personel kaydı (görevli)           — YENİ · ad · kod · tür (idp havuzu | sabit) · aktif/pasif · (tenant)
+Personel Havuzu (kişi kaydı)       — YENİ · ad · kod · tür (idp | sabit) · aktif/pasif · (tenant)
                                       BAŞKA HİÇBİR ŞEY: TC yok, telefon yok, adres yok, özlük yok (§3)
-                                      Tek varlık: bugünkü İDP havuzu + yarınki sabit personel
+                                      Aktif İş Gücü ÖZET tablosundan AYRI varlık; pasife alınan kişinin
+                                      eski yerleştirmeleri görünmeye devam eder
 
 ÇIKTILAR (hepsi YERLEŞTİRME satırlarından):
-  · HAFTALIK LİSTE  firma × sözleşme × hafta → S.NO · İl · Lokasyon · yerine gidecek görevli
-                     bugünkü Excel'in birebir karşılığı; kopyala/paylaş, sonra PDF/e-posta
-  · GÜNLÜK GÖRÜNÜM  "bugün kim nerede" (ops) · Dashboard'da tek sinyal: bugün açık talep
-  · OTEL GÖRÜNÜMÜ   talep başına "3 / 5 atandı" — aynı veriden, ayrı ekran değil
-  · sonra: firma/sözleşme bazlı adam-gün (izinli büyüme alanı — emek görünürlüğü, puantaj değil)
+  · HAFTALIK LİSTE  firma × hafta — GÜN BİLGİSİ ŞART (Excel'in dört sütunu "kim hangi gün" demiyor):
+                     S.NO · İl · Lokasyon · Pzt · Sal · Çar · Per · Cum · Cmt · Paz  (hücre = görevli)
+                     bütün hafta aynı kişiyse yedi hücre aynı; farklıysa görünür. Kopyala/paylaş; PDF/e-posta sonra.
+                     ⚠ Paylaşılacak örnek çıktı ŞEMADAN ÖNCE Furkan'la netleşir (§7).
+  · GÜNLÜK GÖRÜNÜM  seçilen günün doluluğu: talep başına "o gün kaç yerleştirme / adet" · Dashboard: bugün açık talep
+  · OTEL GÖRÜNÜMÜ   talep başına "bugün 3 / 5" — aynı veriden, ayrı ekran değil
+  · sonra: firma/sözleşme bazlı PLANLANAN adam-gün (izinli büyüme alanı — emek görünürlüğü, puantaj değil)
 ```
+
+**GÜNLÜK DOLULUK KURALI (Codex, 2026-09-08 — modelin merkezi):** doluluk toplam yerleştirme
+satırından HESAPLANAMAZ. Bir kişilik sezon talebinde ilk ay Ali, ikinci ay Ayşe = iki satır,
+kapasite bir. Kural: **talebin her günü için, o günü kapsayan yerleştirme sayısı ≤ adet.**
+`atandı` = dönemin **her günü** adet kadar karşılandığında; `kısmi_atandı` = en az bir gün
+eksik. Günlük görünüm yalnız seçilen günün doluluğunu gösterir.
+
+**ÇAKIŞMA VE DEĞİŞİKLİK KURALLARI:**
+- Aynı görevli aynı gün iki yerde olamaz — DB seviyesinde (tarih aralığı exclusion; plan ayrıntısı).
+- **Yarım gün kapsam DIŞI**; ihtiyaç doğarsa ayrı kapsam kararı.
+- Atama değişimi = eski satıra erken bitiş + yeni satır; iptal = satırda iptal zamanı + sebep.
+  Yerleştirme **silinmez**; geçmiş korunur; timeline'a iz düşer (WORKFLOW_RULES 7).
+- Personel pasife alınınca eski yerleştirmeleri görünür kalır; yeni atama yapılamaz.
 
 **Firma Detay merkezde kalır:** Lokasyonlar ve İDP talepleri Firma Detay'ın sekmeleri;
 Talepler ana sayfası "bugün + açık" görünümü. Dashboard'a tek sinyal: **bugün açık İDP
@@ -146,9 +165,13 @@ ikame, 2 atandı, 1 açık" görür. Bu, Dashboard'un karar yüzeyi iddiasının
   hak ediş, onay akışı BPS'in işi değil (izin yönetimi = HRIS, yasak listede).
 - **WhatsApp'ın yerini almaz.** Kanal kanaldır; BPS koordinasyon hub'ı. Business API
   köprüsü ayrı, büyük, bu kapsamda değil. İlk adım ops'un 20 saniyelik girişi.
-- **Puantaj değil.** Gün bazlı yerleştirme kaydı, "kaç adam-gün gönderdik" görünürlüğünü
-  doğal olarak üretir (firma-merkezli emek görünürlüğü, izinli büyüme alanı) — ama
-  mesai/fazla mesai hesabı yok.
+- **Puantaj değil.** Gün bazlı yerleştirme kaydı "kaç adam-gün" görünürlüğü üretir
+  (firma-merkezli emek görünürlüğü, izinli büyüme alanı) — ama bu **PLANLANAN adam-gün**dür:
+  gerçekleşme kaydı olmadan "gerçekleşen" denmez. Mesai/fazla mesai hesabı yok.
+- **Serbest not alanı sızıntı kapısıdır (Codex).** WhatsApp mesajı aynen yapıştırılırsa TC ve
+  telefon yasağı fiilen delinir. Alan "operasyon notu"dur, kısa ve operasyonel; UI'da uyarı
+  ("kimlik/telefon yazmayın") + **sunucu tarafında 11 haneli sayı ve telefon deseni reddi**
+  (plan ayrıntısı, ama kapsamın parçası).
 
 ---
 
@@ -159,12 +182,17 @@ değişikliği, kapsam kapısında tek kelimeyle onaylanır:
 
 | Durum | Ne zaman | Nasıl |
 |---|---|---|
-| `yeni` | yerleştirme 0 | türetilir |
-| `kısmi_atandı` | 0 < yerleştirme < adet (otel) | türetilir |
-| `atandı` | yerleştirme = adet | türetilir |
-| `bitti` | dönem bitiş tarihi geçti | **türetilir, saklanmaz** ("bitişini bildireceğim" = bu) |
+| `yeni` | dönemin hiçbir günü karşılanmamış | türetilir (günlük doluluktan, §2) |
+| `kısmi_atandı` | en az bir gün karşılanmış, en az bir gün eksik | türetilir |
+| `atandı` | dönemin **her günü** adet kadar karşılanmış | türetilir |
+| `bitti` | dönem bitiş tarihi geçti — **yalnız takvim bilgisi** ("dönemi geçti") | türetilir, saklanmaz |
 | `beklemede` | görevli bulunamadı, bekliyor | ops elle |
 | `iptal` | müşteri geri çekti | ops elle |
+
+**Öncelik (Codex):** elle konan `iptal` her şeyi ezer; `beklemede`, türetilen `yeni`/`kısmi_atandı`'yı
+ezer, `atandı`'yı ezemez (görevli bulunmuşsa "bekliyor" olamaz — sistem bunu reddeder);
+`bitti` yalnız `iptal` değilse ve dönem geçtiyse görünür. Tarihin geçmesi hizmetin gerçekleştiğini
+KANITLAMAZ — "dönemi geçti" ile "müşteriye bildirildi" ayrımı korunur (aşağı).
 
 `değerlendiriliyor`, `kısmi_doldu`, `tamamen_doldu` bu tablodan düşer (eski ekran hiç
 kullanılmadığı için taşınacak veri yok). Türetilen durum tutarsızlık üretemez: "atandı ama
@@ -213,20 +241,19 @@ geri geliyor (§4).
 
 1. ~~"Yerine" kim?~~ **CEVAPLANDI (§1c):** bugün bizim personelimiz değil → metin;
    sabit personel gelince kayda bağ. Aynı alan çifti (`replaced_name` + `replaced_worker_id`).
-2. **İDP kaydı — artık "açılsın mı" değil, "adı ve yeri ne".** Excel listeleri ~20 kişilik
-   bir havuzun zaten yönetildiğini gösterdi (§1b); liste üretmek için kayıt şart. Sınır:
-   yalnız **ad + kod + aktif/pasif** (§3). Karar: varlığın adı (`idp_workers`? "İDP Havuzu")
-   ve Aktif İş Gücü (özet tablo) ile ilişkisi — ayrı mı, onun kişi bazlı hâli mi.
+2. ~~İDP kaydı~~ **KARAR (Codex önerisi, 2026-09-08): adı "Personel Havuzu"; Aktif İş Gücü
+   özet tablosundan AYRI kişi kayıtları.** Sınır aynı: ad + kod + tür + aktif/pasif (§3).
 3. ~~`staffing_demands` kaderi~~ **CEVAPLANDI:** hiç girilmedi → yerine geçilir (§5).
 4. ~~Durumlar~~ **CEVAPLANDI:** "atandı" onaylı; küme §4'te, sözlük değişikliği kapıda tek
    kelimeyle onaylanır.
-5. **Kanal alanı** gerekli mi, yoksa "kaynak notu" yeterli mi.
+5. ~~Kanal alanı~~ **KARAR: ilk sürümde YOK.** Operasyon notu yeter (ve o da kısıtlı, §3).
 6. **Roller:** `operasyon` açar/atar, `yonetici` her şey, `ik` Firma Detay'da salt okunur
    (ROLE_MATRIX §5.3 ile aynı), `muhasebe`/`goruntuleyici` yok. Aynen mi?
 7. ~~Listenin dönemi~~ **CEVAPLANDI (§1c):** liste haftalık, kayıt günlük. Yerleştirme
    gün bazlı; haftalık liste görünüm.
-8. **Pozisyon listesi:** banka için temizlik · güvenlik; otel için garson · housekeeping ·
-   aşçı … Liste **tenant başına** ve genişler (§1d); ilk sürümde küçük sabit liste + "diğer". **"PYS" CEVAPLANDI (Furkan, 2026-09-08): hizmet hattı
+8. **Pozisyon ≠ hizmet hattı (KARAR):** hizmet hattı sözleşmenin/talebin (temizlik · güvenlik);
+   pozisyon talebin (kapıcı · garson · housekeeping · aşçı …). İki ayrı küçük liste, tenant
+   başına genişler; ilk sürümde sabit liste + "diğer". **"PYS" CEVAPLANDI (Furkan, 2026-09-08): hizmet hattı
    DEĞİL, ekibin Vakıfbank için kullandığı ad.** → Listeye girmez; lokasyon adının parçası
    olarak kalır ("PYS Güvenlik - Akyaka Bina 01. Kat"). Firma için kısa ad/takma ad alanı
    şimdilik gerekmiyor — ekranda firma adı yazar. Açık kalan yalnız: "kapıcı" temizliğin
@@ -248,8 +275,12 @@ geri geliyor (§4).
   görünür ve kopyalanır — bugünkü Excel'in birebir karşılığı; ops artık Excel kurmaz.
   **Günlük görünüm** "bugün kim nerede"yi verir. İlk sürümün "kullanıldı mı" ölçütü:
   haftalık liste BPS'ten paylaşılıyorsa modül yaşıyor demektir.
-- Sabit personel geldiğinde yeni tablo/yeni ekran gerekmez: aynı yerleştirme kaydı
-  `tür = sabit`, aynı personel kaydı. Bu, modelin doğru kurulduğunun testi.
+- **Günlük doluluk** doğru: bir kişilik sezon talebine ay ay iki farklı kişi atanınca durum
+  `atandı`dır (her gün 1/1), üçüncü kişi aynı güne atanamaz (1 > adet).
+- **Aynı görevli aynı gün iki yere** atanamaz — DB reddeder, UI açıklar.
+- **Haftalık çıktının örneği** (gün sütunlu) Furkan'la şemadan ÖNCE onaylanmış.
+- Sabit personel gelince aynı yerleştirme kaydı `tür = sabit` ile kullanılabilir; ek varlık
+  gerekirse gerekçesi planda yazılır.
 - Dashboard'da yalnız "bugün açık İDP" sinyali; Firma Detay'da lokasyon ve talep sekmeleri.
 - RLS: yeni tablolar `tenant_id` + rol koşullu, `R13` yeşil; `goruntuleyici` okuyamaz;
   çapraz-tenant izolasyon runbook'una iki satır eklenir.
@@ -259,14 +290,20 @@ geri geliyor (§4).
 
 ## 8. Sıra ve ufuk
 
-Bekleyen canlı smoke (Yeni Firma · /admin · seçici) → bu taslağın kapsam kapısı →
-plan (Claude Chat) → Step 3 sırasına yerleşir (RLS yeniden-yazımıyla aynı dönemde:
-yeni tablolar tenant koşullu policy'leriyle doğar).
+**Kapsam YÖNÜ onaylandı (Codex, 2026-09-08); kod başlangıcı DEĞİL.** Plan öncesi iki iş:
+(1) günlük doluluk kuralı ve haftalık çıktı tanımı taslağa işlendi (§2) — Furkan çıktı
+örneğini onaylar; (2) rol / durum / iş akışı belgeleriyle plan (`ROLE_MATRIX`,
+`STATUS_DICTIONARY`, `WORKFLOW_RULES` güncellemeleri planın parçası).
+Bekleyen canlı smoke (Yeni Firma · /admin · seçici) ayrı açık iş. Sonra plan (Claude Chat)
+→ Step 3 sırasına yerleşir (yeni tablolar tenant koşullu policy'leriyle doğar).
 
 Ufuk (Furkan, 2026-09-08): PYS (Vakıfbank) + Vakıf Katılım temizlik İDP → güvenlik → diğer
 bankalar → tesisler → ihale alınan firmalara sabit personel; **İzmir'de oteller** (dönemsel
-garson/hk/aşçı) şimdiden var. Model bu kümeyi **şema değiştirmeden** taşımalı: yeni pozisyon
+garson/hk/aşçı) şimdiden var. Model bu kümeyi mevcut varlıklarla karşılamalı: yeni pozisyon
 = listeye bir değer; yeni müşteri = firma + sözleşme + lokasyonlar; otel = adet N + dönem;
-sabit personel = yerleştirme `tür = sabit`; Partner Staff + Mek birleşmesi = tablo başına
-tek `tenant_id` UPDATE. Bunlardan biri yeni tablo ya da yeni ekran istiyorsa model yanlış
-kurulmuştur.
+sabit personel = yerleştirme `tür = sabit`. Bir senaryo yeni tablo ya da ekran isterse bu
+modelin yanlış olduğu anlamına gelmez — gerekçesi planda yazılır (Codex düzeltmesi).
+
+**Tenant birleşmesi (Partner Staff + Mek) AYRI PLANDIR** — "tablo başına tek UPDATE" değil:
+üyelikler (tek-üyelik hook'u), benzersizlik kısıtları (`UNIQUE(tenant_id, …)`), ilişkiler ve
+admin paneli varsayımları ayrıca değerlendirilir. Bu taslak onu yalnız bloklamaz.
