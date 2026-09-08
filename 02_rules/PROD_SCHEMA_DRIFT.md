@@ -63,6 +63,16 @@ TRIGGER        tasks_validate_linked_fks (repo'da YOK — doğrulandı)
 `current_user_active_tenant()` → `uuid`, `SECURITY DEFINER`, `STABLE`, argümansız.
 `current_user_role()` → `text`, `SECURITY DEFINER`, `STABLE`, argümansız. *(2026-08-27 ölçümü)*
 
+**2026-09-05'ten sonra prod'a eklenen fonksiyonlar REPO-DIŞI DEĞİLDİR** — yukarıdaki envanter
+(2026-08-10, 25 fonksiyon) onları içermez ama tanımları repo'dadır:
+`20260904000100` → `current_user_verified_tenant()` · `is_active_tenant_member(uuid)` ·
+`active_tenant_profiles()`; `20260827000400` → `is_platform_admin()` · `admin_list_tenants()` ·
+`admin_list_users()` · `admin_assign_role_and_tenant(uuid,text,uuid)` · `admin_create_tenant(text,text)`.
+Tam sayım yeniden alınırsa bu sekizi "açıklanan" sütununa yaz; drift sayma.
+`current_user_verified_tenant()` gövdesi (repo, uygulanan içerik):
+`SELECT m.tenant_id FROM tenant_memberships m WHERE m.user_id = auth.uid() AND m.tenant_id = current_user_active_tenant();`
+— claim'i canlı üyelikle doğrular, üyelik yoksa NULL.
+
 ### `tenants` / `tenant_memberships` — RLS açık, policy SIFIR
 
 İkisi de RLS açık, policy yok, `anon`/`authenticated`'a SELECT/INSERT/UPDATE/DELETE
