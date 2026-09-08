@@ -307,3 +307,29 @@ modelin yanlış olduğu anlamına gelmez — gerekçesi planda yazılır (Codex
 **Tenant birleşmesi (Partner Staff + Mek) AYRI PLANDIR** — "tablo başına tek UPDATE" değil:
 üyelikler (tek-üyelik hook'u), benzersizlik kısıtları (`UNIQUE(tenant_id, …)`), ilişkiler ve
 admin paneli varsayımları ayrıca değerlendirilir. Bu taslak onu yalnız bloklamaz.
+
+---
+
+## 9. İlişkili belgeler (Codex, 2026-09-08) — bu taslağı tamamlar, değiştirmez
+
+- `03_strategy/IDP_PLANLAMA_URUN_INCELEMESI.md` — ürün davranışı taslağı (rakip kanıtı,
+  ekran sözleşmeleri, toplu işlemler, kabul senaryoları). DRAFT/REFERENCE.
+- `03_strategy/BPS_SAAS_BENCHMARK_2026-09-08.md` — yön önerisi; "daha fazla modül değil,
+  mevcut kayıtları sorumluya/tarihe/aksiyona/geçmişe bağlamak". DRAFT.
+
+Bu taslakla **aynı** olanlar: gün başına doluluk (`A(d) ≤ R(d)` = §2 günlük doluluk kuralı);
+yerleştirme silinmez, düzeltme olayı; "bildirildi" bir kayıt.
+
+Bu taslağa **eklenmesi gerekenler** (plan girdisi):
+1. **Gün sınırı saat dilimi:** `Europe/Istanbul`. "Bugün" hesabı UTC'de yapılırsa gece
+   yarısı civarı yanlış güne düşer — şema ve türetme bu dilime sabitlenir.
+2. **Dashboard sayacı kişi-gün sayar, satır değil:** "Bugün 3 kişi açık · 2 talepte".
+   Satır sayısı ile eksik personel sayısı karıştırılmaz; iptal talepleri sayılmaz.
+3. **Haftalık müşteri çıktısının gönderim kaydı:** liste paylaşıldığında kim, ne zaman,
+   hangi hafta — `updated_at` ya da kopyalama bunu kanıtlamaz. "Müşteriye bildirildi"
+   olayının ilk somut hâli budur (§4).
+
+**SAPMA — kapıda karar:** aynı görevlinin aynı gün iki yere atanması. Bu taslak "DB
+reddeder" diyor (§2); ürün incelemesi "uyar, katı benzersizlik gerçek ek ihtiyacı da
+engeller" diyor. Yarım gün kapsam dışı olduğu sürece katı kural tutarlı; yarım gün gelirse
+uyarıya döner. Öneri: **v1'de DB reddi**, sebep yazılmış — gevşetme ayrı karar.
