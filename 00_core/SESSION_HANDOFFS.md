@@ -873,3 +873,22 @@ Push Furkan onayıyla; smoke sonucuyla birlikte tek push önerildi.
 `CODEX.md` (her zaman) · `00_core/CHANGELOG.md` üst 14 satır · `02_rules/RLS_ACCESS_MATRIX.md` · `02_rules/PROD_SCHEMA_DRIFT.md` ·
 `03_strategy/IDP_TALEP_KAPSAM_TASLAGI.md` · `supabase/manual/profiles_tenant_scope_post_apply_verify.sql` (§7 davranış testi) ·
 memory: `bps-deferred-security-backlog`, `talep-gercek-akisi-whatsapp`, `olcum-iddiayi-kanitlamali` (8 biçim), `pbcopy-utf8-locale`.
+
+## 2026-09-09 — Codex yayını git'e alındı; ölçüm notu (Claude Code)
+
+Bu giriş `01_product/CLAUDE_TEKNIK_DEVIR_2026-09-09.md`'nin (Codex) yanına, Claude Code'un
+**ölçtüğü** durumu koyar. Kaynak öncelik Codex'in notundaki gibi: `supabase/manual/release-20260909*`.
+
+- **Ölçüldü:** 27/27 migration SQL hash'i manifestle eşit; defterde 27/27 applied; 246/246
+  kaynak dosya canlı deploy'la birebir; tsc 0; build ✓; qa:static 0 FAIL. Ağaç tek release
+  commit'iyle git'e alındı (Claude Code kod yazmadı). Pending yalnız `20260722000200`.
+- **Ölçülmedi / yapılmadı:** 27 migration'ın bağımsız incelemesi (24 dosyada SECURITY
+  DEFINER; `handle_new_user` değişti; admin RPC değişti) — build+apply+deploy tek ajan;
+  canlı yazma kabulü (işe başlama akışı); 43 raw-claim policy ve `current_user_active_tenant`
+  aynen; `RenewalTrackingCard` silindi, `CLAUDE.md` hâlâ primitive listesinde (docs sync).
+- **Push yapılmadı** — Furkan onayı. `db push` yasak; `20260722000200` pakete katılmaz.
+- Sonraki: (1) bağımsız migration incelemesi (öneri: Claude Code, dar kapsam — SECURITY
+  DEFINER gövdeleri, handle_new_user, RLS/grant); (2) canlı yazma kabulü gerçek atamayla;
+  (3) docs sync (CLAUDE.md primitives, ROLE_MATRIX/STATUS_DICTIONARY/WORKFLOW_RULES
+  değişiklikleri zaten ağaçta — okunmalı); (4) Talep+Yerleştirme taslağı ile yeni ops
+  çekirdeğinin (ops_daily_requests/assignments) örtüşmesi: taslak artık kısmen UYGULANMIŞ.
