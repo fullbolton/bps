@@ -523,6 +523,7 @@ export default function AyarlarPage() {
   return (
     <>
       <PageHeader title="Ayarlar" subtitle="Sistem yapılandırması" />
+      <a href="/kurulum" className="mb-5 block rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 hover:underline">Çalışma alanı kurulumu → Firma, şube, ekip ve ilk plan adımları</a>
 
       <div className="space-y-4">
         <TabNavigation tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />

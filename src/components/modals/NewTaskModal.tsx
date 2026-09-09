@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui";
 import { TASK_SOURCE_LABELS } from "@/lib/task-sources";
 import type { TaskSourceType } from "@/lib/task-sources";
@@ -34,6 +34,7 @@ interface NewTaskModalProps {
   /** Pre-filled from AI suggestion flow */
   defaultBaslik?: string;
   defaultOncelik?: string;
+  prefillNotice?: string;
   onSubmit?: (payload: {
     baslik: string;
     firmaId: string;
@@ -59,6 +60,7 @@ export default function NewTaskModal({
   defaultKaynakRef,
   defaultBaslik,
   defaultOncelik,
+  prefillNotice,
   onSubmit,
 }: NewTaskModalProps) {
   const [baslik, setBaslik] = useState(defaultBaslik ?? "");
@@ -69,6 +71,7 @@ export default function NewTaskModal({
   const [termin, setTermin] = useState("");
   const [oncelik, setOncelik] = useState(defaultOncelik ?? "normal");
   const [saving, setSaving] = useState(false);
+  const submitting = useRef(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const isSourceLocked = Boolean(defaultKaynak && defaultKaynakRef);
 
@@ -79,12 +82,13 @@ export default function NewTaskModal({
     setAtananKisiId("");
     setTermin("");
     setSubmitError(null);
-    if (defaultBaslik) setBaslik(defaultBaslik);
-    if (defaultOncelik) setOncelik(defaultOncelik);
-  }, [open, defaultFirmaId, defaultKaynak, defaultBaslik, defaultOncelik]);
+    setBaslik(defaultBaslik ?? "");
+    setOncelik(defaultOncelik ?? "normal");
+  }, [open, defaultFirmaId, defaultKaynak, defaultKaynakRef, defaultBaslik, defaultOncelik]);
 
   async function handleSubmit() {
-    if (!baslik.trim() || !firmaId) return;
+    if (submitting.current || !baslik.trim() || !firmaId) return;
+    submitting.current = true;
     const payload = {
       baslik: baslik.trim(),
       firmaId,
@@ -98,24 +102,25 @@ export default function NewTaskModal({
     setSubmitError(null);
     try {
       await onSubmit?.(payload);
-      resetAndClose();
+      onClose();
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Görev oluşturulurken bir hata oluştu.",
       );
     } finally {
       setSaving(false);
+      submitting.current = false;
     }
   }
 
   function resetAndClose() {
+    if (submitting.current) return;
     setBaslik(defaultBaslik ?? "");
     setFirmaId(defaultFirmaId ?? "");
     setKaynak(defaultKaynak ?? "manuel");
     setOncelik(defaultOncelik ?? "normal");
     setAtananKisiId("");
     setTermin("");
-    setOncelik("normal");
     setSubmitError(null);
     onClose();
   }
@@ -129,6 +134,7 @@ export default function NewTaskModal({
         <>
           <button
             onClick={resetAndClose}
+            disabled={saving}
             className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50"
           >
             İptal
@@ -144,6 +150,7 @@ export default function NewTaskModal({
       }
     >
       <div className="space-y-4">
+        {prefillNotice && <p className="rounded-md bg-blue-50 p-3 text-sm text-blue-800">{prefillNotice}</p>}
         {submitError && (
           <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2">
             <p className="text-xs font-medium text-red-700">{submitError}</p>

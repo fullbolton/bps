@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {importActualTypeScript} from './helpers/import-typescript.mjs';
+const {buildRequestDates,validateRequestBatch,parseBatchResult}=await importActualTypeScript(new URL('../src/lib/operations/request-batch.ts',import.meta.url));
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const payload=()=>({companyId:id(1),locationId:id(2),serviceLine:' Temizlik ',position:' Görevli ',requiredCount:2,dates:['2026-12-30','2026-12-28']});
+test('weekdays selected across year boundary and leap day',()=>{assert.deepEqual(buildRequestDates('2026-12-28','2027-01-03',[1,2,3,4,5]),['2026-12-28','2026-12-29','2026-12-30','2026-12-31','2027-01-01']);assert.deepEqual(buildRequestDates('2024-02-28','2024-03-01',[4]),['2024-02-29']);});
+test('range limit is inclusive 31 days; reverse, empty weekday and invalid calendar rejected',()=>{assert.equal(buildRequestDates('2026-01-01','2026-01-31',[1,2,3,4,5,6,7]).length,31);for(const args of [['2026-01-01','2026-02-01',[1]],['2026-01-02','2026-01-01',[1]],['2026-02-30','2026-03-01',[1]],['2026-01-01','2026-01-01',[]],['2026-01-01','2026-01-01',[1]],['2026-01-01','2026-01-02',[4,4]]])assert.throws(()=>buildRequestDates(...args));});
+test('payload normalization gives same dates and trimmed content for retry identity',()=>{assert.deepEqual(validateRequestBatch(payload()),{...payload(),serviceLine:'Temizlik',position:'Görevli',dates:['2026-12-28','2026-12-30']});});
+test('malformed or excessive payload never reaches writes',()=>{for(const patch of [{dates:[]},{dates:['2026-12-28','2026-12-28']},{dates:['2026-12-28','2027-02-01']},{dates:['1999-12-31']},{requiredCount:1.5},{companyId:'x'},{position:' '}])assert.throws(()=>validateRequestBatch({...payload(),...patch}));});
+test('removed preview days remain excluded from canonical payload',()=>{assert.deepEqual(validateRequestBatch({...payload(),dates:['2026-12-30']}).dates,['2026-12-30']);});
+test('batch result must contain exact count and distinct identities for the same command',()=>{const good={commandId:id(3),created:2,requestIds:[id(4),id(5)]};assert.deepEqual(parseBatchResult(id(3),2,good),good);for(const bad of [null,{...good,created:1},{...good,commandId:id(6)},{...good,requestIds:[id(4),id(4)]},{...good,requestIds:[id(4)]}])assert.throws(()=>parseBatchResult(id(3),2,bad));});

@@ -405,6 +405,7 @@ export default function TaleplerPage() {
         title="Personel Talepleri"
         subtitle="Acik ihtiyaclar ve doluluk durumu"
         actions={[
+          { label: "Günlük plan", onClick: () => router.push("/talepler/gunluk"), variant: "secondary" },
           {
             label: "Yeni Talep",
             onClick: () => setNewOpen(true),

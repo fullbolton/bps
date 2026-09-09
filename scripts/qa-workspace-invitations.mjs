@@ -1,0 +1,42 @@
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import {randomUUID} from 'node:crypto';import assert from 'node:assert/strict';
+import {baseline,id} from './fixtures/daily-operations.mjs';
+const modulePath=process.env.BPS_EMBEDDED_PG_MODULE;if(!modulePath?.startsWith('/'))throw Error('Absolute BPS_EMBEDDED_PG_MODULE required');
+const {default:EmbeddedPostgres}=await import(pathToFileURL(modulePath).href);
+const dir=await mkdtemp(join(tmpdir(),'bps-invitations-'));
+const pg=new EmbeddedPostgres({databaseDir:join(dir,'db'),user:'postgres',password:randomUUID(),port:55450,persistent:false,postgresFlags:['-h','127.0.0.1','-k',dir],onLog:()=>{},onError:()=>{}});
+let c;let count=0;const pass=s=>{count++;console.log('PASS '+s);};
+try{
+ await pg.initialise();await pg.start();c=pg.getPgClient('postgres','127.0.0.1');await c.connect();await c.query(baseline);
+ await c.query(`CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT jsonb_build_object('app_metadata',jsonb_build_object('active_tenant',nullif(current_setting('test.tenant',true),''))) $$;
+ CREATE SCHEMA storage; CREATE TABLE storage.objects(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),bucket_id text,name text,owner_id text,metadata jsonb,UNIQUE(bucket_id,name));
+ GRANT USAGE ON SCHEMA storage TO authenticated;GRANT SELECT,INSERT,UPDATE,DELETE ON storage.objects TO authenticated;
+ ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;CREATE POLICY fixture_storage ON storage.objects TO authenticated USING(true) WITH CHECK(true);`);
+ for(const f of ['local-task-prefill.sql','local-contracts.sql','local-documents.sql'])await c.query(await readFile(new URL('./fixtures/'+f,import.meta.url),'utf8'));
+ for(const f of ['20260909000100_daily_operations_pilot.sql','20260909001300_task_assignment_history.sql','20260909001800_contract_document_versions.sql','20260909001900_contract_pdf_upload_commands.sql','20260909002000_contract_appendices.sql','20260909002100_dashboard_activity.sql'])await c.query(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
+ await c.query(await readFile(new URL('./fixtures/local-workspace-setup.sql',import.meta.url),'utf8'));
+ await c.query(await readFile(new URL('../supabase/migrations/20260909002200_workspace_setup.sql',import.meta.url),'utf8'));
+ await c.query("ALTER TABLE profiles ADD COLUMN is_platform_admin boolean NOT NULL DEFAULT false; CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,email_confirmed_at timestamptz,banned_until timestamptz); CREATE TABLE auth.sessions(user_id uuid)");
+ await c.query(await readFile(new URL('../supabase/migrations/20260909002300_workspace_invitations.sql',import.meta.url),'utf8'));
+ for(let n=30;n<36;n++){await c.query("INSERT INTO profiles(id,role) VALUES($1,'goruntuleyici');",[id(n)]);await c.query("INSERT INTO auth.users VALUES($1,$2,now(),NULL)",[id(n),`person${n}@example.test`]);}
+ const as=async(user=10,tenant=1,client=c)=>{await client.query('RESET ROLE');await client.query("SELECT set_config('test.user',$1,false),set_config('test.tenant',$2,false)",[id(user),tenant===null?'':id(tenant)]);await client.query('SET ROLE authenticated');};
+ const token='a'.repeat(64),create=async(n,email='person30@example.test')=>(await c.query("SELECT manage_workspace_invitation($1,$2,$3,'create',$4,'operasyon',$5) r",[id(10),id(1),id(n),email,n===600?token:n.toString(16).padStart(64,'0')])).rows[0].r;
+ const accept=async(n,user=30,client=c,t=n===600?token:n.toString(16).padStart(64,'0'))=>(await client.query('SELECT accept_workspace_invitation($1,$2,$3) r',[id(user),id(n),t])).rows[0].r;
+ await as();const first=await create(600);assert.deepEqual(first,await create(600));await assert.rejects(()=>create(600,'different@example.test'),/INVITE_COMMAND/);pass('same command replays exactly; changed payload rejected');
+ const list=(await c.query('SELECT list_workspace_invitations($1,$2) r',[id(10),id(1)])).rows[0].r;assert.equal(list.length,1);assert.ok(!JSON.stringify(list).includes(token));await assert.rejects(()=>c.query('SELECT * FROM workspace_invitations'),/permission denied/);pass('list exposes no token/hash and raw table stays private');
+ await as(11);await assert.rejects(()=>c.query('SELECT list_workspace_invitations($1,$2)',[id(11),id(1)]),/INVITE_SCOPE/);await as();await assert.rejects(()=>c.query('SELECT list_workspace_invitations($1,$2)',[id(10),id(2)]),/INVITE_SCOPE/);pass('operator and foreign tenant listing rejected');
+ await as(31,null);await assert.rejects(()=>accept(600,31),/INVITE_IDENTITY/);await as(30,null);await assert.rejects(()=>accept(600,30,c,'b'.repeat(64)),/INVITE_INVALID/);pass('wrong verified email and wrong token rejected');
+ await c.query('RESET ROLE');await c.query('UPDATE auth.users SET email_confirmed_at=NULL WHERE id=$1',[id(30)]);await as(30,null);await assert.rejects(()=>accept(600),/INVITE_IDENTITY/);await c.query('RESET ROLE');await c.query('UPDATE auth.users SET email_confirmed_at=now() WHERE id=$1',[id(30)]);pass('unverified Auth email cannot accept');
+ await as(30,1);await assert.rejects(()=>accept(600),/INVITE_STALE_SESSION/);await as(30,null);pass('zero-member old tenant claim cannot be promoted');
+ await c.query('RESET ROLE');await c.query('INSERT INTO auth.sessions VALUES($1)',[id(30)]);await as(30,null);
+ const b=pg.getPgClient('postgres','127.0.0.1');await b.connect();try{await as(30,null);await as(30,null,b);const results=await Promise.all([accept(600),accept(600,30,b)]);assert.deepEqual(results[0],results[1]);}finally{await b.end();}
+ await c.query('RESET ROLE');assert.equal((await c.query('SELECT count(*) FROM tenant_memberships WHERE user_id=$1',[id(30)])).rows[0].count,'1');assert.equal((await c.query('SELECT role FROM profiles WHERE id=$1',[id(30)])).rows[0].role,'operasyon');assert.equal((await c.query('SELECT count(*) FROM auth.sessions WHERE user_id=$1',[id(30)])).rows[0].count,'0');pass('concurrent accept creates one membership and role change, invalidates refresh sessions');
+ await as();await assert.rejects(()=>c.query("SELECT manage_workspace_invitation($1,$2,$3,'cancel')",[id(10),id(1),id(600)]),/INVITE_ACCEPTED/);pass('accepted invite cannot be cancelled as an access-revocation shortcut');
+ await create(601,'person31@example.test');await c.query("SELECT manage_workspace_invitation($1,$2,$3,'cancel')",[id(10),id(1),id(601)]);await as(31,null);await assert.rejects(()=>accept(601,31),/INVITE_INVALID/);pass('cancelled invite cannot be accepted');
+ await as();await create(602,'person32@example.test');await c.query('RESET ROLE');await c.query('INSERT INTO tenant_memberships VALUES($1,$2)',[id(32),id(2)]);await as(32,2);await assert.rejects(()=>accept(602,32),/INVITE_EXISTING_MEMBER/);pass('existing foreign membership never moved');
+ await as();await create(603,'person33@example.test');await c.query('RESET ROLE');await c.query("UPDATE workspace_invitations SET expires_at=now()-interval '1 second' WHERE id=$1",[id(603)]);await as(33,null);await assert.rejects(()=>accept(603,33),/INVITE_INVALID/);pass('expired invite rejected');
+ await as();await create(605,'person35@example.test');const race=pg.getPgClient('postgres','127.0.0.1');await race.connect();try{await as(35,null,race);await Promise.allSettled([c.query("SELECT manage_workspace_invitation($1,$2,$3,'cancel')",[id(10),id(1),id(605)]),accept(605,35,race)]);}finally{await race.end();}
+ await c.query('RESET ROLE');const winner=(await c.query('SELECT accepted_at,cancelled_at FROM workspace_invitations WHERE id=$1',[id(605)])).rows[0];const memberCount=(await c.query('SELECT count(*) FROM tenant_memberships WHERE user_id=$1',[id(35)])).rows[0].count;assert.notEqual(winner.accepted_at===null,winner.cancelled_at===null);assert.equal(memberCount,winner.accepted_at?'1':'0');pass('concurrent cancel/accept has one outcome matching actual membership');
+ await as();await create(604,'person34@example.test');await c.query('RESET ROLE');await c.query("UPDATE profiles SET role='ik' WHERE id=$1",[id(10)]);await as(34,null);await assert.rejects(()=>accept(604,34),/INVITE_REVOKED/);pass('revoked inviter role stops outstanding invite');
+ console.log(`Workspace invitation PostgreSQL checks: ${count} passed.`);
+}finally{await c?.end();await pg.stop();await rm(dir,{recursive:true,force:true});}

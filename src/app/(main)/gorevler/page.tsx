@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { Suspense, useState, useMemo, useCallback, useEffect } from "react";
+import TaskPrefillBanner from "./TaskPrefillBanner";
+import TaskAssignmentHistory from "./TaskAssignmentHistory";
+import type { TaskPrefill } from "@/lib/operations/task-prefill";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Plus } from "lucide-react";
@@ -202,6 +205,8 @@ const COLUMNS: ColumnDef<TaskListRow>[] = [
   },
 ];
 
+import TaskTransferModal from "./TaskTransferModal";
+
 export default function GorevlerPage() {
   const { role } = useRole();
   const { loading: authLoading, user } = useAuth();
@@ -227,7 +232,11 @@ export default function GorevlerPage() {
     kaynak: "",
     firma: "",
   });
+  const [transferOpen, setTransferOpen] = useState(false);
+  useEffect(() => { setTransferOpen(false); }, [user?.id, user?.app_metadata?.active_tenant, role]);
   const [newOpen, setNewOpen] = useState(false);
+  const [taskPrefill, setTaskPrefill] = useState<TaskPrefill | null>(null);
+  useEffect(() => { setNewOpen(false); setTaskPrefill(null); }, [user?.id, role]);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editDurum, setEditDurum] = useState<GorevDurumu>("acik");
@@ -379,7 +388,7 @@ export default function GorevlerPage() {
   );
 
   const kullaniciOptions = useMemo(
-    () => allProfiles.map((p) => ({ id: p.id, ad: p.display_name })),
+    () => allProfiles.filter((p) => ["yonetici", "operasyon", "ik"].includes(p.role)).map((p) => ({ id: p.id, ad: p.display_name })),
     [allProfiles],
   );
 
@@ -427,13 +436,20 @@ export default function GorevlerPage() {
         title="Görevler"
         subtitle="Görev takibi ve koordinasyon"
         actions={[
+          ...(role === "yonetici" ? [{ label: "Görevleri devret", onClick: () => setTransferOpen(true) }] : []),
           {
             label: "Yeni Görev",
-            onClick: () => setNewOpen(true),
+            onClick: () => { setTaskPrefill(null); setNewOpen(true); },
             icon: <Plus size={16} />,
           },
         ]}
       />
+
+      {(role === "yonetici" || role === "operasyon") && <Suspense fallback={<p role="status">Talep bağlantısı hazırlanıyor…</p>}>
+        <TaskPrefillBanner key={`${user?.id}:${role}`} disabled={newOpen} onPrepare={prefill => {
+          setTaskPrefill(prefill); setNewOpen(true);
+        }} />
+      </Suspense>}
 
       <div className="space-y-4">
         {/* Loading state */}
@@ -598,9 +614,10 @@ export default function GorevlerPage() {
                 </div>
               )}
               {panelError && (
-                <p className={`${TYPE_CAPTION} text-red-600`} role="alert">
+                <div className={`${TYPE_CAPTION} text-red-600`} role="alert">
                   {panelError}
-                </p>
+                  <button disabled={saving} className="mt-2 block underline" onClick={async()=>{await reload();setPanelError(null);}}>Güncel kaydı yükle (formu yeniler)</button>
+                </div>
               )}
               <button
                 disabled={saving}
@@ -612,6 +629,7 @@ export default function GorevlerPage() {
                     // Send the id only — the service derives the display name
                     // from profiles and clears both columns on "" (unassign).
                     await updateTask(supabase, selectedTask.id, {
+                      expectedRevision: selectedTask.revision,
                       status: editDurum,
                       ...(role !== "ik"
                         ? { assignedToUserId: editAtananKisiId || null }
@@ -639,12 +657,21 @@ export default function GorevlerPage() {
             </div>
           </div>
         )}
+        {selectedTask&&<TaskAssignmentHistory key={`${user?.id}:${selectedTask.id}:${selectedTask.revision}`} client={supabase} taskId={selectedTask.id} profiles={allProfiles} />}
       </RightSidePanel>
 
+      {transferOpen && role === "yonetici" && user && <TaskTransferModal
+        key={`${user.id}:${user.app_metadata?.active_tenant}:${role}`}
+        actorId={user.id} onClose={() => setTransferOpen(false)}
+        onApplied={() => { void reload(); router.refresh(); }}
+      />}
       <NewTaskModal
         open={newOpen}
-        onClose={() => setNewOpen(false)}
-        firmalar={firmaOptions}
+        onClose={() => { setNewOpen(false); setTaskPrefill(null); }}
+        firmalar={taskPrefill ? [{id:taskPrefill.companyId,ad:taskPrefill.companyName}] : firmaOptions}
+        defaultFirmaId={taskPrefill?.companyId}
+        defaultBaslik={taskPrefill?.title}
+        prefillNotice={taskPrefill ? "Şube ve gün bilgisi görev başlığına kopyalandı. Talepteki sonraki değişiklikler bu göreve yansımaz; görevi tamamlamak talebi kapatmaz." : undefined}
         kullanicilar={kullaniciOptions}
         kullanicilarDurum={profilesDurum}
         allowAssignee={role !== "ik"}

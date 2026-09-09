@@ -72,7 +72,7 @@ export default function ContractSummaryHeader({
               </span>
             )}
             <span className={TEXT_MUTED}>·</span>
-            <span>Sorumlu: {sorumlu}</span>
+            <span>Sözleşme sorumlu notu: {sorumlu}</span>
             {tutar && (
               <>
                 <span className={TEXT_MUTED}>·</span>

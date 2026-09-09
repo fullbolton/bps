@@ -45,6 +45,7 @@ import {
   selectTasksByAppointmentId,
   insertTask,
   updateTask as updateTaskRaw,
+  selectTaskAssignmentHistory,
 } from "@/lib/supabase/tasks";
 import { requireCompanyByLegacyMockId } from "@/lib/services/companies";
 import {
@@ -128,6 +129,7 @@ export interface TaskCreateInput {
 }
 
 export interface TaskUpdateInput {
+  expectedRevision: number;
   title?: string;
   /** Assignee identity (profiles.id), or null to unassign. Sole assignee input
    *  — the display name is derived server-side; see TaskCreateInput. */
@@ -368,9 +370,10 @@ export async function updateTaskStatus(
   client: Client,
   taskId: string,
   nextStatus: GorevDurumu,
+  expectedRevision: number,
 ): Promise<TaskRow> {
   const validatedStatus = ensureStatus(nextStatus);
-  return updateTaskRaw(client, taskId, { status: validatedStatus });
+  return updateTaskRaw(client, taskId, { status: validatedStatus }, expectedRevision);
 }
 
 // ---------------------------------------------------------------------------
@@ -438,5 +441,10 @@ export async function updateTask(
     patch.status = ensureStatus(input.status);
   }
 
-  return updateTaskRaw(client, taskId, patch);
+  return updateTaskRaw(client, taskId, patch, input.expectedRevision);
+}
+
+export async function listTaskAssignmentHistory(client: Client, taskId: string) {
+  if (!UUID_SHAPE.test(taskId)) throw new TaskValidationError("Görev kimliği geçersiz.");
+  return selectTaskAssignmentHistory(client, taskId);
 }

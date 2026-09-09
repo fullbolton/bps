@@ -1,5 +1,81 @@
 # TASK_ROADMAP.md
 
+> **035 — 2026-09-09: Vercel production yayını tamamlandı.** [İşe Başlama Takibi](https://www.bpsys.net/talepler/ise-baslama) canlı Supabase üzerinde açılıyor. 27/27 migration uygulanmış durumda. Yeni sürüm `dpl_7dGwr1wHZc2REPBUYuJwjNnE6RZk`; production sağlık 5/5 ve mevcut hesapla takip + Dashboard okuma geçti. Bugün atama olmadığı için production arama/teyit yazma kabulü açık; yerel SQL/Auth/RPC/tarayıcı kabulü geçerli. localhost yerel kalır; git push yapılmadı, çalışma ağacının uygulama dosyaları CLI ile yayınlandı. Önceki frontend-bekliyor notları tarihseldir. Kanıt: `supabase/manual/release-20260909.md/json`.
+
+> **034 — Supabase aktarımı tamam:27/27.** Son001600/002300/002400 kullanıcı devam onayıyla canlıya uygulandı. 27SQL SHA256 eşleşti, ledger uzlaştırıldı. Görev/davet/kayıt izinleri ve altı canlı salt-okunur kontrol geçti. Paket migration'ı beklemiyor. **localhost yerel; frontend deploy ve production kimlikli yazma smoke'u henüz yok.** Sıradaki bu paketin canlı UI yayını ve İşe Başlama Takibi kabulü; başka modüle geçme. Kanıt: supabase/manual/release-20260909.md/json.
+
+
+> **033 — canlı durum24/27:** 001300–001500,001700–002200,002500–002600 de uygulandı, SHA256 veledger doğrulandı. Yalnız001600/002300/002400 için otomatik denetimin istediği oturum/rol etkilerine özgü onay bekliyor. İşe Başlama, kurulum, günlük özet veaktivite canlı salt-okunur probe geçti. localhost yerel; frontenddeploy yok. Ayrıntı supabase/manual/release-20260909.md.
+
+
+> **032 — 2026-09-09: canlı aktarım kısmi, İşe Başlama Takibi kalıcı.** Canlıya 000100–001200 ve 002700 olmak üzere 13 migration uygulandı; SQL SHA256 doğrulandı, ledger özgün sürümlerle uzlaştırıldı. 001300–002600 mevcut modül değişiklikleri otomatik onay denetimi nedeniyle ayrı kullanıcı onayı bekliyor. 145 unit/genel+SQL+build 23/23; yeni takip 16SQL ve gerçek yerel Auth/RPC, tarayıcıda kayıt+reload geçti. localhost hâlâ yerel Supabase; frontend deploy yok. Güncel ayrıntı: [Canlı aktarım defteri](../supabase/manual/release-20260909.md).
+
+
+> **031 — 2026-09-09:** Yeni kullanıcı önceliği İşe Başlama Takibi. Connecteam/Deputy/RotaCloud/When I Work resmi belgeleri incelendi; kaynaklı UX+veri planı ve kayıt oluşturmayan etkileşimli önizleme hazır.140unit/genel/type/build6/6. Sıradaki başlangıç saati+sorumlu+plan snapshot ve scoped SQL okuma. Gerçek arama/teyit kaydı henüz yok. [Plan](ISE_BASLAMA_TAKIBI_PLANI.md). Luca/proje işleri korunur; önceki sıradaki notları tarihseldir.
+
+
+> **030 — 2026-09-09 (SQL yok):** Luca bekleyen onay kimliği mali satır saklamadan kalıcı. Aynı dosya/eşleme reload sonrası aynı UUID; farklı dosya/eşleme bloklanır.134unit/genel/type/build6/6, gerçekAuth/RPC kimlik kurtarma geçti. Browser gerçek reload E2E açık. [Kanıt/sınırlar](LUCA_KALICI_KURTARMA_DILIMI.md). Sıradaki sunucu receipt durum uzlaştırması; proje tanımı/gerçek çıktı kolonları açık. Önceki sıradaki notları tarihseldir.
+
+
+> **029 — 2026-09-09:** Luca tek transaction onayına geçti (migration02600, yalnız yerel). Upload/satır/alacak birlikte; tenant+firma sınırı, aynı komut tekrarı ve eski bypass kapısı kapalı.9nativeSQL,gerçekAuth/RPC,128unit/genel/type/build6/6. Sıradaki kalıcı yeniden deneme ve gerçek export/proje eşleme sözleşmesi. Proje tanımı kararı açık. [Kanıt/sınırlar](LUCA_ATOMIK_ONAY_DILIMI.md). Önceki sıradaki notları tarihseldir.
+
+
+> **028 — 2026-09-09:** Kullanıcı önceliği proje finansalı + Luca. Gelişmiş özet düğmesi ilk kaynak görünümü olarak eklendi; proje kârlılığı henüz hesaplanmıyor. Mevcut Luca yalnız firma açık alacağı üretir.128unit/genel/type/build6/6, modal tarayıcı kabulü. Sıradaki aktarım tenant/atomiklik incelemesi; proje tanımı için kullanıcı cevabı bekleniyor. [Plan ve sınırlar](PROJE_FINANSALI_VE_LUCA_PLANI.md). Banka/otel pilotu korunur; önceki sıradaki notları tarihseldir.
+
+
+> **027 — 2026-09-09 (ürün SQL yok):** Finansal ekranın boş/dolu/yalnız firma kaydı kabulü yerel tarayıcıda geçti. Eksik gecikmiş firma sayısı artık sıfır değil bilinmiyor; mali yenileme düğmesi eklendi.128unit ve genel5adım geçti; ilk build DNS nedeniyle başarısız, yalnız build tekrarı geçti. İki sentetik mali kayıt temizlendi. Sıradaki [banka/otel uçtan uca pilot](PILOT_UCTAN_UCA_KABUL.md). [Kanıt](FINANSAL_OKUMA_KABULU.md). Önceki sıradaki notları tarihseldir.
+
+
+> **026 — 2026-09-09 (SQL yok):** Raporlarda günlük özet + haftalık çıktı erişimi, önceki kayıtların açık ayrımı; finansal özetten eski iş gücü/talep ve kritik firma sayaçları kaldırıldı. Mali okuma hatası ayrı, yeniden denemeli; hata/yüklemede PDF düğmesi yok. Genel/type/build6/6,128unit ve yerel tarayıcı doğrulandı. Sıradaki **pilot kabul senaryosu ve mali ekranın başarılı/boş okuma kabulü**. P06 veri geçişi ile davet email/PKCE/hook kapıları açık. [Kanıt](RAPOR_KAYNAKLARI_GECIS_DILIMI.md). Önceki sıradaki notları tarihseldir.
+
+
+> **02500 — 2026-09-09:** Dashboard günlük operasyon verisine bağlandı: bugün talep/istenen/yerleştirilen/eksik sayıları ve ilk 5 açık talep. 8 native SQL, gerçek Auth/RPC, genel/type/build 6/6 ve tarayıcı geçişi doğrulandı. Sıradaki P06 raporlar/finansal özet eski talep kaynağının anlam ve geçiş incelemesi; ardından pilot. E-posta/PKCE/hook kabulü hâlâ açık. [Kanıt ve sınırlar](DASHBOARD_GUNLUK_OPERASYON_DILIMI.md). Önceki sıradaki notları tarihseldir.
+
+
+> **02400 — 2026-09-09:** Davetle yeni hesap `/kayit`, PKCE callback ve güvenli profile defaults yerelde.18SQL, gerçekAuthsignup/kabul,127unit,genel/type/build6/6. E-posta doğrulama bağlantısı ve prod hook uçtan uca kabulü açık. Sıradaki **Dashboard eski/yeni operasyon kaynaklarını birleştirme**. [Kanıt/sınırlar](MUSTERI_KURULUMU_VE_DAVETLER.md). Önceki sıradaki notları tarihseldir.
+
+> **02300 — 2026-09-09:** Mevcut hesap için davet oluştur/listele/iptal/kabul yerelde tamam. 13SQL, gerçekAuth/RPC,127unit,genel/type/build6/6. Sıradaki yeni hesap için Auth davet/ilk giriş ve yerel uçtan uca kabul; e-posta gönderimi henüz yok. [Davet teslimi ve sınırlar](MUSTERI_KURULUMU_VE_DAVETLER.md). Önceki sıradaki notları tarihseldir.
+
+> **02200 — 2026-09-09:** Çalışma alanı kurulum ekranı yerelde tamamlandı; gerçek envanter ve yönetici/tenant sınırı. 10SQL, gerçek Auth/RPC, genel/type/build6/6 (125 operasyon unit). Sıradaki **davet oluşturma/iptal/kabul**, plan: [Müşteri kurulumu ve davetler](MUSTERI_KURULUMU_VE_DAVETLER.md). Davet gönderimi henüz yok; prod/push/deploy yok. Aşağıdaki eski sıradaki notları tarihseldir.
+
+> **2026-09-09 yeni öncelik:** Dashboard risk/otel kartları kaldırıldı; son aktiviteler gerçek kayda bağlandı (02100, yerel). Sıradaki **yeni müşteri kurulumu + kullanıcı davetleri**, ardından eski/yeni operasyon göstergelerini birleştirme ve pilot. Evrak takip sahipliği planı korunuyor, ilk sırada değil. Güncel sıra ve sınırlar: [Dashboard ve SaaS sırası](DASHBOARD_VE_SAAS_SIRASI.md). Aşağıdaki eski “sıradaki” notları tarihseldir.
+
+> **Son teslim02000, 2026-09-09:** Ana PDF ve çoklu ek protokol yerelde tamamlandı.
+> 121unit,32native,15API,full18/18.20migration yalnız sentetik yerelde.
+> Rapor `/var/folders/fg/qm_gg6w16299dhr_lz9xr38r0000gn/T/bps-acceptance-3LQQlC/report.md`.
+> Sıradaki [Evrak takip sahipliği](EVRAK_TAKIP_SAHIPLIGI_DILIMI.md).
+> Aşağıdaki önceki son/sıradaki notları tarihsel kayıttır.
+
+> **Son teslim 2026-09-09: 01900** Kalıcı PDF yükleme/devam/iptal;115unit,20native,10API.
+> File chooser, reload, iptal ve iki PDF görüntüleme kabulü geçti;19 migration yerelde.
+> Son full paket: 17/17 geçti — `/var/folders/fg/qm_gg6w16299dhr_lz9xr38r0000gn/T/bps-acceptance-XC4PZO/report.md`.
+> Sıradaki [Ana PDF ve ek protokoller](SOZLESME_EK_PROTOKOL_DILIMI.md).
+> Aşağıdaki önceki son/sıradaki notları tarihsel kayıttır.
+
+> **Son teslim 2026-09-09:**01800 PDF sürüm geçmişi/Storage koruması yerelde;
+> 105unit,18native,10StorageAPI,full16/16.18yerel migration.
+> Sonraki [PDF yüklemesinde kesintiden devam](SOZLESME_PDF_YUKLEME_DEVAMLILIGI_DILIMI.md).
+> Ek protokol ve native file chooser kabulü açık; aşağıdaki son/sıradaki notları tarihsel.
+
+> **Son teslim 2026-09-09:**01700 yenileme görevi sahipliği yerelde tamamlandı;
+> 101unit,18native,7API,full15/15 ve browser1task→devir→owner.17 yerel migration.
+> Sıradaki [Sözleşme belge sürümleri](SOZLESME_BELGE_SURUMLERI_DILIMI.md).
+> Aşağıdaki önceki sıradaki kayıtları tarihseldir.
+
+> Güncel ilerleme (2026-09-09): [BPS_GUNCEL_YON.md](BPS_GUNCEL_YON.md) ve
+> [GERCEKLESME_DILIMI.md](GERCEKLESME_DILIMI.md) esas alınır. Aşağıdaki eski
+> tamamlandı/bekliyor kayıtları tarihsel kapsamdır. Günlük/toplu plan, şube CSV,
+> kapasite düzenleme, gerçekleşme, atomik personel değişimi ve haftalık gerçekleşme
+> yerelde kodlandı/doğrulandı. 12 pilot migration yalnız sentetik yerelde uygulanmış;
+> üretim/push/deploy yok. Günlük operasyon kontrol listesi de yerelde doğrulandı. Aranabilir şube/personel dizini de tamamlandı; yönetici aktiflik işlemi ve yarış kabulü de tamamlandı. Tek komut yerel kabul paketi de tamamlandı; P07 talep→görev önseçimi ve yerel kayıt kabulü tamamlandı. Görev atama geçmişi/revision da tamamlandı; GOREV_DEVIR_DILIMI.md kanıtları içerir. Randevu/takip atomik tamamlaması da yerelde doğrulandı;12 ops+1 task+1 appointment migration. Firma→randevu formu/native tarih kabulü de tamamlandı (hızlı paket+build6/6, API9/9); toplu devir01500 ve üyelik/rol açık iş koruması01600 da tamamlandı (son paket14/14,96unit,26devir/19üyelik native, API10+7). Sıradaki SOZLESME_YENILEME_SAHIPLIGI_DILIMI.md.
+
+
+> **2026-09-08 güncel yön:** [BPS Güncel Ürün ve Geliştirme Yönü](BPS_GUNCEL_YON.md).
+> Furkan gerçek kullanım olmadığını belirtti; önce tek operasyon dilimi ve pilot.
+> Aşağıdaki eski tamamlanma kayıtları kullanım kanıtı değildir. Dev ortamının varlığı
+> henüz doğrulanmadı. Test/örnek iş verisi temizliği onaylandı; kod, şema ve gerçek
+> hesaplar korunur. Yeni yön eski paket sırasını revize eder.
+
 ## Purpose
 This document defines:
 - completed batches
@@ -14,6 +90,16 @@ It does not define API contracts.
 It does not replace `WORKFLOW_RULES.md`, `STATUS_DICTIONARY.md`, or `ROLE_MATRIX.md`.
 
 ---
+
+## Operasyon ve SaaS iş planı — 2026-09-08
+
+[BPS Operasyon ve SaaS İş Planı](BPS_OPERASYON_SAAS_IS_PLANI.md), şube aktarımı,
+talep/yerleştirme ve mevcut SaaS modüllerinin derinleştirilmesini P00–P12 paketlerine
+ayırır. Her pakette bağımlılıklar, kabul ölçütleri ve Claude Code uygulama / Codex
+review teslim akışı bulunur. Plan hazırdır; bu kayıt kodlamanın başladığı anlamına gelmez.
+İlk adım P00 mevcut durum ve karar hazırlığıdır. Açık ürün kararları ilgili paketlerden
+önce kapatılır. Bu paket numaraları aşağıdaki geçmiş Batch/Faz/Step numaralarını
+ve mevcut aktif işlerin durumunu değiştirmez.
 
 ## Current State
 - `Batch 1 — Foundation` -> completed
@@ -1883,3 +1969,11 @@ This roadmap consolidates completed work, the current focus, and future sequenci
 It should help implementation planning stay aligned with the real operational pain points BPS is trying to solve.
 
 If this file conflicts with workflow, status, or role rules, the rule documents win.
+
+
+## 2026-09-09 — günlük pilot lokal uygulama
+
+Firma/lokasyon/günlük talep/personel atama ekranı ve korumalı RPC paketi yazıldı.
+[İlk operasyon dilimi](ILK_OPERASYON_DILIMI.md) güncel kapsamı ve bekleyen kabulü
+tanımlar. Migration/deploy uygulanmadı. Sonraki adım bağımsız SQL/akış incelemesi,
+izole ortamda iki bağlantılı yarış ve kimlikli kullanım; ardından toplu şube importu.

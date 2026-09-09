@@ -1,0 +1,37 @@
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import {randomUUID} from 'node:crypto';import assert from 'node:assert/strict';
+import {baseline,id} from './fixtures/daily-operations.mjs';
+const modulePath=process.env.BPS_EMBEDDED_PG_MODULE;if(!modulePath?.startsWith('/'))throw Error('Absolute BPS_EMBEDDED_PG_MODULE required');
+const {default:EmbeddedPostgres}=await import(pathToFileURL(modulePath).href);
+const dir=await mkdtemp(join(tmpdir(),'bps-activity-'));
+const pg=new EmbeddedPostgres({databaseDir:join(dir,'db'),user:'postgres',password:randomUUID(),port:55448,persistent:false,postgresFlags:['-h','127.0.0.1','-k',dir],onLog:()=>{},onError:()=>{}});
+let c;let count=0;const pass=s=>{count++;console.log('PASS '+s);};
+try{
+ await pg.initialise();await pg.start();c=pg.getPgClient('postgres','127.0.0.1');await c.connect();await c.query(baseline);
+ await c.query(`CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT jsonb_build_object('app_metadata',jsonb_build_object('active_tenant',current_setting('test.tenant',true))) $$;
+ CREATE SCHEMA storage; CREATE TABLE storage.objects(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),bucket_id text,name text,owner_id text,metadata jsonb,UNIQUE(bucket_id,name));
+ GRANT USAGE ON SCHEMA storage TO authenticated;GRANT SELECT,INSERT,UPDATE,DELETE ON storage.objects TO authenticated;
+ ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;CREATE POLICY fixture_storage ON storage.objects TO authenticated USING(true) WITH CHECK(true);`);
+ for(const f of ['local-task-prefill.sql','local-contracts.sql','local-documents.sql'])await c.query(await readFile(new URL('./fixtures/'+f,import.meta.url),'utf8'));
+ for(const f of ['20260909000100_daily_operations_pilot.sql','20260909001300_task_assignment_history.sql','20260909001800_contract_document_versions.sql','20260909001900_contract_pdf_upload_commands.sql','20260909002000_contract_appendices.sql','20260909002100_dashboard_activity.sql'])await c.query(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
+ const as=async(user=10,tenant=1)=>{await c.query('RESET ROLE');await c.query("SELECT set_config('test.user',$1,false),set_config('test.tenant',$2,false)",[user===null?'':id(user),id(tenant)]);await c.query('SET ROLE authenticated');};
+ const feed=async(actor=10,tenant=1)=>(await c.query('SELECT dashboard_activity($1,$2) r',[id(actor),id(tenant)])).rows[0].r;
+ await as();assert.deepEqual(await feed(),[]);pass('empty source returns an actual empty array');
+ await c.query("INSERT INTO tasks(tenant_id,company_id,title) VALUES($1,$2,'Follow-up')",[id(1),id(20)]);
+ assert.equal((await feed())[0].kind,'task:created');pass('actual task trigger produces a creation event');
+ await c.query('RESET ROLE');
+ await c.query("INSERT INTO ops_events(tenant_id,actor_id,command_id,kind,entity_id) VALUES($1,$2,$3,'assign',$4),($5,$6,$7,'request',$8)",[id(1),id(10),id(500),id(600),id(2),id(13),id(501),id(601)]);
+ await as();const first=await feed();assert.equal(first.length,2);assert.ok(first.some(x=>x.kind==='ops:assign'));assert.ok(!first.some(x=>x.kind==='ops:request'));pass('private operational events are included and foreign tenant events excluded');
+ await assert.rejects(()=>feed(13),/ACTIVITY_SCOPE/);await assert.rejects(()=>feed(10,2),/ACTIVITY_SCOPE/);pass('spoofed actor and tenant rejected');
+ await as(12);await assert.rejects(()=>feed(12),/ACTIVITY_FORBIDDEN/);await as(11);assert.equal((await feed(11)).length,2);pass('manager/operator only, HR denied');
+ await as(14);await assert.rejects(()=>feed(14),/ACTIVITY_SCOPE/);await as(null);await assert.rejects(()=>feed(),/ACTIVITY_SCOPE/);pass('zero membership and missing auth rejected');
+ await as();await assert.rejects(()=>c.query('SELECT * FROM ops_events'),/permission denied/);pass('RPC does not grant raw event access');
+ await c.query('RESET ROLE');await c.query("INSERT INTO contracts(id,tenant_id,company_id,name) VALUES($1,$2,$3,'PDF')",[id(100),id(1),id(20)]);
+ await as();const r=(await c.query("SELECT prepare_contract_pdf_upload($1,$2,$3,$4,NULL,NULL,'Test.pdf',10,$5) r",[id(10),id(1),id(100),id(990),'a'.repeat(64)])).rows[0].r;
+ await c.query('RESET ROLE');await c.query("INSERT INTO storage.objects(bucket_id,name,owner_id,metadata) VALUES('documents',$1,$2,$3)",[r.path,id(10),{mimetype:'application/pdf',size:10}]);await as();await c.query('SELECT finish_contract_pdf_upload($1,$2,$3,$4)',[id(10),id(1),id(100),id(990)]);
+ const pdf=(await feed()).find(x=>x.kind==='pdf:upload');assert.equal(pdf.title,'Test.pdf');assert.equal(pdf.href,'/sozlesmeler/'+id(100));assert.ok(!JSON.stringify(await feed()).includes(r.path));pass('published PDF appears once without Storage path or private command payload');
+ await c.query('RESET ROLE');await c.query("UPDATE task_assignment_history SET kind='baseline'; UPDATE contract_document_versions SET origin='baseline'");await as();assert.equal((await feed()).length,1);pass('baseline backfills are not represented as user actions');
+ await c.query('RESET ROLE');await c.query("INSERT INTO ops_events(tenant_id,actor_id,command_id,kind,entity_id,created_at) SELECT $1,$2,gen_random_uuid(),'assign',gen_random_uuid(),'2026-09-10T00:00:00Z'::timestamptz FROM generate_series(1,25)",[id(1),id(10)]);await as();const top=await feed();assert.equal(top.length,20);assert.deepEqual(top,await feed());assert.equal(new Set(top.map(x=>x.id)).size,20);pass('latest result capped at 20 with repeatable ties');
+ await c.query('RESET ROLE');await c.query('DELETE FROM tenant_memberships WHERE user_id=$1',[id(10)]);await as();await assert.rejects(()=>feed(),/ACTIVITY_SCOPE/);pass('stale tenant claim fails after membership removal');
+ console.log(`Activity PostgreSQL checks: ${count} passed.`);
+}finally{await c?.end();await pg.stop();await rm(dir,{recursive:true,force:true});}

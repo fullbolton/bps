@@ -40,6 +40,7 @@ import {
   selectDocumentById,
   insertDocument,
   updateDocument,
+  replaceDocumentFile,
 } from "@/lib/supabase/documents";
 import {
   requireCompanyByLegacyMockId,
@@ -226,6 +227,7 @@ export async function getActiveContractDocument(
     .from("documents")
     .select("*")
     .eq("contract_id", contractId)
+    .eq("contract_document_role", "main")
     .maybeSingle();
   if (error) {
     throw new Error(`active contract document fetch failed: ${error.message}`);
@@ -233,22 +235,18 @@ export async function getActiveContractDocument(
   return data ?? null;
 }
 
-/**
- * Replace-flow update for a contract PDF document row.
- *
- * The caller (contract detail page) has already uploaded the new
- * storage object and is now patching the existing row to point at it.
- * Old storage object is intentionally not deleted here — orphan risk
- * is consistent with the Storage Foundation pattern (see closeout
- * report). DELETE on storage.objects is yonetici-only by RLS, so
- * partner-replace would fail cleanup anyway; skipping cleanup keeps
- * the code path uniform across roles.
+/** Replace a contract PDF using the observed document revision.
+ * 01800 records both baseline and subsequent file references. Upload is a separate
+ * operation: a failed CAS may leave an unreferenced uploaded object; no cleanup is
+ * claimed here. The database records uploader identity from the authenticated user.
  */
 export async function updateContractDocumentFile(
   client: Client,
   documentId: string,
   patch: { name: string; storagePath: string; uploadedBy: string | null },
+  expectedRevision: number,
 ): Promise<DocumentRow> {
+  if(!Number.isSafeInteger(expectedRevision)||expectedRevision<0||expectedRevision>=Number.MAX_SAFE_INTEGER)throw new DocumentValidationError('Belge sürümü doğrulanamadı.');
   const trimmed = ensureNonBlankName(patch.name);
   const dbPatch: DocumentUpdate = {
     name: trimmed,
@@ -257,7 +255,7 @@ export async function updateContractDocumentFile(
     uploaded_by: patch.uploadedBy,
     updated_at: new Date().toISOString(),
   };
-  return updateDocument(client, documentId, dbPatch);
+  return replaceDocumentFile(client, documentId, expectedRevision, dbPatch);
 }
 
 // ---------------------------------------------------------------------------

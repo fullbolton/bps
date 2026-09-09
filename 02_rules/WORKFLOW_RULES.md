@@ -192,7 +192,22 @@ Kurallar:
 
 ## 7. Görev kuralları
 
+2026-09-09 yerel randevu tamamlama: sonuç, sonraki aksiyon ve istenen takip görevi
+tek transaction'da kaydedilir. Takip görevi hata alırsa randevu kapanmaz. Pasif
+firma randevusu kapanır; yeni görev üretilmemesi açıkça gösterilir. Aynı kişinin aynı
+içerikle tekrar denemesi ikinci otomatik takip görevi oluşturmaz. Tamamlanmış kayda
+farklı içerik/actor ile yeniden tamamlama ve sonradan yeniden açılmış kaydın eski
+tamamlama sonucunu başarı gibi kullanması reddedilir. Manuel ek görevler ayrı akıştır.
+
 ### 7.1 Görev kaynağı
+
+2026-09-09 pilot teslimi: günlük talep kartından görev formu hazırlanabilir.
+Firma sunucudan doğrulanır, şube/gün/hizmet başlığa kopyalanır. Bu aşamada görev
+manuel kaynaktır; talep ile kalıcı ilişki yoktur. Sonraki talep değişiklikleri
+göreve yansımaz, görev tamamlanınca talep otomatik kapanmaz. Sorumlu BPS
+kullanıcısıdır, sahaya atanmış personelden otomatik türetilmez. Aşağıdaki kaynak
+listesi hedef kapsamdır; mevcut DB source_type yalnız manuel/randevu/sozlesme.
+
 - Görevler mümkün olduğunda bir kaynağa bağlı olmalıdır.
 - Desteklenen kaynak mantığı:
   - manuel,
@@ -206,6 +221,13 @@ Kurallar:
 - Görevler sorumlu, termin ve durum taşımalıdır.
 
 ### 7.3 Gecikme görünürlüğü
+
+2026-09-09 yerel görev düzenleme: kullanıcı açtığı görev sürümünü gönderir;
+başka yazı gerçekleşmişse değişiklik uygulanmaz, güncel kayıt yeniden yüklenir.
+Atama kimliği değişimleri veritabanında geçmişe eklenir. Eski görevler için geçmiş
+takibinin başladığı ana ait kayıt oluşturulur, önceki devirler türetilmez. Görev
+silinirse bu geçmiş de silinir. Kullanıcı tenant taşıma otomatik görev devri değildir.
+
 - Geciken görevler dashboard ve görev listesinde görünür olmalıdır.
 - Gecikmiş görev, sadece renk değil aksiyon çağrısı da üretmelidir.
 
@@ -493,3 +515,205 @@ Yeni bir özellik veya değişiklik değerlendirilirken sıra şu olmalıdır:
 5. Generic CRM / HRIS / muhasebe-ERP kayması yaratıyor mu?
 
 Bu sıraya girmeyen eklemeler temkinli değerlendirilmelidir.
+
+## Günlük operasyon pilotu — 2026-09-09 eki
+
+Bu kurallar yalnız yeni `ops_*` akışına aittir; lokal uygulama, canlıya açılmadı.
+Her talep tek tam gündür; 2000–2100 arası gerçek tarih ve 1–100 kişi kabul edilir.
+Aktif firma/lokasyon/personel gerekir. Bir personel tenant içinde aynı gün yalnız
+bir aktif atamaya sahip olabilir. Talep kapasitesi kilitli talep satırından sonra
+kontrol edilir. İptal, tüm aktif atamaları aynı transaction içinde kaldırır.
+Pasif firmada atama kaldırma/iptal mümkündür; yeni lokasyon/talep/atama yasaktır.
+Atandı = plan dolu; işe gelindi, hizmet tamamlandı veya ücret hak edildi demek değildir.
+İstemci tenant/actor seçemez; üyelikle doğrulanmış tenant ve sunucu rolü esastır.
+Normal kullanıcı yazısı yalnız korumalı RPC'den; komut sonucu ve olay kaydı aynı
+transaction içindedir. Aynı aktör/tenant/komut kimliği ve içerik yeniden yazmaz.
+Tarayıcı aynı formun belirsiz sonucunda kimliği korur; sayfa yenileme sonrasında
+bu bellek korunmaz. Belirsiz sonuçta önce plan kontrol edilir.
+Yarım gün, izin/müsaitlik, yetkinlik, ücret, sözleşme ve fiili devam ayrı paketlerdir.
+
+
+### Günlük pilot: toplu şube aktarımı (lokal, 2026-09-09)
+
+Yalnız yönetici, günlük planda seçili aktif firmaya CSV önizleyip aktarır.
+500 satır/256 KiB sınırı; firma içi şube kodu benzersiz. Aynı içerik atlanır,
+değişmiş kod/içerik çakışmasında parti tamamen geri alınır.
+[Akış sözleşmesi](../01_product/ILK_OPERASYON_DILIMI.md) esas alınır.
+
+
+### Pilot — belirsiz sonuç ve okuma hatası (2026-09-09)
+
+HTTP zaman aşımı kayıt oluşmadığı anlamına gelmez. Aynı form/komut kimliğiyle
+tekrar deneme korunur; sayfa kapanırsa kalıcı kurtarma bu sürümde yoktur.
+Plan okuma hatası boş talep sonucu değildir; doğrulanmış veri dönene kadar
+yeni talep formu kapanır. Rol sorgusu bağlantı hatası yetkisiz rol diye etiketlenmez.
+
+
+### Günlük pilot kişi sayısı düzeltme — 2026-09-09
+
+Yönetici/operasyon aktif firma talebinde 1–100 kişi arası ihtiyaç günceller.
+Atamalar korunur; sayı aktif atama sayısından az olamaz. Ekranın gördüğü önceki
+kişi sayısı DB'dekiyle eşleşmiyorsa güncelleme reddedilir; yenileme gerekir.
+Kontrol mevcut değere ilişkindir, tüm talep alanlarının sürüm numarası değildir.
+Talep kilidi güncelleme/atama/iptali sıraya koyar. Komut kimliği ve olay kaydı
+mevcut kalıcı kurtarma/uzlaştırma akışıyla aynıdır. Üretime uygulanmadı.
+
+## 2026-09-09 — Gerçekleşme ve değişim
+
+Atama planı, günlük gerçekleşme ve ücret/puantaj onayı ayrı kavramlardır. Yeni atama
+unreported başlar; gelmedi diye yorumlanmaz. Yönetici/operasyon gün geldiğinde
+revision koşuluyla bildirir/düzeltir. Aynı personel/gün tek present; saatli bölünmüş
+vardiya kapsam dışıdır. Kaldırma/iptal gerçekleşmeyi silmez. Yerine atama atomiktir;
+yeni personel uygun değilse eski atama korunur. Present atama değiştirilmez; yanlış
+bildirim önce düzeltilir. Haftalık gerçekleşme iptal/kaldırılmış geçmişi içerir;
+plan filtresi bu toplamı gizlemez. Gelmedi sayısı tekil insan değil bildirim sayısıdır.
+
+## Dizin aktifliği (2026-09-09)
+
+Aktifliği yalnız yönetici değiştirir; operasyon dizini okuyabilir. Pasife alma geçmiş
+planı/atamayı/gerçekleşmeyi silmez. Yeni talep/atama uygunluk kilidi altında kontrol
+edilir; atama önce kazanırsa sonraki pasife alma onu kaldırmaz. Aktiflik revision'ı
+aktif→pasif→aktif dönüşünde eski ekranın yazmasını reddeder. Aynı komut kimliği tekrar
+aynı sonucu verir. Pasif firmada şube aktifleştirilmez; tarihsel düzeltme devam eder.
+
+
+## 2026-09-09 — yerel görev devir ve üyelik kapısı eki
+
+01500+01600 uygulanınca: yönetici aktif işleri en fazla100'lük onaylanan partide
+revision/snapshot ile devreder. Tek conflict tüm partiyi geri alır. Aynı command UUID
+aynı payload'da önceki sonucu verir; sonuç güncel kalan iş sayısı değildir. Hedef
+canlı tenant üyesi ve yönetici/operasyon/İK rolünde olmalıdır. Açık iş kalmışsa eski
+tenant'tan çıkarma veya görev erişimini kaldıran rol değişimi BP001 ile reddedilir.
+Yazı/üyelik yarışları profile kilidi ve taze READ COMMITTED kontrolüyle korunur;
+farklı isolation BP004 ile reddedilir. Mevcut RLS ve 43 rawclaim policy genişlemez.
+Bu yerel kod sözleşmesidir, üretimde devrede olduğunun beyanı değildir. Tam kullanıcı
+hesabı kapatma/silme yoktur. Detay/kanıt iki dilim dosyasında; önceki kayıtlar tarihsel.
+
+
+## 2026-09-09 — 01700 yenileme görevi yerel kabulü
+
+SOZLESME_YENILEME_SAHIPLIGI_DILIMI.md teslim kaydı: mevcut tasks motorunda tek açık
+renewal ilişkisi/receipt, DB contract revision ve yönetici scoped yazma; 01600
+üyelik/rol korumasına dahildir. Full runner15/15 (yenileme native18 yeni SQL adımı),
+unit101; ayrıca `node scripts/qa-local-contract-renewal.mjs` gerçek yerel API7.
+Sonuncusu tek başına, runner kilidi boşken çalışır; dedicated marker/container/
+loopback kontrolü zorunlu. Tam prod şeması veya Storage fixture olduğu iddia edilmez.
+17 migration yalnız sentetik yerel. Yeni görev açma pasif firmada yasak; mevcut
+owner aynı task'tan okunur. Kapanma sözleşme yenilemez; ilişkili hard-delete ve
+bağlam değiştirme engellenir. Yenileme tarihi operasyon takibi, hukuki süre değildir.
+Native port55444, BPS_EMBEDDED_PG_MODULE mevcut geçici runtime. Frontend01700'dan
+sonra etkinleştirilmeli; eksik RPC “görev yok” olarak gösterilmez.
+
+
+## 2026-09-09 — 01800 PDF sürüm referansı ve Storage yerel kabulü
+
+01800 yalnız dedicated synthetic. Aynı doc kimliğinde immutable version reference,
+DB revision/CAS replacement; obje actor sahibi ve bağlı context doğrulanır.
+Yeni retained Storage read/delete/update restrictive policy; eskilerin gövdesi
+korundu. Sonfull16/16 report: /var/folders/fg/qm_gg6w16299dhr_lz9xr38r0000gn/T/bps-acceptance-kbOvzq/report.md.
+105unit,18PDFnative; ayrıca `node scripts/qa-local-contract-pdf.mjs`10gerçekStorageAPI,
+byte karşılaştırması ve eşzamanlı Storage remove/publish gerçek bloklanma kabulü.
+Standalone API runner kilidi boşken çalışır. PDF native port55445.
+
+Eksik yerel Storage için `node scripts/start-local-document-storage.mjs`; yalnız
+marker/loopback/dedicatedcontainer doğrulanınca internalnetwork'te v1.35.3 ekler,
+DB'yi durdurmaz/resetlemez, hostport açmaz. Volume bps_document_storage_acceptance;
+.env.local değiştirilmez; secret değerler print edilmez. Env adları için resmi
+[Supabase Compose](https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml)
+incelendi, mevcut yerel imajla gerçek API kabulü yapıldı. Kurulum supersetschema değil.
+
+Upload/CAS ayrı işlemler: kullanılmayan blob kalabilir, aynı-command receipt yok.
+Baseline byte/hash doğrulaması yok; yeni dosya hash attestation sonraki aşama.
+Native file chooser UI kabulü açık; UIversionlist/eskilink ve APIbytekabulü ölçüldü.
+Sıradaki SOZLESME_PDF_YUKLEME_DEVAMLILIGI_DILIMI.md. Ek protokol daha sonra; current
+uniquecontractPDF indeksi/maybeSingle değişmedi. Gerçek veri yedeği/temizlik,
+üretim migration/push/deploy yok. Migration lock_timeout15s toplam süre SLA'sı değil.
+
+
+## 2026-09-09 — 01900 PDF yükleme sürekliliği yerel teslimi
+
+İlk PDF ve değiştirme aynı kalıcı komutu kullanır: prepare → Storage → byte readback
+→ finish. Tam kimlikli iptal daha prepare gelmeden tombstone oluşturur. Company →
+transaction advisory serialization → contract SHARE → command sırası; aynı contract'ta ilk yükleme yarışı tek kazanır. Rol,
+verified tenant, aktif firma, document kimliği/revision ve gerçek obje owner/size/
+mimetype kontrol edilir. Rezervasyonlu path authenticated delete/update'e kapalı;
+pending/cancelled path raw document yazısıyla yayımlanamaz. Private publishing
+state yalnız finish transaction'ında yaşar; geç hata document/version/receipt'i
+birlikte geri alır. Contract FK RESTRICT iptal defterini silerek tekrar kullanım
+olasılığını kapatır. Yeni UI manager-only, operation history/download yetkisi korunur.
+
+115unit,20native upload ve ayrıca10gerçek Auth/Storage/HTTP kabulü. Son full17/17:
+`/var/folders/fg/qm_gg6w16299dhr_lz9xr38r0000gn/T/bps-acceptance-XC4PZO/report.md`. Static209dosya,0FAIL/2öncekiWARN. Native55446;
+`node scripts/qa-pdf-upload.mjs`, `node scripts/qa-local-pdf-upload.mjs` (ikincisi
+runner kilidi boşken, dedicated marker/container/loopback doğrulanarak). API log:
+`/private/tmp/bps-upload-api-final.log`. Native scope ve minimal fixtures tam prod
+şemasının/owner'ın kanıtı değildir. 19migration yalnız dedicated sentetik yerelde.
+
+Gerçek HTTP10MiB testi ara katmanın form zarfıyla birlikte erken kesme sorununu
+buldu: Next middleware11mb; route10MiB+64KiB body, dosya10MiB. File chooser ilk
+PDF/replace, reload pending recovery, farklı byte reddi, iptal/reload, eski/güncel
+PDF görüntüleme doğrulandı. Tek sentetik contract2fbc6abb-1d23-4e60-a6d6-2b7186ff270b:
+son2published+1cancelled/2version. Geçici hata constraint'i kaldırıldı.
+
+Hash sınırı: declared_sha256 RPC çağırıcısının beyanıdır; DB server attestation
+değildir. Normal HTTP yolu gerçek byte'ları hashler ve Storage'dan doğrular.
+PDF başlığı tam parse/zararlı yazılım taraması değildir. Baseline dosya yedeği yok;
+Storage/DB tek transaction değil, kullanılmayan obje otomatik temizlenmez.
+localStorage yalnız metadata; farklı cihazda dosya kendiliğinden bulunmaz.
+Eksik01900 frontend'de boş/başarılı kabul edilmez. Üretim/push/deploy yok.
+
+Sıradaki plan `01_product/SOZLESME_EK_PROTOKOL_DILIMI.md`: belge rolü/kimliği,
+partial-main index + okuyucu/RPC/history/komut hedefi birlikte değişecek. P08'in
+ek protokol ve diğer geniş maddeleri henüz tamamlanmadı. Önceki01800 intent ve
+native chooser açık notları bu teslimle tarihsel kaldı.
+
+01900 son kilit kontrolü: pending komut varken contract firma/tenant/kimlik
+değişikliği yasak; iptal erişimi korunur. Advisory serialization aynı contract
+uploadlarını sıraya alır; legacy metadata yazısıyla contract/document deadlock
+yaratmaz. Testte metadata yazısı tamamlanır, finish yeni revision ile conflict
+alır. Native yükleme toplamı20; bu sayı önceki18'in yerine geçer.
+
+
+## 2026-09-09 — 02000 ana PDF ve bağımsız ek protokoller
+
+02000 yalnız dedicated sentetik yerelde uygulandı. Bağlı belge rolü main/appendix
+ve ek başlığı değişmez. Ana PDF için partial unique, çoklu ekler için bağımsız
+DB belge kimliği; aynı başlık kimlik değildir. Yeni yükleme hedefi komut kimliğine
+katılır. 01900 main RPC imzası, eski localStorage anahtarı ve tamamlanmış/iptal/
+bekleyen komutlar korunur. Eski history RPC main-only; ek history/path RPC'leri
+actor+verified tenant+contract+document eşleşmesini doğrular. Liste20+1 keyset,
+20gösterim ve sonraki düğmesi; history50+1. Okuma hatası boş liste sayılmaz.
+
+Migration kategori tutarsızlığında PDF_ROLE_BASELINE_REVIEW_REQUIRED ile durur;
+mevcut bağlı belgeyi sessizce ana belge yapmaz. Backfill exclusive documents/command
+kilidi altında sadece documents_guard_version trigger'ını kısa süre kapatır,
+revision/provenance artırmadan rolü ekler, trigger'ı geri açar. Öncesinde etkinlik
+kontrolü var; bekleme timeout15s toplam uygulama süresi değildir. 01800/01900
+fonksiyon gövdeleri artık02000 mevcutken eski yerel API scriptleri tarafından
+geri yazılmaz. Eski migration dosyaları değişmedi.
+
+Kabul:121unit,32native ek protokol kontrolü,ayrı15gerçek Auth/Storage/HTTP kontrolü.
+Native55447: qa-contract-appendices.mjs; ilk32,01900 regresyonunu da içerir;
+20+32 tamamen bağımsız test sayısı gibi toplanmaz. Gerçek API:
+qa-local-contract-appendices.mjs; global runner kilidi boşken çalışır.
+Son full18/18: `/var/folders/fg/qm_gg6w16299dhr_lz9xr38r0000gn/T/bps-acceptance-3LQQlC/report.md`. Static212dosya,0FAIL/2öncekiWARN.
+API log `/private/tmp/bps-appendices-api.log`. Yeni parse/service testleri6.
+
+Tarayıcıda contract00000000-0000-4000-8000-000000000400: iki ek gerçek file chooser
+ile yüklendi, ilk ek değiştirildi, eski PDF görüntüleyicide BPS SYNTHETIC VERSION
+ONE görüldü. DB: ana revision2/3sürüm, dönemsel destek revision0/1sürüm, ek temizlik
+revision1/2sürüm. Ana ve diğer ek değişmedi. Firma Evraklar listesi ek başlığını,
+Ek Protokol kategorisini ve sözleşme bağlantısını gösteriyor; bağlı dosyada silme
+UI'ı yok, DB geçmiş FK'leri ayrıca koruyor. AX link ile sözleşmeye dönüş ölçüldü.
+
+Sınırlar: ana PDF/ek protokol/destekleyici genel firma evrakı birbirine otomatik
+aktarılmaz. Başlık değiştirme ve belge rolü taşıma bu dilimde yok. Keyset liste
+sabit UUID sırasındadır, bir sorgu snapshot'ıdır; ardışık sayfalar transaction
+snapshot değildir, eşzamanlı yeni kayıt için listeyi yenilemek gerekir. Başarılı
+upload sözleşme statüsünü/yenileme görevini değiştirmez. Hash01900 beyan sınırı,
+10MiB HTTP/readback ve Storage korumaları korunur; e-imza/hukuki doğrulama yok.
+20migration sadece sentetik yerel, üretim/push/deploy ve gerçek veri yedeği/temizlik yok.
+
+Sıradaki: `01_product/EVRAK_TAKIP_SAHIPLIGI_DILIMI.md`. Geçerlilik güncellemesinde
+CAS ve evrak→gerçek görev/sorumlu; mevcut01700/01500/01600 motorlarını kullan.
+Bu plan henüz kodlanmadı. Önceki01900 “sıradaki ek protokol” notları tarihsel kaldı.

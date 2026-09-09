@@ -515,3 +515,27 @@ Aşağıdakiler bilinçli olarak **açık bırakılmıştır** — bu doc patch'
 1. **Operasyon sözleşme "Sınırlı" ne demek?** (§4 "Sözleşme oluşturma" operasyon = Sınırlı / §5.2). Net kapsam tanımı yapılmadı.
 2. **Operasyon telefon/eposta edit devam mı?** (§5.1.1 / §4 "Yetkili kişi telefon/eposta düzenleme"). Partner freeze sonrası bu operasyon yetkisinin akıbeti açık.
 3. **Mevcut partner kullanıcıları ne görmeli?** Donmuş partner hesaplarının UI deneyimi (read-only düşüş mü, erişim kısıtı mı, mesaj mı) tanımlanmadı.
+
+## Günlük operasyon pilotu — ayrı aksiyon matrisi (2026-09-09)
+
+Lokal kod, canlıya açılmadı. Bu kapsam önceki modüllerin rol haklarını değiştirmez.
+
+| Aksiyon | Yönetici | Operasyon | Diğer roller / anonim |
+|---|---|---|---|
+| Tenant içi günlük plan / personel / lokasyon okuma | Evet | Evet | Hayır |
+| Lokasyon / personel oluşturma | Evet | Hayır | Hayır |
+| Günlük talep / atama / kaldırma / iptal | Evet | Evet | Hayır |
+| Doğrudan tablo mutasyonu | Hayır | Hayır | Hayır |
+
+Yazma yetkisi korumalı RPC üzerinden verilir; aktör profil kilidinden sonra rol ve
+üyelik doğrulanır. İK'nın eski firma bağlamı okuma hakkı bu pilot ekranını kapsamaz.
+Olay ve komut tablolarına istemci SELECT yetkisi verilmez. Hizmet rolü / DB sahibi
+olağan kullanıcı matrisi dışındadır; uygulama bu pilot için service-role kullanmaz.
+
+
+### Günlük pilot: toplu şube aktarımı (lokal, 2026-09-09)
+
+Yalnız yönetici, günlük planda seçili aktif firmaya CSV önizleyip aktarır.
+500 satır/256 KiB sınırı; firma içi şube kodu benzersiz. Aynı içerik atlanır,
+değişmiş kod/içerik çakışmasında parti tamamen geri alınır.
+[Akış sözleşmesi](../01_product/ILK_OPERASYON_DILIMI.md) esas alınır.

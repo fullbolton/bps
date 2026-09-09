@@ -9,8 +9,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <Sidebar />
         <Topbar />
       </div>
-      <main className="ml-64 pt-14 min-h-screen print:ml-0 print:pt-0">
-        <div className="p-6 print:p-0">{children}</div>
+      <main className="md:ml-64 pt-14 min-h-screen print:ml-0 print:pt-0">
+        <div className="p-4 sm:p-6 print:p-0">{children}</div>
       </main>
     </div>
   );

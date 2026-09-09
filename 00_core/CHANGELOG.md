@@ -1,5 +1,16 @@
 # CHANGELOG.md
 
+> **035 — 2026-09-09: Vercel production yayını tamamlandı.** [İşe Başlama Takibi](https://www.bpsys.net/talepler/ise-baslama) canlı Supabase üzerinde açılıyor. 27/27 migration uygulanmış durumda. Yeni sürüm `dpl_7dGwr1wHZc2REPBUYuJwjNnE6RZk`; production sağlık 5/5 ve mevcut hesapla takip + Dashboard okuma geçti. Bugün atama olmadığı için production arama/teyit yazma kabulü açık; yerel SQL/Auth/RPC/tarayıcı kabulü geçerli. localhost yerel kalır; git push yapılmadı, çalışma ağacının uygulama dosyaları CLI ile yayınlandı. Önceki frontend-bekliyor notları tarihseldir. Kanıt: `supabase/manual/release-20260909.md/json`.
+
+2026-09-09 — 02400: `/kayit` davet kontrollü Auth signup, `/auth/callback` PKCE dönüşü; güvenli başlangıç profili/eksik profil onarımı. Metadata'dan rol/admin/unit kabulü kaldırıldı. Yerel18SQL,AuthAPI,type/build geçti. Mail doğrulaması açık prod ayarıyla uçtan uca kabul henüz yok; gerçek posta gönderilmedi.
+
+2026-09-09 — 02300: Kurulumda mevcut hesaplara davet kodu (7 gün), listeleme/iptal; `/davet` doğrulanmış alıcı hesabıyla kabul. Tek üyelik, rol kontrolü, hash saklama, iptal/kabul yarışı ve refresh oturumu iptali. Otomatik e-posta/yeni hesap açma yok. Önceki Dashboard/kurulum tenant claim alanı varsayımı kaldırıldı, verified RPC kullanılır. Yerel13SQL/AuthAPI/127unit/typebuild geçti.
+
+2026-09-09 — 02200: `/kurulum` yöneticinin firma/şube/ekip/personel/ilk plan/haftalık çıktı adımlarını gerçek sayaçlarla bir araya getirir. Dashboard ve Ayarlar bağlantısı. Tamamlandı yüzdesi yok; read-only verified tenant RPC. Yerel 10SQL + Auth/API + type/build geçti. Sıradaki kullanıcı davetleri.
+
+
+2026-09-09 — Dashboard: manuel risk kartı ve günlük otel e-postası kaldırıldı. Son aktiviteler, tenant/rol doğrulayan 02100 RPC ile son 20 gerçek operasyon/görev atama/PDF olayını gösterir; yenileme, yükleme, hata ve boş durumları ayrı. Yönetici/operasyon kapsamı; baseline hariç, tam audit/realtime değil. Ayrıntı: `01_product/DASHBOARD_VE_SAAS_SIRASI.md`. Yalnız yerel geliştirme.
+
 ## Purpose
 This file records meaningful documentation and structural decisions for BPS.
 It is a historical record, not a replacement for source-of-truth documents.
@@ -24,6 +35,43 @@ Template row:
 
 | Date | File or Batch | Change Summary | Reason / Impact |
 |---|---|---|---|
+| 2026-09-09 | 02000 sözleşme ek protokolleri | Değişmez main/appendix rolü, bağımsız sürüm/komut hedefi, scoped history/path, firma listesi başlığı/bağlantısı;121unit/32native/15API/full18/18 | Ek protokol ana PDF'yi ezmez; eski01900 komutları korunur;20migration yalnız sentetik yerelde; evrak takip sahipliği planlandı |
+| 2026-09-09 | 01900 PDF yükleme sürekliliği | İlk/değiştirme kalıcı komut, iptal tombstone, reload/retry, HTTP byte ve Storage readback;115unit/20native/10API ve gerçek browser kabulü | Kayıp yanıt ikinci sürüm üretmez;10MiB middleware kesilmesi düzeltildi;19 migration yalnız sentetik yerel; ek protokol planı sırada |
+| 2026-09-09 | PDF sürüm geçmişi | 01800 değişmez referanslar, actor/obje, CAS replace, scoped indirme ve Storage koruması;105unit,18native,10StorageAPI,16/16 paket. | Yalnız yerel; sonraki kalıcı upload komutu/kesintiden devam, ardından ek protokol. |
+| 2026-09-09 | Sözleşme yenileme sahipliği | 01700 revision, tek task ilişkisi/receipt; gerçek owner, tarih, dayanak formu.101unit,18native,7API,15/15 paket; browser çift tık1→devir→owner. | Yalnız sentetik yerel; sıradaki PDF sürüm geçmişi. |
+| 2026-09-09 | Toplu devir ve kullanıcı ayrılış kapısı | 01500 atomik100 iş/receipt;01600 aktif iş/üyelik/rol guard, eski admin owner/ACL korunur.96unit,26+19 native, API10+7, paket14/14. | İki aşama dedicated yerelde tamamlandı; sıradaki gerçek sözleşme yenileme sahipliği. |
+| 2026-09-09 | Firma bağlamından randevu | Mevcut formda hazır firma, scope/reset ve pending koruması; native tarih UI create, çift tıklama1/pasif0/iptal0; hızlı paket+build6/6, API9/9. | SQL değişmedi; sonraki toplu görev devir planı hazır. |
+| 2026-09-09 | Atomik randevu/takip tamamlaması | Yeni scoped RPC/receipt, güvenli tekrar ve rollback;85 unit/22 native/9 randevu API, paket12/12; tarayıcı1task. | 01400 yalnız yerel; eski RPC kapalı, yeni randevu tarih UI kabulü ayrı açık. |
+| 2026-09-09 | Görev atama geçmişi ve revision | DB geçmiş trigger'ı, tüm uygulama update'lerinde CAS, panel geçmişi/çatışma yenileme;79 unit/16 task native/11 görev API, tam paket11/11. | 01300 yalnız yerel; eski task policy/admin taşıma değişmedi. |
+| 2026-09-09 | Günlük talep → mevcut görev formu | Sunucudan doğrulanan firma/başlık önseçimi, form sıfırlama/çift gönderim koruması; 75 unit,10/10 paket,9 yerel görev servis kontrolü ve tarayıcı kaydı. | Kalıcı talep bağı yok; test fixture genişledi, üretim/push/deploy yok. |
+| 2026-09-09 | Tek komut yerel kabul | 10 adım passed,11 runner testi; SQL/API/build modları, özel rapor ve geçici build kopyası; eksik runtime exit1. | Dev sunucusu korunur; yeni migration/prod/push/deploy yok. |
+| 2026-09-09 | Yönetici dizin aktifliği | Revision/idempotency, korunan geçmiş, lokasyon SHARE kilidi; 68 unit / 181 DB / 48 yarış / 42 API. | 01200 yalnız yerel; operasyon salt-okunur. |
+| 2026-09-09 | Aranabilir şube/personel dizini | 50 satır/sayfa, kod arama ve aktif/pasif filtre; 66 unit / 163 DB / 37 API. | 01100 yalnız yerel; aktiflik yazması sonraki dilim. |
+| 2026-09-09 | Günlük operasyon kontrol listesi | Aktif gelmedi/açık/bildirim bekleyen; arama/filtre ve hedef kart; 61 unit / 33 API / 180 kaynak static temiz. | SQL değişmedi; yalnız yerel, prod/push/deploy yok. |
+| 2026-09-09 | Haftalık gerçekleşme özeti | İptal/kaldırma geçmişi dahil ayrı sayaçlar; 53 unit / 149 DB / 30 API, 177 dosya static temiz. | 01000 yalnız yerel; otomatik devam aktif. |
+| 2026-09-09 | Günlük gerçekleşme + atomik personel değişimi | Ayrı gerçekleşme/revision, korunan tarihçe; 48 unit / 141 DB / 37 yarış / 28 yerel API; mobil UI ölçüldü. | 00800/00900 yalnız yerel; üretim/push/deploy yok. |
+| 2026-09-09 | Mevcut günlük ihtiyacı düzenleme | Atamaları koruyan 1–100 kişi güncellemesi, eski değer/kapasite/kilit kontrolü. 46 birim/105 DB/27 yarış/24 API geçti; UI hafta 8→9 kişi-gün. | Yedinci migration yalnız yerelde; tam prod kabulü ve native PDF ayrı. |
+| 2026-09-09 | Toplu gün talebi ve gerçek CSV indirme | 31 gün önizleme/istisna, atomik kayıt; 45 birim/93 DB/23 yarış/22 API/6 HTTP kontrolü. Tarayıcı 4 talep/8 kişi-gün ve download olayı. | Altıncı migration yalnız yerelde; native PDF kabulü açık, prod/push/deploy yok. |
+| 2026-09-09 | Haftalık operasyon ve çıktı | Firma/hafta görünümü, kişi-gün toplamı, günlük bağlantı, güncel veriyle CSV/yazdırma; 39 birim/73 DB/18 yerel API kontrolü. | Beşinci migration yalnız yerelde; native PDF sayfalama ve dosya indirme son konumu kabulü ayrı. |
+| 2026-09-09 | Bekleyen işlemleri uzlaştırma | Salt sonuç sorgusu ve onaylı terminal kapatma; 31 birim/62 DB/18 native/15 yerel API kontrolü. UI 1 closed/0 yeni personel. | Dördüncü migration yalnız yerelde; haftalık görünüm/çıktı sırada, prod/push/deploy yok. |
+| 2026-09-09 | Pilot kalıcı işlem kurtarma | Hesap/tenant kapsamlı kimlik, Web Locks ve scoped RPC; 28 birim/46 DB/14 yarış/11 yerel API kontrolü, tarayıcı yenileme 1 kayıt/1 olay. Üç migration yalnız yerelde. | Sunucu sonucuyla uzlaştırma üretim öncesi sıradaki kapı; prod/push/deploy yok. |
+| 2026-09-09 | Pilot ağ hata akışı | Doğrulanamayan plan boş gösterilmiyor; rol sorgusu hatası ayrıldı, pilot HTTP isteklerine 12 sn sınır eklendi. | 7 kayıp-yanıt servis testi ve yerel tarayıcı kesinti/toparlanma geçti; prod değişmedi. |
+| 2026-09-09 | Rol kabulü + mobil kabuk | Operasyon/İK ve açık oturum yetki iptali UI kontrolü geçti. Mobil menü paneli eklendi; 390 px pilot taşması giderildi. | Global kabuk değişikliği; pilot mobil ve masaüstü geçişi doğrulandı, canlıya uygulanmadı. |
+| 2026-09-09 | Pilot iptal + CSV tarayıcı kabulü | İptal teyidi uygulama içi dialog; Vazgeç/onay ve CSV tekrar atlama tarayıcıdan doğrulandı. | Yerel temel yönetici akışı geçti; TypeScript/statik başarılı. Üretim değişmedi. |
+| 2026-09-09 | Kimlikli tarayıcı kısmi kabul | Canlı giriş ve okuma doğrulandı; yerel sentetik hesapla şube/personel/talep/atama ve kaldırma akışı geçti. | İptal onayı tarayıcı otomasyonunu kilitledi; iptal ve CSV UI kabulü açık. Gerçek parola kaydedilmedi. |
+| 2026-09-09 | Yerel Supabase kabulü PASS | Disk engeli çözüldü; PostgreSQL 17.6 + gerçek Auth/PostgREST ve servis koduyla 17 kontrol geçti. | İki migration yalnız sentetik yerel DB'de; prod/deploy değişmedi. Browser ve tarihsel şema/admin kabulü bekliyor. |
+| 2026-09-09 | Docker / yerel Supabase kabul hazırlığı | Auth/API test betiği ve ayrı yerel kurulum runbook eklendi. | İlk imaj indirmesi Docker read-only filesystem hatasıyla durdu; host boş alan 549 MiB. Test henüz çalışmadı, canlı değişiklik yok. |
+| 2026-09-09 | Native PostgreSQL kabul harness | İki bağımsız backend ve ölçülen kilit beklemesiyle 12 yarış/son durum kontrolü geçti; fixture ortaklaştırıldı, 37 PGlite kontrolü tekrar geçti. | Lokal eşzamanlılık kanıtı; kimlikli Supabase/browser kabulü ve canlı uygulama bekliyor. |
+| 2026-09-09 | Toplu şube importu | UTF-8 CSV doğrulama/önizleme, yönetici RPC, firma içi kod tekilliği ve atomik aktarım eklendi. | Lokal; 19 TS testi ve 37 DB kontrolü geçti. İki migration uygulanmadı. |
+| 2026-09-09 | Günlük operasyon pilotu + dar SoT güncellemeleri | Altı tablo, iki RPC, server action/service, günlük plan ekranı ve testler eklendi. | Lokal uygulama; migration/deploy yapılmadı, iki bağlantılı yarış ve kimlikli kabul bekliyor. |
+| 2026-09-08 | `01_product/ILK_OPERASYON_DILIMI.md`, `src/lib/operations/daily-demand.ts`, `scripts/daily-demand.test.mjs` | Tek günlük talep girdi doğrulaması, doluluk türetme ve atama ön kontrolü yazıldı. Gerçek TS kaynağını çalıştıran 7 test; `qa:operations` komutu eklendi. | İlk dikey dilimin domain temeli. UI/RPC/DB entegrasyonu henüz yok; canlı davranış veya veri değişmedi. |
+| 2026-09-08 | `scripts/prepare-test-data-reset.mjs` + test + manual runbook | Yedi tablo/16 satır için offline, varsayılan ROLLBACK SQL üretici yazıldı; tam satır eşitliği, bağımlılık, kayıt sayısı ve korunan tablo kontrolleri. | Kullanıcı tam içerik yedeğini şimdilik reddedip kod hazırlığını istedi. Yedek alınmadı, canlı prova veya silme yapılmadı. |
+| 2026-09-08 | Güncel yön + `02_rules/TEST_VERISI_TEMIZLIK_PLANI.md` + Vault handoff/README | Kullanıcı test/örnek iş verisi temizliğini seçti; kod/şema/gerçek hesaplar korunacak. İlk ölçüm 16 iş kaydı ve 2 Storage nesnesi. Vault'a güncel yön yazıldı, eski planlara bağlantı notu eklendi. | Temizlik hazırlığı; yedek/bağımlılık manifesti tamamlanmadan silme yapılmadı. |
+| 2026-09-08 | `01_product/BPS_GUNCEL_YON.md` + roadmap/uzlaştırma bağlantıları | Furkan'ın gerçek kullanım olmadığı yönlendirmesiyle plan yeniden çerçevelendi: tek operasyon dilimi → toplu giriş → haftalık pilot. Eski dev projesinin varlığı belirsiz; reset kapsamı cevap bekliyor. | Geçmiş belgeler tarihsel bağlam; sırayı güncel ihtiyaç belirliyor. Veri/kod silinmedi, canlı değişiklik yapılmadı. |
+| 2026-09-08 | `01_product/BPS_BASLANGIC_UZLASTIRMA_PLANI.md` + iş planı / MCP ölçüm eki | İlgili Vault handoff ve kararları repo/canlı durumla uzlaştırıldı; P00 devam olarak işaretlendi. bps-dev etiketi düzeltildi; iş hesabı Auth+profiles'ta var, admin bayrağı kapalı ölçüldü. | Kullanıcının önce Vault'u okuyup planlayarak devam etme talebi. Sıra: katalog/dev envanteri → P01 davranış/rol sözleşmesi → P02 lokasyon/import. Kod veya canlı veri değişmedi. |
+| 2026-09-08 | `02_rules/SUPABASE_MCP_OLCUM_2026-09-08.md` + teknik plan bağlantısı | BPS prod MCP canlı doğrulaması: postgres/read_only off, PG17.6, 23 RLS tablo, 60 policy, profiles rol UPDATE kapalı. İlk admin sayısı iki sorguda 0; eski açıldı kaydıyla çelişki açık kaydedildi. | Kullanıcının MCP bağlantısı ve kod taraması talebi. Yalnız okuma; yetki/veri değişmedi. Tam şema ve kimlikli davranış denetimi tamamlanmadı. |
+| 2026-09-08 | `01_product/BPS_TEKNIK_UYGULAMA_PLANI.md` + iş planı bağlantısı | Supabase veri modeli önerisi, günlük kapasite/çakışma için atomik RPC protokolü, RLS/grant sınırları, idempotent şube importu, kod haritası ve migration/test sırası yazıldı. | Furkan'ın teknik uygulama planı talebi. Repo inceleme noktası `4e3fc00`; yeni canlı ölçüm veya kod/SQL uygulaması yapılmadı. P01'de kesinleştirme, ardından P02 lokasyon/import. |
+| 2026-09-08 | `01_product/BPS_OPERASYON_SAAS_IS_PLANI.md` + `TASK_ROADMAP.md` | Ürün görüşmeleri ve SaaS benchmark, P00–P12 iş paketlerine çevrildi; bağımlılıklar, açık kararlar, kabul ölçütleri ve Claude Code uygulama / Codex review akışı yazıldı. Ana yol haritasına bağlantı eklendi. | Furkan'ın Markdown iş planı talebi. İlk adım P00 hazırlığı; kod/SQL değişikliği, migration uygulama, push veya deploy yapılmadı. |
 | 2026-09-08 | **PUSH + DEPLOY** — `origin/main` `8f378e0` → `237e06c` (44 commit, 48 dosya, +7110/−263), Vercel `bps-pta7208eo` production **Ready** | Furkan onayıyla push (2026-09-08 01:57 TSİ). Push öncesi üç bağımsız ölçüm: `vercel.json` cron yolu `/api/cron/notifications` route dosyasıyla eşleşiyor · yeni kodun okuduğu env (`CRON_SECRET`, `RESEND_API_KEY`, `BPS_EMAIL_FROM`, `BPS_APP_URL`, `BPS_NOTIFICATION_EMAILS_ENABLED`) — bayrak `"true"` değilse cron **skip** · HEAD tam build ✓. Deploy sonrası kimliksiz canlı kanıt (`www.bpsys.net`; apex `bpsys.net` www'ya 307): `/admin` → 307 `login?returnTo=/admin` (yeni layout) · `/api/cron/notifications` → **401** (yeni route, secret yok) · eski `/api/cron/contract-expiry` → **404** · `/login` 200. Eski deploy'da ilk ikisi 404 dönerdi — canlıdaki kod **yeni kod**. | Vercel CLI cihaz girişi bu oturumda yapıldı (ilk `vercel ls` login akışını tetikledi). **Kimlikli smoke BEKLİYOR (Furkan):** `/firmalar`'da "Yeni Firma" (Mek Group yönetici) · `/admin` girişi (`furkanyahsi@gmail.com`, bayrak) · seçicide yalnız üç mekgroup üyesi + kendi üyesine atama BAŞARIR (verify §7 A/C). Partner kodu temizliği (Step 6) yapılmadı, kod yolları uyuyor. Push'tan sonra yalnız bu docs commit'i lokalde. |
 | 2026-09-05 | `supabase/migrations/20260827000400_platform_admin_rpcs.sql` (**UYGULANDI + DOĞRULANDI + repair'lendi**) | **ADMIN PANELİ VERİ KATMANI PROD'DA — üç migration da uygulandı, defter hizalı.** Ön uçuş görülmedi (Claude Chat editöre yükledi, "Success"). Şema kanıtı: `kolon_1=1` (`is_platform_admin` NOT NULL) · `fonksiyon_5=5` (SECURITY DEFINER) · `grant_5=5` (authenticated var, anon yok) · `bayrak_yazilabilir=false` (000200'ün normalizasyonu yeni kolonu da kapsadı — katalog döngüsü çalıştı) · `admin_sayisi=0`. Migration'ın kendi son kontrolleri (gerçek `proowner` için auth USAGE + sessions DELETE + user_id SELECT + RLS bypass + `refresh_tokens(session_id)→sessions(id) CASCADE`) transaction içinde geçti — COMMIT olduğu için kanıtlı. Defter: pending yalnız bilinçli `20260722000200`. | **Kalan adımlar:** (1) ~~ilk platform admin bayrağı~~ **AÇILDI 2026-09-05: `furkanyahsi@gmail.com`** (Furkan'ın raporu "success"; `admin_sayisi` artık 1 olmalı — ilk `/admin` girişi bunu canlıda doğrular). Migration'a gömülmedi (ortam gerçeği), elle açıldı. (2) Panel ve kapsamlı uygulama katmanı **lokal kodda** — canlıya push + deploy ister (Furkan onayı); veritabanı tarafı "migration önce, deploy sonra" şartını sağladı. (3) Sızıntının kapandığının davranış kanıtı: Mek Group oturumuyla seçici testi (verify §7 A/B/C) — hâlâ yapılmadı. Uygulama yolu dersi: pano dört kez bozuldu (mesaj/komut araya girdi) → tam metin sohbete + dosya eki; byte-exact, hash ile. |
 | 2026-09-05 | `supabase/migrations/20260904000100_profiles_tenant_scope.sql` (**UYGULANDI + DOĞRULANDI + repair'lendi**), `02_rules/RLS_ACCESS_MATRIX.md`, `supabase/manual/tenant_isolation_test_runbook.md`, `01_product/TASK_ROADMAP.md` | **PROFILES TENANT KAPSAMI PROD'DA.** Ön uçuş ölçüldü: `capraz_atama=0`, `toplam_policy=60`. Uygulama: SQL Editor "Success" (ACCESS EXCLUSIVE + `lock_timeout` altında, kilit hatası olmadı). Şema kanıtı: `toplam_policy=60` **değişmedi** (3 DROP + 3 CREATE net sıfır, çift policy yok) · `profiles` tam 2 policy, SELECT qual `((id = auth.uid()) OR is_active_tenant_member(id))`, `true` yok · `fonksiyon_3=3` (DEFINER+STABLE) · `grant_3=3` (authenticated var, anon yok) · `tasks_guard_2=2`. Defter: `20260904000100` remote'ta; kalan pending `20260827000400` (+ bilinçli `20260722000200`). | **"Migration uygulandı" ≠ "sızıntı kapandı":** kapanış kanıtı gerçek oturumla — Mek Group yöneticisi seçicide yalnız üç mekgroup üyesini görmeli, yabancı üyeye doğrudan PostgREST ataması `42501` ile düşmeli, kendi üyesine atama BAŞARMALI (verify §7 A/B/C; C olmadan A/B anlamsız). Henüz yapılmadı; runbook ve matris buna göre yazıldı. Sıradaki: `000400` (admin paneli) — panoya hazırlanırken **`BEGIN`/`COMMIT`'inin olmadığı** görüldü (diğer ikisinde vardı); editörün implicit transaction'ına dayanmak yerine açıkça sarıldı, yalnız transaction sınırı, mantık aynı; yeni hash `0b4d4853…`. |
@@ -137,3 +185,57 @@ Template row:
 | 2026-04-03 | `01_product/ARCHITECTURE.md` | Created BPS architecture map without schema invention | Adds product-system architecture reference |
 | 2026-04-03 | `02_rules/REVIEW_STANDARD.md` | Created lightweight review standard for execution batches | Adds consistent review gate for scope and compliance |
 | 2026-04-03 | `02_rules/MIGRATION_SAFETY.md` | Created deferred migration safety guidance for future live-data usage | Preserves future safety without inventing schema |
+
+
+## 2026-09-09 — 02500 günlük Dashboard
+
+Günlük talep/istenen/yerleştirilen/eksik, ilk 5 açık kayıt ve günlük plana bağlantı. Yönetici/operasyon, doğrulanmış tenant, sunucu özellik bayrağı. 8 native SQL + gerçek yerel Auth/RPC + genel/type/build 6/6. Runner artık 23 olası adım; tam paket bu tur çalıştırılmadı. Kanıt/sınırlar: `01_product/DASHBOARD_GUNLUK_OPERASYON_DILIMI.md`.
+
+
+## 2026-09-09 — 026 rapor kaynakları
+
+Raporlarda güncel günlük/haftalık operasyon, önceki kayıtların açık ayrımı ve gerçek filtre açıklamaları. Finansal özet eski personel/risk sayaçlarından arındırıldı; başarısız okuma onay bekleme gibi gösterilmez, yeniden denenir. Genel/type/build6/6; kanıt ve kalanlar `01_product/RAPOR_KAYNAKLARI_GECIS_DILIMI.md`. SQL/prod değişikliği yok.
+
+
+## 2026-09-09 — 027 mali okuma kabulü
+
+Boş/dolu/yalnız firma kaydı tarayıcıda doğrulandı. Eksik gecikme sayısı sıfır yerine bilinmiyor; mali yenileme düğmesi. Yerel minimum mali okuyucu fixture, iki test kaydı temizlendi.128unit/genel5adım geçti; DNS nedeniyle ilk build başarısız, build tekrarı başarılı. Kanıt: `01_product/FINANSAL_OKUMA_KABULU.md`; sıradaki `01_product/PILOT_UCTAN_UCA_KABUL.md`.
+
+
+## 2026-09-09 — 028 gelişmiş finansal ilk görünüm
+
+Gelişmiş özet modalı mevcut firma alacaklarını ve proje kırılımı veri gereksinimlerini gösterir. Proje kârı üretilmez. Luca120 müşteri alacağı kapsamı koddan doğrulandı; proje tanımı kararı bekleniyor.128unit/genel/type/build6/6. Plan `01_product/PROJE_FINANSALI_VE_LUCA_PLANI.md`.
+
+
+## 2026-09-09 — 029 atomik Luca
+
+Yeni confirm_mizan_atomic transaction sınırı, tenant/rol/firma kontrolleri, aynı UUID tekrarında receipt. Eski ham yazma ve derive istemci yetkileri kapatıldı.9nativeSQL+gerçekAuth/RPC+genel/type/build6/6. Yeni runner24olasıadım. Kanıt/açıklar `01_product/LUCA_ATOMIK_ONAY_DILIMI.md`. Yalnız yerel02600; prod yok.
+
+
+## 2026-09-09 — 030 Luca kalıcı kurtarma
+
+Mali veri saklamayan actor/tenant scoped digest+UUID rezervasyonu; sekmeler arası kilit; kesin ret ve belirsiz yanıt ayrımı.134unit/genel/type/build6/6 ve gerçekAuth/RPC yeniden oluşturulan kimlik testi. Browser gerçek reload açık. `01_product/LUCA_KALICI_KURTARMA_DILIMI.md`.
+
+
+## 2026-09-09 — 031 İşe Başlama Takibi
+
+Resmi ürün dokümanları benchmark, kaynaklı plan ve `/talepler/ise-baslama/onizleme` etkileşimli sentetik tasarım. Arama sonucu/varış teyidi ayrı;140unit/genel/type/build6/6. Kayıt veya bildirim oluşturmaz. Sıradaki gerçek plan saat/sorumlu kalıcılığı. `01_product/ISE_BASLAMA_TAKIBI_PLANI.md`.
+
+## 032 — İşe Başlama Takibi / canlı Supabase
+
+> **032 — 2026-09-09: canlı aktarım kısmi, İşe Başlama Takibi kalıcı.** Canlıya 000100–001200 ve 002700 olmak üzere 13 migration uygulandı; SQL SHA256 doğrulandı, ledger özgün sürümlerle uzlaştırıldı. 001300–002600 mevcut modül değişiklikleri otomatik onay denetimi nedeniyle ayrı kullanıcı onayı bekliyor. 145 unit/genel+SQL+build 23/23; yeni takip 16SQL ve gerçek yerel Auth/RPC, tarayıcıda kayıt+reload geçti. localhost hâlâ yerel Supabase; frontend deploy yok. Güncel ayrıntı: [Canlı aktarım defteri](../supabase/manual/release-20260909.md).
+
+
+## 033 — Canlı aktarım devamı: 24/27 uygulandı
+
+Kullanıcının kalan 14 migration etkileri anlatıldıktan sonraki “devam” yanıtıyla 001300, 001400, 001500, 001700–002200, 002500, 002600 canlıya uygulandı (bu tur 11, toplam24). Dosyaların SHA256 değerleri önceki kabul manifestiyle ve canlı SQL metinleriyle eşit. MCP ledger sürümleri özgün dosya sürümleriyle uzlaştırıldı. 4 mevcut göreve 4 baseline geçmiş satırı; görevler4, mali kayıtlar0 olarak ölçüldü.
+
+**Yalnız 001600,002300,002400 bekliyor.** 001600, oturum silme/yönetici yetki etkileri için otomatik onay denetiminden iki kez ret aldı. Canlı eski RPC'nin zaten aynı üyelik değişim koşulunda auth.sessions sildiği ve19 yerel testin yetki/owner/ACL korumasını kanıtladığı gösterildi; tekrar reddedildi. Kullanıcıya açıkça auth.sessions iptali, rol/üyelik atama ve yeni hesapların görüntüleyici başlaması etkileri soruldu. Yanıt henüz yok. 002300/002400 bu birlikte sorulan onayın yanıtını bekliyor; uygulanmadı. Ret etrafından dolaşılmadı.
+
+Canlı READ ONLY claim bağlamında membership + İşe Başlama reader + workspace_setup + daily_dashboard + dashboard_activity çalıştı. İlgili yeni tablolarda RLS eksikliği0; Luca eski derive authenticated=false, raw INSERT=false, atomic authenticated=true/anon=false. Bu üretim Auth token/browser yazma smoke'u değildir. Önceki23/23 kabulde test edilmiş SQL aynen uygulandı; yeniden gereksiz test tekrarı yapılmadı.
+
+**localhost:3000 hâlâ yerel sentetik Supabase'e bağlı; frontend push/deploy yok.** Eski canlı frontend Luca akışı artık kapatılan doğrudan yazma yolunu kullanıyorsa yeni kod yayınına kadar çalışmaz; finansal RPC tenant sınırı korunarak canlıya alınmıştır. Kalan üç onay sonrası gerçek ortam UI yayını ve kimlikli smoke kapatılmalı. İşe Başlama Takibi önceliği sürüyor. Önceki13/27 ve14bekliyor notları tarihsel.
+
+## 034 — Supabase aktarımı27/27
+
+> **034 — Supabase aktarımı tamam:27/27.** Son001600/002300/002400 kullanıcı devam onayıyla canlıya uygulandı. 27SQL SHA256 eşleşti, ledger uzlaştırıldı. Görev/davet/kayıt izinleri ve altı canlı salt-okunur kontrol geçti. Paket migration'ı beklemiyor. **localhost yerel; frontend deploy ve production kimlikli yazma smoke'u henüz yok.** Sıradaki bu paketin canlı UI yayını ve İşe Başlama Takibi kabulü; başka modüle geçme. Kanıt: supabase/manual/release-20260909.md/json.

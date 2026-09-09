@@ -14,6 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireTaskRevision, TaskConflictError } from "@/lib/task-revision";
 import type {
   Database,
   TaskRow,
@@ -136,6 +137,13 @@ export async function selectTasksByAppointmentId(
  * defaulting status, priority and source_type, stamping created_by from
  * the auth session, and validating shape.
  */
+function taskWriteError(error: {code?:string;message:string}, action:string): Error {
+  if(error.code==='BP004')return new Error("İşlem güvenli biçimde tamamlanamadı. Sayfayı yenileyip tekrar deneyin.");
+  if(error.code==='BP002')return new Error("Atanan kişi artık bu çalışma alanının üyesi değil. Geçerli bir üye seçin.");
+  if(error.code==='BP003')return new Error("Atanan kişinin görev erişimi yok. Yönetici, operasyon veya İK üyesi seçin.");
+  return new Error(`tasks ${action} failed: ${error.message}`);
+}
+
 export async function insertTask(
   client: Client,
   input: TaskInsert,
@@ -147,7 +155,7 @@ export async function insertTask(
     .single();
 
   if (error) {
-    throw new Error(`tasks insert failed: ${error.message}`);
+    throw taskWriteError(error,"insert");
   }
   return data;
 }
@@ -161,16 +169,27 @@ export async function updateTask(
   client: Client,
   id: string,
   patch: TaskUpdate,
+  expectedRevision: number,
 ): Promise<TaskRow> {
+  const revision = requireTaskRevision(expectedRevision);
   const { data, error } = await client
     .from("tasks")
     .update(patch)
     .eq("id", id)
+    .eq("revision", revision)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
-    throw new Error(`tasks update failed: ${error.message}`);
+    throw taskWriteError(error,"update");
   }
+  if (!data) throw new TaskConflictError();
   return data;
+}
+
+export async function selectTaskAssignmentHistory(client: Client, taskId: string) {
+  const { data, error } = await client.from("task_assignment_history")
+    .select("*").eq("task_id", taskId).order("revision", {ascending:false}).limit(21);
+  if (error) throw new Error("Atama geçmişi yüklenemedi. Yeniden deneyin.");
+  return { rows: (data ?? []).slice(0,20), hasMore: (data ?? []).length > 20 };
 }

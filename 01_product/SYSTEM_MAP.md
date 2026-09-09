@@ -157,3 +157,10 @@ Finansal Özet bu ilkeyi destekleyen yönetim katmanıdır:
 - firma detay, şirket bazlı ticari bağlamı verir
 - Finansal Özet, şirket geneli finansal görünürlüğü verir
 - ana operasyon omurgası yine firma + sözleşme + talep + aktif iş gücü + randevu + görev + evrak hattında kalır
+
+## Günlük operasyon pilotu — 2026-09-09, lokal uygulama
+
+Firma → lokasyon → tek günlük personel talebi → personel ataması ilişkisi eklendi.
+Personel havuzu tenant içindedir; Auth hesabı veya bordro/özlük kaydı değildir.
+Yeni `ops_*` verileri mevcut personel taleplerinden ayrıdır. Henüz canlıya uygulanmadı.
+Kapsam ve açılış koşulları: [İlk operasyon dilimi](ILK_OPERASYON_DILIMI.md).

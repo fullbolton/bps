@@ -142,3 +142,11 @@ export async function updateDocument(
   }
   return data;
 }
+
+/** PDF replacement must use the exact revision shown to the user. */
+export async function replaceDocumentFile(client:Client,id:string,revision:number,patch:DocumentUpdate):Promise<DocumentRow>{
+  const {data,error}=await client.from('documents').update(patch).eq('id',id).eq('revision',revision).select().maybeSingle();
+  if(error)throw error;
+  if(!data)throw new Error('Belge değişmiş veya erişiminiz kaldırılmış. Güncel kaydı yükleyin.');
+  return data;
+}

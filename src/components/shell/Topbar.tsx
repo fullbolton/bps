@@ -57,7 +57,7 @@ export default function Topbar() {
 
   return (
     <>
-      <header className={`fixed top-0 left-64 right-0 h-14 ${SURFACE_PRIMARY} border-b ${BORDER_DEFAULT} flex items-center px-5 gap-4 ${Z_TOPBAR}`}>
+      <header className={`fixed top-0 left-0 md:left-64 right-0 h-14 ${SURFACE_PRIMARY} border-b ${BORDER_DEFAULT} flex items-center px-5 gap-4 ${Z_TOPBAR}`}>
         {/* Global search removed — the previous input had no wiring
             (no value/onChange/submit/dropdown) and produced no results,
             which misled users. A real search surface is out of scope
@@ -75,6 +75,8 @@ export default function Topbar() {
           {/* User menu */}
           <div ref={userMenuRef} className="relative">
             <button
+              aria-label="Kullanıcı menüsü"
+              aria-expanded={userMenuOpen}
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className={`flex items-center gap-2 px-2 py-1.5 ${TYPE_BODY} text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
             >

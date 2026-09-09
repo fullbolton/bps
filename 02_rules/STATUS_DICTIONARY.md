@@ -457,3 +457,21 @@ Yeni bir durum, seviye veya etiket eklenmeden önce şu sorular cevaplanmalıdı
 4. Filtre, badge, rapor ve iş kuralı etkileri tanımlandı mı?
 
 Bu sorular net değilse yeni durum eklenmemelidir.
+
+## Günlük operasyon pilotunun durumları — 2026-09-09
+
+Lokal `ops_*` pilotuna özgüdür; eski taleplerin durumlarını dönüştürmez.
+Yaşam durumu `active` (atama kabul eder) veya `cancelled` (iptal) olur.
+Doluluk saklanmaz, atamalardan hesaplanır: `unassigned` = sıfır; `partial` =
+gerekenden az; `assigned` = gerekli sayı kadar. Ekran atanan/gerekli ve açık sayısını
+gösterir. İptalde aktif atama sıfırdır; aktif ihtiyaç hesabına katılmaz.
+Saf domain yardımcılarında bulunan `paused` bu pilotun DB/UI aksiyonu değildir.
+
+## Günlük operasyon gerçekleşmesi (2026-09-09)
+
+- `unreported` → Henüz bildirilmedi. Gelmedi veya sıfır mesai anlamına gelmez.
+- `present` → Geldi. Günlük operasyon bildirimi; süre/ücret onayı içermez.
+- `absent` → Gelmedi. İş akışı kaydıdır; disiplin veya bordro kararı değildir.
+
+`ops_assignments.removed_at` plan geçerliliğidir; attendance durumunu değiştirmez.
+İptal edilmiş taleplerde geçmiş bildirimler ve düzeltme imkânı korunur.

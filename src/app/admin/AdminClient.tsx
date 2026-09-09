@@ -306,7 +306,9 @@ export default function AdminClient({
           eklenmez — ikinci bir üyelik kullanıcının erişimini sessizce sıfırlardı.
           Kiracı değişirse kullanıcının <strong>oturumları sonlandırılır</strong> ve
           yeniden giriş yapması gerekir: kiracı bilgisi oturum jetonunda taşınır,
-          eski jeton eski kiracıyı gösterirdi.
+          eski jeton eski kiracıyı gösterirdi. Açık işi kalan kullanıcı çalışma
+          alanından çıkarılamaz veya görev erişimi olmayan role geçirilemez.
+          Önce ilgili çalışma alanının yöneticisi Görevler ekranından işleri devretmelidir.
         </p>
       </section>
     </div>

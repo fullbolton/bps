@@ -82,6 +82,8 @@ export class PlatformAdminError extends Error {
  */
 function rpcError(error: { code?: string | null } | null): PlatformAdminError {
   const code = error?.code ?? "unknown";
+  if (code === "BP004") return new PlatformAdminError("İşlem güvenli biçimde tamamlanamadı. Sayfayı yenileyip tekrar deneyin.");
+  if (code === "BP001") return new PlatformAdminError("Bu kişinin açık işleri var. İlgili çalışma alanında görevleri devrettikten sonra rol veya kiracı değişikliğini tekrar deneyin.");
   if (code === "42501") return new PlatformAdminError("Bu işlem için yetkiniz yok.");
   if (code === "23503") return new PlatformAdminError("Kullanıcı veya kiracı bulunamadı.");
   if (code === "23505") return new PlatformAdminError("Bu slug zaten kullanılıyor.");
@@ -125,8 +127,8 @@ export async function currentUserIsPlatformAdmin(client: Client): Promise<boolea
  * yazıp üyelikte hata alan bir akış, tam olarak Mek Group kurulumunda üç kez
  * yaşanan sessiz yarım-durumu üretirdi. Atomiklik RPC gövdesinden geliyor.
  *
- * ⚠ Üyelik EKLENMİYOR, DEĞİŞTİRİLİYOR: RPC önce kullanıcının bütün üyeliklerini
- * siler. `custom_access_token_hook` yalnız tek üyelikte claim yazdığı için,
+ * ⚠ Üyelik EKLENMİYOR, DEĞİŞTİRİLİYOR: RPC kullanıcının
+ * hedef dışındaki üyeliklerini kaldırır, hedef üyeliği korur veya ekler. `custom_access_token_hook` yalnız tek üyelikte claim yazdığı için,
  * ikinci bir üyelik kullanıcının erişimini SESSİZCE sıfırlardı.
  *
  * ⚠ OTURUM (Codex P1): tenant bir JWT claim'i; üyelik değişince kullanıcının
@@ -137,11 +139,10 @@ export async function currentUserIsPlatformAdmin(client: Client): Promise<boolea
  * yalnız claim'e güvenen 43 policy için; profiles okuması ve görev atanan
  * guard'ı claim'i canlı üyelikle doğrular (20260904000100, KARAR 6).
  *
- * ⚠ BİLİNEN SONUÇ (20260904000100 ile birlikte): kullanıcı başka tenant'a
- * taşınırsa, eski tenant'ta ona atalı görevler "başka kiracının üyesine atalı"
- * duruma düşer ve `tasks_update` WITH CHECK'i o görevlerin HER güncellemesini
- * yeniden atanana kadar reddeder. Sessiz değil (RLS hatası görünür), ama
- * taşımadan önce bilinmeli. Tespit: profiles_tenant_scope_post_apply_verify §6.
+ * 20260909001600: aktif iş bırakacak üyelik/rol değişikliği BP001 ile
+ * transaction içinde reddedilir. Önce toplu devir, sonra admin değişikliği.
+ * Yeni task assignee trigger'ı eşzamanlı INSERT/UPDATE'de canlı üyelik/rolü
+ * profile kilidi sonrası kontrol eder. Eski raw-claim RLS politikaları değişmez.
  */
 export async function assignRoleAndTenant(
   client: Client,

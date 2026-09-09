@@ -1,0 +1,587 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import DailyOverview from "../dashboard/DailyOverview";
+import Link from "next/link";
+import { formatDateTR } from "@/lib/format-date";
+import { createClient } from "@/lib/supabase/client";
+import {
+  listAllWorkforceSummaries,
+  deriveOpenGap,
+  deriveRiskLevel,
+} from "@/lib/services/workforce-summary";
+import {
+  listAllContracts,
+  computeRemainingDays,
+} from "@/lib/services/contracts";
+import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
+import {
+  PageHeader,
+  DataTable,
+  StatusBadge,
+  RiskBadge,
+  PriorityBadge,
+  WorkforceRiskBadge,
+  ReportSwitcher,
+  EmptyState,
+} from "@/components/ui";
+import AsyncSection from "@/components/ui/AsyncSection";
+import type { ReportOption } from "@/components/ui/ReportSwitcher";
+import { useRole } from "@/context/RoleContext";
+import type { UserRole } from "@/context/RoleContext";
+import type { ColumnDef } from "@/types/ui";
+import type { IsGucuRiskSeviyesi } from "@/types/batch4";
+import type {
+  OncelikSeviyesi,
+  RiskSeviyesi,
+  SozlesmeDurumu,
+  TalepDurumu,
+  RandevuDurumu,
+} from "@/types/ui";
+
+// ---------------------------------------------------------------------------
+// Report row shapes — real Supabase readers render into these. Types were
+// previously re-exported from the mocks file; inlined here to keep this
+// page free of any @/mocks dependency.
+// ---------------------------------------------------------------------------
+
+interface RaporIsGucuRow {
+  firmaId: string;
+  firmaAdi: string;
+  lokasyon: string;
+  aktifKisi: number;
+  hedefKisi: number;
+  acikFark: number;
+  riskEtiketi: IsGucuRiskSeviyesi;
+}
+
+interface RaporSozlesmeBitisRow {
+  sozlesmeAdi: string;
+  firmaAdi: string;
+  bitis: string;
+  kalanGun: number;
+  sorumlu: string;
+  durum: SozlesmeDurumu;
+  hazirlikDurumu: string;
+}
+
+interface RaporTalepRow {
+  firmaAdi: string;
+  pozisyon: string;
+  talepEdilen: number;
+  saglanan: number;
+  acikKalan: number;
+  oncelik: OncelikSeviyesi;
+  durum: TalepDurumu;
+}
+
+interface RaporRandevuRow {
+  tarih: string;
+  firmaAdi: string;
+  gorusmeTipiLabel: string;
+  katilimci: string;
+  durum: RandevuDurumu;
+  sonuc: string;
+}
+import { clsx } from "clsx";
+import {
+  TYPE_BODY,
+  TYPE_CAPTION,
+  TEXT_BODY,
+  TEXT_SECONDARY,
+  TEXT_MUTED,
+  TEXT_LINK,
+} from "@/styles/tokens";
+
+// ---------------------------------------------------------------------------
+// Report definitions
+// ---------------------------------------------------------------------------
+
+const ALL_REPORTS: ReportOption[] = [
+  { key: "is-gucu", label: "Önceki İş Gücü Kayıtları" },
+  { key: "sozlesme-bitis", label: "Yaklaşan Sözleşme Bitişleri" },
+  { key: "talep-analizi", label: "Önceki Talep Kayıtları" },
+  { key: "randevu-sonuc", label: "Randevu Hacmi ve Sonuçlar" },
+  { key: "riskli-firma", label: "Elle İşaretlenen Firmalar" },
+  { key: "partner-ozet", label: "Şehir ve Partner Operasyon Özeti" },
+];
+
+const REPORT_ROLE_ACCESS: Record<UserRole, string[]> = {
+  yonetici: ["is-gucu", "sozlesme-bitis", "talep-analizi", "randevu-sonuc", "riskli-firma", "partner-ozet"],
+  partner: ["is-gucu", "sozlesme-bitis", "talep-analizi", "randevu-sonuc", "riskli-firma", "partner-ozet"],
+  operasyon: ["is-gucu", "talep-analizi", "randevu-sonuc"],
+  ik: ["is-gucu"],
+  muhasebe: ["riskli-firma", "partner-ozet"],
+  goruntuleyici: ["is-gucu", "sozlesme-bitis", "talep-analizi", "randevu-sonuc", "riskli-firma"],
+};
+
+// ---------------------------------------------------------------------------
+// Column definitions per report
+// ---------------------------------------------------------------------------
+
+const COLUMNS_IS_GUCU: ColumnDef<RaporIsGucuRow>[] = [
+  { key: "firmaAdi", header: "Firma", sortable: true },
+  { key: "lokasyon", header: "Lokasyon" },
+  { key: "aktifKisi", header: "Aktif Kişi", sortable: true },
+  { key: "hedefKisi", header: "Hedef Kişi", sortable: true },
+  {
+    key: "acikFark",
+    header: "Açık Fark",
+    sortable: true,
+    render: (val) => {
+      const n = val as number;
+      return <span className={clsx(`${TYPE_BODY} font-medium`, n > 0 ? "text-red-600" : "text-green-600")}>{n > 0 ? `−${n}` : "0"}</span>;
+    },
+  },
+  {
+    key: "riskEtiketi",
+    header: "Risk",
+    sortable: true,
+    render: (val) => <WorkforceRiskBadge risk={val as IsGucuRiskSeviyesi} />,
+  },
+];
+
+const COLUMNS_SOZLESME_BITIS: ColumnDef<RaporSozlesmeBitisRow>[] = [
+  { key: "sozlesmeAdi", header: "Sözleşme Adı", sortable: true },
+  { key: "firmaAdi", header: "Firma", sortable: true },
+  { key: "bitis", header: "Bitiş", sortable: true, render: (val) => formatDateTR(val as string) },
+  {
+    key: "kalanGun",
+    header: "Kalan Gün",
+    sortable: true,
+    render: (val) => {
+      const n = val as number;
+      return (
+        <span className={clsx(`${TYPE_BODY} font-medium`, n <= 15 ? "text-red-600" : n <= 30 ? "text-amber-600" : TEXT_BODY)}>
+          {n} gün
+        </span>
+      );
+    },
+  },
+  { key: "sorumlu", header: "Sorumlu" },
+  {
+    key: "hazirlikDurumu",
+    header: "Hazırlık Durumu",
+    render: (val) => (
+      <span className={`${TYPE_BODY} ${(val as string) !== "—" ? "text-amber-600" : TEXT_SECONDARY}`}>
+        {val as string}
+      </span>
+    ),
+  },
+  {
+    key: "durum",
+    header: "Durum",
+    render: (val) => <StatusBadge status={val as RaporSozlesmeBitisRow["durum"]} />,
+  },
+];
+
+const COLUMNS_TALEPLER: ColumnDef<RaporTalepRow>[] = [
+  { key: "firmaAdi", header: "Firma", sortable: true },
+  { key: "pozisyon", header: "Pozisyon", sortable: true },
+  { key: "talepEdilen", header: "Talep Edilen", sortable: true },
+  { key: "saglanan", header: "Sağlanan", sortable: true },
+  {
+    key: "acikKalan",
+    header: "Açık Kalan",
+    sortable: true,
+    render: (val) => {
+      const n = val as number;
+      return <span className={clsx(`${TYPE_BODY} font-medium`, n > 0 ? "text-red-600" : "text-green-600")}>{n}</span>;
+    },
+  },
+  {
+    key: "oncelik",
+    header: "Öncelik",
+    sortable: true,
+    render: (val) => <PriorityBadge priority={val as OncelikSeviyesi} />,
+  },
+  {
+    key: "durum",
+    header: "Durum",
+    render: (val) => <StatusBadge status={val as RaporTalepRow["durum"]} />,
+  },
+];
+
+const COLUMNS_RANDEVULAR: ColumnDef<RaporRandevuRow>[] = [
+  { key: "tarih", header: "Tarih", sortable: true, render: (val) => formatDateTR(val as string) },
+  { key: "firmaAdi", header: "Firma", sortable: true },
+  { key: "gorusmeTipiLabel", header: "Görüşme Tipi" },
+  { key: "katilimci", header: "Katılımcı" },
+  {
+    key: "durum",
+    header: "Durum",
+    sortable: true,
+    render: (val) => <StatusBadge status={val as RaporRandevuRow["durum"]} />,
+  },
+  {
+    key: "sonuc",
+    header: "Sonuç",
+    render: (val) => (
+      <span className={`${TYPE_BODY} ${TEXT_SECONDARY} truncate max-w-[200px] block`}>
+        {val as string}
+      </span>
+    ),
+  },
+];
+
+// Real-truth row shape for Raporlar 5. Composite signals (ticari baskı,
+// açık talep, eksik evrak) require derivations explicitly out of scope
+// for this batch — only fields sourced directly from `companies` survive.
+interface RaporRiskliFirmaRow {
+  firmaId: string;
+  firmaAdi: string;
+  risk: RiskSeviyesi;
+}
+
+const COLUMNS_RISKLI_FIRMA: ColumnDef<RaporRiskliFirmaRow>[] = [
+  {
+    key: "firmaAdi",
+    header: "Firma",
+    sortable: true,
+    render: (val, row) => (
+      <a href={`/firmalar/${row.firmaId}`} className={`${TYPE_BODY} ${TEXT_LINK} hover:underline`}>
+        {val as string}
+      </a>
+    ),
+  },
+  {
+    key: "risk",
+    header: "Risk Seviyesi",
+    sortable: true,
+    render: (val) => <RiskBadge risk={val as RiskSeviyesi} />,
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
+export default function ReportsClient({operationsEnabled}:{operationsEnabled:boolean}) {
+  const { role } = useRole();
+  const allowedKeys = REPORT_ROLE_ACCESS[role] ?? [];
+  const visibleReports = useMemo(
+    () => ALL_REPORTS.filter((r) => allowedKeys.includes(r.key)),
+    [allowedKeys]
+  );
+  const [activeKey, setActiveKey] = useState(() => visibleReports[0]?.key ?? "");
+
+  const selectedKey=allowedKeys.includes(activeKey)?activeKey:(visibleReports[0]?.key??" ").trim();
+
+  // Reports 1-4 — real Supabase truth. RLS on each underlying table
+  // enforces partner scope. Null/empty loading is honest; errors fall
+  // to empty with no mock fallback.
+  const [raporIsGucu, setRaporIsGucu] = useState<RaporIsGucuRow[]>([]);
+  const [raporSozlesmeBitis, setRaporSozlesmeBitis] = useState<
+    RaporSozlesmeBitisRow[]
+  >([]);
+  const [raporTalepler, setRaporTalepler] = useState<RaporTalepRow[]>([]);
+  const [raporRandevular, setRaporRandevular] = useState<RaporRandevuRow[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+
+  // Report 5 — Riskli Firma Listesi. Real `companies.risk` enum only.
+  // Composite narrative (sebep, ticari baskı, açık talep, eksik evrak)
+  // is intentionally omitted — each would require derivations explicitly
+  // out of scope for this batch. Honest absence > fabricated content.
+  const [raporRiskli, setRaporRiskli] = useState<RaporRiskliFirmaRow[]>([]);
+
+  // Report 6 — Partner × city aggregation. Data pipeline not wired yet;
+  // honest absence rather than mock-backed rendering.
+
+  // Per-report error flags. Replaces the previous silent
+  // `catch(() => [])` / `error ? []` pattern that rendered reader
+  // failures as healthy-empty (e.g., "İş gücü verisi yok").
+  const [reportErrors, setReportErrors] = useState<{
+    isGucu: boolean;
+    sozlesmeBitis: boolean;
+    talepler: boolean;
+    randevular: boolean;
+    riskli: boolean;
+  }>({
+    isGucu: false,
+    sozlesmeBitis: false,
+    talepler: false,
+    randevular: false,
+    riskli: false,
+  });
+  // Bumped by the "Tekrar dene" button to re-fire the load useEffect.
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setReportsLoading(true);
+    let workforceCatchError = false;
+    let contractsCatchError = false;
+    (async () => {
+      const supabase = createClient();
+      const [
+        companiesRes,
+        workforceRows,
+        contractRows,
+        demandsRes,
+        appointmentsRes,
+      ] = await Promise.all([
+        // Single companies.select for the batch — feeds firma-name
+        // resolution across reports 1-4 and the Riskli Firma derivation
+        // (risk + legacy_mock_id added for Report 5).
+        supabase.from("companies").select("id, name, risk, legacy_mock_id"),
+        // Service readers already used by the destination list pages.
+        // Reader failures are now captured (was silent `() => []`).
+        listAllWorkforceSummaries(supabase).catch((err) => {
+          console.error("[raporlar] listAllWorkforceSummaries:", err);
+          workforceCatchError = true;
+          return [];
+        }),
+        listAllContracts(supabase).catch((err) => {
+          console.error("[raporlar] listAllContracts:", err);
+          contractsCatchError = true;
+          return [];
+        }),
+        // Talep Analizi — per-record grain preserved, same shape as the
+        // destination /talepler page.
+        supabase
+          .from("staffing_demands")
+          .select(
+            "id, company_id, position, requested_count, provided_count, priority, status",
+          ),
+        // Randevu Sonuçları — per-record grain preserved.
+        supabase
+          .from("appointments")
+          .select(
+            "id, company_id, meeting_date, meeting_type, attendee, status, result",
+          ),
+      ]);
+      if (cancelled) return;
+
+      const companyNameById = new Map<string, string>();
+      if (!companiesRes.error) {
+        for (const c of companiesRes.data ?? []) {
+          companyNameById.set(c.id, c.name);
+        }
+      }
+
+      // Report 1 — İş Gücü. Reuses deriveOpenGap + deriveRiskLevel from
+      // the workforce-summary service so the derivation is byte-
+      // identical to the /aktif-isgucu page. No new threshold invented.
+      const isGucuRows: RaporIsGucuRow[] = workforceRows
+        .map((row) => ({
+          firmaId: row.company_id,
+          firmaAdi: companyNameById.get(row.company_id) ?? "—",
+          lokasyon: row.location ?? "—",
+          aktifKisi: row.current_count,
+          hedefKisi: row.target_count,
+          acikFark: deriveOpenGap(row),
+          riskEtiketi: deriveRiskLevel(row),
+        }))
+        .filter((r) => r.firmaAdi !== "—");
+
+      // Report 2 — Sözleşme Bitişleri. Preserve the mock's 90-day
+      // window + kalanGun ASC sort. hazirlikDurumu has no real-schema
+      // equivalent on contracts; render honest "—" per row.
+      const now = new Date();
+      const sozlesmeRows: RaporSozlesmeBitisRow[] = contractRows
+        .map((c) => ({
+          row: c,
+          kalanGun: computeRemainingDays(c.end_date, now),
+        }))
+        .filter(
+          (x): x is { row: (typeof contractRows)[number]; kalanGun: number } =>
+            x.kalanGun !== null && x.kalanGun <= 90,
+        )
+        .sort((a, b) => a.kalanGun - b.kalanGun)
+        .map(({ row, kalanGun }) => ({
+          sozlesmeAdi: row.name,
+          firmaAdi: companyNameById.get(row.company_id) ?? "—",
+          bitis: row.end_date ?? "",
+          kalanGun,
+          sorumlu: row.responsible ?? "—",
+          durum: row.status,
+          hazirlikDurumu: "—",
+        }));
+
+      // Report 3 — Talep Analizi. Per-record, no aggregation.
+      const talepRows: RaporTalepRow[] = demandsRes.error
+        ? []
+        : (demandsRes.data ?? []).map((d) => ({
+            firmaAdi: companyNameById.get(d.company_id) ?? "—",
+            pozisyon: d.position,
+            talepEdilen: d.requested_count,
+            saglanan: d.provided_count,
+            acikKalan: d.requested_count - d.provided_count,
+            oncelik: d.priority,
+            durum: d.status,
+          }));
+
+      // Report 4 — Randevu Sonuçları. Per-record. meeting_type maps
+      // through the existing APPOINTMENT_TYPE_LABELS helper.
+      const randevuRows: RaporRandevuRow[] = appointmentsRes.error
+        ? []
+        : (appointmentsRes.data ?? []).map((a) => ({
+            tarih: a.meeting_date,
+            firmaAdi: companyNameById.get(a.company_id) ?? "—",
+            gorusmeTipiLabel:
+              APPOINTMENT_TYPE_LABELS[a.meeting_type] ?? a.meeting_type,
+            katilimci: a.attendee ?? "—",
+            durum: a.status,
+            sonuc: a.result && a.result.trim() !== "" ? a.result : "—",
+          }));
+
+      // Report 5 — Riskli Firma Listesi. Filter companies by risk enum,
+      // sort yuksek first then orta then name ASC. Mirrors the Dashboard
+      // Riskli Firmalar pattern. legacy_mock_id ?? id keeps firma-detay
+      // routing aligned with the rest of the app. No subset cap — the
+      // full report shows every matching company.
+      const riskliRows: RaporRiskliFirmaRow[] = companiesRes.error
+        ? []
+        : (companiesRes.data ?? [])
+            .filter(
+              (c): c is typeof c & { risk: "orta" | "yuksek" } =>
+                c.risk === "orta" || c.risk === "yuksek",
+            )
+            .sort((a, b) => {
+              if (a.risk !== b.risk) {
+                return a.risk === "yuksek" ? -1 : 1;
+              }
+              return a.name.localeCompare(b.name, "tr-TR");
+            })
+            .map((c) => ({
+              firmaId: c.legacy_mock_id ?? c.id,
+              firmaAdi: c.name,
+              risk: c.risk,
+            }));
+
+      setRaporIsGucu(isGucuRows);
+      setRaporSozlesmeBitis(sozlesmeRows);
+      setRaporTalepler(talepRows);
+      setRaporRandevular(randevuRows);
+      setRaporRiskli(riskliRows);
+      setReportErrors({
+        isGucu: workforceCatchError,
+        sozlesmeBitis: contractsCatchError,
+        talepler: demandsRes.error !== null,
+        randevular: appointmentsRes.error !== null,
+        riskli: companiesRes.error !== null,
+      });
+      setReportsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
+
+  // Single retry handler shared by every report's error branch.
+  const handleRetry = () => setRefreshKey((k) => k + 1);
+
+  return (
+    <>
+      <PageHeader title="Raporlar" subtitle="Operasyonel raporlar" />
+
+      <div className="space-y-4">
+        {operationsEnabled && (role==='yonetici'||role==='operasyon') && <>
+          <DailyOverview />
+          <section className="rounded-lg border bg-white p-4 space-y-2" aria-label="Haftalık operasyon çıktıları">
+            <h2 className="font-semibold">Haftalık operasyon çıktıları</h2>
+            <p className="text-sm text-slate-600">Firma ve haftayı seçerek günlük ihtiyaç, yerleştirme ve katılım bildirimlerini inceleyin. Yerleştirme, çalışılmış gün veya mali hakediş değildir.</p>
+            <Link className="text-sm text-blue-700 underline" href="/talepler/haftalik">Haftalık plan ve katılımı aç →</Link>
+          </section>
+        </>}
+
+        <ReportSwitcher
+          reports={visibleReports}
+          activeKey={selectedKey}
+          onSwitch={setActiveKey}
+        />
+
+        <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
+          {selectedKey==='is-gucu'||selectedKey==='talep-analizi'
+            ? 'Önceki modülde tutulan kayıtlar gösterilir. Yeni günlük planın talep, yerleştirme ve katılım kayıtları bu tabloya dahil değildir; tarih filtresi uygulanmaz.'
+            : selectedKey==='riskli-firma'
+              ? 'Firmalara elle verilen yüksek risk etiketi gösterilir. Otomatik risk analizi veya mali değerlendirme değildir.'
+              : selectedKey==='sozlesme-bitis' ? 'Süresi dolmuş veya önümüzdeki 90 gün içinde bitecek sözleşmeler.' : 'Bu tabloda tarih filtresi uygulanmaz.'}
+        </p>
+
+        {selectedKey === "is-gucu" && (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.isGucu}
+            onRetry={handleRetry}
+          >
+            <DataTable<RaporIsGucuRow>
+              columns={COLUMNS_IS_GUCU}
+              data={raporIsGucu}
+              rowKey="firmaId"
+              emptyTitle="İş gücü verisi yok"
+            />
+          </AsyncSection>
+        )}
+
+        {selectedKey === "sozlesme-bitis" && (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.sozlesmeBitis}
+            onRetry={handleRetry}
+          >
+            <DataTable<RaporSozlesmeBitisRow>
+              columns={COLUMNS_SOZLESME_BITIS}
+              data={raporSozlesmeBitis}
+              rowKey="sozlesmeAdi"
+              emptyTitle="Yaklaşan sözleşme yok"
+            />
+          </AsyncSection>
+        )}
+
+        {selectedKey === "talep-analizi" && (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.talepler}
+            onRetry={handleRetry}
+          >
+            <DataTable<RaporTalepRow>
+              columns={COLUMNS_TALEPLER}
+              data={raporTalepler}
+              rowKey="pozisyon"
+              emptyTitle="Talep verisi yok"
+            />
+          </AsyncSection>
+        )}
+
+        {selectedKey === "randevu-sonuc" && (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.randevular}
+            onRetry={handleRetry}
+          >
+            <DataTable<RaporRandevuRow>
+              columns={COLUMNS_RANDEVULAR}
+              data={raporRandevular}
+              rowKey="tarih"
+              emptyTitle="Randevu verisi yok"
+            />
+          </AsyncSection>
+        )}
+
+        {selectedKey === "riskli-firma" && (
+          <AsyncSection
+            isLoading={reportsLoading}
+            hasError={reportErrors.riskli}
+            onRetry={handleRetry}
+          >
+            <DataTable<RaporRiskliFirmaRow>
+              columns={COLUMNS_RISKLI_FIRMA}
+              data={raporRiskli}
+              rowKey="firmaId"
+              emptyTitle="Yüksek risk etiketi verilmiş firma yok"
+            />
+          </AsyncSection>
+        )}
+
+        {selectedKey === "partner-ozet" && (
+          <EmptyState
+            title="Partner Özeti"
+            description="Bu raporun veri akışı henüz bağlı değil."
+            size="page"
+          />
+        )}
+      </div>
+    </>
+  );
+}

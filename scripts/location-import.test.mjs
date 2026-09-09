@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const source=readFileSync(new URL('../src/lib/operations/location-import.ts',import.meta.url),'utf8');
+const out=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}});
+const {parseLocationCsv,validateLocationRows}=await import('data:text/javascript;base64,'+Buffer.from(out.outputText).toString('base64'));
+const header='sube_kodu,sube_adi,il\n';
+test('UTF8 BOM CRLF and leading zeros retained',()=>assert.deepEqual(parseLocationCsv('\uFEFFsube_kodu;sube_adi;il\r\n0001;Şube;İstanbul\r\n'),[{code:'0001',name:'Şube',city:'İstanbul'}]));
+test('quoted delimiter and escaped quotes',()=>assert.equal(parseLocationCsv(header+'01,"Merkez, ""A""",Ankara')[0].name,'Merkez, "A"'));
+test('bad quoting columns and headers rejected',()=>{for(const body of ['01,"A,B','01,"A"x,B','01,A,B,C','\n01,A,B'])assert.throws(()=>parseLocationCsv(header+body));assert.throws(()=>parseLocationCsv('code,name,city\n01,A,B'));});
+test('duplicate codes rejected, different leading zeros retained',()=>{assert.throws(()=>parseLocationCsv(header+'01,A,B\n01,A,B'));assert.equal(parseLocationCsv(header+'01,A,B\n1,A,B').length,2);});
+test('empty oversize and more than 500 rows rejected',()=>{assert.throws(()=>parseLocationCsv(header));assert.throws(()=>parseLocationCsv('a'.repeat(262145)));assert.throws(()=>validateLocationRows(Array.from({length:501},(_,i)=>({code:String(i),name:'A',city:'B'}))));});
+test('invalid cell types controls and empty text rejected',()=>{for(const patch of [{code:1},{code:'=1+1'},{name:' '},{city:'A\nB'},{name:'x'.repeat(161)}])assert.throws(()=>validateLocationRows([{code:'01',name:'A',city:'B',...patch}]));});

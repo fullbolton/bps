@@ -7,8 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "qa:acceptance": "node scripts/qa-acceptance.mjs",
+    "qa:acceptance:unit": "node --test scripts/acceptance-runner.test.mjs",
     "qa:static": "node scripts/qa-static.mjs",
-    "qa:unit": "node scripts/qa-unit.mjs"
+    "qa:unit": "node scripts/qa-unit.mjs",
+    "qa:operations": "node --test scripts/daily-demand.test.mjs scripts/pilot-validation.test.mjs scripts/location-import.test.mjs scripts/pending-commands.test.mjs scripts/weekly-plan.test.mjs scripts/request-batch.test.mjs scripts/weekly-attendance.test.mjs scripts/operations-checklist.test.mjs scripts/operations-directory.test.mjs scripts/task-prefill.test.mjs scripts/task-revision.test.mjs scripts/appointment-completion.test.mjs scripts/task-transfer.test.mjs scripts/membership-task-guard.test.mjs scripts/contract-renewal.test.mjs scripts/contract-pdf.test.mjs scripts/pdf-upload.test.mjs scripts/contract-appendices.test.mjs scripts/dashboard-activity.test.mjs scripts/workspace-setup.test.mjs scripts/workspace-invitations.test.mjs scripts/daily-dashboard.test.mjs scripts/pending-mizan.test.mjs scripts/start-tracking.test.mjs scripts/start-board.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",

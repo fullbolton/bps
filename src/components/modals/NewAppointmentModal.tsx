@@ -8,7 +8,7 @@
  * and this modal shows a saving spinner + inline error on failure.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import NewCompanyModal from "./NewCompanyModal";
@@ -25,7 +25,9 @@ interface NewAppointmentModalProps {
   open: boolean;
   onClose: () => void;
   firmalar: { id: string; ad: string }[];
-  onSubmit?: (payload: {
+  defaultFirmaId?: string;
+  allowNewCompany?: boolean;
+  onSubmit: (payload: {
     firmaId: string;
     firmaAdi: string;
     tarih: string;
@@ -39,9 +41,12 @@ export default function NewAppointmentModal({
   open,
   onClose,
   firmalar,
+  defaultFirmaId = "",
+  allowNewCompany = true,
   onSubmit,
 }: NewAppointmentModalProps) {
-  const [firmaId, setFirmaId] = useState("");
+  const [firmaId, setFirmaId] = useState(defaultFirmaId);
+  const submitting = useRef(false);
   const [tarih, setTarih] = useState("");
   const [saat, setSaat] = useState("");
   const [tip, setTip] = useState<AppointmentMeetingType>("ziyaret");
@@ -53,6 +58,17 @@ export default function NewAppointmentModal({
   // kaydedildikten sonra zaten yeniliyor; buradaki amac yeni firmanin
   // select'te ANINDA gorunmesi, sayfa reload etmeden.
   const [yeniFirmalar, setYeniFirmalar] = useState<{ id: string; ad: string }[]>([]);
+
+  useEffect(() => {
+    setFirmaId(defaultFirmaId);
+    setTarih("");
+    setSaat("");
+    setTip("ziyaret");
+    setKatilimci("");
+    setSubmitError(null);
+    setCompanyModalOpen(false);
+    setYeniFirmalar([]);
+  }, [open, defaultFirmaId]);
 
   const tumFirmalar = [
     ...firmalar,
@@ -69,10 +85,11 @@ export default function NewAppointmentModal({
   }
 
   async function handleSubmit() {
-    if (!firmaId || !tarih) return;
+    if (!firmaId || !tarih || submitting.current || !tumFirmalar.some((f) => f.id === firmaId)) return;
+    submitting.current = true;
     const payload = {
       firmaId,
-      firmaAdi: firmalar.find((f) => f.id === firmaId)?.ad ?? "",
+      firmaAdi: tumFirmalar.find((f) => f.id === firmaId)?.ad ?? "",
       tarih,
       saat,
       gorusmeTipi: tip,
@@ -81,18 +98,21 @@ export default function NewAppointmentModal({
     setSaving(true);
     setSubmitError(null);
     try {
-      await onSubmit?.(payload);
-      resetAndClose();
+      await onSubmit(payload);
+      onClose();
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Randevu olusturulurken bir hata olustu.",
       );
     } finally {
       setSaving(false);
+      submitting.current = false;
     }
   }
 
   function resetAndClose() {
+    if (submitting.current) return;
+    setCompanyModalOpen(false);
     setFirmaId("");
     setTarih("");
     setSaat("");
@@ -120,7 +140,7 @@ export default function NewAppointmentModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!firmaId || !tarih || saving}
+            disabled={!tumFirmalar.some((f) => f.id === firmaId) || !tarih || saving}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? "Kaydediliyor..." : "Olustur"}
@@ -128,7 +148,7 @@ export default function NewAppointmentModal({
         </>
       }
     >
-      <div className="space-y-4">
+      <fieldset disabled={saving} className="space-y-4">
         {submitError && (
           <p className="text-xs text-red-600" role="alert" aria-live="polite">
             {submitError}
@@ -139,9 +159,10 @@ export default function NewAppointmentModal({
             Firma <span className="text-red-500">*</span>
           </label>
           <select
+            aria-label="Randevu firması"
             value={firmaId}
             onChange={(e) => {
-              if (e.target.value === NEW_COMPANY_OPTION) {
+              if (allowNewCompany && e.target.value === NEW_COMPANY_OPTION) {
                 setCompanyModalOpen(true);
                 return;
               }
@@ -155,8 +176,10 @@ export default function NewAppointmentModal({
                 {f.ad}
               </option>
             ))}
-            <option disabled>──────────────</option>
-            <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
+            {allowNewCompany && <>
+              <option disabled>──────────────</option>
+              <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
+            </>}
           </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -166,6 +189,7 @@ export default function NewAppointmentModal({
             </label>
             <input
               type="date"
+              aria-label="Randevu tarihi"
               value={tarih}
               onChange={(e) => setTarih(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -177,6 +201,7 @@ export default function NewAppointmentModal({
             </label>
             <input
               type="time"
+              aria-label="Randevu saati"
               value={saat}
               onChange={(e) => setSaat(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -188,6 +213,7 @@ export default function NewAppointmentModal({
             Gorusme Tipi
           </label>
           <select
+            aria-label="Görüşme tipi"
             value={tip}
             onChange={(e) => setTip(e.target.value as AppointmentMeetingType)}
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -205,13 +231,14 @@ export default function NewAppointmentModal({
           </label>
           <input
             type="text"
+            aria-label="Katılımcı"
             value={katilimci}
             onChange={(e) => setKatilimci(e.target.value)}
             placeholder="Katilimci adi"
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-      </div>
+      </fieldset>
     </ModalShell>
 
     {/* ModalShell'in KARDESI — icine konsaydi modal govdesinin max-h

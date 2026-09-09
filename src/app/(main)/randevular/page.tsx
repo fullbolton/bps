@@ -175,7 +175,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
 
 export default function RandevularPage() {
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
@@ -197,6 +197,7 @@ export default function RandevularPage() {
   });
   const [newOpen, setNewOpen] = useState(false);
   const [resultTarget, setResultTarget] = useState<{ open: boolean; randevuId?: string }>({ open: false });
+  useEffect(()=>{setResultTarget({open:false});setNewOpen(false);},[user?.id,user?.app_metadata?.active_tenant,role]);
   // Info (not error): set when a completion succeeds but the follow-up
   // task was skipped because the firma is pasif.
   const [completionNotice, setCompletionNotice] = useState<string | null>(null);
@@ -334,7 +335,7 @@ export default function RandevularPage() {
   );
 
   const kullaniciOptions = useMemo(
-    () => allProfiles.map((p) => ({ id: p.id, ad: p.display_name })),
+    () => allProfiles.filter((p) => ["yonetici", "operasyon", "ik"].includes(p.role)).map((p) => ({ id: p.id, ad: p.display_name })),
     [allProfiles],
   );
 
@@ -533,7 +534,8 @@ export default function RandevularPage() {
         )}
       </RightSidePanel>
 
-      <NewAppointmentModal
+      {newOpen && <NewAppointmentModal
+        key={`${user?.id}:${user?.app_metadata?.active_tenant}:${role}`}
         open={newOpen}
         onClose={() => setNewOpen(false)}
         firmalar={firmaOptions}
@@ -546,15 +548,17 @@ export default function RandevularPage() {
             attendee: katilimci || undefined,
           });
           if (!result.ok) throw new Error(result.error);
-          await reload();
+          setNewOpen(false);
+          void reload();
           router.refresh();
         }}
-      />
+      />}
       <AppointmentResultModal
         open={resultTarget.open}
         onClose={() => setResultTarget({ open: false })}
         randevuId={resultTarget.randevuId}
-        onComplete={async ({ randevuId, sonuc, sonrakiAksiyon }) => {
+        actorId={user?.id??""}
+        onComplete={async ({ randevuId, sonuc, sonrakiAksiyon, actorId }) => {
           if (!randevuId) return;
           // The action completes the appointment (allowed on a pasif firma)
           // and guards the follow-up task side-effect. On success it may
@@ -564,7 +568,7 @@ export default function RandevularPage() {
             result: sonuc,
             nextAction: sonrakiAksiyon,
             createTask: true,
-          });
+          }, actorId);
           if (!result.ok) throw new Error(result.error);
           await reload();
           router.refresh();

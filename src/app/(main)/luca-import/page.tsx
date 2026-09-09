@@ -5,12 +5,13 @@
  * Yonetici-only. Management visibility. Not accounting truth.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Upload, CheckCircle, XCircle, AlertTriangle, FileText, HelpCircle } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
+import {digestMizan,reserveMizan,settleMizan,isRejectedMizanInput} from "@/lib/luca/pending-import";
 import { parseMizanExcel, buildCompanyMatchMap } from "@/lib/luca/mizan-parser";
 import type { LucaParseResult, LucaMizanRow } from "@/lib/luca/types";
 import {
@@ -54,6 +55,8 @@ export default function LucaImportPage() {
   const { loading: authLoading } = useAuth();
   const supabase = createClient();
 
+  const fileDigest=useRef<string|null>(null);
+  const command=useRef<{id:string;tenantId:string;actorId:string;payload:Record<string,unknown>}|null>(null);
   const [parseResult, setParseResult] = useState<LucaParseResult | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -85,6 +88,8 @@ export default function LucaImportPage() {
     setError(null);
     setConfirmed(false);
     setParseResult(null);
+    command.current=null;
+    fileDigest.current=null;
 
     if (!file.name.match(/\.xlsx?$/i)) {
       setError("Yalnizca Excel (.xlsx / .xls) dosyasi kabul edilir.");
@@ -100,6 +105,7 @@ export default function LucaImportPage() {
 
     try {
       const buffer = await file.arrayBuffer();
+      const digest=await digestMizan(buffer);
 
       // Load BPS companies for matching — fail clearly if load fails
       const { data: companies, error: companyLoadErr } = await supabase.from("companies").select("id, name");
@@ -117,6 +123,7 @@ export default function LucaImportPage() {
 
       const result = parseMizanExcel(buffer, file.name, companyMap);
       setParseResult(result);
+      fileDigest.current=digest;
 
       if (result.errors.length > 0) {
         setError(result.errors.join("; "));
@@ -128,71 +135,36 @@ export default function LucaImportPage() {
   }
 
   async function handleConfirm() {
-    if (!parseResult || confirming) return;
+    if (!parseResult || confirming || parseResult.errors.length || !parseResult.rows.length) return;
     setConfirming(true);
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      // 1. Insert upload metadata
-      const { data: upload, error: uploadErr } = await supabase
-        .from("mizan_uploads")
-        .insert({
-          file_name: parseResult.meta.fileName,
-          report_period: parseResult.meta.reportPeriod,
-          report_date_range: parseResult.meta.reportDateRange,
-          total_rows: parseResult.meta.totalRows,
-          matched_count: parseResult.meta.matchedCount,
-          unmatched_count: parseResult.meta.unmatchedCount,
-          ambiguous_count: parseResult.meta.ambiguousCount,
-          uploaded_by: user?.id ?? null,
-        })
-        .select("id")
-        .single();
-
-      if (uploadErr || !upload) throw new Error(uploadErr?.message ?? "Upload kaydi olusturulamadi");
-
-      // 2. Insert confirmed rows
-      const rowInserts = parseResult.rows.map((r) => ({
-        upload_id: upload.id,
-        account_code: r.accountCode,
-        account_name: r.accountName,
-        borc_total: r.borcTotal,
-        alacak_total: r.alacakTotal,
-        borc_bakiyesi: r.borcBakiyesi,
-        alacak_bakiyesi: r.alacakBakiyesi,
-        matched_company_id: r.matchedCompanyId,
-        matched_company_name: r.matchedCompanyName,
-        match_status: r.matchStatus,
-      }));
-
-      if (rowInserts.length > 0) {
-        const { error: rowErr } = await supabase.from("mizan_upload_rows").insert(rowInserts);
-        if (rowErr) {
-          // Rollback: delete orphan upload metadata since row snapshot failed
-          await supabase.from("mizan_uploads").delete().eq("id", upload.id);
-          throw new Error(`Satir kaydi basarisiz: ${rowErr.message}. Yukleme geri alindi.`);
+      const identity=await supabase.auth.getUser();
+      const user=identity.data.user;
+      const tenant=await supabase.rpc('current_user_verified_tenant');
+      if(identity.error||!user||tenant.error||typeof tenant.data!=='string')throw Error('Çalışma alanı doğrulanamadı. Oturumunuzu kontrol edin.');
+      if(!command.current){
+        if(!fileDigest.current)throw Error('Dosya kimliği doğrulanamadı. Dosyayı tekrar seçin.');
+        const payload={fileName:parseResult.meta.fileName,reportPeriod:parseResult.meta.reportPeriod,reportDateRange:parseResult.meta.reportDateRange,rows:parseResult.rows};
+        const scope={actorId:user.id,tenantId:tenant.data};
+        const id=await reserveMizan(scope,fileDigest.current,payload,localStorage,navigator.locks);
+        command.current={id,...scope,payload};
+      }
+      const pending=command.current;
+      if(pending.actorId!==user.id||pending.tenantId!==tenant.data)throw Error('Onay sırasında hesap veya çalışma alanı değişti. Dosyayı yeniden seçin.');
+      const result=await supabase.rpc('confirm_mizan_atomic',{p_id:pending.id,p_tenant_id:pending.tenantId,p_payload:pending.payload});
+      if(result.error){
+        if(isRejectedMizanInput(result.error)){
+          await settleMizan(pending,pending.id,localStorage,navigator.locks);command.current=null;
+          throw Error('Dosya verisi veya firma eşlemesi reddedildi; yeni aktarım kaydedilmedi. Verileri düzeltip dosyayı yeniden seçin.');
         }
+        throw Error('Aktarım onaylanamadı veya yanıt alınamadı. Aynı onayı tekrar deneyebilirsiniz.');
       }
-
-      // 3. Derive per-company open_receivable from the just-confirmed upload.
-      // Mizan-derived visibility only — overwrites open_receivable while
-      // preserving is_overdue / unbilled_amount set by the muhasebe flow.
-      // Uses the latest confirmed upload only (scoped by upload.id).
-      const { error: deriveErr } = await supabase.rpc(
-        "derive_financial_summaries_from_mizan",
-        { p_upload_id: upload.id },
-      );
-      if (deriveErr) {
-        // Rollback: snapshot without derived financial_summaries would be
-        // inconsistent. Delete the upload (CASCADEs to rows) so the next
-        // retry starts clean.
-        await supabase.from("mizan_uploads").delete().eq("id", upload.id);
-        throw new Error(`Finansal ozet turetilemedi: ${deriveErr.message}. Yukleme geri alindi.`);
-      }
+      if(result.data!==pending.id)throw Error('Aktarım sonucu doğrulanamadı. Aynı onayı tekrar deneyin.');
 
       setConfirmed(true);
+      try{await settleMizan(pending,pending.id,localStorage,navigator.locks);}catch{setError('Aktarım kaydedildi; tarayıcıdaki kurtarma kaydı temizlenemedi. Aynı dosyayla tekrar doğrulayabilirsiniz.');}
     } catch (err) {
       setError(err instanceof Error ? err.message : "Onaylama basarisiz.");
     } finally {
@@ -202,6 +174,8 @@ export default function LucaImportPage() {
 
   function handleReset() {
     setParseResult(null);
+    command.current=null;
+    fileDigest.current=null;
     setConfirmed(false);
     setError(null);
   }
@@ -219,6 +193,7 @@ export default function LucaImportPage() {
   return (
     <>
       <PageHeader title="Luca Mizan Import" subtitle="Muhasebe raporu kaynakli alacak gorunumu — yonetim gorunurlugu" />
+      <p className="mb-4 text-sm text-slate-600">Onay sırasında bağlantı kesilirse veya sayfayı yenilerseniz aynı Excel dosyasını yeniden seçin. Bekleyen onay aynı işlemle sürdürülür. Tarayıcıda mali satırlar saklanmaz; tarayıcı verilerini silmek kurtarma bilgisini de siler.</p>
 
       <div className="space-y-6 max-w-5xl">
 

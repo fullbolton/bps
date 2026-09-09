@@ -13,19 +13,21 @@
  * validation — no partial save.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui";
 
 export interface AppointmentCompletionPayload {
   randevuId?: string;
   sonuc: string;
   sonrakiAksiyon: string;
+  actorId: string;
 }
 
 interface AppointmentResultModalProps {
   open: boolean;
   onClose: () => void;
   randevuId?: string;
+  actorId: string;
   onComplete?: (payload: AppointmentCompletionPayload) => Promise<void> | void;
 }
 
@@ -33,37 +35,46 @@ export default function AppointmentResultModal({
   open,
   onClose,
   randevuId,
+  actorId,
   onComplete,
 }: AppointmentResultModalProps) {
   const [sonuc, setSonuc] = useState("");
   const [sonrakiAksiyon, setSonrakiAksiyon] = useState("");
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const submitting = useRef(false);
+  useEffect(() => {
+    if (open) {setSonuc("");setSonrakiAksiyon("");setSubmitError(null);}
+  }, [open,randevuId,actorId]);
 
   const canSubmit = sonuc.trim().length > 0 && sonrakiAksiyon.trim().length > 0;
 
   async function handleSubmit() {
-    if (!canSubmit) return;
+    if (!canSubmit || submitting.current || !onComplete) return;
+    submitting.current = true;
     const payload: AppointmentCompletionPayload = {
       randevuId,
       sonuc: sonuc.trim(),
       sonrakiAksiyon: sonrakiAksiyon.trim(),
+      actorId,
     };
     setSaving(true);
     setSubmitError(null);
     try {
       await onComplete?.(payload);
-      resetAndClose();
+      onClose();
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Randevu tamamlanirken bir hata olustu.",
       );
     } finally {
       setSaving(false);
+      submitting.current = false;
     }
   }
 
   function resetAndClose() {
+    if (submitting.current) return;
     setSonuc("");
     setSonrakiAksiyon("");
     setSubmitError(null);
@@ -105,9 +116,12 @@ export default function AppointmentResultModal({
             Sonuc <span className="text-red-500">*</span>
           </label>
           <textarea
+            aria-label="Görüşme sonucu"
             value={sonuc}
             onChange={(e) => setSonuc(e.target.value)}
             rows={3}
+            maxLength={4000}
+            disabled={saving}
             placeholder="Gorusme sonucunu yazin..."
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
@@ -117,9 +131,12 @@ export default function AppointmentResultModal({
             Sonraki Aksiyon <span className="text-red-500">*</span>
           </label>
           <textarea
+            aria-label="Sonraki aksiyon"
             value={sonrakiAksiyon}
             onChange={(e) => setSonrakiAksiyon(e.target.value)}
             rows={3}
+            maxLength={1000}
+            disabled={saving}
             placeholder="Sonraki adimi tanimlayiniz..."
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />

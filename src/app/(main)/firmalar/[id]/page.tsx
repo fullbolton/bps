@@ -41,7 +41,8 @@ import {
   RiskBadge,
 } from "@/components/ui";
 import DemandTrendChart from "@/components/ui/DemandTrendChart";
-import { QuickNoteModal, AddContactModal } from "@/components/modals";
+import { QuickNoteModal, AddContactModal, NewAppointmentModal } from "@/components/modals";
+import { createAppointmentAction } from "../../randevular/actions";
 import { suggestNote } from "@/lib/suggest";
 import { generatePaymentFollowup } from "@/lib/draft-payment-followup";
 import { generateYenidenTemasDraft } from "@/lib/draft-yeniden-temas";
@@ -163,6 +164,8 @@ export default function FirmaDetayPage({
   const { role } = useRole();
   const documentsAccessRestricted = role === "muhasebe" || role === "goruntuleyici";
   const { user } = useAuth();
+  // UI reset identity only; server/RLS remain the authorization authority.
+  const companyScope = `${id}:${user?.id ?? ""}:${user?.app_metadata?.active_tenant ?? ""}:${role}`;
   const [activeTab, setActiveTab] = useState("genel");
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteDefaultIcerik, setNoteDefaultIcerik] = useState("");
@@ -234,13 +237,20 @@ export default function FirmaDetayPage({
   }, [reloadNotlar]);
   // Phase 3 state: Talepler, Randevular, İş Gücü — real Supabase truth.
   const [firmaTalepler, setFirmaTalepler] = useState<StaffingDemandRow[]>([]);
+  const [appointmentOpen, setAppointmentOpen] = useState(false);
+  useEffect(() => { setAppointmentOpen(false); }, [companyScope]);
+  const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
   const [firmaRandevular, setFirmaRandevular] = useState<AppointmentRow[]>([]);
   const [firmaIsGucu, setFirmaIsGucu] = useState<WorkforceSummaryRow | null>(null);
   useEffect(() => {
     void listDemandsByLegacyCompanyId(supabase, id)
       .then(setFirmaTalepler).catch(() => setFirmaTalepler([]));
+    setAppointmentsError(null);
     void listAppointmentsByLegacyCompanyId(supabase, id)
-      .then(setFirmaRandevular).catch(() => setFirmaRandevular([]));
+      .then(setFirmaRandevular).catch(() => {
+        setFirmaRandevular([]);
+        setAppointmentsError("Randevular yüklenemedi. Sayfayı yenileyin.");
+      });
     void getWorkforceSummaryByLegacyCompanyId(supabase, id)
       .then(setFirmaIsGucu).catch(() => setFirmaIsGucu(null));
   }, [supabase, id]);
@@ -288,12 +298,19 @@ export default function FirmaDetayPage({
   // Real company shell — loaded from DB, handles both legacy IDs and UUIDs
   const [companyShell, setCompanyShell] = useState<CompanyRow | null>(null);
   const [companyLoading, setCompanyLoading] = useState(true);
+  const [loadedCompanyScope, setLoadedCompanyScope] = useState("");
   useEffect(() => {
+    let current = true;
+    setCompanyLoading(true);
+    setCompanyShell(null);
     resolveCompanyByIdOrLegacy(supabase, id)
-      .then(setCompanyShell)
-      .catch(() => setCompanyShell(null))
-      .finally(() => setCompanyLoading(false));
-  }, [supabase, id]);
+      .then((company) => { if (current) setCompanyShell(company); })
+      .catch(() => { if (current) setCompanyShell(null); })
+      .finally(() => {
+        if (current) { setCompanyLoading(false); setLoadedCompanyScope(companyScope); }
+      });
+    return () => { current = false; };
+  }, [supabase, id, companyScope]);
 
   // Company passivate (yonetici-only). Error surfaces inline below the
   // summary header; success re-fetches the shell so the Pasif badge shows.
@@ -485,7 +502,7 @@ export default function FirmaDetayPage({
   const [evrakDeleteMessage, setEvrakDeleteMessage] = useState<string | null>(null);
   const [evrakDeletingId, setEvrakDeletingId] = useState<string | null>(null);
 
-  if (companyLoading) {
+  if (companyLoading || loadedCompanyScope !== companyScope) {
     return <p className="text-sm text-slate-500 py-12 text-center">Yukleniyor...</p>;
   }
 
@@ -518,12 +535,12 @@ export default function FirmaDetayPage({
         icon: <Lightbulb size={16} />,
       },
     ] : []),
-    {
+    ...(["yonetici", "operasyon"].includes(role) ? [{
       label: "Randevu Planla",
-      onClick: () => {},
+      onClick: () => setAppointmentOpen(true),
       icon: <CalendarCheck size={16} />,
-      disabled: true,
-    },
+      disabled: firma.durum === "pasif",
+    }] : []),
     // Passivate — yonetici-only, only on an aktif/aday firma.
     ...(role === "yonetici" && firma && firma.durum !== "pasif" ? [
       {
@@ -580,6 +597,12 @@ export default function FirmaDetayPage({
         partner={undefined}
         actions={headerActions}
       />
+
+      {companyShell && (role === "yonetici" || role === "operasyon") && (
+        <button className="mb-4 text-sm underline" onClick={() => router.push(`/talepler/gunluk?firma=${companyShell.id}`)}>
+          Günlük personel planını aç
+        </button>
+      )}
 
       {passivateError && (
         <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
@@ -1260,7 +1283,9 @@ export default function FirmaDetayPage({
               <h3 className={CARD_TITLE_PLAIN}>
                 Firma Randevuları
               </h3>
-              {firmaRandevular.length === 0 ? (
+              {appointmentsError ? (
+                <p role="alert" className="text-sm text-red-600">{appointmentsError}</p>
+              ) : firmaRandevular.length === 0 ? (
                 <EmptyState title="Randevu yok" description="Bu firmaya ait randevu bulunamadı." size="tab" />
               ) : (
                 <div className="space-y-2">
@@ -1455,11 +1480,11 @@ export default function FirmaDetayPage({
                     <tbody>
                       {firmaDocs.map((d) => (
                         <tr key={d.id} className={`border-t ${BORDER_SUBTLE}`}>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[220px] truncate`}>{d.name}</td>
+                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[220px]`}>{d.contract_document_title && <p className="font-medium">{d.contract_document_title}</p>}<p className="truncate">{d.name}</p></td>
                           <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{DOCUMENT_CATEGORY_LABELS[d.category]}</td>
                           <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
                           <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{d.validity_date ? formatDateTR(d.validity_date) : "—"}</td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[180px] truncate`}>{d.contract_id ? (contractLabelById.get(d.contract_id) ?? "—") : "—"}</td>
+                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[180px]`}>{d.contract_id ? (["yonetici","operasyon"].includes(role) ? <a href={`/sozlesmeler/${d.contract_id}`} className="text-blue-700 hover:underline">{contractLabelById.get(d.contract_id) ?? "Sözleşme dosyaları"}</a> : contractLabelById.get(d.contract_id) ?? "—") : "—"}</td>
                           <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[160px] truncate`}>{d.uploaded_by ?? "—"}</td>
                           <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(d.updated_at.slice(0, 10))}</td>
                           <td className="px-3 py-2 text-right">
@@ -1474,7 +1499,7 @@ export default function FirmaDetayPage({
                                 <Download size={12} />
                                 İndir
                               </button>
-                              {canDeleteDocs && (
+                              {canDeleteDocs && !d.contract_id && (
                                 <button
                                   type="button"
                                   onClick={() => { void handleEvrakDelete(d.id); }}
@@ -1687,6 +1712,37 @@ export default function FirmaDetayPage({
           />
         )}
       </div>
+
+      {appointmentOpen && companyShell && ["yonetici", "operasyon"].includes(role) && (
+        <NewAppointmentModal
+          key={companyScope}
+          open={appointmentOpen}
+          onClose={() => setAppointmentOpen(false)}
+          defaultFirmaId={companyShell.id}
+          firmalar={[{ id: companyShell.id, ad: companyShell.name }]}
+          allowNewCompany={false}
+          onSubmit={async ({ firmaId, tarih, saat, gorusmeTipi, katilimci }) => {
+            const result = await createAppointmentAction({
+              legacyCompanyId: firmaId,
+              meetingDate: tarih,
+              meetingTime: saat || undefined,
+              meetingType: gorusmeTipi,
+              attendee: katilimci || undefined,
+            });
+            if (!result.ok) throw new Error(result.error);
+            // Creation succeeded: a subsequent list refresh failure must not
+            // keep a retryable create form open and invite a duplicate insert.
+            setAppointmentOpen(false);
+            setActiveTab("randevular");
+            setAppointmentsError(null);
+            void listAppointmentsByLegacyCompanyId(supabase, id)
+              .then(setFirmaRandevular).catch(() => {
+                setAppointmentsError("Randevu oluşturuldu, liste yenilenemedi. Sayfayı yenileyin.");
+              });
+            router.refresh();
+          }}
+        />
+      )}
 
       <QuickNoteModal
         open={noteOpen}

@@ -456,7 +456,9 @@ export async function deleteCompanyDocumentAction(
   if (del.error) {
     return {
       ok: false,
-      error: `Belge silinemedi: ${del.error.message}`,
+      error: del.error.message.includes('contract_document_versions_document_id_fkey')
+        ? 'Sürüm geçmişi bulunan sözleşme PDF’i silinemez. Yeni sürüm yükleyerek geçmişi koruyun.'
+        : `Belge silinemedi: ${del.error.message}`,
     };
   }
 

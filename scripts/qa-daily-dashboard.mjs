@@ -1,0 +1,32 @@
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import {randomUUID} from 'node:crypto';import assert from 'node:assert/strict';
+import {baseline,id} from './fixtures/daily-operations.mjs';
+const modulePath=process.env.BPS_EMBEDDED_PG_MODULE;if(!modulePath?.startsWith('/'))throw Error('Absolute BPS_EMBEDDED_PG_MODULE required');
+const {default:EmbeddedPostgres}=await import(pathToFileURL(modulePath).href);
+const dir=await mkdtemp(join(tmpdir(),'bps-dashboard-'));
+const pg=new EmbeddedPostgres({databaseDir:join(dir,'db'),user:'postgres',password:randomUUID(),port:55452,persistent:false,postgresFlags:['-h','127.0.0.1','-k',dir],onLog:()=>{},onError:()=>{}});
+let c;let count=0;const pass=s=>{count++;console.log('PASS '+s);};
+try{
+ await pg.initialise();await pg.start();c=pg.getPgClient('postgres','127.0.0.1');await c.connect();await c.query(baseline);
+ for(const f of ['20260909000100_daily_operations_pilot.sql','20260909002500_daily_dashboard.sql'])await c.query(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
+ const as=async(user=10,tenant=1)=>{await c.query('RESET ROLE');await c.query("SELECT set_config('test.user',$1,false),set_config('test.tenant',$2,false)",[user===null?'':id(user),id(tenant)]);await c.query('SET ROLE authenticated');};
+ const get=async(actor=10,tenant=1)=>(await c.query('SELECT daily_dashboard($1,$2) r',[id(actor),id(tenant)])).rows[0].r;
+ await as();let r=await get();assert.equal(r.requests,0);assert.equal(r.required,0);assert.deepEqual(r.gaps,[]);pass('empty day is measured zero');
+ await assert.rejects(()=>get(13),/DAILY_DASHBOARD_SCOPE/);await assert.rejects(()=>get(10,2),/DAILY_DASHBOARD_SCOPE/);pass('spoofed actor and tenant rejected');
+ await as(11);await get(11);await as(12);await assert.rejects(()=>get(12),/DAILY_DASHBOARD_FORBIDDEN/);pass('operator allowed, HR denied');
+ await as(14);await assert.rejects(()=>get(14),/DAILY_DASHBOARD_SCOPE/);await as(null);await assert.rejects(()=>get(),/DAILY_DASHBOARD_SCOPE/);pass('unaffiliated and anonymous fail closed');
+ await c.query('RESET ROLE');
+ await c.query("INSERT INTO ops_locations(id,tenant_id,company_id,name,city,active) VALUES($1,$2,$3,'Active','Istanbul',true),($4,$2,$5,'Passive company','Istanbul',true),($6,$2,$3,'Passive location','Istanbul',false),($7,$8,$9,'Foreign','Istanbul',true)",[id(100),id(1),id(20),id(101),id(22),id(102),id(103),id(2),id(21)]);
+ await c.query("INSERT INTO ops_workers(id,tenant_id,name,code,kind,active) VALUES($1,$2,'Active','A','idp',true),($3,$2,'Passive','P','idp',false),($4,$5,'Foreign','F','idp',true)",[id(200),id(1),id(201),id(202),id(2)]);
+ await as();r=await get();const today=r.day;await c.query('RESET ROLE');
+ await c.query("INSERT INTO ops_daily_requests(id,tenant_id,company_id,location_id,work_date,service_line,position,required_count,lifecycle,created_by) VALUES($1,$2,$3,$4,$5,'Temizlik','Temizlik',2,'active',$6),($7,$2,$3,$4,$5,'Temizlik','Temizlik',2,'cancelled',$6),($8,$2,$3,$4,$5::date-1,'Temizlik','Temizlik',2,'active',$6),($9,$2,$10,$11,$5,'Temizlik','Temizlik',2,'active',$6)",[id(300),id(1),id(20),id(100),today,id(10),id(301),id(302),id(303),id(22),id(101)]);
+ await c.query("INSERT INTO ops_assignments(id,tenant_id,request_id,work_date,worker_id,created_by) VALUES($1,$2,$3,$4,$5,$6)",[id(400),id(1),id(300),today,id(200),id(10)]);
+ await as();r=await get();assert.equal(r.requests,2);assert.equal(r.required,4);assert.equal(r.placed,1);assert.equal(r.missing,3);assert.equal(r.openRequests,2);assert.equal(r.gaps[0].company,'Passive');pass('today only; cancelled/past excluded; inactive-directory commitments retained');
+ await c.query('RESET ROLE');await c.query('UPDATE ops_assignments SET removed_at=now()');await as();assert.equal((await get()).missing,4);pass('removed placement increases shortage');
+ await c.query('RESET ROLE');
+ for(let n=310;n<316;n++)await c.query("INSERT INTO ops_daily_requests(id,tenant_id,company_id,location_id,work_date,service_line,position,required_count,created_by) VALUES($1,$2,$3,$4,$5,'Temizlik','Ek talep',1,$6)",[id(n),id(1),id(20),id(100),today,id(10)]);
+ await c.query("INSERT INTO ops_daily_requests(id,tenant_id,company_id,location_id,work_date,service_line,position,required_count,created_by) VALUES($1,$2,$3,$4,$5,'Temizlik','Foreign',100,$6),($7,$8,$9,$10,$5::date+1,'Temizlik','Future',100,$11)",[id(320),id(2),id(21),id(103),today,id(13),id(321),id(1),id(20),id(100),id(10)]);
+ await as();r=await get();assert.equal(r.requests,8);assert.equal(r.missing,10);assert.equal(r.gaps.length,5);assert.deepEqual(r.gaps.map(g=>g.id),[300,303,310,311,312].map(id));pass('foreign and future excluded; five largest gaps with stable tie ordering');
+ await c.query('RESET ROLE');await c.query('DELETE FROM tenant_memberships WHERE user_id=$1',[id(10)]);await as();await assert.rejects(()=>get(),/DAILY_DASHBOARD_SCOPE/);pass('stale claim rejected');
+ console.log(`Daily dashboard PostgreSQL checks: ${count} passed.`);
+}finally{await c?.end();await pg.stop();await rm(dir,{recursive:true,force:true});}

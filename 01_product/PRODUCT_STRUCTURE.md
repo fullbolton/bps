@@ -315,3 +315,20 @@ Dashboard üzerindeki sinyal kartı ile erişilir.
 - company create-time sector selection
 - document types, task types, contract types, critical date types, risk criteria per sector
 - configuration catalog, not an automation engine
+
+## Günlük operasyon pilotu — 2026-09-09
+
+Firma Detay ve Talepler'deki “Günlük plan” bağlantısı `/talepler/gunluk` alanına gider.
+Firma/gün seçimi, lokasyon ve minimal personel oluşturma, günlük talep, atama,
+atama kaldırma ve talep iptali bulunur. Yeni bir ana menü modülü eklenmez.
+Sunucu bayrağı kapalıysa alan henüz açılmadı mesajı gösterilir. Lokal kod hazır;
+canlı uygulama değildir. Şube toplu aktarımı sonraki pakettir; yüzlerce şubenin
+elle girilmesi hedeflenen kullanım değildir.
+
+
+### Günlük pilot: toplu şube aktarımı (lokal, 2026-09-09)
+
+Yalnız yönetici, günlük planda seçili aktif firmaya CSV önizleyip aktarır.
+500 satır/256 KiB sınırı; firma içi şube kodu benzersiz. Aynı içerik atlanır,
+değişmiş kod/içerik çakışmasında parti tamamen geri alınır.
+[Akış sözleşmesi](../01_product/ILK_OPERASYON_DILIMI.md) esas alınır.

@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AsyncSection from "@/components/ui/AsyncSection";
 import { Download } from "lucide-react";
 import {
   PageHeader,
+  ModalShell,
   EmptyState,
   FinancialSummaryCard,
   ReceivablesSummaryCard,
@@ -32,6 +34,7 @@ export default function FinansalOzetPage() {
   // PDF export — bounded snapshot. Timestamp reflects the moment the user
   // clicked "PDF Olarak İndir" and is rendered only in @media print.
   // No DB write, no archive entity; this is a download event only.
+  const [advancedOpen,setAdvancedOpen]=useState(false);
   const [exportTimestamp, setExportTimestamp] = useState<string>("");
 
   // Real truth — portfolio-wide row (company_id IS NULL). Absent = honest
@@ -65,9 +68,9 @@ export default function FinansalOzetPage() {
   // successful empty query. No mock fallback. Composite signals
   // ("En Yoğun", "Ticari baskı") are intentionally omitted.
   const [aktifFirma, setAktifFirma] = useState<number | null>(null);
-  const [aktifIsGucu, setAktifIsGucu] = useState<number | null>(null);
-  const [acikTalep, setAcikTalep] = useState<number | null>(null);
-  const [kritikFirma, setKritikFirma] = useState<number | null>(null);
+
+  const [loading,setLoading]=useState(true);
+  const [loadError,setLoadError]=useState(false);
 
   // Kept as a callable so a future write path can refresh readers on demand
   // (the mock upload modal that used to call it was removed). React 18 no-ops
@@ -81,13 +84,12 @@ export default function FinansalOzetPage() {
     // `role` is in the deps below so the fetch re-fires once auth resolves
     // to yonetici or muhasebe.
     if (!["yonetici", "muhasebe"].includes(role)) return;
+    setLoading(true);setLoadError(false);
     try {
       const [
         portfolioRes,
         perCompanyRes,
         companiesRes,
-        workforceRes,
-        demandsRes,
       ] = await Promise.all([
         supabase
           .from("financial_summaries")
@@ -100,21 +102,10 @@ export default function FinansalOzetPage() {
           .from("financial_summaries")
           .select("company_id, open_receivable, unbilled_amount, is_overdue")
           .not("company_id", "is", null),
-        // Single companies.select — covers both the firma-name lookup
-        // for per-company rows and the Portföy Sağlık Özeti
-        // Aktif Firma / Kritik Firma counts. One round-trip, two uses.
-        supabase.from("companies").select("id, name, status, risk"),
-        // Aktif İş Gücü — same formula as Dashboard Faz 2A (sum of
-        // workforce_summary.current_count).
-        supabase.from("workforce_summary").select("current_count"),
-        // Açık Talep — same formula as Dashboard Faz 2A: sum of
-        // max(0, requested - provided) over non-cancelled demands.
-        supabase
-          .from("staffing_demands")
-          .select("requested_count, provided_count")
-          .neq("status", "iptal"),
+        supabase.from("companies").select("id, name, status"),
       ]);
 
+      if(portfolioRes.error||perCompanyRes.error||companiesRes.error)throw Error("FINANCIAL_READ");
       const pRow = portfolioRes.data as
         | {
             total_open_receivable: string | null;
@@ -133,7 +124,6 @@ export default function FinansalOzetPage() {
         id: string;
         name: string;
         status: string;
-        risk: string;
       }>;
       const nameById = new Map<string, string>(
         companyList.map((c) => [c.id, c.name]),
@@ -143,12 +133,6 @@ export default function FinansalOzetPage() {
           ? null
           : companyList.filter((c) => c.status === "aktif").length,
       );
-      setKritikFirma(
-        companiesRes.error
-          ? null
-          : companyList.filter((c) => c.risk === "yuksek").length,
-      );
-
       // Per-company financial_summaries rows — reuse the same name map.
       const rawRows = (perCompanyRes.data ?? []) as Array<{
         company_id: string | null;
@@ -176,39 +160,12 @@ export default function FinansalOzetPage() {
 
       setPerCompany(mapped);
 
-      // Aktif İş Gücü — sum of workforce_summary.current_count.
-      setAktifIsGucu(
-        workforceRes.error
-          ? null
-          : (workforceRes.data ?? []).reduce(
-              (sum, r) => sum + (r.current_count ?? 0),
-              0,
-            ),
-      );
-
-      // Açık Talep — sum of max(0, requested - provided) over
-      // non-cancelled staffing_demands.
-      setAcikTalep(
-        demandsRes.error
-          ? null
-          : (demandsRes.data ?? []).reduce(
-              (sum, r) =>
-                sum +
-                Math.max(
-                  0,
-                  (r.requested_count ?? 0) - (r.provided_count ?? 0),
-                ),
-              0,
-            ),
-      );
     } catch {
+      setLoadError(true);
       setPortfolio(null);
       setPerCompany([]);
       setAktifFirma(null);
-      setAktifIsGucu(null);
-      setAcikTalep(null);
-      setKritikFirma(null);
-    }
+    } finally {setLoading(false);}
   }, [supabase, role]);
 
   useEffect(() => {
@@ -281,7 +238,7 @@ export default function FinansalOzetPage() {
   // whose confirm path was permanently disabled, so it could never write. Real
   // receivables data arrives through the Luca mizan import.
   const pageActions =
-    role === "yonetici"
+    role === "yonetici" && !loading && !loadError
       ? [
           {
             label: "PDF Olarak İndir",
@@ -297,8 +254,36 @@ export default function FinansalOzetPage() {
       <PageHeader
         title="Finansal Özet"
         subtitle="Şirket geneli yönetim görünürlüğü"
-        actions={pageActions}
+        actions={[{label:"Gelişmiş özet",onClick:()=>setAdvancedOpen(true),variant:"secondary" as const},...pageActions]}
       />
+
+      <ModalShell open={advancedOpen} onClose={()=>setAdvancedOpen(false)} title="Gelişmiş finansal özet">
+        <div className="space-y-5">
+          <p className="text-sm text-slate-600">Mevcut mali kayıtlar firma bazındadır. Proje, sözleşme ve şube kırılımları henüz bağlanmadığı için bu görünüm proje kârlılığı hesaplamaz.</p>
+          <AsyncSection isLoading={loading} hasError={loadError} onRetry={fetchFinancials}>
+            <section aria-label="Mevcut firma alacakları" className="space-y-2">
+              <h3 className="font-semibold">Mevcut firma alacakları</h3>
+              <p className="text-xs text-slate-500">Kaydedilmiş son özet; seçilmiş bir dönemin gelir tablosu değildir. Açık alacak ile gelir farklı ölçümlerdir.</p>
+              {perCompany.length===0 ? <p className="text-sm">Henüz firma bazlı mali kayıt yok.</p> :
+                <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b"><th className="py-2 pr-3">Firma</th><th className="pr-3">Açık alacak</th><th>Kesilmemiş bekleyen</th></tr></thead><tbody>{perCompany.map(row=><tr key={row.firmaId} className="border-b"><td className="py-3 pr-3"><a className="text-blue-700 underline" href={`/firmalar/${row.firmaId}`}>{row.firmaAdi}</a></td><td className="pr-3">{row.acikAlacak??'—'}</td><td>{row.kesilmemisBekleyen??'—'}</td></tr>)}</tbody></table></div>}
+            </section>
+          </AsyncSection>
+          <section className="space-y-2" aria-label="Proje maliyet kapsamı">
+            <h3 className="font-semibold">Proje kırılımı için gerekenler</h3>
+            <dl className="text-sm divide-y">
+              <div className="py-2"><dt className="font-medium">Gelir</dt><dd className="text-slate-600">Dönem ve proje koduyla eşleştirilmiş gelir hareketleri.</dd></div>
+              <div className="py-2"><dt className="font-medium">Maaş ve personel maliyeti</dt><dd className="text-slate-600">Bordro maliyeti ve kişinin projeye ayrılan çalışması. Günlük atama tek başına ücret değildir.</dd></div>
+              <div className="py-2"><dt className="font-medium">Diğer giderler</dt><dd className="text-slate-600">Malzeme, ulaşım ve diğer masrafların proje eşlemesi; ortak giderler için dağıtım kuralı.</dd></div>
+              <div className="py-2"><dt className="font-medium">Proje sonucu</dt><dd className="text-slate-600">Gelir ve gider kaynakları tamamlanınca hesaplanacak. Eksik kayıtlar sıfır kabul edilmez.</dd></div>
+            </dl>
+          </section>
+          <section className="rounded border bg-slate-50 p-3 text-sm space-y-2">
+            <h3 className="font-semibold">Luca aktarımının mevcut kapsamı</h3>
+            <p>Mizan aktarımı müşteri hesaplarından firma bazlı açık alacak üretir. Proje geliri, maaş ve masraf dağıtımı bu aktarımın mevcut kapsamına dahil değildir.</p>
+            {role==='yonetici'&&<a href="/luca-import" className="inline-block text-blue-700 underline">Luca aktarımını aç →</a>}
+          </section>
+        </div>
+      </ModalShell>
 
       {/* Print-only export timestamp — hidden on screen, visible in PDF.
           Empty until the user clicks "PDF Olarak İndir", which sets the
@@ -309,45 +294,18 @@ export default function FinansalOzetPage() {
         </div>
       )}
 
+      <button type="button" disabled={loading} onClick={fetchFinancials} className="mb-4 text-sm text-blue-700 disabled:opacity-50 print:hidden">Mali verileri yenile</button>
+      <AsyncSection isLoading={loading} hasError={loadError} onRetry={fetchFinancials}>
       <div className="space-y-6">
-        {/* Portföy Sağlık Özeti — C-level summary, real Supabase truth.
-            Aktif Firma / Kritik Firma come from companies (status + risk
-            enum); Aktif İş Gücü / Açık Talep reuse the exact Dashboard
-            Faz 2A formulas. Portföy Alacak Baskısı stays on the real
-            financial_summaries portfolio row. Composite signals
-            ("En Yoğun" city concentration, "Ticari baskı taşıyan")
-            are intentionally dropped — same discipline applied to
-            Dashboard Riskli Firmalar. A later bounded batch can
-            reintroduce them on top of this honest baseline. */}
         <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-          <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-3`}>Portföy Sağlık Özeti</h3>
+          <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-3`}>Finansal portföy</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
             <div>
               <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Aktif Firma</span>
               <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{aktifFirma ?? "—"}</p>
             </div>
             <div>
-              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Aktif İş Gücü</span>
-              <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{aktifIsGucu ?? "—"}</p>
-            </div>
-            <div>
-              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Açık Talep</span>
-              <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{acikTalep ?? "—"}</p>
-            </div>
-            <div>
-              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Kritik Firma</span>
-              <p
-                className={`${TYPE_BODY} font-medium ${
-                  kritikFirma !== null && kritikFirma > 0
-                    ? "text-red-600"
-                    : TEXT_PRIMARY
-                }`}
-              >
-                {kritikFirma ?? "—"}
-              </p>
-            </div>
-            <div>
-              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Portföy Alacak Baskısı</span>
+              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Toplam Açık Alacak</span>
               <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{portfolio?.total_open_receivable ?? "—"}</p>
             </div>
           </div>
@@ -398,7 +356,7 @@ export default function FinansalOzetPage() {
         {/* Honest absence note when portfolio row has not been confirmed yet */}
         {portfolio === null && (
           <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>
-            Portföy özeti için muhasebe onayı bekleniyor.
+            Henüz portföy özeti kaydedilmemiş.
           </p>
         )}
 
@@ -409,17 +367,18 @@ export default function FinansalOzetPage() {
           <ReceivablesSummaryCard
             toplamAlacak={portfolio?.total_open_receivable ?? "—"}
             gecikmisAlacak={portfolio?.total_overdue ?? "—"}
-            gecikmisFirmaSayisi={portfolio?.overdue_company_count ?? 0}
+            gecikmisFirmaSayisi={portfolio?.overdue_company_count ?? null}
             firmaAlacakDagilimi={acikAlacakDagilimi}
             firmaKesilmemisDagilimi={kesilmemisDagilimi}
           />
         ) : (
           <EmptyState
             title="Alacak dağılımı henüz mevcut değil"
-            description="Muhasebe onayı veya Luca mizan yüklemesi sonrası bu alan gerçek firma bazlı alacak görünümüyle dolacak."
+            description="Firma bazlı mali kayıt bulunamadı. Mali veri kaydedildiğinde alacak dağılımı burada görünecek."
           />
         )}
       </div>
+      </AsyncSection>
 
     </>
   );

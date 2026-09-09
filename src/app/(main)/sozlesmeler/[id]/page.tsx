@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
@@ -9,7 +9,6 @@ import {
   EmptyState,
   PageHeader,
   ContractSummaryHeader,
-  RenewalTrackingCard,
   StatusBadge,
 } from "@/components/ui";
 import { NewContractModal } from "@/components/modals";
@@ -36,9 +35,11 @@ import { listTasksByContractId } from "@/lib/services/tasks";
 import { listAppointmentsByContractId } from "@/lib/services/appointments";
 import {
   getActiveContractDocument,
-  updateContractDocumentFile,
 } from "@/lib/services/documents";
-import { uploadCompanyDocumentAction } from "../../firmalar/[id]/actions";
+import PdfUploadPanel from "./PdfUploadPanel";
+import RenewalTaskPanel from "./RenewalTaskPanel";
+import ContractAppendices from "./ContractAppendices";
+import PdfVersionHistory from "./PdfVersionHistory";
 import { deleteContractAction } from "./actions";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { ContractRow, TaskRow, AppointmentRow, DocumentRow } from "@/types/database.types";
@@ -80,7 +81,7 @@ export default function SozlesmeDetayPage({
   const { id } = use(params);
   const router = useRouter();
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
 
   const supabase = useMemo(() => createClient(), []);
   const [contract, setContract] = useState<ContractRow | null>(null);
@@ -97,7 +98,9 @@ export default function SozlesmeDetayPage({
   const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRow[]>([]);
   // Hafta 2: single active contract PDF document (null when none yet).
   const [contractDoc, setContractDoc] = useState<DocumentRow | null>(null);
-  const [pdfBusy, setPdfBusy] = useState(false);
+  const pdfReadGeneration = useRef(0);
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [pdfReadError, setPdfReadError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   // Real companies for the edit-modal firma dropdown (partner-scoped
   // via RLS). Empty on error → honest empty picker.
@@ -126,6 +129,8 @@ export default function SozlesmeDetayPage({
   );
 
   const reload = useCallback(async () => {
+    const pdfGeneration = ++pdfReadGeneration.current;
+    setPdfLoading(true);setPdfReadError(null);setContractDoc(null);
     setLoadError(null);
     try {
       const row = await getContractById(supabase, id);
@@ -140,7 +145,9 @@ export default function SozlesmeDetayPage({
         void listAppointmentsByContractId(supabase, row.id)
           .then(setLinkedAppointments).catch(() => setLinkedAppointments([]));
         void getActiveContractDocument(supabase, row.id)
-          .then(setContractDoc).catch(() => setContractDoc(null));
+          .then(doc => {if(pdfGeneration===pdfReadGeneration.current)setContractDoc(doc);})
+          .catch(() => {if(pdfGeneration===pdfReadGeneration.current)setPdfReadError("PDF bilgisi yüklenemedi. Belgenin yokluğu doğrulanamadı.");})
+          .finally(() => {if(pdfGeneration===pdfReadGeneration.current)setPdfLoading(false);});
       } else {
         setFirmaName("");
         setFirmaLegacyId(null);
@@ -248,10 +255,7 @@ export default function SozlesmeDetayPage({
   }
 
   async function handleRenewalToggle(
-    field:
-      | "renewalDiscussionOpened"
-      | "renewalResponsibleSet"
-      | "renewalTaskCreated",
+    field: "renewalDiscussionOpened",
     next: boolean,
   ) {
     if (!contract) return;
@@ -265,89 +269,6 @@ export default function SozlesmeDetayPage({
         err instanceof Error ? err.message : "Yenileme takibi güncellenemedi.",
       );
     }
-  }
-
-  // Hafta 2: Sözleşme PDF upload / replace orchestration.
-  // Storage-first → DB-second; replace path updates the existing
-  // documents row in place (single-active truth enforced by partial
-  // unique index). Old storage object is intentionally not deleted —
-  // see closeout report's orphan-risk note.
-  async function handlePdfFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = e.target.files?.[0] ?? null;
-    // Reset so the same file can be re-picked after a failure.
-    e.target.value = "";
-    if (!picked || !contract) return;
-
-    if (picked.type !== "application/pdf") {
-      setPdfError("Sadece PDF dosyası yüklenebilir.");
-      return;
-    }
-    if (picked.size > 10 * 1024 * 1024) {
-      setPdfError("Dosya boyutu 10 MB'dan büyük olamaz.");
-      return;
-    }
-
-    setPdfBusy(true);
-    setPdfError(null);
-    try {
-      if (contractDoc) {
-        // Replace: browser storage upload + UPDATE of the existing row.
-        // An UPDATE does not insert tenant_id (the row already carries
-        // it), so this path is not the Codex tenant-less-insert blocker.
-        const path = `${contract.company_id}/${crypto.randomUUID()}.pdf`;
-        const up = await supabase.storage
-          .from("documents")
-          .upload(path, picked, { contentType: "application/pdf", upsert: false });
-        if (up.error) {
-          throw new Error(`Dosya yüklenemedi: ${up.error.message}`);
-        }
-        const { data: { user } } = await supabase.auth.getUser();
-        const uploadedBy =
-          (user?.user_metadata?.display_name as string | undefined) ??
-          user?.email ??
-          null;
-        await updateContractDocumentFile(supabase, contractDoc.id, {
-          name: picked.name,
-          storagePath: path,
-          uploadedBy,
-        });
-      } else {
-        // First-time create: route through the tenant-aware server
-        // action. It sets tenant_id (RPC) / company_id / created_by /
-        // uploaded_by / storage_path server-side, role-guards, and
-        // verifies contract↔company binding. Replaces the previous
-        // browser-context storage upload + tenant-less createDocument
-        // (Codex must-fix).
-        const fd = new FormData();
-        fd.set("company_id", contract.company_id);
-        fd.set("name", picked.name);
-        fd.set("category", "cerceve_sozlesme");
-        fd.set("contract_id", contract.id);
-        fd.set("file", picked);
-        const result = await uploadCompanyDocumentAction(fd);
-        if (!result.ok) {
-          throw new Error(result.error);
-        }
-      }
-
-      const next = await getActiveContractDocument(supabase, contract.id);
-      setContractDoc(next);
-      router.refresh();
-    } catch (err) {
-      setPdfError(err instanceof Error ? err.message : "PDF işlenemedi.");
-    } finally {
-      setPdfBusy(false);
-    }
-  }
-
-  function triggerPdfUpload() {
-    setPdfError(null);
-    document.getElementById("contract-pdf-input")?.click();
-  }
-
-  function triggerPdfReplace() {
-    if (!confirm("Mevcut PDF değiştirilecek. Devam edilsin mi?")) return;
-    triggerPdfUpload();
   }
 
   async function handlePdfDownload() {
@@ -422,20 +343,11 @@ export default function SozlesmeDetayPage({
       )}
 
       <div className="space-y-6">
-        {/* Sözleşme PDF'i — Hafta 2: imzalı PDF artefaktı bu sözleşmede yaşar.
-            Tek aktif PDF (DB-level partial unique on contract_id). Upload/replace
-            sadece canEdit (yonetici + partner). Operasyon görür ve indirir. */}
+        {/* One current PDF with version history. Upload/resume/cancel is manager-only;
+            a uploaded file is not an attestation that the contract was signed. */}
         <section className={SECTION}>
           <h2 className={SECTION_TITLE}>Sözleşme PDF&apos;i</h2>
-          <input
-            id="contract-pdf-input"
-            type="file"
-            accept="application/pdf"
-            onChange={handlePdfFileChange}
-            disabled={pdfBusy}
-            hidden
-          />
-          {contractDoc ? (
+          {pdfLoading ? <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>PDF bilgisi yükleniyor…</p> : pdfReadError ? <p role="alert" className="text-sm text-red-700">{pdfReadError}</p> : contractDoc ? (
             <div className="space-y-2">
               <dl className="space-y-1.5">
                 <div className="flex items-baseline gap-2">
@@ -457,36 +369,15 @@ export default function SozlesmeDetayPage({
                 <button
                   type="button"
                   onClick={() => { void handlePdfDownload(); }}
-                  disabled={pdfBusy}
                   className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
                 >
                   İndir
                 </button>
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={triggerPdfReplace}
-                    disabled={pdfBusy}
-                    className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
-                  >
-                    {pdfBusy ? "İşleniyor…" : "Değiştir"}
-                  </button>
-                )}
               </div>
             </div>
           ) : (
             <div className="space-y-2">
               <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>PDF yüklenmemiş.</p>
-              {canEdit && (
-                <button
-                  type="button"
-                  onClick={triggerPdfUpload}
-                  disabled={pdfBusy}
-                  className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
-                >
-                  {pdfBusy ? "Yükleniyor…" : "PDF Yükle"}
-                </button>
-              )}
             </div>
           )}
           {pdfError && (
@@ -494,7 +385,12 @@ export default function SozlesmeDetayPage({
               {pdfError}
             </p>
           )}
+          <button type="button" disabled={pdfLoading} onClick={() => { void reload(); }} className="mt-3 text-sm text-blue-700 disabled:opacity-50">PDF kaydını yeniden yükle</button>
+          {user && role === "yonetici" && !pdfLoading && !pdfReadError && typeof user.app_metadata?.active_tenant === "string" && <PdfUploadPanel key={`${user.id}:${user.app_metadata.active_tenant}:${id}`} actorId={user.id} tenantId={user.app_metadata.active_tenant} contractId={id} document={contractDoc} onPublished={() => { void reload(); router.refresh(); }} />}
+          {user && <PdfVersionHistory key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${id}:${contractDoc?.revision}`} actorId={user.id} contractId={id} />}
         </section>
+
+        {user && typeof user.app_metadata?.active_tenant === "string" && <ContractAppendices key={`${user.id}:${user.app_metadata.active_tenant}:${id}:${role}`} actorId={user.id} tenantId={user.app_metadata.active_tenant} contractId={id} canUpload={role === 'yonetici'} />}
 
         {/* Kritik Maddeler Özeti — real DB column */}
         <section className={SECTION}>
@@ -518,22 +414,11 @@ export default function SozlesmeDetayPage({
 
         {/* Yenileme Takibi — bounded renewal-tracking truth (scope item 5) */}
         <section className="space-y-2">
-          <RenewalTrackingCard
-            bitisTarihi={
-              contract.renewal_target_date
-                ? formatDateTR(contract.renewal_target_date.slice(0, 10))
-                : contract.end_date
-                  ? formatDateTR(contract.end_date.slice(0, 10))
-                  : "—"
-            }
-            gorusmeAcildiMi={contract.renewal_discussion_opened}
-            sorumluVar={contract.renewal_responsible_set}
-            gorevUretildi={contract.renewal_task_created}
-          />
+          {user && <RenewalTaskPanel key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${contract.id}:${contract.updated_at}`} actorId={user.id} contractId={contract.id} onCreated={() => { void reload(); }} />}
           {canEdit && (
             <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
               <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-2`}>
-                Yenileme takibi sinyallerini güncelle
+                Görüşme beyanı
               </p>
               <div className="space-y-2">
                 <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
@@ -544,24 +429,6 @@ export default function SozlesmeDetayPage({
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                   Yenileme görüşmesi açıldı
-                </label>
-                <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
-                  <input
-                    type="checkbox"
-                    checked={contract.renewal_responsible_set}
-                    onChange={(e) => { void handleRenewalToggle("renewalResponsibleSet", e.target.checked); }}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  Sorumlu kişi atandı
-                </label>
-                <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
-                  <input
-                    type="checkbox"
-                    checked={contract.renewal_task_created}
-                    onChange={(e) => { void handleRenewalToggle("renewalTaskCreated", e.target.checked); }}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  İlgili görev üretildi
                 </label>
               </div>
             </div>

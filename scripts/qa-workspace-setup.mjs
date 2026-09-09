@@ -1,0 +1,38 @@
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import {randomUUID} from 'node:crypto';import assert from 'node:assert/strict';
+import {baseline,id} from './fixtures/daily-operations.mjs';
+const modulePath=process.env.BPS_EMBEDDED_PG_MODULE;if(!modulePath?.startsWith('/'))throw Error('Absolute BPS_EMBEDDED_PG_MODULE required');
+const {default:EmbeddedPostgres}=await import(pathToFileURL(modulePath).href);
+const dir=await mkdtemp(join(tmpdir(),'bps-setup-'));
+const pg=new EmbeddedPostgres({databaseDir:join(dir,'db'),user:'postgres',password:randomUUID(),port:55449,persistent:false,postgresFlags:['-h','127.0.0.1','-k',dir],onLog:()=>{},onError:()=>{}});
+let c;let count=0;const pass=s=>{count++;console.log('PASS '+s);};
+try{
+ await pg.initialise();await pg.start();c=pg.getPgClient('postgres','127.0.0.1');await c.connect();await c.query(baseline);
+ await c.query(`CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT jsonb_build_object('app_metadata',jsonb_build_object('active_tenant',current_setting('test.tenant',true))) $$;
+ CREATE SCHEMA storage; CREATE TABLE storage.objects(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),bucket_id text,name text,owner_id text,metadata jsonb,UNIQUE(bucket_id,name));
+ GRANT USAGE ON SCHEMA storage TO authenticated;GRANT SELECT,INSERT,UPDATE,DELETE ON storage.objects TO authenticated;
+ ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;CREATE POLICY fixture_storage ON storage.objects TO authenticated USING(true) WITH CHECK(true);`);
+ for(const f of ['local-task-prefill.sql','local-contracts.sql','local-documents.sql'])await c.query(await readFile(new URL('./fixtures/'+f,import.meta.url),'utf8'));
+ for(const f of ['20260909000100_daily_operations_pilot.sql','20260909001300_task_assignment_history.sql','20260909001800_contract_document_versions.sql','20260909001900_contract_pdf_upload_commands.sql','20260909002000_contract_appendices.sql','20260909002100_dashboard_activity.sql'])await c.query(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
+ await c.query(await readFile(new URL('./fixtures/local-workspace-setup.sql',import.meta.url),'utf8'));
+ await c.query(await readFile(new URL('../supabase/migrations/20260909002200_workspace_setup.sql',import.meta.url),'utf8'));
+ const as=async(user=10,tenant=1)=>{await c.query('RESET ROLE');await c.query("SELECT set_config('test.user',$1,false),set_config('test.tenant',$2,false)",[user===null?'':id(user),id(tenant)]);await c.query('SET ROLE authenticated');};
+ const get=async(actor=10,tenant=1)=>(await c.query('SELECT workspace_setup($1,$2) r',[id(actor),id(tenant)])).rows[0].r;
+ await as();let r=await get();assert.equal(r.companies,1);assert.equal(r.members,3);assert.equal(r.locations,0);assert.equal(r.workers,0);assert.equal(r.requests,0);assert.equal(r.assignments,0);pass('real membership and active-company counts; empty operational inventory');
+ assert.equal(r.today,(await c.query("SELECT (statement_timestamp() AT TIME ZONE 'Europe/Istanbul')::date::text d")).rows[0].d);pass('operational day uses Istanbul calendar');
+ await assert.rejects(()=>get(13),/SETUP_SCOPE/);await assert.rejects(()=>get(10,2),/SETUP_SCOPE/);pass('spoofed actor and tenant rejected');
+ for(const u of [11,12]){await as(u);await assert.rejects(()=>get(u),/SETUP_FORBIDDEN/);}pass('operator and HR do not receive manager setup inventory');
+ await as(14);await assert.rejects(()=>get(14),/SETUP_SCOPE/);await as(null);await assert.rejects(()=>get(),/SETUP_SCOPE/);pass('unaffiliated and anonymous calls fail closed');
+ await c.query('RESET ROLE');
+ await c.query("INSERT INTO ops_locations(id,tenant_id,company_id,name,city,active) VALUES($1,$2,$3,'Active','Istanbul',true),($4,$2,$5,'Passive company','Istanbul',true),($6,$2,$3,'Passive location','Istanbul',false),($7,$8,$9,'Foreign','Istanbul',true)",[id(100),id(1),id(20),id(101),id(22),id(102),id(103),id(2),id(21)]);
+ await c.query("INSERT INTO ops_workers(id,tenant_id,name,code,kind,active) VALUES($1,$2,'Active','A','idp',true),($3,$2,'Passive','P','idp',false),($4,$5,'Foreign','F','idp',true)",[id(200),id(1),id(201),id(202),id(2)]);
+ await as();r=await get();assert.equal(r.locations,1);assert.equal(r.workers,1);pass('inactive and foreign companies/locations/workers excluded');
+ await c.query('RESET ROLE');const today=r.today;
+ await c.query("INSERT INTO ops_daily_requests(id,tenant_id,company_id,location_id,work_date,service_line,position,required_count,lifecycle,created_by) VALUES($1,$2,$3,$4,$5,'Temizlik','Temizlik',2,'active',$6),($7,$2,$3,$4,$5,'Temizlik','Temizlik',2,'cancelled',$6),($8,$2,$3,$4,$5::date-1,'Temizlik','Temizlik',2,'active',$6),($9,$2,$10,$11,$5,'Temizlik','Temizlik',2,'active',$6)",[id(300),id(1),id(20),id(100),today,id(10),id(301),id(302),id(303),id(22),id(101)]);
+ await c.query("INSERT INTO ops_assignments(id,tenant_id,request_id,work_date,worker_id,created_by) VALUES($1,$2,$3,$4,$5,$6)",[id(400),id(1),id(300),today,id(200),id(10)]);
+ await as();r=await get();assert.equal(r.requests,1);assert.equal(r.assignments,1);pass('today demand counted; cancelled, past and inactive company demands excluded');
+ await c.query('RESET ROLE');await c.query('UPDATE ops_assignments SET removed_at=now()');await as();assert.equal((await get()).assignments,0);pass('removed placement does not count');
+ await c.query('RESET ROLE');await c.query('UPDATE ops_locations SET active=false WHERE id=$1',[id(100)]);await as();r=await get();assert.equal(r.requests,0);assert.equal(r.locations,0);pass('deactivated location removes current setup demand count');
+ await c.query('RESET ROLE');await c.query('DELETE FROM tenant_memberships WHERE user_id=$1',[id(10)]);await as();await assert.rejects(()=>get(),/SETUP_SCOPE/);pass('stale claim rejected after membership removal');
+ console.log(`Workspace setup PostgreSQL checks: ${count} passed.`);
+}finally{await c?.end();await pg.stop();await rm(dir,{recursive:true,force:true});}

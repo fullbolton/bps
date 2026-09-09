@@ -1,0 +1,35 @@
+/** Real localhost download route acceptance; synthetic account and fixture only. */
+import {execFileSync} from 'node:child_process';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+import {createClient} from '@supabase/supabase-js';
+import {createServerClient} from '@supabase/ssr';
+import {importActualTypeScript} from './helpers/import-typescript.mjs';
+import {id} from './fixtures/daily-operations.mjs';
+assert.match(readFileSync('/private/tmp/bps-supabase-acceptance/supabase/config.toml','utf8'),/project_id = "bps-supabase-acceptance"/);
+const s=JSON.parse(execFileSync('supabase',['status','--workdir','/private/tmp/bps-supabase-acceptance','-o','json'],{encoding:'utf8',stdio:['ignore','pipe','pipe']}));
+assert.equal(new URL(s.API_URL).hostname,'127.0.0.1');assert.equal(new URL(s.API_URL).port,'54321');
+const sql=q=>execFileSync('docker',['exec','-i','supabase_db_bps-supabase-acceptance','psql','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-At'],{input:q,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();
+const admin=createClient(s.API_URL,s.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+const email=`export-${randomUUID()}@example.test`,password=randomUUID()+'aA1!';
+const created=await admin.auth.admin.createUser({email,password,email_confirm:true,app_metadata:{active_tenant:id(1)}});assert.ifError(created.error);
+const uid=created.data.user.id;
+sql(`INSERT INTO profiles VALUES('${uid}','yonetici'); INSERT INTO tenant_memberships VALUES('${uid}','${id(1)}');`);
+const jar=new Map();
+const client=createServerClient(s.API_URL,s.ANON_KEY,{cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:items=>items.forEach(({name,value})=>jar.set(name,value))}});
+const login=await client.auth.signInWithPassword({email,password});assert.ifError(login.error);
+const services=await importActualTypeScript(new URL('../src/lib/services/daily-operations.ts',import.meta.url));
+const scope={actorId:uid,tenantId:id(1)},locationId=randomUUID();
+await services.runPilotCommand(client,locationId,'location',{companyId:id(20),name:'=CSV '+locationId,city:'İzmir'},scope);
+await services.runRequestBatch(client,scope,randomUUID(),{companyId:id(20),locationId,serviceLine:'Temizlik',position:'CSV route',requiredCount:2,dates:['2026-09-28','2026-09-29']});
+const endpoint='http://127.0.0.1:3000/api/operations/weekly-export?company='+id(20)+'&date=2026-09-28&cancelled=0';
+const headers={Cookie:[...jar].map(([k,v])=>`${k}=${v}`).join('; ')};
+let n=0;const pass=label=>{n++;console.log('PASS '+label);};
+const response=await fetch(endpoint,{headers,redirect:'manual'});assert.equal(response.status,200);assert.match(response.headers.get('content-disposition'),/^attachment; filename="personel-plani-2026-09-28/);assert.match(response.headers.get('cache-control'),/no-store/);assert.match(response.headers.get('content-type'),/text\/csv/);pass('authenticated route returns uncached CSV attachment');
+const bytes=Buffer.from(await response.arrayBuffer()),csv=bytes.toString('utf8');assert.equal(bytes.subarray(0,3).toString('hex'),'efbbbf');assert.ok(csv.includes('"\'=CSV '+locationId+'"'));assert.ok(csv.includes('"2026-09-28"'));assert.ok(csv.includes('"2026-09-29"'));assert.ok(csv.includes('"CSV route"'));writeFileSync('/private/tmp/bps-weekly-export-acceptance.csv',bytes,{mode:0o600});pass('actual HTTP bytes contain UTF-8 BOM, selected days and neutralized formula prefix');
+const anon=await fetch(endpoint,{redirect:'manual'});assert.equal(anon.status,307);assert.match(anon.headers.get('location'),/\/login/);pass('anonymous download redirects to login without CSV');
+try{sql(`UPDATE profiles SET role='ik' WHERE id='${uid}'`);const denied=await fetch(endpoint,{headers,redirect:'manual'});assert.equal(denied.status,400);assert.ok(!denied.headers.get('content-disposition'));pass('role revoked after session creation blocks attachment');}finally{sql(`UPDATE profiles SET role='yonetici' WHERE id='${uid}'`);}
+const foreign=await fetch(endpoint.replace(id(20),id(21)),{headers,redirect:'manual'});assert.equal(foreign.status,400);assert.ok(!foreign.headers.get('content-disposition'));pass('other tenant company cannot be exported');
+const empty=await fetch(endpoint.replace('2026-09-28','2035-01-01'),{headers,redirect:'manual'});assert.equal(empty.status,400);assert.ok(!empty.headers.get('content-disposition'));pass('empty week does not produce misleading empty attachment');
+console.log(`${n} local HTTP export checks passed; synthetic CSV saved outside repository.`);

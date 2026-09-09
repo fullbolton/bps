@@ -136,8 +136,6 @@ export interface ContractContentUpdateInput {
 export interface ContractRenewalUpdateInput {
   renewalTargetDate?: string | null;
   renewalDiscussionOpened?: boolean;
-  renewalResponsibleSet?: boolean;
-  renewalTaskCreated?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -525,12 +523,9 @@ function defaultStatusActionLabel(status: SozlesmeDurumu): string {
 // Writes — bounded renewal tracking (scope item 5)
 // ---------------------------------------------------------------------------
 
-/**
- * Update the four-signal renewal tracking truth on a contract. This is
- * the only writer for `renewal_*` columns. Capability gate is the same
- * as the broader UPDATE policy (yonetici + partner-scoped) — it does
- * not require the stricter status-change gate because flipping a
- * renewal-tracking checkbox is operational, not a managerial decision.
+/** Update the suggested follow-up date and discussion declaration.
+ * Import can also write the suggested date. Actual renewal task/ownership is
+ * read from contract_renewal_snapshot; legacy booleans are no longer writable here.
  */
 export async function updateContractRenewal(
   client: Client,
@@ -550,12 +545,6 @@ export async function updateContractRenewal(
   }
   if (input.renewalDiscussionOpened !== undefined) {
     patch.renewal_discussion_opened = input.renewalDiscussionOpened;
-  }
-  if (input.renewalResponsibleSet !== undefined) {
-    patch.renewal_responsible_set = input.renewalResponsibleSet;
-  }
-  if (input.renewalTaskCreated !== undefined) {
-    patch.renewal_task_created = input.renewalTaskCreated;
   }
 
   return updateContract(client, contractId, patch);

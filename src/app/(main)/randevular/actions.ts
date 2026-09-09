@@ -93,38 +93,41 @@ export type CompleteAppointmentActionResult =
  * to the optional follow-up task side-effect (a NEW operation) inside
  * `completeAppointment`. When the firma is pasif the handoff task is
  * skipped and the reason is returned — never silently swallowed — so the
- * UI can tell the user. No app-level role guard; RLS stays the authority.
+ * UI can tell the user. The new scoped RPC checks live role and verified tenant
+ * under the actor profile lock. The old revoked RPC is not used.
  */
 export async function completeAppointmentAction(
   appointmentId: string,
   input: AppointmentCompleteInput,
+  expectedActorId: string,
 ): Promise<CompleteAppointmentActionResult> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient(12_000);
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
     return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
   }
+  if (expectedActorId !== user.id) return {ok:false,error:"Hesap değişti. Sayfayı yenileyin."};
   if (!appointmentId || typeof appointmentId !== "string") {
     return { ok: false, error: "Randevu kimliği geçersiz." };
   }
 
   const { data: tenantId, error: tenantError } = await supabase.rpc(
-    "current_user_active_tenant",
+    "current_user_verified_tenant",
   );
   if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
     return { ok: false, error: "Aktif kiracı çözümlenemedi." };
   }
 
   try {
-    const { task, taskSkippedReason } = await completeAppointment(
+    const { taskId, taskSkippedReason } = await completeAppointment(
       supabase,
       appointmentId,
       input,
-      { tenantId },
+      { tenantId, actorId: user.id },
     );
-    return { ok: true, taskCreated: task !== null, taskSkippedReason };
+    return { ok: true, taskCreated: taskId !== null, taskSkippedReason };
   } catch (err) {
     return {
       ok: false,

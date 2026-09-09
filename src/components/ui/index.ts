@@ -22,7 +22,6 @@ export { default as ModalShell } from "./ModalShell";
 export { default as PriorityBadge } from "./PriorityBadge";
 export { default as TaskSourceBadge } from "./TaskSourceBadge";
 export { default as ContractSummaryHeader } from "./ContractSummaryHeader";
-export { default as RenewalTrackingCard } from "./RenewalTrackingCard";
 
 // Batch 4 shared components
 export { default as WorkforceRiskBadge } from "./WorkforceRiskBadge";

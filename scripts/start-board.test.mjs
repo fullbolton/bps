@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {importActualTypeScript} from './helpers/import-typescript.mjs';
+const {startRowState}=await importActualTypeScript(new URL('../src/lib/operations/start-board.ts',import.meta.url));
+const start=Date.parse('2026-09-09T08:00:00+03:00');
+const row={closed:false,startAt:new Date(start).toISOString(),createdAt:new Date(start-7200000).toISOString(),plannedAt:new Date(start-7200000).toISOString(),offsets:[-60,-30,-15],planVersion:1,ownerAvailable:true,confirmedAt:null,events:[]};
+const event=(revision,offset,outcome,version=1)=>({kind:'call',revision,planVersion:version,payload:{offset,outcome}});
+test('late assignment skips prior checks and requires immediate call',()=>{const r={...row,createdAt:new Date(start-600000).toISOString()};const m=startRowState(r,start-600000);assert.ok(m.steps.every(s=>s.state==='not_applicable'));assert.equal(m.status,'due');});
+test('last recorded event wins, not scheduled offset',()=>{const m=startRowState({...row,events:[event(1,-15,'cannot_attend'),event(2,-60,'claimed_arrival')]},start-1000);assert.equal(m.status,'pending');});
+test('past plan events cannot colour new plan',()=>{const m=startRowState({...row,planVersion:2,events:[event(1,-15,'claimed_arrival')]},start);assert.equal(m.status,'unverified');assert.equal(m.steps[2].event,undefined);});
+test('claimed arrival remains unverified at start even if all calls recorded',()=>{assert.equal(startRowState({...row,events:row.offsets.map((x,i)=>event(i,x,'claimed_arrival'))},start).status,'unverified');});
+test('confirmation closes remaining calls without fabricating events; removal closes writes',()=>{const m=startRowState({...row,confirmedAt:new Date(start).toISOString()},start);assert.equal(m.status,'confirmed');assert.ok(m.steps.every(x=>x.state==='not_required'&&!x.event));assert.equal(startRowState({...row,closed:true},start).status,'closed');});
