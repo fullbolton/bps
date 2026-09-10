@@ -26,7 +26,7 @@ export const DOT_DANGER = "bg-red-500";
 // Surfaces
 // ---------------------------------------------------------------------------
 
-export const SURFACE_CANVAS = "bg-slate-50";
+export const SURFACE_CANVAS = "bg-[#f4f6fa]";
 export const SURFACE_PRIMARY = "bg-white";
 export const SURFACE_HEADER = "bg-slate-50";
 export const SURFACE_OVERLAY_LIGHT = "bg-black/20";
@@ -39,7 +39,7 @@ export const SURFACE_OVERLAY_DARK = "bg-black/30";
 export const TEXT_PRIMARY = "text-slate-900";
 export const TEXT_BODY = "text-slate-700";
 export const TEXT_SECONDARY = "text-slate-500";
-export const TEXT_MUTED = "text-slate-400";
+export const TEXT_MUTED = "text-slate-500";
 export const TEXT_DISABLED = "text-slate-300";
 export const TEXT_INVERSE = "text-white";
 export const TEXT_LINK = "text-blue-600";
@@ -55,21 +55,21 @@ export const BORDER_SUBTLE = "border-slate-100";
 // Typography composites
 // ---------------------------------------------------------------------------
 
-export const TYPE_PAGE_TITLE = "text-xl font-semibold";
+export const TYPE_PAGE_TITLE = "text-2xl sm:text-3xl font-semibold tracking-tight";
 export const TYPE_SECTION_TITLE = "text-base font-semibold";
-export const TYPE_CARD_TITLE = "text-sm font-medium";
+export const TYPE_CARD_TITLE = "text-sm font-semibold";
 export const TYPE_BODY = "text-sm";
 export const TYPE_LABEL = "text-xs font-medium";
 export const TYPE_CAPTION = "text-xs";
-export const TYPE_KPI_VALUE = "text-2xl font-semibold";
+export const TYPE_KPI_VALUE = "text-3xl font-semibold tracking-tight tabular-nums";
 export const TYPE_TABLE_HEADER = "text-xs font-medium uppercase tracking-wider";
 
 // ---------------------------------------------------------------------------
 // Radius
 // ---------------------------------------------------------------------------
 
-export const RADIUS_SM = "rounded-md";
-export const RADIUS_DEFAULT = "rounded-lg";
+export const RADIUS_SM = "rounded-lg";
+export const RADIUS_DEFAULT = "rounded-2xl";
 export const RADIUS_FULL = "rounded-full";
 
 // ---------------------------------------------------------------------------
@@ -94,7 +94,7 @@ export const Z_OVERLAY = "z-50";
 // Buttons
 // ---------------------------------------------------------------------------
 
-export const BUTTON_BASE = `flex items-center gap-1.5 px-3 py-2 ${TYPE_BODY} font-medium ${RADIUS_SM} transition-colors`;
+export const BUTTON_BASE = `inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 ${TYPE_BODY} font-medium ${RADIUS_SM} transition-colors`;
 export const BUTTON_PRIMARY = `${TEXT_INVERSE} bg-blue-600 hover:bg-blue-700`;
 export const BUTTON_SECONDARY = `${TEXT_BODY} ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} hover:bg-slate-50`;
 
@@ -119,7 +119,7 @@ export const TABLE_BODY_TEXT = `${TABLE_CELL_PX} ${TABLE_CELL_PY} ${TYPE_BODY} $
 export const TABLE_DIVIDER_HEAD = "divide-y divide-slate-200";
 export const TABLE_DIVIDER_BODY = "divide-y divide-slate-100";
 export const TABLE_ROW_HOVER = "hover:bg-slate-50";
-export const TABLE_WRAPPER = `border ${BORDER_DEFAULT} ${RADIUS_DEFAULT}`;
+export const TABLE_WRAPPER = `bg-white shadow-sm border ${BORDER_DEFAULT} ${RADIUS_DEFAULT}`;
 export const TABLE_PAGE_SIZE = 20;
 
 // ---------------------------------------------------------------------------

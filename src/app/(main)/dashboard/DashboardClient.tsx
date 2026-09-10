@@ -9,7 +9,9 @@ import {
   CalendarCheck,
   AlertTriangle,
   Megaphone,
-  Eye,
+  ArrowUpRight,
+  CalendarDays,
+  UserCheck,
   Clock,
   Trash2,
 } from "lucide-react";
@@ -410,14 +412,31 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        subtitle="Günlük operasyon ve takip"
+        title="Genel Bakış"
+        subtitle="İş planınız, bekleyen işler ve ekip gündemi bir arada."
       />
 
-      {role === "yonetici" && <a href="/kurulum" className="mb-4 inline-block text-sm text-blue-700 hover:underline">Çalışma alanı kurulumu →</a>}
-      <div className="space-y-6">
+      <div className="space-y-7">
+        <section aria-label="Hızlı erişim" className="overflow-hidden rounded-2xl bg-slate-900 p-5 sm:p-7 text-white">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div className="max-w-md">
+              <p className="text-xs font-medium tracking-widest text-blue-300 uppercase">Çalışma alanınız</p>
+              <h2 className="mt-2 text-xl sm:text-2xl font-semibold tracking-tight">Günün işlerine buradan başlayın.</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-300">Planı açın, bekleyen işleri gözden geçirin ve ekibinizin gündemini takip edin.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {operationsEnabled && ["yonetici", "operasyon"].includes(role) && <>
+                <a href="/talepler/gunluk" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-blue-50"><CalendarDays size={18}/>Günlük plan<ArrowUpRight size={16}/></a>
+                <a href="/talepler/ise-baslama" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-slate-600 px-4 text-sm font-medium hover:bg-slate-800"><UserCheck size={18}/>İşe başlama takibi<ArrowUpRight size={16}/></a>
+              </>}
+              {!['muhasebe','goruntuleyici'].includes(role) && <a href="/gorevler" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-slate-600 px-4 text-sm font-medium hover:bg-slate-800"><ListChecks size={18}/>Görevler<ArrowUpRight size={16}/></a>}
+              {role==='muhasebe' && <a href="/finansal-ozet" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900">Finansal özet<ArrowUpRight size={16}/></a>}
+              {role==='goruntuleyici' && <a href="/raporlar" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900">Raporlar<ArrowUpRight size={16}/></a>}
+            </div>
+          </div>
+        </section>
         {/* KPI Cards — filtered by role; görüntüleyici sees values but no nav to blocked pages */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           <KPIStatCard
             label="Toplam Firma"
             value={kpis.toplamFirma ?? "—"}
@@ -452,13 +471,14 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
 
         {operationsEnabled && <DailyOverview />}
 
+        {!["muhasebe", "goruntuleyici"].includes(role) && <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-slate-900">Takip masası</h2><p className="mt-1 text-sm text-slate-500">Bekleyen görevler, sözleşmeler ve evraklar.</p></div>{role === "yonetici" && <a href="/kurulum" className="text-sm text-blue-700 hover:underline">Çalışma alanı kurulumu →</a>}</div>}
         {/* Signal cards row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Bugünün Görevleri — hidden for muhasebe */}
           {!["muhasebe", "goruntuleyici"].includes(role) && <div className={CARD}>
             <div className="flex items-center justify-between gap-2">
               <h3 className={CARD_TITLE}>
-                Bugünün Görevleri
+                Bekleyen Görevler
               </h3>
               {/* "Tümü" YALNIZ yonetici'de.
                   Rol modeli kilitlendiğinde `operasyon` "yalnız kendine
@@ -483,7 +503,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
               isLoading={signalsLoading}
               hasError={signalErrors.tasks}
               isEmpty={todayTasks.length === 0}
-              emptyText="Bugün için görev yok."
+              emptyText="Bu kapsamda bekleyen görev yok."
               onRetry={handleRetry}
             >
               <div className="space-y-0">
@@ -650,17 +670,6 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
             </div>
           );
         })()}
-
-        {/* Yönetici İnisiyatifleri — attention bookmarks, yönetici-only */}
-        {role === "yonetici" && (
-          <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-            <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
-              <Eye size={12} />
-              Yönetici İnisiyatifleri
-            </h3>
-            <EmptyState title="İnisiyatif takibi henüz aktif değil." size="card" />
-          </div>
-        )}
 
         {/* Duyurular — Batch 10 Phase 2 management-announcement strip on real
             `announcements` truth. One-directional by design: no reply, no

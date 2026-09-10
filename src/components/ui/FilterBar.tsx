@@ -11,7 +11,7 @@ import {
   TEXT_SECONDARY,
 } from "@/styles/tokens";
 
-const FILTER_INPUT = `${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} px-3 py-2 ${SURFACE_PRIMARY} ${TEXT_BODY} focus:outline-none focus:ring-2 focus:ring-blue-500`;
+const FILTER_INPUT = `${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} min-h-11 max-w-full px-3 py-2 ${SURFACE_PRIMARY} ${TEXT_BODY} focus:outline-none focus:ring-2 focus:ring-blue-500`;
 
 interface FilterBarProps {
   filters: FilterConfig[];
@@ -41,6 +41,7 @@ export default function FilterBar({ filters, values, onChange }: FilterBarProps)
           return (
             <select
               key={filter.key}
+              aria-label={filter.label}
               value={values[filter.key] ?? ""}
               onChange={(e) => handleChange(filter.key, e.target.value)}
               className={FILTER_INPUT}
@@ -60,6 +61,7 @@ export default function FilterBar({ filters, values, onChange }: FilterBarProps)
             <input
               key={filter.key}
               type="date"
+              aria-label={filter.label}
               value={values[filter.key] ?? ""}
               onChange={(e) => handleChange(filter.key, e.target.value)}
               className={FILTER_INPUT}

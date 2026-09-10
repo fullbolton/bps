@@ -2,14 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import ConversationInbox from "@/components/communication/ConversationInbox";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, ChevronDown, LayoutGrid } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   TYPE_BODY,
-  TYPE_CAPTION,
   TEXT_BODY,
   TEXT_SECONDARY,
-  TEXT_MUTED,
   SURFACE_PRIMARY,
   BORDER_DEFAULT,
   RADIUS_SM,
@@ -34,6 +33,8 @@ function formatTurkishDateTime(d: Date): string {
 
 export default function Topbar() {
   const { displayName, signOut } = useAuth();
+  const pathname = usePathname();
+  const area = ({dashboard:"Genel bakış", firmalar:"Müşteri yönetimi", sozlesmeler:"Sözleşmeler", talepler:"Personel operasyonu", gorevler:"İş takibi", randevular:"Görüşmeler", evraklar:"Evrak yönetimi", "aktif-isgucu":"İş gücü", "finansal-ozet":"Finans", raporlar:"Raporlar", ayarlar:"Ayarlar", kurulum:"Çalışma alanı kurulumu"} as Record<string,string>)[pathname.split("/")[1]] ?? "Çalışma alanı";
   const [dateTimeStr, setDateTimeStr] = useState("");
 
   useEffect(() => {
@@ -58,19 +59,9 @@ export default function Topbar() {
 
   return (
     <>
-      <header className={`fixed top-0 left-0 md:left-64 right-0 h-14 ${SURFACE_PRIMARY} border-b ${BORDER_DEFAULT} flex items-center px-5 gap-4 ${Z_TOPBAR}`}>
-        {/* Global search removed — the previous input had no wiring
-            (no value/onChange/submit/dropdown) and produced no results,
-            which misled users. A real search surface is out of scope
-            for this batch; honest absence is preferred over a fake
-            interactive control. */}
-
-        {/* Turkish date/time utility — desktop only, updates every minute */}
-        {dateTimeStr && (
-          <span className={`${TYPE_CAPTION} ${TEXT_MUTED} whitespace-nowrap hidden md:block`}>
-            {dateTimeStr}
-          </span>
-        )}
+      <header className={`fixed top-0 left-0 md:left-64 right-0 h-16 bg-white/95 backdrop-blur-sm border-b ${BORDER_DEFAULT} flex items-center pl-16 pr-4 md:px-8 gap-4 ${Z_TOPBAR}`}>
+        <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600"><LayoutGrid size={16} className="hidden sm:block shrink-0"/><span className="truncate">{area}</span></div>
+        {dateTimeStr && <span className="ml-auto hidden xl:block text-xs text-slate-500">{dateTimeStr}</span>}
 
         <div className="flex items-center gap-2 ml-auto">
           {process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED==="true"&&<ConversationInbox />}
@@ -80,12 +71,13 @@ export default function Topbar() {
               aria-label="Kullanıcı menüsü"
               aria-expanded={userMenuOpen}
               onClick={() => setUserMenuOpen(!userMenuOpen)}
+              onKeyDown={e => { if (e.key === "Escape") setUserMenuOpen(false); }}
               className={`flex items-center gap-2 px-2 py-1.5 ${TYPE_BODY} text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
             >
               <div className={`w-7 h-7 bg-slate-200 ${RADIUS_FULL} flex items-center justify-center`}>
                 <User size={14} className={TEXT_SECONDARY} />
               </div>
-              <span className="hidden sm:inline">{displayName || "Kullanıcı"}</span>
+              <span className="hidden lg:inline max-w-48 truncate">{displayName || "Kullanıcı"}</span><ChevronDown size={14} className="hidden sm:block"/>
             </button>
 
             {userMenuOpen && (

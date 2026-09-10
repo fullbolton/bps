@@ -56,6 +56,23 @@ try {
   await page.getByText(`${name} mevcut kayıtlardan seçildi.`,{exact:true}).waitFor();assert.equal(count(name),'1');assert.equal(await picker.locator('option:checked').textContent(),name);
   await page.screenshot({path:output+'/'+suffix+'.png'});console.log('PASS '+suffix+' new/existing feedback, selected company and no duplicate row');
  }
+ if(process.env.BPS_WORKSPACE_DESIGN_CHECK==='1'){
+  for(const [path,title] of [['/dashboard','Genel Bakış'],['/firmalar','Firmalar'],['/gorevler','Görevler'],['/randevular','Randevular'],['/sozlesmeler','Sözleşmeler'],['/finansal-ozet','Finansal Özet']]){
+   await page.goto(origin+path);await page.getByRole('heading',{name:title,exact:true,level:1}).waitFor();
+   await page.locator('aside').getByRole('link',{name:'Ayarlar',exact:true}).waitFor();
+   await page.waitForFunction(()=>!document.querySelector('main')?.textContent?.includes('Yükleniyor…'));
+   if(path==='/dashboard')await page.getByRole('button',{name:'Tümü',exact:true}).waitFor();
+   await page.screenshot({path:output+'/desktop-'+path.slice(1)+'.png',fullPage:true});
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Desktop overflow '+path);
+   await page.setViewportSize({width:390,height:844});
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile overflow '+path);
+   await page.screenshot({path:output+'/mobile-'+path.slice(1)+'.png',fullPage:true});
+   await page.getByRole('button',{name:'Menüyü aç',exact:true}).click();await page.getByRole('dialog',{name:'Gezinme menüsü'}).waitFor();
+   await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog',{name:'Gezinme menüsü'}).count(),0);
+   await page.setViewportSize({width:1280,height:900});
+  }
+  console.log('PASS workspace desktop/mobile six routes, no page overflow, mobile dialog/Escape');
+ }
  await page.goto(origin+'/firmalar');await page.getByRole('button',{name:'Yeni Firma',exact:true}).click();const rejected=prefix+'-denied';await nameInput().fill(rejected);
  sql(`UPDATE profiles SET role='operasyon' WHERE id='${user}'`);await create().click();await page.getByRole('alert').filter({hasText:'Yetkisiz: firma oluşturma yetkiniz yok.'}).waitFor();
  assert.equal(await nameInput().inputValue(),rejected);assert.ok(await heading().isVisible());assert.ok(await create().isEnabled());assert.equal(count(rejected),'0');

@@ -18,15 +18,15 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between mb-6">
-      <div>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-7">
+      <div className="min-w-0">
         <h1 className={`${TYPE_PAGE_TITLE} ${TEXT_PRIMARY}`}>{title}</h1>
         {subtitle && (
           <p className={`mt-1 ${TYPE_BODY} ${TEXT_SECONDARY}`}>{subtitle}</p>
         )}
       </div>
       {actions && actions.length > 0 && (
-        <div className="flex items-center gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 print:hidden">
           {actions.map((action) => (
             <button
               key={action.label}

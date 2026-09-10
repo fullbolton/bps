@@ -9,8 +9,6 @@ import {
   TYPE_KPI_VALUE,
   TEXT_PRIMARY,
   TEXT_SECONDARY,
-  TEXT_MUTED,
-  SHADOW_HOVER,
 } from "@/styles/tokens";
 
 interface KPIStatCardProps {
@@ -39,13 +37,13 @@ export default function KPIStatCard({
     <Wrapper
       {...(interactiveProps as Record<string, unknown>)}
       className={clsx(
-        `${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4 flex flex-col gap-2 text-left`,
-        isInteractive && `cursor-pointer hover:border-slate-300 hover:${SHADOW_HOVER} transition-all`
+        `${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-5 flex flex-col gap-4 text-left shadow-sm min-w-0`,
+        isInteractive && `cursor-pointer hover:border-blue-300 hover:shadow-md transition-shadow`
       )}
     >
       <div className="flex items-center justify-between">
         <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>{label}</span>
-        {icon && <span className={TEXT_MUTED}>{icon}</span>}
+        {icon && <span className="rounded-xl bg-blue-50 p-2.5 text-blue-700">{icon}</span>}
       </div>
       <div className="flex items-end gap-2">
         <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{value}</span>
