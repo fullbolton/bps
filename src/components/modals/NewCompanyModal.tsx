@@ -18,6 +18,7 @@
  */
 
 import { useState, useRef, useId } from "react";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { ModalShell } from "@/components/ui";
 import { SECTOR_CODES, SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
@@ -69,8 +70,18 @@ export default function NewCompanyModal({
   const [error, setError] = useState<string | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateMatch[] | null>(null);
 
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const formId = `${fieldId}-form`;
+
+  function requestClose() {
+    if (submitting.current) return;
+    if (firmaAdi !== "" || sektor !== "" || sehir !== "") setDiscardOpen(true);
+    else resetAndClose();
+  }
+
   function resetAndClose() {
     if (submitting.current) return;
+    setDiscardOpen(false);
     setFirmaAdi("");
     setSektor("");
     setSehir("");
@@ -133,23 +144,28 @@ export default function NewCompanyModal({
   const showingDuplicates = duplicates !== null && duplicates.length > 0;
 
   return (
+    <>
     <ModalShell
       open={open}
-      onClose={resetAndClose}
+      onClose={requestClose}
+      closeDisabled={saving}
       title="Yeni Firma"
       footer={
         <>
           <button
-            onClick={resetAndClose}
+            type="button"
+            onClick={requestClose}
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40"
           >
             İptal
           </button>
           <button
-            onClick={() => submit(showingDuplicates)}
+            type={showingDuplicates ? "button" : "submit"}
+            form={formId}
+            onClick={showingDuplicates ? () => void submit(true) : undefined}
             disabled={!firmaAdi.trim() || saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving
               ? "Kaydediliyor…"
@@ -160,7 +176,11 @@ export default function NewCompanyModal({
         </>
       }
     >
-      <div className="space-y-4" aria-busy={saving}>
+      <form id={formId} className="space-y-4" aria-busy={saving} onSubmit={(event) => {
+        event.preventDefault();
+        // Enter must never confirm creating a duplicate implicitly.
+        if (!showingDuplicates) void submit(false);
+      }}>
         {saving && <p role="status" className="text-sm text-slate-600">Firma kaydediliyor, lütfen bekleyin…</p>}
         {showingDuplicates && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
@@ -180,9 +200,10 @@ export default function NewCompanyModal({
                     </span>
                   </span>
                   <button
+                    type="button"
                     disabled={saving}
                     onClick={() => handleSelectExisting(m)}
-                    className="shrink-0 px-2 py-1 text-xs font-medium text-amber-900 bg-white border border-amber-300 rounded hover:bg-amber-100"
+                    className="min-h-11 shrink-0 px-2 py-1 text-xs font-medium text-amber-900 bg-white border border-amber-300 rounded hover:bg-amber-100"
                   >
                     Bunu seç
                   </button>
@@ -208,7 +229,8 @@ export default function NewCompanyModal({
           <input
             id={`${fieldId}-name`}
             disabled={saving}
-            autoFocus
+            data-dialog-initial-focus
+            required
             type="text"
             value={firmaAdi}
             onChange={(e) => {
@@ -217,7 +239,7 @@ export default function NewCompanyModal({
               if (duplicates) setDuplicates(null);
             }}
             placeholder="Firma adını girin"
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-h-11 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div>
@@ -229,7 +251,7 @@ export default function NewCompanyModal({
             disabled={saving}
             value={sektor}
             onChange={(e) => setSektor(e.target.value as SectorCode | "")}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="min-h-11 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             <option value="">Sektör seçin (isteğe bağlı)</option>
             {SECTOR_CODES.map((code) => (
@@ -248,10 +270,16 @@ export default function NewCompanyModal({
             value={sehir}
             onChange={(e) => setSehir(e.target.value)}
             placeholder="Şehir"
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-h-11 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-      </div>
+      </form>
     </ModalShell>
+    {open && discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
+      recordName={firmaAdi.trim() || "Yeni firma"}
+      description="Bu firma formundaki kaydedilmemiş bilgiler bırakılacak."
+      confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)}
+      onConfirm={async () => { resetAndClose(); }} />}
+    </>
   );
 }

@@ -315,3 +315,16 @@ BPS_WRITE_FEEDBACK_CHECK + BPS_FORM_DESIGN_CHECK + BPS_DIALOG_DESIGN_CHECK ilk t
 İlk turun son firma detay kontrolü yanlış Yeni Randevu düğme adını arıyordu; Randevu Planla olarak düzeltildi ve yeni koruma kabulü tekrar geçti. İlk tur kanıt `/private/tmp/bps-company-feedback-MxiLbk`; son kabul `/private/tmp/bps-company-feedback-RZOcTN`. Mobil onay görseli incelendi. İki turun kendi verileri/Auth hesapları temizlendi. TypeScript/lint ve izole production build başarılı.
 
 Sınır: browser geri/yenile/tab kapatma veya üst sayfanın auth scope nedeniyle unmount etmesi bu yerel onayı kullanmaz. Taslaklar kalıcı depolanmaz. Server action/RPC/yetki veya SQL değişmedi. Ürün migration/push/deploy yok.
+
+
+## 079 — Yeni firma formu, taslak ve açık mükerrer kararı
+
+NewCompanyModal ad/sektör/şehir değerlerini boş başlangıçla karşılaştırır. X, Escape, backdrop ve İptal değişiklik varsa ConfirmActionDialog açar; Vazgeç/nested Escape alanları korur. Onaylı bırakma state'i temizler. Başarılı kayıt ve mevcut firmayı seçme bırakma onayını atlar. ModalShell closeDisabled kayıt süresince X'i devre dışı bırakır; senkron submitting ref korunur.
+
+İçerik native form oldu; footer düğmesi form kimliğiyle bağlandı. Normal Enter submit(false) kullanır. Mükerrer uyarısı görünürken form submit hiçbir yazı başlatmaz; Yine de oluştur yalnız açık düğme eylemiyle submit(true) çağırır. Bunu seç type=button kullanır. İlk ad alanı data-dialog-initial-focus ve required, alanlar/düğmeler minimum 44 px kullanır. Server action ve mükerrer iş kuralı değişmedi.
+
+BPS_COMPANY_DRAFT_GUARD_CHECK=1: gerçek Auth/dedicated sentetik Supabase ve Chrome ile temiz Escape; kirli X/Escape/backdrop/İptal; üç alanın korunması; nested onayda Escape; bırakmada DB 0; temiz yeniden açılış; başlangıca dönüş; 390 px taşmama; ilk ve geri dönen odak doğrulandı. Enter normal kaydı oluşturdu. Mükerrer uyarısında input Enter ve programatik requestSubmit POST başlatmadı, DB 1 kaldı. Bunu seç kayıt artırmadı, açık Yine de oluştur DB sayısını 2 yaptı. Randevu→firma→bırakma onayı üç katmanda çalıştı, onay kapandıktan sonra firma bilgisi ve randevu korundu, firma bırakıldığında odak parent seçiciye döndü.
+
+BPS_DIALOG_DESIGN_CHECK=1 ile randevu/talep iç firma yaratma ve mevcut seçme, Tab odak sınırı/geri dönüş, body scroll kilidi, yan panel ve finans masaüstü/mobil regresyonları geçti. Standart şirket kabulü beklemede kapatma/gönderim/alan kilitlerini, tek POST/DB satırını ve sunucu yetki reddinde düzenlenebilir formun korunmasını doğruladı. Kanıt `/private/tmp/bps-company-feedback-UnFAGN`; company-discard-390.png görsel incelendi. Kendi test kayıtları/Auth hesabı temizlendi. TypeScript/lint ve izole production build başarılı.
+
+Sınır: sayfa yenileme, tarayıcı geri/tab kapatma ve üst bileşenin unmount etmesi taslağı korumaz; kalıcı taslak yok. Bu blok yalnız firma formunu kapsar. SQL/migration/push/deploy yok.
