@@ -529,6 +529,7 @@ export default function RandevularPage() {
         }}
       />}
       <AppointmentResultModal
+        key={`${listScope}:${resultTarget.randevuId ?? "none"}`}
         open={resultTarget.open}
         onClose={() => setResultTarget({ open: false })}
         randevuId={resultTarget.randevuId}
@@ -545,6 +546,7 @@ export default function RandevularPage() {
             createTask: true,
           }, actorId);
           if (!result.ok) throw new Error(result.error);
+          feedback.show(result.taskCreated ? "Randevu tamamlandı ve takip görevi oluşturuldu." : "Randevu tamamlandı.");
           await reload();
           router.refresh();
           setCompletionNotice(
