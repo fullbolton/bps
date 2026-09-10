@@ -1,7 +1,9 @@
 # Fable görev 01 — İşe Başlama Takibi bağımsız kabulü
 
+> Sonraki yerel fark036: 02800 ile gün geneli takip filtreleri eklendi; henüz canlı değil. Canlı035raporu geçerli; mevcut çalışma ağacında üç uygulama dosyası035snapshotından farklı. Ayrıntı `01_product/ISE_BASLAMA_TUM_GUN_FILTRELERI.md`. İncelemede035yayını ve036yerel farkı ayırın.
+
 Görev sahibi: Claude Fable. Teknik karar, ürün kodu/SQL düzeltmesi ve yayın sahibi: Codex.
-Durum: görev hazırlandı; Fable'a iletilmesi ve çalıştırılması henüz doğrulanmadı.
+Durum: Fable sonuç raporunu teslim etti. Codex bulguları yeniden üretti ve 038 ile yerelde düzeltti. Orijinal inceleme ve testler korunuyor; yeni durum `FABLE_REVIEW_01_CODEX_TRIYAJ.md` içinde.
 
 ## Amaç
 

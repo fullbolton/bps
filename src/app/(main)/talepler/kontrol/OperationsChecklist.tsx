@@ -45,7 +45,7 @@ export default function OperationsChecklist(){
     <Link className="mb-4 mr-5 inline-block text-sm underline" href={`/talepler/gunluk?firma=${companyId}&gun=${date}`}>Günlük plana dön</Link>
     <Link className="mb-4 inline-block text-sm underline" href={`/talepler/haftalik?firma=${companyId}&gun=${date}`}>Haftalık plan ve gerçekleşme</Link>
     <div className="mb-4 grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-3">
-      <label className="text-sm">Firma<select className={field} value={companyId} onChange={e=>setCompanyId(e.target.value)}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?'':' (pasif)'}</option>)}</select></label>
+      <label className="text-sm">Firma<select className={field} value={companyId} onChange={e=>setCompanyId(e.target.value)}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?'':' (operasyona kapalı)'}</option>)}</select></label>
       <label className="text-sm">İş günü<input className={field} type="date" min="2000-01-01" max="2100-12-31" value={date} onChange={e=>{if(validDay(e.target.value))setDate(e.target.value);}} /></label>
       <div className="flex items-end gap-2"><button className="rounded-lg border px-3 py-2 text-sm" onClick={()=>setDate(today())}>Bugün</button><button className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-40" disabled={loading||!companyId} onClick={()=>void load()}>Yenile</button></div>
     </div>

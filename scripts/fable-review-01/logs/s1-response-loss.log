@@ -1,0 +1,17 @@
+✔ 1a aynı komut kimliğiyle ardışık tekrar: aynı makbuz, tek olay, tek revision artışı (850.12625ms)
+✔ 1b aynı kimlik, farklı içerik: START_REPLAY; kayıt değişmez (5.601667ms)
+✔ 1c gecikmiş ilk çağrı eşzamanlı gelir: ikinci bağlantı ilkinin commit'ini BEKLER, sonra aynı makbuzu alır (433.280708ms)
+✔ 1d yazma uçuştayken kapatma (reconcile p_close): kapatma bekler, commit sonrası confirmed (415.854583ms)
+✔ 1e geri alınan yazma ve kapatma yarışı: kapatma kazanır, geç yazma START_REPLAY, olay üretilmez (416.138458ms)
+✔ 1f hiç gönderilmemiş komut: kapatmadan önce unknown, kapatınca closed, sonra aynı kimlikle yazma START_REPLAY (2.592916ms)
+✔ 1g kapatma başka aktörün komutunu göremez: aktör anahtarı PK'nın parçası (1.869084ms)
+✔ 1h istemci kimlik tekrarı: aynı satır+içerik aynı komut kimliği, yenilenmiş revision yeni kimlik (80.334583ms)
+✔ 1i UI mesajı ile transaction durumu: kesin ret (START_REPLAY/START_INPUT) istemcide "belirsiz" metniyle gösteriliyor (13.381042ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2587.09325

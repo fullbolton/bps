@@ -1,0 +1,66 @@
+// Isolated synthetic native PostgreSQL. No production connection or env file.
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+import {baseline,id} from './fixtures/daily-operations.mjs';
+import {importActualTypeScript} from './helpers/import-typescript.mjs';
+const {startRowState,parseFilteredStartBoard}=await importActualTypeScript(new URL('../src/lib/operations/start-board.ts',import.meta.url));
+const {default:EmbeddedPostgres}=await import(pathToFileURL(process.env.BPS_EMBEDDED_PG_MODULE).href);
+const dir=await mkdtemp(join(tmpdir(),'bps-start-filter-'));
+const pg=new EmbeddedPostgres({databaseDir:join(dir,'db'),user:'postgres',password:randomUUID(),port:55455,persistent:false,postgresFlags:['-h','127.0.0.1','-k',dir],onLog:()=>{},onError:()=>{}});
+let c,count=0;const pass=s=>{count++;console.log('PASS '+s);};
+try{
+ await pg.initialise();await pg.start();c=pg.getPgClient('postgres','127.0.0.1');await c.connect();
+ await c.query(baseline);await c.query("ALTER TABLE profiles ADD display_name text NOT NULL DEFAULT 'Synthetic operator'");
+ for(const f of ['20260909000100_daily_operations_pilot.sql','20260909000800_attendance.sql','20260909000900_replace_assignment.sql','20260909002700_start_tracking.sql','20260909002800_start_board_filters.sql'])await c.query(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
+ const day=(await c.query("SELECT (now() AT TIME ZONE 'Europe/Istanbul')::date::text d")).rows[0].d;
+ await c.query(`INSERT INTO ops_locations(id,tenant_id,company_id,name,city) VALUES('${id(100)}','${id(1)}','${id(20)}','Filter branch','Istanbul');
+ INSERT INTO ops_daily_requests(id,tenant_id,company_id,location_id,work_date,service_line,position,required_count,created_by) VALUES('${id(300)}','${id(1)}','${id(20)}','${id(100)}','${day}','Clean','Cleaner',100,'${id(10)}');`);
+ for(let n=1;n<=60;n++)await c.query(`INSERT INTO ops_workers(id,tenant_id,name,code,kind) VALUES($1,$2,$3,$4,'idp');`,[id(1000+n),id(1),n===60?'Needle %_ Worker':`Worker ${n}`,`filter-${n}`]);
+ await c.query('BEGIN');
+ for(let n=1;n<=60;n++){
+  await c.query(`INSERT INTO ops_assignments(id,tenant_id,request_id,work_date,worker_id,created_by,created_at) VALUES($1,$2,$3,$4,$5,$6,now()-interval '2 days');`,[id(2000+n),id(1),id(300),day,id(1000+n),id(10)]);
+  await c.query(`INSERT INTO ops_start_plans(assignment_id,tenant_id,start_at,responsible_id,offsets,revision,planned_at) VALUES($1,$2,now()+interval '2 hours',$3,ARRAY[-60],1,now()-interval '2 days')`,[id(2000+n),id(1),n===60?id(10):id(11)]);
+ }
+ await c.query('COMMIT');
+ const event=async(n,outcome,revision=2,version=1,offset=0)=>c.query(`INSERT INTO ops_start_events(id,tenant_id,assignment_id,actor_id,revision,plan_version,kind,payload,occurred_at) VALUES($1,$2,$3,$4,$5,$6,'call',$7,now())`,[randomUUID(),id(1),id(2000+n),id(10),revision,version,{offset,outcome}]);
+ await event(60,'unreachable');
+ const as=async(user=10,tenant=1)=>{await c.query('RESET ROLE');await c.query("SELECT set_config('test.user',$1,false),set_config('test.tenant',$2,false)",[user===null?'':id(user),id(tenant)]);await c.query('SET ROLE authenticated');};
+ const query=async({offset=0,search='',mine=false,urgent=false,actor=10,tenant=1,date=day}={})=>(await c.query('SELECT ops_start_board_filtered($1,$2,$3,$4,$5,$6,$7) r',[id(actor),id(tenant),date,offset,search,mine,urgent])).rows[0].r;
+ await as();let b=await query();parseFilteredStartBoard(b);assert.equal(b.total,60);assert.equal(b.rows.length,50);assert.ok(!b.rows.some(r=>r.id===id(2060)));
+ const second=await query({offset:50});assert.equal(second.rows.length,10);assert.equal(second.rows.at(-1).id,id(2060));pass('60 assignments paginate with exact total and stable order');
+ for(const params of [{search:'needle'},{mine:true},{urgent:true},{search:'NEEDLE',mine:true,urgent:true}]){b=await query(params);assert.equal(b.total,1);assert.equal(b.dayTotal,60);assert.equal(b.rows[0].id,id(2060));}pass('search, own responsibility, urgency and combined filters find page-two record');
+ for(const search of ['%','_','  %_  '])assert.equal((await query({search})).total,1);
+ assert.equal((await query({search:'Filter branch'})).total,60);assert.equal((await query({search:'absent name'})).total,0);pass('literal wildcard and trimmed search; company/branch/worker text coverage');
+ b=await query({search:'needle',offset:50});assert.equal(b.total,1);assert.equal(b.rows.length,0);assert.equal(b.dayTotal,60);pass('empty out-of-range page retains matching and day totals');
+ for(const params of [{offset:-1},{offset:1000001},{search:null},{search:'x'.repeat(201)},{mine:null},{urgent:null},{date:null}])await assert.rejects(()=>query(params),/START_INPUT/);pass('invalid parameters fail closed');
+ await assert.rejects(()=>query({actor:13}),/START_SCOPE/);await assert.rejects(()=>query({tenant:2}),/START_SCOPE/);
+ await as(12);await assert.rejects(()=>query({actor:12}),/START_FORBIDDEN/);await as(14);await assert.rejects(()=>query({actor:14}),/START_SCOPE/);
+ await c.query('RESET ROLE');await c.query('SET ROLE anon');await assert.rejects(()=>query(),/permission denied/);pass('actor, foreign tenant, role, absent membership and anon denied');
+ await c.query('RESET ROLE');
+ await c.query(`UPDATE ops_assignments SET removed_at=now() WHERE id='${id(2001)}';
+ UPDATE ops_start_plans SET confirmed_at=now(),confirmation_source='branch',witness='Synthetic' WHERE assignment_id='${id(2002)}';
+ UPDATE ops_assignments SET attendance='present',attendance_revision=1,attendance_recorded_at=now(),attendance_recorded_by='${id(10)}' WHERE id='${id(2002)}';
+ DELETE FROM ops_start_plans WHERE assignment_id='${id(2003)}';
+ UPDATE ops_start_plans SET responsible_id='${id(14)}' WHERE assignment_id='${id(2004)}';
+ UPDATE ops_start_plans SET start_at=now()-interval '1 hour' WHERE assignment_id='${id(2005)}';
+ UPDATE ops_start_plans SET start_at=now()+interval '30 minutes' WHERE assignment_id IN ('${id(2006)}','${id(2007)}','${id(2008)}','${id(2009)}');
+ UPDATE ops_start_plans SET planned_at=now()-interval '5 minutes' WHERE assignment_id='${id(2007)}';
+ UPDATE ops_start_plans SET plan_version=2 WHERE assignment_id='${id(2009)}';`);
+ await event(1,'unreachable');await event(2,'cannot_attend');await event(8,'on_way',2,1,-60);await event(9,'on_way',2,1,-60);
+ await event(10,'cannot_attend',2);await event(10,'on_way',3);await event(11,'claimed_arrival');
+ await as();
+ const all=[...(await query()).rows,...(await query({offset:50})).rows];
+ const urgent=await query({urgent:true});const time=Date.parse(urgent.serverNow);
+ const expected=all.filter(r=>startRowState(r,time).urgent).map(r=>r.id).sort();
+ assert.deepEqual(urgent.rows.map(r=>r.id).sort(),expected);assert.equal(urgent.total,expected.length);
+ for(const n of [3,4,5,6,7,9,11,60])assert.ok(expected.includes(id(2000+n)));
+ for(const n of [1,2,8,10])assert.ok(!expected.includes(id(2000+n)));
+ pass('SQL urgency matches actual TypeScript model across closed, confirmed, missing plan/owner, due, skipped and versioned calls');
+ const legacy=(await c.query('SELECT ops_start_board($1,$2,$3,0) r',[id(10),id(1),day])).rows[0].r;
+ assert.equal(legacy.total,60);assert.equal(legacy.rows.length,50);assert.throws(()=>parseFilteredStartBoard(legacy));pass('legacy reader remains compatible; new parser refuses missing global-filter contract');
+ console.log(`Start board filter PostgreSQL checks: ${count} passed.`);
+}finally{await c?.end();await pg.stop();await rm(dir,{recursive:true,force:true});}

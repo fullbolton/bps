@@ -1,0 +1,37 @@
+{
+  "slice": "039",
+  "block": "01",
+  "documentedAt": "2026-09-10",
+  "state": "local_applied_verified_not_deployed",
+  "productionApplied": false,
+  "migration": "20260910000100_candidate_company_operations",
+  "pendingProductionMigrations": [
+    "20260909002800_start_board_filters",
+    "20260909002900_start_event_validation",
+    "20260910000100_candidate_company_operations"
+  ],
+  "files": {
+    "supabase/migrations/20260910000100_candidate_company_operations.sql": "d4411edee123a137f84ee86c1cbe89a16498f1dc1230f16f8597d1f3863515ba",
+    "src/lib/services/daily-operations.ts": "2fea227379d4e734ad891eb9d2f496f1280871f94f891af46a06dea84b4c4ec6",
+    "src/app/(main)/kurulum/WorkspaceSetup.tsx": "974c81ead0905bc175c684244f15f590ee54ffd4a55565bb1ba4ed3640c73689",
+    "src/app/(main)/talepler/gunluk/DailyOperations.tsx": "66f8fad7c8048d67fa77f2df1c70cabeae594786e8d68053383a64e62fa20845",
+    "src/app/(main)/talepler/haftalik/WeeklyOperations.tsx": "cb32f21c8399bcb30e989a9db8a45e731f05f84f801a080bd3ac743c5a8805be",
+    "src/app/(main)/talepler/kontrol/OperationsChecklist.tsx": "43f76172f3fcf04440acfdc97c55d1eeee039ea74f99918bec40a50eb5377b70",
+    "src/app/(main)/talepler/dizin/OperationsDirectory.tsx": "3241387bd127df993dbd047c94d070c3933b56cfb1968176a368cc56fe418279",
+    "scripts/qa-candidate-company.mjs": "ccfddefa594eae2271d3014c291616edae261a4962bce5af50169bc30e7688f0",
+    "scripts/qa-local-candidate-company.mjs": "1d93452a5fb70492677367c70c326b8a584c6c491e28b1b06baea38a918183fc",
+    "scripts/candidate-company.test.mjs": "287e2fdc9c0bb11a1a7addcb17e7b9a74d1ec998f45fc204aece7baf28b022a1",
+    "package.json": "d023b942f778388d0ac3918d3abf0f49b507545117dfcf4555ff54f4b656a3a6",
+    "scripts/qa-acceptance.mjs": "cb655b4617a5f03480a1ad83c1858b9bd93dcfc75f97badc08c95ccd67fb572c"
+  },
+  "verification": {
+    "nativeChecks": 9,
+    "newUnit": 2,
+    "operationsUnit": 159,
+    "generalChecks": 5,
+    "realLocalAuthRpc": "passed",
+    "browser": "candidate_selection_and_enabled_location_form_passed",
+    "isolatedBuild": "passed",
+    "syntheticCleanup": "passed"
+  }
+}

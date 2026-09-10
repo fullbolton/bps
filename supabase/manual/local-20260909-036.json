@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-09",
+  "slice": "036",
+  "state": "local_applied_verified_not_deployed",
+  "productionBaseline": "dpl_7dGwr1wHZc2REPBUYuJwjNnE6RZk",
+  "migration": "20260909002800_start_board_filters",
+  "productionApplied": false,
+  "files": {
+    "supabase/migrations/20260909002800_start_board_filters.sql": "214e06b38428c300723011f7978d8aac248d31678acea7c3f77b8cb3c0e765a7",
+    "src/app/(main)/talepler/ise-baslama/StartBoardClient.tsx": "22e5f306cca3e40cf237c5b08a0ebc892a2073d3a8d3b1116f2fca6cc599e7ab",
+    "src/lib/operations/start-board.ts": "32d385022cab3f15160cfdca8dfa693c6480d519669148a8704c5da789432cdb",
+    "src/types/database.types.ts": "82fc4e0f33b6672c1ae29c83e9ff979f45ea60889932851362de046993824cfd",
+    "scripts/qa-start-board-filters.mjs": "e7330587fcb28d5eb87b590a799c73e035e02a094d429dfcd4e327f62e9b4f21",
+    "scripts/qa-local-start-board-filters.mjs": "0422392558e7aeb222df33f8bbda93c433dce0cb8e6fe5b887de863fb37e64af",
+    "scripts/qa-acceptance.mjs": "a12610964a61ea757d21df850523a671e31389f5b84fc28fd2f2527b27325bfc"
+  },
+  "verification": {
+    "nativeChecks": 8,
+    "localAuthRpc": "passed",
+    "generalChecks": 5,
+    "operationsUnit": 145,
+    "isolatedBuild": "passed",
+    "browser": "search_empty_clear_responsibility_and_combined_urgency_passed"
+  }
+}

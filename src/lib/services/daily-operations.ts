@@ -17,7 +17,7 @@ type Client=SupabaseClient<Database>;
 export async function listPilotCompanies(client:Client) {
   const rows=await selectPilotCompanies(client);
   if(!Array.isArray(rows)) throw new Error("Firma listesi doğrulanamadı.");
-  return rows.map(r=>({id:r.id,name:r.name,active:r.status==="aktif"}));
+  return rows.map(r=>({id:r.id,name:r.name,active:r.status==="aktif"||r.status==="aday"}));
 }
 export async function loadPilotBoard(client:Client,companyId:string,date:string) {
   if(!isUuid(companyId)||!isWorkDate(date)) throw new Error("Firma veya gün geçersiz.");
@@ -41,7 +41,7 @@ export function pilotError(error:unknown,fallback="İşlem doğrulanamadı. Bağ
     OPS_BELOW_ASSIGNED:"Kişi sayısı mevcut atama sayısından az olamaz. Önce ilgili atamayı kaldırın.",OPS_BATCH_EXISTS:"Seçilen günlerde aynı şube, hizmet ve pozisyon için aktif talep var. Hiçbir yeni talep oluşturulmadı; günleri kontrol edin.",OPS_WEEK_TOO_LARGE:"Bu haftada 5000’den fazla talep var; çıktı oluşturulamadı.",OPS_SCOPE_CHANGED:"Hesap veya çalışma alanı değişti. Sayfayı yenileyin; eski işlem gönderilmedi.",OPS_IMPORT_CONFLICT:"Aynı şube kodu farklı içerikle mevcut. Hiçbir satır aktarılmadı.",OPS_IMPORT_DUPLICATE:"Dosyada tekrarlanan şube kodu var.",
     OPS_FORBIDDEN:"Bu işlem için yetkiniz yok.",OPS_UNAUTHENTICATED:"Oturumunuzu yenileyin.",
     OPS_OUT_OF_SCOPE:"Kayıt bulunamadı veya erişim yetkiniz yok.",OPS_CAPACITY_FULL:"Bu talebin kapasitesi doldu.",
-    OPS_WORKER_CONFLICT:"Personelin bu gün için başka bir ataması var.",OPS_INACTIVE_COMPANY:"Pasif firmaya yeni işlem yapılamaz.",
+    OPS_WORKER_CONFLICT:"Personelin bu gün için başka bir ataması var.",OPS_INACTIVE_COMPANY:"Firma yeni operasyona uygun değil. Firma durumunu kontrol edin.",
     OPS_INACTIVE_LOCATION:"Lokasyon aktif değil veya erişilemiyor.",OPS_INACTIVE_WORKER:"Personel aktif değil veya erişilemiyor.",
     OPS_REQUEST_NOT_ACTIVE:"Talep artık atama kabul etmiyor.",OPS_STALE_VERSION:"Kayıt değişmiş; görünümü yenileyin.",
     OPS_IDEMPOTENCY_MISMATCH:"İşlem içeriği değişti. Görünümü yenileyip yeniden deneyin.",OPS_VALIDATION:"Girdi doğrulanamadı."};

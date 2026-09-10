@@ -1,0 +1,18 @@
+✔ 4a teyit ile attendance=present ve attendance_revision aynı transaction'da (1344.831917ms)
+✔ 4b eski gerçekleşme yazarı teyitli kaydı absent/unreported yapamaz (trigger START_CONFIRMED); present tekrarına izin verir (not) (8.724208ms)
+✔ 4c eşzamanlı: A teyit açık transaction'da, B absent yazısı BEKLER, commit sonrası reddedilir; present kalır (410.023833ms)
+✔ 4d teyitli atama yedeklenemez (OPS_REPLACE_PRESENT); teyit sırasında yedekleme bekler ve reddedilir (415.246584ms)
+✔ 4e geri alma: gerekçe zorunlu, confirmed null, attendance unreported, geçmiş korunur; sonra eski yazar absent yazabilir (5.986125ms)
+✔ 4f yedek atama planı devralır, geçmişi devralmaz; eski kayda yazma START_CLOSED; tekrar aynı komut tek inherited olay (11.928833ms)
+✔ 4g talep iptali (ops_mutate cancel) sonrası atamaya yazma START_CLOSED; plan geçmişi kalır (4.993542ms)
+✔ 4h aynı gün başka atamada present olan personel teyit edilemez (kaldırılmış ama present kayıt dahil) (9.981083ms)
+✔ 4i teyitli+present atama talep iptaliyle kapanabilir: teyit kalır, listede "kapandı" öne geçer (davranış notu) (4.206708ms)
+✔ 4j plansız atamanın yedeği plan/olay devralmaz (uydurma saat yok) (2.221458ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2350.401584

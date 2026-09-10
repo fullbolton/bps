@@ -1225,6 +1225,7 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       ops_start_board: { Args: { p_actor_id:string; p_tenant_id:string; p_day:string; p_offset?:number }; Returns: Json };
+      ops_start_board_filtered: { Args: { p_actor_id:string; p_tenant_id:string; p_day:string; p_offset?:number; p_search?:string; p_only_mine?:boolean; p_only_urgent?:boolean }; Returns: Json };
       ops_start_execute: { Args: { p_actor_id:string; p_tenant_id:string; p_command_id:string; p_assignment_id:string; p_expected_revision:number; p_action:string; p_payload:Json }; Returns: Json };
       confirm_mizan_atomic: { Args: { p_id: string; p_tenant_id: string; p_payload: Record<string,unknown> }; Returns: string };
       daily_dashboard: {Args:{p_actor_id:string;p_tenant_id:string};Returns:Json};

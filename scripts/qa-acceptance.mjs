@@ -16,7 +16,7 @@ const report={version:1,status:'running',startedAt:new Date().toISOString(),fini
 const node=process.execPath;
 const steps=[
   {id:'local-preflight',requested:options.localApi,special:'local'},
-  {id:'runner-unit',requested:true,command:node,args:['--test','scripts/acceptance-runner.test.mjs']},
+  {id:'runner-unit',requested:true,command:node,args:['--test','scripts/acceptance-runner.test.mjs','scripts/block-release.test.mjs']},
   {id:'operations-unit',requested:true,command:'npm',args:['run','qa:operations']},
   {id:'legacy-unit',requested:true,command:'npm',args:['run','qa:unit']},
   {id:'static',requested:true,command:'npm',args:['run','qa:static']},
@@ -32,10 +32,13 @@ const steps=[
   {id:'pdf-upload-postgres',requested:options.sql,command:node,args:['scripts/qa-pdf-upload.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:180000},
   {id:'contract-appendices-postgres',requested:options.sql,command:node,args:['scripts/qa-contract-appendices.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:180000},
   {id:'dashboard-activity-postgres',requested:options.sql,command:node,args:['scripts/qa-dashboard-activity.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
+  {id:'candidate-company-postgres',requested:options.sql,command:node,args:['scripts/qa-candidate-company.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
   {id:'workspace-setup-postgres',requested:options.sql,command:node,args:['scripts/qa-workspace-setup.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
   {id:'workspace-invitations-postgres',requested:options.sql,command:node,args:['scripts/qa-workspace-invitations.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
   {id:'atomic-mizan-postgres',requested:options.sql,command:node,args:['scripts/qa-atomic-mizan.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
   {id:'start-tracking-postgres',requested:options.sql,command:node,args:['scripts/qa-start-tracking.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
+  {id:'start-board-filters-postgres',requested:options.sql,command:node,args:['scripts/qa-start-board-filters.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
+  {id:'start-validation-postgres',requested:options.sql,command:node,args:['scripts/qa-start-validation.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
   {id:'daily-dashboard-postgres',requested:options.sql,command:node,args:['scripts/qa-daily-dashboard.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
   {id:'invited-registration-postgres',requested:options.sql,command:node,args:['scripts/qa-invited-registration.mjs'],module:'BPS_EMBEDDED_PG_MODULE',timeout:120000},
   {id:'local-api',requested:options.localApi,command:node,args:['scripts/qa-local-network.mjs'],timeout:180000,summaryOnly:true},

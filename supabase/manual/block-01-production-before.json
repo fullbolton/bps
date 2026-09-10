@@ -1,0 +1,572 @@
+{
+  "ledger": [
+    {
+      "name": "daily_operations_pilot",
+      "sha256": "02c4be2aa91a691f3fe3e0e3fefea359c64177f0f637fd3c97a3fce2ed2115ca",
+      "version": "20260909000100"
+    },
+    {
+      "name": "location_import",
+      "sha256": "4e1d113332811722829d150259f2b01f5db2e5a661355042e843546765cec68d",
+      "version": "20260909000200"
+    },
+    {
+      "name": "scoped_operation_command",
+      "sha256": "b3c94f5c9664c8b18592b8086598311edee82fe32b8e52de8c308207abc93b1b",
+      "version": "20260909000300"
+    },
+    {
+      "name": "command_reconciliation",
+      "sha256": "4322f4411fff38e761f77b191ca4229ee0682de575eb06513d66f2c4c7fb000c",
+      "version": "20260909000400"
+    },
+    {
+      "name": "weekly_operations",
+      "sha256": "d852ae992702704c59a8ed00f3b9cc8e54a62ffa1168478c5ad45d0a2e76dbcd",
+      "version": "20260909000500"
+    },
+    {
+      "name": "request_batch",
+      "sha256": "ef50fe9892b44d165e78415103fb56d849e0770f24502aa78f99b0ec7ad462a7",
+      "version": "20260909000600"
+    },
+    {
+      "name": "resize_request",
+      "sha256": "b9d0c0386a96d7f3e1ddd5064e016dc72662c36bc8d33458001e0cc87b281002",
+      "version": "20260909000700"
+    },
+    {
+      "name": "attendance",
+      "sha256": "d1fc7d93ecfd3bdf767776bad472968880f04d04cb2b739d5046d1b4c7c2492e",
+      "version": "20260909000800"
+    },
+    {
+      "name": "replace_assignment",
+      "sha256": "9f18872b7bbc27a8b2e7efaad5defe216dd360b8579f6efb206f6d229a46f5b2",
+      "version": "20260909000900"
+    },
+    {
+      "name": "attendance_week",
+      "sha256": "66b14e1acf37eaf3b1db26334802f67009f6f4e67bef49e2618fd7e6b427d407",
+      "version": "20260909001000"
+    },
+    {
+      "name": "operations_directory",
+      "sha256": "5f7f9e83df6ecdf21aea6df91e2fe7ff2aaf9b72879764d6f24082a7b7595535",
+      "version": "20260909001100"
+    },
+    {
+      "name": "directory_activation",
+      "sha256": "8654c0fcbe5bbc3cb5bfa95d8028b0ebdd6f917ac19dfc6998c48b4dea2ba7a4",
+      "version": "20260909001200"
+    },
+    {
+      "name": "task_assignment_history",
+      "sha256": "37cf48e4297e7cc0cfd21950f46d8f2b9b87e77051154bd30c548ec6c25277ad",
+      "version": "20260909001300"
+    },
+    {
+      "name": "appointment_completion",
+      "sha256": "34063798a26916e2abe954a26a33550aaf5ce7ec3a237261797cfc199e2b7017",
+      "version": "20260909001400"
+    },
+    {
+      "name": "task_transfer",
+      "sha256": "1ecfd2a648d3606121610ee6b8f9998b5f7853afb6c682162acf83661448298d",
+      "version": "20260909001500"
+    },
+    {
+      "name": "task_membership_guard",
+      "sha256": "8e10cb01c915a5214c91cab4d46cab292f4b1e7a94dd547792c1d9a0d8c9bb43",
+      "version": "20260909001600"
+    },
+    {
+      "name": "contract_renewal_task",
+      "sha256": "2e2d5c71741839a233be40db4900a91137cc097d2bc9ff817b50d90c584f1f42",
+      "version": "20260909001700"
+    },
+    {
+      "name": "contract_document_versions",
+      "sha256": "efe0abde41d3a277e3764ea5a7bd8750c1694a22dbd4a89fec8e8e9c773e5a68",
+      "version": "20260909001800"
+    },
+    {
+      "name": "contract_pdf_upload_commands",
+      "sha256": "3dad0c2bc5e066b6f0172e41ce9cf642c78feef84cd413c668c5110d890bd545",
+      "version": "20260909001900"
+    },
+    {
+      "name": "contract_appendices",
+      "sha256": "d2e3184f8d36b6183b96d233edb04f2daf10024e07618eb9f7ef967c200672b7",
+      "version": "20260909002000"
+    },
+    {
+      "name": "dashboard_activity",
+      "sha256": "efcef38a8168dafaf6dc03e291cb04fe49b6b424ac2e9c03ebc8e9249ce99f50",
+      "version": "20260909002100"
+    },
+    {
+      "name": "workspace_setup",
+      "sha256": "ca4194050e3c0401b68840dfb90914fc908d9bbff3a0ea5960cb3e111f58a11f",
+      "version": "20260909002200"
+    },
+    {
+      "name": "workspace_invitations",
+      "sha256": "bfa2d7ee12e69fae117e8d371a7c68ba657359bd6857601830aad0b8b7f39367",
+      "version": "20260909002300"
+    },
+    {
+      "name": "invited_account_registration",
+      "sha256": "b1f86aed99ef4b16dacd63cada20b56f56bbb9ba7270adbed8796bc7ae56227e",
+      "version": "20260909002400"
+    },
+    {
+      "name": "daily_dashboard",
+      "sha256": "19a67587ead7ba7585ee113767bb8fea8e03a80027f841eef9400047a8bb708b",
+      "version": "20260909002500"
+    },
+    {
+      "name": "atomic_mizan",
+      "sha256": "30f3d4081a57195fa3ccc5aba6eb76706834fdc396824a767e0e2a8dacbc58be",
+      "version": "20260909002600"
+    },
+    {
+      "name": "start_tracking",
+      "sha256": "4a754a06069655a982f246ef4bd6a05c46a49e704010ba5bb3d80ac51e732377",
+      "version": "20260909002700"
+    }
+  ],
+  "columns": [
+    {
+      "type": "uuid",
+      "table": "companies",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "companies",
+      "column": "name"
+    },
+    {
+      "type": "text",
+      "table": "companies",
+      "column": "legacy_mock_id"
+    },
+    {
+      "type": "uuid",
+      "table": "companies",
+      "column": "created_by"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "companies",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "companies",
+      "column": "updated_at"
+    },
+    {
+      "type": "text",
+      "table": "companies",
+      "column": "sector"
+    },
+    {
+      "type": "text",
+      "table": "companies",
+      "column": "city"
+    },
+    {
+      "type": "text",
+      "table": "companies",
+      "column": "status"
+    },
+    {
+      "type": "text",
+      "table": "companies",
+      "column": "risk"
+    },
+    {
+      "type": "uuid",
+      "table": "companies",
+      "column": "tenant_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_assignments",
+      "column": "id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_assignments",
+      "column": "tenant_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_assignments",
+      "column": "request_id"
+    },
+    {
+      "type": "date",
+      "table": "ops_assignments",
+      "column": "work_date"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_assignments",
+      "column": "worker_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_assignments",
+      "column": "created_by"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_assignments",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_assignments",
+      "column": "removed_at"
+    },
+    {
+      "type": "text",
+      "table": "ops_assignments",
+      "column": "attendance"
+    },
+    {
+      "type": "integer",
+      "table": "ops_assignments",
+      "column": "attendance_revision"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_assignments",
+      "column": "attendance_recorded_at"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_assignments",
+      "column": "attendance_recorded_by"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_commands",
+      "column": "tenant_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_commands",
+      "column": "actor_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_commands",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "ops_commands",
+      "column": "kind"
+    },
+    {
+      "type": "jsonb",
+      "table": "ops_commands",
+      "column": "payload"
+    },
+    {
+      "type": "jsonb",
+      "table": "ops_commands",
+      "column": "result"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_commands",
+      "column": "created_at"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_daily_requests",
+      "column": "id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_daily_requests",
+      "column": "tenant_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_daily_requests",
+      "column": "company_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_daily_requests",
+      "column": "location_id"
+    },
+    {
+      "type": "date",
+      "table": "ops_daily_requests",
+      "column": "work_date"
+    },
+    {
+      "type": "text",
+      "table": "ops_daily_requests",
+      "column": "service_line"
+    },
+    {
+      "type": "text",
+      "table": "ops_daily_requests",
+      "column": "position"
+    },
+    {
+      "type": "integer",
+      "table": "ops_daily_requests",
+      "column": "required_count"
+    },
+    {
+      "type": "text",
+      "table": "ops_daily_requests",
+      "column": "lifecycle"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_daily_requests",
+      "column": "created_by"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_daily_requests",
+      "column": "created_at"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_start_events",
+      "column": "id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_start_events",
+      "column": "tenant_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_start_events",
+      "column": "assignment_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_start_events",
+      "column": "actor_id"
+    },
+    {
+      "type": "integer",
+      "table": "ops_start_events",
+      "column": "revision"
+    },
+    {
+      "type": "integer",
+      "table": "ops_start_events",
+      "column": "plan_version"
+    },
+    {
+      "type": "text",
+      "table": "ops_start_events",
+      "column": "kind"
+    },
+    {
+      "type": "jsonb",
+      "table": "ops_start_events",
+      "column": "payload"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_start_events",
+      "column": "occurred_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_start_events",
+      "column": "recorded_at"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_start_plans",
+      "column": "assignment_id"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_start_plans",
+      "column": "tenant_id"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_start_plans",
+      "column": "start_at"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_start_plans",
+      "column": "responsible_id"
+    },
+    {
+      "type": "ARRAY",
+      "table": "ops_start_plans",
+      "column": "offsets"
+    },
+    {
+      "type": "integer",
+      "table": "ops_start_plans",
+      "column": "revision"
+    },
+    {
+      "type": "integer",
+      "table": "ops_start_plans",
+      "column": "plan_version"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_start_plans",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_start_plans",
+      "column": "planned_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_start_plans",
+      "column": "confirmed_at"
+    },
+    {
+      "type": "text",
+      "table": "ops_start_plans",
+      "column": "confirmation_source"
+    },
+    {
+      "type": "text",
+      "table": "ops_start_plans",
+      "column": "witness"
+    },
+    {
+      "type": "uuid",
+      "table": "ops_start_plans",
+      "column": "claimed_by"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "ops_start_plans",
+      "column": "claim_until"
+    }
+  ],
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "name": "workspace_setup",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "3e22b57bd25e4b667744655a96e71cf7",
+      "signature": "workspace_setup(uuid,uuid)",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "name": "ops_start_execute",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "5bc91c0c6b0b493e8fc7b26ce48a0363",
+      "signature": "ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "name": "ops_set_directory_active",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "a52c47912080da1d53cc9d9e0d86ddc8",
+      "signature": "ops_set_directory_active(uuid,uuid,uuid,text,uuid,integer,boolean)",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "name": "ops_resize_request",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "15bacbf1250193609e27b604ba3275f1",
+      "signature": "ops_resize_request(uuid,uuid,uuid,uuid,integer,integer)",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "name": "ops_replace_assignment_before_start",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "ca8ed3bc05204a58e23d3392620f0045",
+      "signature": "ops_replace_assignment_before_start(uuid,uuid,uuid,uuid,uuid,integer)",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "name": "ops_replace_assignment",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c15c44663e9272101a2bb03f97c725b0",
+      "signature": "ops_replace_assignment(uuid,uuid,uuid,uuid,uuid,integer)",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "name": "ops_mutate",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "0ca5964f5302fd0098f5a895ed3644cd",
+      "signature": "ops_mutate(uuid,text,jsonb)",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "name": "ops_import_locations",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "af84e7dc70ed8b18c4561d3f55a9505a",
+      "signature": "ops_import_locations(uuid,uuid,jsonb)",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "name": "ops_create_request_batch",
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "8b7a1b056d13940daa46a59ad2425c00",
+      "signature": "ops_create_request_batch(uuid,uuid,uuid,jsonb)",
+      "securityDefiner": true
+    }
+  ]
+}

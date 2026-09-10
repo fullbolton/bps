@@ -4,6 +4,12 @@ export const startOutcomes:Record<CheckOutcome,string>={preparing:'Hazırlanıyo
 export type StartEvent={id:string;revision:number;planVersion:number;kind:string;payload:Record<string,unknown>;occurredAt:string;recordedAt:string;actor:string};
 export type StartRow={id:string;requestId:string;companyId:string;company:string;location:string;worker:string;position:string;createdAt:string;closed:boolean;attendance:string;startAt:string|null;plannedAt:string|null;responsibleId:string|null;responsible:string|null;ownerAvailable:boolean;revision:number;planVersion:number;offsets:number[];confirmedAt:string|null;source:string|null;witness:string|null;claimedBy:string|null;claimUntil:string|null;events:StartEvent[]};
 export type StartBoard={serverNow:string;day:string;total:number;rows:StartRow[];members:{id:string;name:string}[]};
+export type FilteredStartBoard=StartBoard&{dayTotal:number;filterScope:'day'};
+export function parseFilteredStartBoard(value:unknown):FilteredStartBoard{
+ const b=parseStartBoard(value) as FilteredStartBoard;
+ if(b.filterScope!=='day'||!Number.isInteger(b.dayTotal)||b.dayTotal<b.total||b.rows.length>b.total)throw Error('Takip filtre kapsamı doğrulanamadı.');
+ return b;
+}
 const date=(v:unknown)=>typeof v==='string'&&Number.isFinite(Date.parse(v));
 export function parseStartBoard(value:unknown):StartBoard{
  const b=value as StartBoard;
@@ -27,4 +33,20 @@ export function startRowState(r:StartRow,now:number){
  return {steps,status,latest,urgent:['needs_plan','replacement','unverified','pending','unreachable','overdue','due'].includes(status)||(!r.closed&&!r.confirmedAt&&!r.ownerAvailable)};
 }
 export const startStatusLabels:Record<string,string>={closed:'Atama kapandı',confirmed:'İşe başladı · teyitli',needs_plan:'Saat ve sorumlu bekliyor',replacement:'Yedek personel gerekiyor',unverified:'Başlangıç saati geçti · teyit yok',pending:'Personel şubedeyim dedi · teyit bekleniyor',unreachable:'Ulaşılamadı',overdue:'Arama gecikti',due:'Arama zamanı',planned:'Planlandı'};
-export function startError(e:unknown){const m=(e as {message?:string})?.message??'';const errors:Record<string,string>={START_STALE:'Bu kayıt değişti. Listeyi yenileyip tekrar deneyin.',START_CLAIMED:'Başka bir ekip arkadaşı bu aramayı üstlendi.',START_OWNER:'Sorumlu, bu çalışma alanında yönetici veya operasyon üyesi olmalı.',START_CLOSED:'Atama kapandı; yeni işlem kaydedilemez.',START_CONFIRMED:'İşe başlama teyitli. Düzeltmek için önce gerekçeyle teyidi geri alın.',START_TIME:'Görüşme zamanı gelecekte veya atama öncesinde olamaz.',START_CHECK_TIME:'Bu kontrol henüz gelmedi veya plan oluşturulmadan önceye ait. Ek aramayı kullanın.',START_ATTENDANCE_CONFLICT:'Gerçekleşme kaydıyla çelişki var. Günlük plandaki geldi/gelmedi kaydını kontrol edin.',START_REASON:'Değişiklik için en az üç karakterlik gerekçe yazın.',START_SCOPE:'Oturum veya çalışma alanı değişti. Yenileyin.',START_FORBIDDEN:'Bu işlem için yetkiniz yok.'};return errors[m]??'İşlem doğrulanamadı. Bekleyen işlemleri kontrol edin; bağlantı hatası kaydın yapılmadığı anlamına gelmez.';}
+const startErrors:Record<string,string>={
+ START_STALE:'Bu kayıt değişti. Listeyi yenileyip tekrar deneyin.',START_CLAIMED:'Başka bir ekip arkadaşı bu aramayı üstlendi.',
+ START_OWNER:'Sorumlu, bu çalışma alanında yönetici veya operasyon üyesi olmalı.',START_CLOSED:'Atama kapandı; yeni işlem kaydedilemez.',
+ START_CONFIRMED:'İşe başlama teyitli. Düzeltmek için önce gerekçeyle teyidi geri alın.',
+ START_TIME:'Görüşme zamanı atamadan önce, gelecekte veya iş gününden sonra olamaz. Beklenen varış görüşmeden sonraki 24 saat içinde olmalı.',
+ START_CHECK_TIME:'Bu kontrol henüz gelmedi veya plan oluşturulmadan önceye ait. Ek aramayı kullanın.',
+ START_ATTENDANCE_CONFLICT:'Teyit iş günüyle veya gerçekleşme kaydıyla çelişiyor. İş gününü ve geldi/gelmedi kaydını kontrol edin.',
+ START_REASON:'Değişiklik için en az üç karakterlik gerekçe yazın.',START_SCOPE:'Oturum veya çalışma alanı değişti. Yenileyin.',
+ START_FORBIDDEN:'Bu işlem için yetkiniz yok.',START_INPUT:'Plan veya görüşme alanları geçersiz. Saatleri ve arama aralıklarını kontrol edin.',
+ START_ISOLATION:'İşlem için gerekli veritabanı oturumu sağlanamadı. Yeniden deneyin.',START_NO_PLAN:'Önce başlangıç saati ve takip sorumlusunu belirleyin.',
+ START_REPLAY:'Bu işlem kimliği önceki veya kapatılmış bir denemeye ait. Sonucu kontrol edin.',START_WITNESS:'Şube veya saha teyidini veren kişinin adını girin.'
+};
+export function isStartRejection(e:unknown){
+ const error=e as {code?:string;message?:string}|null;
+ return error?.code==='P0001'&&typeof error.message==='string'&&Object.hasOwn(startErrors,error.message);
+}
+export function startError(e:unknown){const m=(e as {message?:string}|null)?.message??'';return startErrors[m]??'İşlem doğrulanamadı. Bekleyen işlemleri kontrol edin; bağlantı hatası kaydın yapılmadığı anlamına gelmez.';}

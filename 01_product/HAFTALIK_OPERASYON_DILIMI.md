@@ -28,3 +28,5 @@ kimlikli yerel tarayıcı, mobil tablo ve veri hatasında çıktı engeli.
 üretmedi. Yeni yetkili sunucu attachment endpoint'iyle gerçek download olayı ve
 6 HTTP testi geçti. HTTP'den kaydedilen CSV standart okuyucuda doğrulandı. Native
 PDF sayfalaması hâlâ açık; Codex native UI erişimi araç tarafından reddedildi.
+
+2026-09-10 — 040: Yerel CSV kabulü yenilendi; gerçek HTTP 9/9, iki CSV kapsamı bağımsız okuyucuda doğrulandı. Yeni betik kendi geçici hesap/iş kayıtlarını finally ile temizliyor. Tarayıcı kişi-gün/iptal/boş hafta kabulü geçti; native PDF açık. Ayrıntı BLOK_01_TESLIM.md. Yeni uygulama/SQL değişikliği veya production yayını yok.

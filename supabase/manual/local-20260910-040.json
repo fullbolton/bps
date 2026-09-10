@@ -1,0 +1,26 @@
+{
+  "slice": "040",
+  "block": "01",
+  "documentedAt": "2026-09-10",
+  "state": "local_release_candidate_not_deployed",
+  "newMigration": null,
+  "newApplicationCode": false,
+  "files": {
+    "scripts/qa-local-export.mjs": "978d27c754ed25e493153a5ca800e46eef44171054130fd15a6391de5bc8ab01",
+    "scripts/block-release-manifest.mjs": "d6809140ac25bd0d1cec6b518e5fb0dae0d9e09cc6eadaa8c625bdf079b0b0c3",
+    "scripts/block-release.test.mjs": "cb579bbe8b295328533d41fd2c3f116b227446aa4dac32ef735cc351b1654bf4",
+    "scripts/qa-acceptance.mjs": "32069a2f8d3e42fdc8ced72a1de345b46ec99f53b4b78ca66ff702b74c8b728c",
+    "supabase/manual/block-01-local-release.json": "e3cea6f2aa868c3cdb17226c7645da4f10cfcb237ae4cbe45d65c6de959c3a21"
+  },
+  "verification": {
+    "httpCsvChecks": 9,
+    "releaseManifestTests": 2,
+    "generalChecks": 5,
+    "operationsUnit": 159,
+    "browser": "totals_cancellation_toggle_and_empty_week_download_disabled",
+    "applicationMatchesPriorAcceptance": 249,
+    "sqlFiles": 30,
+    "productionCheckedNow": false
+  },
+  "next": "Authorized release and production acceptance; no new modules before block closes."
+}

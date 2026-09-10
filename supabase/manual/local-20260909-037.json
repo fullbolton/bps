@@ -1,0 +1,23 @@
+{
+  "slice": "037",
+  "date": "2026-09-09",
+  "state": "local_verified_not_deployed",
+  "requiresMigration": "20260909002800_start_board_filters",
+  "newMigrations": [],
+  "productionBaseline": "dpl_7dGwr1wHZc2REPBUYuJwjNnE6RZk",
+  "files": {
+    "src/app/(main)/dashboard/StartOverview.tsx": "376e34adc2972384ed25f323b40b4f780c606667dfaa77187ffb4f3f05458235",
+    "src/app/(main)/dashboard/DailyOverview.tsx": "3c5aea3c26f928afdcb4bdf4c53888d54d6e139544b901c5856bb4479f2f090e",
+    "src/app/(main)/talepler/ise-baslama/StartBoardClient.tsx": "e60fbcd181b711d073f37dac4890ee83d1d293c0c57abb08c0481c36d9ba1345",
+    "src/lib/operations/start-overview.ts": "ab6c9699ee301557ba4d93b7f5de122ece00190b7bbe4accf1b27dcabd2c23ee",
+    "scripts/start-overview.test.mjs": "9ed9c14df16229a8f253e567016faeffc8f4e7e4ae8908b07b68e90c4bef19e2",
+    "package.json": "c41e3989ee442a36a33c6004083378c753df72865051186d690c6859d4c0b98f"
+  },
+  "verification": {
+    "newUnit": 6,
+    "operationsUnit": 151,
+    "generalChecks": 5,
+    "build": "passed",
+    "browser": "zero_one_summary_and_filtered_navigation_passed"
+  }
+}

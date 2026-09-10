@@ -1,0 +1,44 @@
+✔ 6a sorumlu üyeliğini kaybedince listede ownerAvailable=false ve üye listesinden düşer; JS modeli urgent (732.001334ms)
+✔ 6b geçersiz yeni sorumlu START_OWNER (üye değil / ik / yabancı tenant / yok); geçerli sorumlu gerekçeyle atanır (5.345334ms)
+✔ 6c sorumlunun rolü ik olunca ownerAvailable=false; plan action mevcut sorumluyu da doğrular (3.303ms)
+✔ 6d gerçek RPC çıktısı parseStartBoard'dan geçer; sözleşmeye aykırı cevaplar boş/başarılı sayılmaz (throw) (3.423208ms)
+fırlatılan kodlar: START_ATTENDANCE_CONFLICT START_CHECK_TIME START_CLAIMED START_CLOSED START_CONFIRMED START_FORBIDDEN START_INPUT START_ISOLATION START_NO_PLAN START_OWNER START_REASON START_REPLAY START_SCOPE START_STALE START_TIME START_WITNESS
+eşlenmeyen: START_INPUT START_ISOLATION START_NO_PLAN START_REPLAY START_WITNESS
+✖ 6e migration'ın fırlattığı her START_* kodu istemcide kesin bir metne eşlenmeli — eşlenmeyenler "belirsiz" gösteriliyor (1.748083ms)
+gelen hata: 22P02 invalid input syntax for type uuid: "yok"
+✔ 6f geçersiz sorumlu kimliği (uuid değil) START_INPUT yerine ham 22P02 hatası döner (0.805375ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1050.10275
+
+✖ failing tests:
+
+test at scripts/fable-review-01/s6-responsible-and-errors.mjs:45:1
+✖ 6e migration'ın fırlattığı her START_* kodu istemcide kesin bir metne eşlenmeli — eşlenmeyenler "belirsiz" gösteriliyor (1.748083ms)
+  AssertionError [ERR_ASSERTION]: kesin ret kodları belirsiz metinle gösteriliyor: START_INPUT, START_ISOLATION, START_NO_PLAN, START_REPLAY, START_WITNESS
+  + actual - expected
+  
+  + [
+  +   'START_INPUT',
+  +   'START_ISOLATION',
+  +   'START_NO_PLAN',
+  +   'START_REPLAY',
+  +   'START_WITNESS'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Users/furkanyahsi/Desktop/BPS/scripts/fable-review-01/s6-responsible-and-errors.mjs:51:9)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'START_INPUT', 'START_ISOLATION', 'START_NO_PLAN', 'START_REPLAY', 'START_WITNESS' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

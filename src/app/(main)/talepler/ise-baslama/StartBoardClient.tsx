@@ -6,8 +6,9 @@ import {useAuth} from '@/context/AuthContext';
 import {useVerifiedTenant} from '@/hooks/useVerifiedTenant';
 import {createClient} from '@/lib/supabase/client';
 import type {Json} from '@/types/database.types';
-import {parseStartBoard,startRowState,startStatusLabels,startOutcomes,startError,type StartBoard,type StartRow} from '@/lib/operations/start-board';
+import {parseFilteredStartBoard,startRowState,startStatusLabels,startOutcomes,startError,type FilteredStartBoard,type StartRow} from '@/lib/operations/start-board';
 import {reserveCommand,acknowledgeCommand,pendingCommandIds,reconcilePending} from '@/lib/operations/pending-commands';
+import {settleStartFailure} from '@/lib/operations/start-failure';
 const input='block w-full rounded border border-slate-300 p-2 mt-1 text-sm';
 const button='rounded border border-slate-300 px-3 py-2 text-sm disabled:opacity-40';
 const dayNow=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -15,17 +16,17 @@ const time=(v:string|number)=>new Date(v).toLocaleTimeString('tr-TR',{timeZone:'
 const localTime=(v:number)=>new Date(v+3*3600000).toISOString().slice(0,19);
 export default function StartBoardClient(){
  const query=useSearchParams(),{user,role,loading:authLoading}=useAuth(),[refresh,setRefresh]=useState(0),{tenantId,loading}=useVerifiedTenant();
- const [day,setDay]=useState(()=>/^\d{4}-\d{2}-\d{2}$/.test(query.get('gun')??'')?query.get('gun')!:dayNow()),[offset,setOffset]=useState(0),[search,setSearch]=useState(''),[onlyUrgent,setOnlyUrgent]=useState(false),[onlyMine,setOnlyMine]=useState(false);
- const [result,setResult]=useState<{scope:string;data:StartBoard;received:number}|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[fetching,setFetching]=useState(false),[tick,setTick]=useState(Date.now()),[pending,setPending]=useState(0);
+ const [day,setDay]=useState(()=>/^\d{4}-\d{2}-\d{2}$/.test(query.get('gun')??'')?query.get('gun')!:dayNow()),[offset,setOffset]=useState(0),[search,setSearch]=useState(''),[appliedSearch,setAppliedSearch]=useState(''),[onlyUrgent,setOnlyUrgent]=useState(()=>query.get('aksiyon')==='1'),[onlyMine,setOnlyMine]=useState(false);
+ const [result,setResult]=useState<{scope:string;data:FilteredStartBoard;received:number}|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[fetching,setFetching]=useState(false),[tick,setTick]=useState(Date.now()),[pending,setPending]=useState(0);
  const [edit,setEdit]=useState<{row:StartRow;action:string;check?:number;occurred:string}|null>(null),[notice,setNotice]=useState('');
- const actorId=user?.id,allowed=role==='yonetici'||role==='operasyon',scope=`${actorId}:${tenantId}:${role}:${day}:${offset}`,scopeRef=useRef(scope);scopeRef.current=scope;
+ const actorId=user?.id,allowed=role==='yonetici'||role==='operasyon',scope=JSON.stringify([actorId,tenantId,role,day,offset,appliedSearch,onlyMine,onlyUrgent]),scopeRef=useRef(scope);scopeRef.current=scope;
  const data=result?.scope===scope?result.data:null;
  const now=result?Date.parse(result.data.serverNow)+(tick-result.received):Date.now();
  useEffect(()=>{const t=setInterval(()=>setTick(Date.now()),15000);return()=>clearInterval(t);},[]);
  useEffect(()=>{setEdit(null);setNotice('');},[scope]);
  useEffect(()=>{let cancelled=false;setError('');setResult(null);if(loading||!allowed||!actorId||!tenantId)return;setFetching(true);
-  void(async()=>{try{const r=await createClient().rpc('ops_start_board',{p_actor_id:actorId,p_tenant_id:tenantId,p_day:day,p_offset:offset});if(r.error)throw r.error;const value=parseStartBoard(r.data);if(!cancelled){const received=Date.now();setResult({scope,data:value,received});setTick(received);setPending(pendingCommandIds({actorId,tenantId},localStorage).length);}}catch{if(!cancelled)setError('Takip listesi yüklenemedi. Bağlantıyı kontrol edip yenileyin.');}finally{if(!cancelled)setFetching(false);}})();return()=>{cancelled=true;};
- },[actorId,tenantId,allowed,loading,day,offset,refresh,scope]);
+  void(async()=>{try{const r=await createClient().rpc('ops_start_board_filtered',{p_actor_id:actorId,p_tenant_id:tenantId,p_day:day,p_offset:offset,p_search:appliedSearch,p_only_mine:onlyMine,p_only_urgent:onlyUrgent});if(r.error)throw r.error;const value=parseFilteredStartBoard(r.data);if(!cancelled){const received=Date.now();setResult({scope,data:value,received});setTick(received);setPending(pendingCommandIds({actorId,tenantId},localStorage).length);}}catch{if(!cancelled)setError('Takip listesi yüklenemedi. Bağlantıyı kontrol edip yenileyin.');}finally{if(!cancelled)setFetching(false);}})();return()=>{cancelled=true;};
+ },[actorId,tenantId,allowed,loading,day,offset,appliedSearch,onlyMine,onlyUrgent,refresh,scope]);
  // Refresh between actions; never discard an open form or an uncertain command.
  useEffect(()=>{const t=setInterval(()=>{if(!edit&&!busy)setRefresh(n=>n+1);},60000);return()=>clearInterval(t);},[edit,busy]);
  async function save(row:StartRow,action:string,payload:Json){
@@ -39,7 +40,19 @@ export default function StartBoardClient(){
    if(receipt?.id!==row.id||receipt.commandId!==id||!Number.isInteger(receipt.revision))throw Error('receipt');
    await acknowledgeCommand(identity,id,localStorage,navigator.locks);
    if(scopeRef.current===captured){setEdit(null);setNotice('Kaydedildi.');setRefresh(n=>n+1);}
-  }catch(e){if(scopeRef.current===captured)setError(startError(e));}
+  }catch(e){if(scopeRef.current===captured){
+   if(!id)setError(startError(e));
+   else{
+    const outcome=await settleStartFailure(e,id,identity,localStorage,navigator.locks,async ids=>{
+     const r=await createClient().rpc('ops_reconcile_commands',{p_actor_id:actorId,p_tenant_id:tenantId,p_command_ids:ids,p_close:true});
+     if(r.error)throw r.error;return r.data;
+    });
+    if(scopeRef.current===captured){
+     if(outcome.state==='confirmed'){setError('');setEdit(null);setNotice(outcome.message);setRefresh(n=>n+1);}
+     else setError(outcome.message);
+    }
+   }
+  }}
   finally{if(scopeRef.current===captured){try{setPending(pendingCommandIds(identity,localStorage).length);}catch{setError('Kurtarma kaydı okunamadı.');}}setBusy(false);}
  }
  async function recover(){if(!actorId||!tenantId||busy)return;setBusy(true);setError('');const captured=scope;
@@ -51,14 +64,15 @@ export default function StartBoardClient(){
  if(authLoading||loading)return <p role="status">Çalışma alanı doğrulanıyor…</p>;
  if(!allowed)return <p>Bu ekran yönetici ve operasyon ekibi içindir.</p>;
  if(!actorId||!tenantId)return <p role="alert">Çalışma alanı doğrulanamadı. Oturumunuzu yenileyin.</p>;
- const rows=data?.rows.filter(r=>(!onlyUrgent||startRowState(r,now).urgent)&&(!onlyMine||r.responsibleId===actorId)&&`${r.company} ${r.location} ${r.worker}`.toLocaleLowerCase('tr').includes(search.toLocaleLowerCase('tr')))??[];
+ const rows=data?.rows??[];
  return <section className="space-y-5 max-w-6xl"><header className="flex flex-wrap justify-between gap-3"><div><h1 className="text-2xl font-semibold">İşe Başlama Takibi</h1><p className="mt-2 text-sm text-slate-600">Arama sonuçlarını kaydedin; işe başlamayı şube veya saha sorumlusuyla ayrıca teyit edin.</p></div><button className={button} disabled={busy||fetching} onClick={()=>{setEdit(null);setRefresh(n=>n+1);}}>Listeyi yenile</button></header>
  <Link className="inline-block text-blue-700 underline" href={`/talepler/gunluk?gun=${day}`}>Günlük personel planı</Link>
- <div className="flex flex-wrap items-end gap-4 rounded border bg-white p-4"><label className="text-sm">İş günü<input aria-label="İş günü" className={input} type="date" value={day} onChange={e=>{if(e.target.value){setDay(e.target.value);setOffset(0);}}}/></label><label className="text-sm">Firma, şube veya personel<input className={input} value={search} onChange={e=>setSearch(e.target.value)}/></label><label className="text-sm"><input type="checkbox" checked={onlyUrgent} onChange={e=>setOnlyUrgent(e.target.checked)}/> Aksiyon gerekenler</label><label className="text-sm"><input type="checkbox" checked={onlyMine} onChange={e=>setOnlyMine(e.target.checked)}/> Sorumlu olduklarım</label></div>
+ <form onSubmit={e=>{e.preventDefault();setAppliedSearch(search.trim());setOffset(0);setRefresh(n=>n+1);}} className="flex flex-wrap items-end gap-4 rounded border bg-white p-4"><label className="text-sm">İş günü<input aria-label="İş günü" className={input} type="date" value={day} onChange={e=>{if(e.target.value){setDay(e.target.value);setOffset(0);}}}/></label><label className="text-sm">Firma, şube veya personel<input className={input} maxLength={200} value={search} onChange={e=>setSearch(e.target.value)}/></label><button type="submit" className={button} disabled={busy}>Ara</button><label className="text-sm"><input type="checkbox" checked={onlyUrgent} onChange={e=>{setOnlyUrgent(e.target.checked);setOffset(0);}}/> Aksiyon gerekenler</label><label className="text-sm"><input type="checkbox" checked={onlyMine} onChange={e=>{setOnlyMine(e.target.checked);setOffset(0);}}/> Sorumlu olduklarım</label>{(appliedSearch||onlyMine||onlyUrgent)&&<button type="button" className={button} onClick={()=>{setSearch('');setAppliedSearch('');setOnlyMine(false);setOnlyUrgent(false);setOffset(0);}}>Filtreleri temizle</button>}</form>
+ <p className="text-sm text-slate-600">Filtreler seçilen günün tüm atamalarında çalışır. Aksiyon listesi yenileme anına göre hesaplanır.{appliedSearch&&` Aranan: “${appliedSearch}”.`}</p>
  {day!==dayNow()&&<p className="text-sm text-amber-800">{day>dayNow()?'Gelecek günün planını inceliyorsunuz.':'Geçmiş günün kayıtlarını inceliyorsunuz.'} Saatler İstanbul saatidir.</p>}
  {pending>0&&<div className="rounded border border-amber-300 p-3 text-sm">{pending} operasyon işleminin sonucu kontrol edilmeli. Kontrol, kaydedilenleri doğrular ve uygulanmamış denemeleri kapatır. <button disabled={busy} className={button} onClick={()=>void recover()}>Bekleyen işlemleri kontrol et</button></div>}
  {error&&<p role="alert" className="rounded bg-red-50 p-3 text-red-800">{error}</p>}{notice&&<p role="status" className="text-green-800">{notice}</p>}
- {fetching?<p role="status">Atamalar yükleniyor…</p>:data&&rows.length===0?<p className="rounded border bg-white p-6">{data.total===0?'Bu gün için personel ataması yok. Günlük plandan personel atayın.':'Bu sayfada filtreye uygun atama yok.'}</p>:null}
+ {fetching?<p role="status">Atamalar yükleniyor…</p>:data&&rows.length===0?<div className="rounded border bg-white p-6"><p>{data.dayTotal===0?'Bu gün için personel ataması yok. Günlük plandan personel atayın.':offset>0?'Bu sayfada kayıt kalmadı. İlk sayfaya dönün.':'Bu filtrelerle eşleşen atama yok.'}</p>{offset>0&&<button className={button} onClick={()=>setOffset(0)}>İlk sayfaya dön</button>}</div>:null}
  {rows.map(r=>{const model=startRowState(r,now),locked=busy||r.closed||Boolean(r.confirmedAt),claimActive=r.claimUntil&&Date.parse(r.claimUntil)>now&&r.claimedBy!==actorId;
  return <article key={r.id} className="rounded-xl border bg-white p-5 space-y-3"><div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-semibold">{r.worker} · {r.location}</h2><p className="text-sm text-slate-600">{r.company} · {r.position}</p><p className="text-sm">Başlangıç: {r.startAt?time(r.startAt):'Belirlenmedi'} · Sorumlu: {r.responsible??'Belirlenmedi'}</p></div><strong className={model.status==='confirmed'?'text-green-700':model.urgent?'text-red-700':'text-slate-600'}>{startStatusLabels[model.status]}</strong></div>
  {r.startAt&&!r.ownerAvailable&&!r.closed&&!r.confirmedAt&&<p className="text-sm text-amber-800">Takip sorumlusu artık yetkili değil. Planı düzenleyip sorumlu atayın.</p>}
@@ -83,6 +97,6 @@ export default function StartBoardClient(){
  <div className="flex gap-2"><button className={`${button} bg-blue-700 text-white`}>Kaydet</button><button type="button" className={button} onClick={()=>setEdit(null)}>Vazgeç</button></div></fieldset></form>}
  <details className="text-sm"><summary className="cursor-pointer text-slate-600">Takip geçmişi · {r.events.length} kayıt</summary><ol className="mt-2 space-y-2">{r.events.map(e=><li key={e.id} className="border-l-2 pl-3">{({plan:'Plan kaydedildi',inherited:'Yedek atama planı devraldı',call:'Arama',confirm:'Teyit',reopen:'Teyit geri alındı',claim:'Arama üstlenildi',release:'Arama bırakıldı'}[e.kind]??e.kind)} · {e.actor} · {new Date(e.recordedAt).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul'})}{e.kind==='call'&&` · ${startOutcomes[e.payload.outcome as keyof typeof startOutcomes]}`}{typeof e.payload.reason==='string'&&e.payload.reason&&<span className="block">Gerekçe: {e.payload.reason}</span>}{typeof e.payload.note==='string'&&e.payload.note&&<span className="block">Not: {e.payload.note}</span>}</li>)}</ol></details>
  </article>;})}
- {data&&<footer className="flex flex-wrap justify-between gap-3 text-sm"><span>{data.total} atama · Sayfa {Math.floor(offset/50)+1}. Filtreler bu sayfaya uygulanır.</span><div className="flex gap-2"><button className={button} disabled={offset===0||busy} onClick={()=>setOffset(n=>Math.max(0,n-50))}>Önceki</button><button className={button} disabled={offset+50>=data.total||busy} onClick={()=>setOffset(n=>n+50)}>Sonraki</button></div></footer>}
+ {data&&<footer className="flex flex-wrap justify-between gap-3 text-sm"><span>{data.total} eşleşen / {data.dayTotal} atama · Sayfa {Math.floor(offset/50)+1}.</span><div className="flex gap-2"><button className={button} disabled={offset===0||busy} onClick={()=>setOffset(n=>Math.max(0,n-50))}>Önceki</button><button className={button} disabled={offset+50>=data.total||busy} onClick={()=>setOffset(n=>n+50)}>Sonraki</button></div></footer>}
  </section>;
 }

@@ -1,0 +1,41 @@
+✔ 3a plan saati İstanbul (+03) olarak yorumlanır: 00:30 → önceki UTC günü 21:30Z (1649.974416ms)
+✔ 3b gece yarısı: iş günü D-1 için D 00:00:01 (İstanbul) arama START_TIME — UTC tarihi hâlâ D-1 olsa da (7.3585ms)
+✔ 3c teyit iş günü dışında reddedilir: sonraki gün START_TIME (genel tarih kontrolü önce), önceki gün START_ATTENDANCE_CONFLICT; D-1 23:59:59 kabul, present (19.932417ms)
+✔ 3d gelecekteki olay ve atama öncesi olay START_TIME; eta sınırları (15.504959ms)
+✔ 3e planlı adım zamanından önce arama START_CHECK_TIME; plan dışı offset START_CHECK_TIME (29.618291ms)
+3f zaman tanıkları: {"a_created":"2026-09-09T18:51:04.539Z","p_created":"2026-09-09T18:51:04.864Z","planned_at":"2026-09-09T18:51:04.864Z","start_at":"2026-09-08T21:01:00.000Z","db_now":"2026-09-09T18:51:04.875Z","work_date":"2026-09-09"} js_now 2026-09-09T18:51:04.882Z
+✔ 3f geç atama: planlanan adımlar plan anından önceyse uygulanmaz (SQL START_CHECK_TIME) ve JS modeli "due/not_applicable" der (50.195666ms)
+✔ 3g personel beyanı hiçbir kombinasyonda teyit değildir: claimed_arrival sonrası confirmedAt null, attendance unreported, model pending/unverified (24.078167ms)
+✔ 3h plan değişince eski arama olayları yeni planı boyamaz (plan_version); aynı adım yeni sürümde gerekçesiz tekrar kaydedilir (19.661875ms)
+✔ 3i tarayıcı saat farkı: JS modeli yalnız verilen "now" ile hesaplar; ileri/geri saat sunucu sonucunu değiştirmez (statik+birim) (4.259458ms)
+✖ 3j [BULGU] plan kaydından ÖNCE yapılmış ek arama (offset 0) ve teyit, atama sonrası olsa da START_TIME ile reddediliyor; mesaj "atama öncesi" diyor (4.076958ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2633.254625
+
+✖ failing tests:
+
+test at scripts/fable-review-01/s3-time-boundaries.mjs:78:1
+✖ 3j [BULGU] plan kaydından ÖNCE yapılmış ek arama (offset 0) ve teyit, atama sonrası olsa da START_TIME ile reddediliyor; mesaj "atama öncesi" diyor (4.076958ms)
+  AssertionError [ERR_ASSERTION]: occurredAt=2026-09-09T18:46:04.833Z plan created_at=2026-09-09T18:51:04.833Z → START_TIME (istemci metni: "Görüşme zamanı gelecekte veya atama öncesinde olamaz.")
+  + actual - expected
+  
+  + 'START_TIME'
+  - null
+  
+      at TestContext.<anonymous> (file:///Users/furkanyahsi/Desktop/BPS/scripts/fable-review-01/s3-time-boundaries.mjs:86:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'START_TIME',
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

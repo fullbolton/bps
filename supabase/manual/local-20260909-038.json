@@ -1,0 +1,34 @@
+{
+  "slice": "038",
+  "documentedAt": "2026-09-10",
+  "state": "local_applied_verified_not_deployed",
+  "migration": "20260909002900_start_event_validation",
+  "productionApplied": false,
+  "productionBaseline": "dpl_7dGwr1wHZc2REPBUYuJwjNnE6RZk",
+  "pendingProductionMigrations": [
+    "20260909002800_start_board_filters",
+    "20260909002900_start_event_validation"
+  ],
+  "files": {
+    "supabase/migrations/20260909002900_start_event_validation.sql": "a715c39742c7c75b9bffc262b60d58e5bc44356e2e6ea964afe3dd7e2bd2cbdc",
+    "src/lib/operations/start-board.ts": "99866b316ec1b0f811ad738a149481c01e0a069af62e45953059b073f6c142ae",
+    "src/lib/operations/start-failure.ts": "0ee99003c1604c52803ea7a8119ecd4b5fd315955cf86159b8dd18dfdea7677a",
+    "src/app/(main)/talepler/ise-baslama/StartBoardClient.tsx": "65e869893d2df732406c6604e1ed5f2a8e61315e86c9a7c818458ee1000524d4",
+    "scripts/start-failure.test.mjs": "7e8dc36857f60d2fc62aaf9d4476086ee21862942ce32b2eeffe306164050cd9",
+    "scripts/qa-start-validation.mjs": "fbed70690ecc48f7f72cebfce21bdae1bb965235e39324d0d950d6de9d5c47b8",
+    "scripts/qa-local-start-tracking.mjs": "aa9a72d59785ed2ed3f5f710367e1b9ec15666ad9767930a5a9a44afcb75e0d3",
+    "scripts/qa-start-review-regression.mjs": "c63af857ef511bea127b2ce86f5a673208999aec24a0ae76224659d03708b4a2",
+    "scripts/qa-acceptance.mjs": "751d0e3fd423bb49e8dcbdb25221c9fb27688b59066b414662134f2bc1490548",
+    "package.json": "a2ffc60254b0cc7e3b55aee2b1112966d0de15cb4b290a3f981be79aa9129f2c"
+  },
+  "verification": {
+    "newUnit": 6,
+    "operationsUnit": 157,
+    "generalChecks": 5,
+    "nativeChecks": 7,
+    "preservedFableRegression": 26,
+    "localAuthRpc": "passed",
+    "browser": "invalid_plan_message_and_no_pending_banner_passed",
+    "isolatedBuild": "passed"
+  }
+}

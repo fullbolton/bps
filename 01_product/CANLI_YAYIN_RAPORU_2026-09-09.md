@@ -1,5 +1,17 @@
 # BPS — Canlı yayın ve ürün durum raporu
 
+> **040 — Blok 1 yerel teslim paketi hazır.** Haftalık CSV gerçek HTTP 9/9 ve bağımsız okuyucu, tarayıcı toplam/iptal/boş hafta kabulü geçti. Kabul betiği artık kendi geçici hesap/verilerini temizler. Toplu manifest 249 uygulama + 30 SQL + 17 kabul dosyasını doğrular; uygulama 036–039 kabul snapshotlarıyla birebir. Genel 5/5 ve manifest 2 test geçti. Yeni uygulama/SQL değişikliği, production/push/deploy yok. Yayın ve canlı kabul açık; başka modül açılmayacak. [Tek teslim notu](BLOK_01_TESLIM.md).
+
+> **039 — Blok 1: aday firma uyumluluğu yerelde tamamlandı.** Aday ve aktif firmalar yeni operasyona uygun; CRM durumu kendiliğinden değişmiyor. Yedi SQL fonksiyonu, firma seçimi ve kurulum sayacı birlikte düzeltildi. 9 native kontrol, 159 unit/genel 5/5, gerçek yerel Auth ile aday firma → şube/CSV → talep → atama → plan/arama/teyit → yeni oturumdan okuma ve build geçti. Geçici veriler temizlendi. Canlı/push/deploy yok; 02800,02900,20260910000100 production’da bekliyor. Blok kapanmadı; sıradaki haftalık CSV kullanıcı kabulü ve birlikte teslim envanteri. [Kanıt](ADAY_FIRMA_OPERASYON_UYUMU.md).
+
+> **2026-09-10 — Claude yanıtları değerlendirildi.** Chat canlı şube → personel → talep → atama zincirini 4/4 ölçtü; işe başlama arama/teyit kabulü açık. Aday firma uyumsuzluğu kodda doğrulandı, düzeltmesi sırada. Fable bulguları 038 ile yerelde giderildi. Yayın manifestinin 246 dosyası hem fb1b218 hem HEAD ile eşleşti; 036–038 çalışma ağacı farkları henüz yayında değil. Öncelik uyumluluk düzeltmesi, bağımsız kabul ve gerçek kullanım pilotu. [Kararlar ve görevler](CLAUDE_YANITLARI_KARAR_2026-09-10.md).
+
+> **038 — Fable bulguları yerelde düzeltildi.** Kesin retlerde tek komutun sunucudan uzlaştırılması; plan öncesi manuel görüşme/teyit, saniye hassasiyeti ve dar giriş doğrulaması tamamlandı. 02900 yalnız dedicated yerelde. 157 unit, genel 5/5, yeni 7 SQL kontrolü, Fable yarış/kapsam regresyonları 26/26, gerçek yerel Auth/RPC, tarayıcı ret mesajı ve build geçti. Canlı 035 ve 27 migration değişmedi; 02800/02900 henüz production’da değil. [Düzeltme ve kanıt](FABLE_REVIEW_01_CODEX_TRIYAJ.md). Sıradaki iş 036–038 yayın adayının birlikte kabulü; production gerçek atama kabulü açık.
+
+> Güncel037: Dashboard takip özeti de yerelde eklendi; canlı035değişmedi.035yayın kaynakları başka çalışma tarafından `fb1b218`, devir notları `2b53d98` commitine alındı; push durumu bu tur ölçülmedi. Fable sonuç raporu geldi; Codex ikiP2yi yeniden üretti. Sonraki iş `FABLE_REVIEW_01_CODEX_TRIYAJ.md` kapsamındaki038düzeltmeler.036ve037manifestleri yerel farkların ayrı snapshotlarıdır.
+
+> Sonraki yerel fark036: 02800 ile gün geneli takip filtreleri eklendi; henüz canlı değil. Canlı035raporu geçerli; mevcut çalışma ağacında üç uygulama dosyası035snapshotından farklı. Ayrıntı `01_product/ISE_BASLAMA_TUM_GUN_FILTRELERI.md`. İncelemede035yayını ve036yerel farkı ayırın.
+
 2026-09-09. Kaynak: yayın manifesti, dosya SHA256 listesi, migration dosyaları ve mevcut uygulama kodu. Bu rapor yeni bir deploy değildir; aynı gün yapılan yayının kapsamını açıklar.
 
 Geliştirilmiş paketin tamamı yayınlandı; kapsam yalnız İşe Başlama Takibi değil. Paket içindeki 27 veritabanı değişikliği canlı Supabase'e uygulandı. 246 uygulama dosyasından oluşturulan yeni Vercel sürümü bpsys.net üzerinde çalışıyor. Bu sayı 246 özellik anlamına gelmez. İş planındaki henüz kodlanmamış özellikler bu kapsama dahil değildir.

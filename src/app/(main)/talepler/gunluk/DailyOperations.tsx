@@ -120,7 +120,7 @@ export default function DailyOperations() {
     <Link className="mb-4 mr-5 inline-block text-sm underline" href={`/talepler/haftalik?firma=${companyId}&gun=${date}`}>Haftalık plan ve çıktı</Link>
     <Link className="mb-4 inline-block text-sm underline" href={companyId?`/firmalar/${companyId}`:"/firmalar"}>Firma detayına dön</Link>
     <fieldset disabled={busy} className="mb-5 grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-3">
-      <label className="text-sm">Firma<select className={inputClass} value={companyId} onChange={e=>{setCompanyId(e.target.value);setMessage("");}}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?"":" (pasif)"}</option>)}</select></label>
+      <label className="text-sm">Firma<select className={inputClass} value={companyId} onChange={e=>{setCompanyId(e.target.value);setMessage("");}}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?"":" (operasyona kapalı)"}</option>)}</select></label>
       <label className="text-sm">İş günü<input className={inputClass} type="date" min="2000-01-01" max="2100-12-31" value={date} onChange={e=>{if(e.target.value)setDate(e.target.value);}} /></label>
       <div className="flex items-end"><button className={buttonClass} onClick={()=>void refresh()} disabled={loading}>Yenile</button></div>
     </fieldset>
@@ -133,7 +133,7 @@ export default function DailyOperations() {
     {message&&<p role="status" className="mb-4 rounded-lg bg-emerald-50 p-3 text-emerald-800">{message}</p>}
     <div ref={forms}>
     {!companyId?<EmptyState title="Önce firma ekleyin" description="Günlük plan firma altında tutulur." />:<>
-      {!company?.active&&<p className="mb-4 text-amber-800">Pasif firmaya yeni lokasyon, talep veya atama eklenemez. Mevcut atamalar kaldırılabilir.</p>}
+      {!company?.active&&<p className="mb-4 text-amber-800">Bu firma yeni operasyona uygun değil. Firma durumunu kontrol edin. Mevcut atamalar kaldırılabilir.</p>}
       {manager&&<LocationImport key={`${scope?.actorId}:${scope?.tenantId}:${companyId}:${formEpoch}`} scope={scope} companyId={companyId} disabled={busy||!writeReady||!company?.active} onBusy={setBusy} onComplete={refresh} onPendingChange={syncPending} />}
       {manager&&<div className="mb-5 grid gap-4 lg:grid-cols-2">
         <details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-medium">Lokasyon ekle</summary><form className="mt-3 space-y-3" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("location",{companyId,name:String(d.get("name")),city:String(d.get("city"))},f);}}><fieldset disabled={busy||!writeReady||!company?.active} className="space-y-3"><label className="block text-sm">Şube / bina adı<input name="name" className={inputClass} maxLength={160} required /></label><label className="block text-sm">İl<input name="city" className={inputClass} maxLength={80} required /></label><button className={buttonClass}>Lokasyonu kaydet</button></fieldset></form></details>

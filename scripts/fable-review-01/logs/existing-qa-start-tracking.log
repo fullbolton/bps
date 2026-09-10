@@ -1,0 +1,17 @@
+PASS old assignment has no assumed start time
+PASS spoofed actor, tenant, role, anonymous and membership denied
+PASS raw event/plan access revoked
+PASS foreign owner and invalid schedule rejected
+PASS plan snapshot and idempotent receipt
+PASS plan changes versioned with reason
+PASS other operator cannot take a live call lease
+PASS skipped pre-plan checkpoint and future occurrence rejected
+PASS worker claim never marks attendance or confirmation
+PASS correction appends; original is retained
+PASS branch confirmation and attendance commit atomically once
+PASS old attendance write cannot contradict confirmation
+PASS reasoned retraction resets attendance and preserves history
+PASS concurrent same-revision commands: exactly one commits
+PASS replacement inherits schedule, keeps old history and closes old writes
+PASS membership revoked after JWT: reader fails closed
+Start tracking PostgreSQL checks: 16 passed.

@@ -1,0 +1,16 @@
+✔ 5a açık ekran sırasında üyelik kaybı: board ve execute START_SCOPE, olay yok (644.523875ms)
+✔ 5b rol kaybı (operasyon→ik): START_FORBIDDEN; geri alınca çalışır (2.997542ms)
+✔ 5c tenant değişimi: claim tenant 2 + üyelik 1 → START_SCOPE; çift üyelikte eski formun tenant 1 gönderimi ve tenant 2 üzerinden tenant 1 kaydı START_SCOPE (4.23975ms)
+✔ 5d kilit sırası (gerçek 001600 trigger): açık işlem profil FOR SHARE tutar, üyelik silme BEKLER; commit sonrası silinir ve sonraki işlem START_SCOPE (429.282709ms)
+✔ 5e ters sıra: üyelik silme açık transaction'da, işlem BEKLER; rollback → işlem geçer, commit → START_SCOPE (taze snapshot) (849.370459ms)
+✔ 5f reconcile kapsam dışı: yabancı tenant/aktör OPS_SCOPE_CHANGED; kapatma yazılmaz (2.469791ms)
+✔ 5g istemci: bekleyen komut anahtarı aktör+tenant; başka tenant/hesap eski kaydı görmez ve kapatamaz (78.585208ms)
+✔ 5h "reddedildi" ile "bilinmiyor" ayrımı: START_SCOPE/START_FORBIDDEN kesin metin; ağ/kilit hatası belirsiz metin (11.371708ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2338.392916

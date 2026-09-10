@@ -1,0 +1,25 @@
+✔ fresh adapter after reload reuses persisted identity without storing form text (4.397541ms)
+✔ canonical object key order is stable; changed payload and kind are distinct (0.505667ms)
+✔ different account and tenant never borrow identity (0.396ms)
+✔ concurrent tabs reserve a single identity through shared lock (0.759709ms)
+✔ acknowledgment removes only confirmed command; next identical intent has new identity (0.38375ms)
+✔ blocked read/write and missing locks reject without volatile fallback (0.4105ms)
+✔ malformed stored records fail closed (0.445666ms)
+✔ 50 pending limit preserves old identities and blocks new writes (3.431833ms)
+✔ failed acknowledgment retains original identity for safe retry (0.372709ms)
+✔ reconciliation clears only terminal requested IDs; unknown and concurrent additions survive (1.000417ms)
+✔ malformed, omitted, duplicate, foreign, and non-terminal-looking statuses preserve all pending identities (0.447083ms)
+✔ reconciliation storage failure keeps recoverable identity (0.26575ms)
+✔ late assignment skips prior checks and requires immediate call (0.5275ms)
+✔ last recorded event wins, not scheduled offset (0.115333ms)
+✔ past plan events cannot colour new plan (0.070916ms)
+✔ claimed arrival remains unverified at start even if all calls recorded (0.080625ms)
+✔ confirmation closes remaining calls without fabricating events; removal closes writes (0.078ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 415.934875

@@ -1,0 +1,160 @@
+✔ 1a aynı komut kimliğiyle ardışık tekrar: aynı makbuz, tek olay, tek revision artışı (673.8165ms)
+✔ 1b aynı kimlik, farklı içerik: START_REPLAY; kayıt değişmez (5.092083ms)
+✔ 1c gecikmiş ilk çağrı eşzamanlı gelir: ikinci bağlantı ilkinin commit'ini BEKLER, sonra aynı makbuzu alır (427.633208ms)
+✔ 1d yazma uçuştayken kapatma (reconcile p_close): kapatma bekler, commit sonrası confirmed (409.018792ms)
+✔ 1e geri alınan yazma ve kapatma yarışı: kapatma kazanır, geç yazma START_REPLAY, olay üretilmez (415.714666ms)
+✔ 1f hiç gönderilmemiş komut: kapatmadan önce unknown, kapatınca closed, sonra aynı kimlikle yazma START_REPLAY (1.970542ms)
+✔ 1g kapatma başka aktörün komutunu göremez: aktör anahtarı PK'nın parçası (1.742667ms)
+✔ 1h istemci kimlik tekrarı: aynı satır+içerik aynı komut kimliği, yenilenmiş revision yeni kimlik (81.831542ms)
+✔ 1i UI mesajı ile transaction durumu: kesin ret (START_REPLAY/START_INPUT) istemcide "belirsiz" metniyle gösteriliyor (17.322333ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2359.575625
+✔ 2a lease canlıyken diğer kullanıcı (güncel revision ile): call/claim/release START_CLAIMED (850.258417ms)
+✔ 2b eşzamanlı: A claim açık transaction'da, B call BEKLER (pg_blocking_pids), commit sonrası START_STALE (416.654292ms)
+✔ 2c süre dolunca (claim_until geçmişe alınır) diğer kullanıcı aramayı yapar, lease temizlenir (8.08475ms)
+✔ 2d eski sekmeden release/call: eski revision START_STALE; boş plana release izinli ama revision artırır (not) (5.5235ms)
+✔ 2e aynı revision ile iki gerçek bağlantıdan eşzamanlı claim: tek kazanan, diğeri START_STALE (4.737416ms)
+✔ 2f aynı revision ile eşzamanlı confirm (iki bağlantı): tek teyit, tek present, tek olay (2.351583ms)
+✔ 2g lease sahibi olmayan kullanıcı, lease canlıyken TEYİT verebilir (davranış notu, hata değil) (5.925125ms)
+✔ 2h geçmiş kayıpsız: her başarılı işlem için tam olarak bir olay, revision boşluksuz (0.832291ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1406.119917
+✔ 3a plan saati İstanbul (+03) olarak yorumlanır: 00:30 → önceki UTC günü 21:30Z (761.532666ms)
+✔ 3b gece yarısı: iş günü D-1 için D 00:00:01 (İstanbul) arama START_TIME — UTC tarihi hâlâ D-1 olsa da (3.651542ms)
+✔ 3c teyit iş günü dışında reddedilir: sonraki gün START_TIME (genel tarih kontrolü önce), önceki gün START_ATTENDANCE_CONFLICT; D-1 23:59:59 kabul, present (5.776166ms)
+✔ 3d gelecekteki olay ve atama öncesi olay START_TIME; eta sınırları (3.56125ms)
+✔ 3e planlı adım zamanından önce arama START_CHECK_TIME; plan dışı offset START_CHECK_TIME (6.930417ms)
+3f zaman tanıkları: {"a_created":"2026-09-09T18:52:02.861Z","p_created":"2026-09-09T18:52:02.972Z","planned_at":"2026-09-09T18:52:02.972Z","start_at":"2026-09-08T21:01:00.000Z","db_now":"2026-09-09T18:52:02.973Z","work_date":"2026-09-09"} js_now 2026-09-09T18:52:02.973Z
+✔ 3f geç atama: planlanan adımlar plan anından önceyse uygulanmaz (SQL START_CHECK_TIME) ve JS modeli "due/not_applicable" der (6.399625ms)
+✔ 3g personel beyanı hiçbir kombinasyonda teyit değildir: claimed_arrival sonrası confirmedAt null, attendance unreported, model pending/unverified (4.347041ms)
+✔ 3h plan değişince eski arama olayları yeni planı boyamaz (plan_version); aynı adım yeni sürümde gerekçesiz tekrar kaydedilir (9.194792ms)
+✔ 3i tarayıcı saat farkı: JS modeli yalnız verilen "now" ile hesaplar; ileri/geri saat sunucu sonucunu değiştirmez (statik+birim) (1.09375ms)
+✖ 3j [BULGU] plan kaydından ÖNCE yapılmış ek arama (offset 0) ve teyit, atama sonrası olsa da START_TIME ile reddediliyor; mesaj "atama öncesi" diyor (1.526708ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1157.593083
+
+✖ failing tests:
+
+test at scripts/fable-review-01/s3-time-boundaries.mjs:78:1
+✖ 3j [BULGU] plan kaydından ÖNCE yapılmış ek arama (offset 0) ve teyit, atama sonrası olsa da START_TIME ile reddediliyor; mesaj "atama öncesi" diyor (1.526708ms)
+  AssertionError [ERR_ASSERTION]: occurredAt=2026-09-09T18:47:02.965Z plan created_at=2026-09-09T18:52:02.965Z → START_TIME (istemci metni: "Görüşme zamanı gelecekte veya atama öncesinde olamaz.")
+  + actual - expected
+  
+  + 'START_TIME'
+  - null
+  
+      at TestContext.<anonymous> (file:///Users/furkanyahsi/Desktop/BPS/scripts/fable-review-01/s3-time-boundaries.mjs:86:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'START_TIME',
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+✔ 4a teyit ile attendance=present ve attendance_revision aynı transaction'da (662.3515ms)
+✔ 4b eski gerçekleşme yazarı teyitli kaydı absent/unreported yapamaz (trigger START_CONFIRMED); present tekrarına izin verir (not) (2.473708ms)
+✔ 4c eşzamanlı: A teyit açık transaction'da, B absent yazısı BEKLER, commit sonrası reddedilir; present kalır (407.59825ms)
+✔ 4d teyitli atama yedeklenemez (OPS_REPLACE_PRESENT); teyit sırasında yedekleme bekler ve reddedilir (418.819833ms)
+✔ 4e geri alma: gerekçe zorunlu, confirmed null, attendance unreported, geçmiş korunur; sonra eski yazar absent yazabilir (5.502542ms)
+✔ 4f yedek atama planı devralır, geçmişi devralmaz; eski kayda yazma START_CLOSED; tekrar aynı komut tek inherited olay (11.853209ms)
+✔ 4g talep iptali (ops_mutate cancel) sonrası atamaya yazma START_CLOSED; plan geçmişi kalır (7.493833ms)
+✔ 4h aynı gün başka atamada present olan personel teyit edilemez (kaldırılmış ama present kayıt dahil) (11.6055ms)
+✔ 4i teyitli+present atama talep iptaliyle kapanabilir: teyit kalır, listede "kapandı" öne geçer (davranış notu) (7.45525ms)
+✔ 4j plansız atamanın yedeği plan/olay devralmaz (uydurma saat yok) (4.992208ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1644.201583
+✔ 5a açık ekran sırasında üyelik kaybı: board ve execute START_SCOPE, olay yok (809.097125ms)
+✔ 5b rol kaybı (operasyon→ik): START_FORBIDDEN; geri alınca çalışır (5.546667ms)
+✔ 5c tenant değişimi: claim tenant 2 + üyelik 1 → START_SCOPE; çift üyelikte eski formun tenant 1 gönderimi ve tenant 2 üzerinden tenant 1 kaydı START_SCOPE (7.149375ms)
+✔ 5d kilit sırası (gerçek 001600 trigger): açık işlem profil FOR SHARE tutar, üyelik silme BEKLER; commit sonrası silinir ve sonraki işlem START_SCOPE (430.530625ms)
+✔ 5e ters sıra: üyelik silme açık transaction'da, işlem BEKLER; rollback → işlem geçer, commit → START_SCOPE (taze snapshot) (842.198208ms)
+✔ 5f reconcile kapsam dışı: yabancı tenant/aktör OPS_SCOPE_CHANGED; kapatma yazılmaz (1.90375ms)
+✔ 5g istemci: bekleyen komut anahtarı aktör+tenant; başka tenant/hesap eski kaydı görmez ve kapatamaz (100.021208ms)
+✔ 5h "reddedildi" ile "bilinmiyor" ayrımı: START_SCOPE/START_FORBIDDEN kesin metin; ağ/kilit hatası belirsiz metin (26.257084ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2603.002166
+✔ 6a sorumlu üyeliğini kaybedince listede ownerAvailable=false ve üye listesinden düşer; JS modeli urgent (1413.68325ms)
+✔ 6b geçersiz yeni sorumlu START_OWNER (üye değil / ik / yabancı tenant / yok); geçerli sorumlu gerekçeyle atanır (22.416958ms)
+✔ 6c sorumlunun rolü ik olunca ownerAvailable=false; plan action mevcut sorumluyu da doğrular (16.624959ms)
+✔ 6d gerçek RPC çıktısı parseStartBoard'dan geçer; sözleşmeye aykırı cevaplar boş/başarılı sayılmaz (throw) (35.423958ms)
+fırlatılan kodlar: START_ATTENDANCE_CONFLICT START_CHECK_TIME START_CLAIMED START_CLOSED START_CONFIRMED START_FORBIDDEN START_INPUT START_ISOLATION START_NO_PLAN START_OWNER START_REASON START_REPLAY START_SCOPE START_STALE START_TIME START_WITNESS
+eşlenmeyen: START_INPUT START_ISOLATION START_NO_PLAN START_REPLAY START_WITNESS
+✖ 6e migration'ın fırlattığı her START_* kodu istemcide kesin bir metne eşlenmeli — eşlenmeyenler "belirsiz" gösteriliyor (46.952791ms)
+gelen hata: 22P02 invalid input syntax for type uuid: "yok"
+✔ 6f geçersiz sorumlu kimliği (uuid değil) START_INPUT yerine ham 22P02 hatası döner (6.242542ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2168.389875
+
+✖ failing tests:
+
+test at scripts/fable-review-01/s6-responsible-and-errors.mjs:45:1
+✖ 6e migration'ın fırlattığı her START_* kodu istemcide kesin bir metne eşlenmeli — eşlenmeyenler "belirsiz" gösteriliyor (46.952791ms)
+  AssertionError [ERR_ASSERTION]: kesin ret kodları belirsiz metinle gösteriliyor: START_INPUT, START_ISOLATION, START_NO_PLAN, START_REPLAY, START_WITNESS
+  + actual - expected
+  
+  + [
+  +   'START_INPUT',
+  +   'START_ISOLATION',
+  +   'START_NO_PLAN',
+  +   'START_REPLAY',
+  +   'START_WITNESS'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Users/furkanyahsi/Desktop/BPS/scripts/fable-review-01/s6-responsible-and-errors.mjs:51:9)
+      at async Test.run (node:internal/test_runner/test:1110:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'START_INPUT', 'START_ISOLATION', 'START_NO_PLAN', 'START_REPLAY', 'START_WITNESS' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+ÖZET
+  0 s1-response-loss.mjs
+  0 s2-two-operators.mjs
+  1 s3-time-boundaries.mjs
+  0 s4-confirm-attendance-replacement.mjs
+  0 s5-scope-change.mjs
+  1 s6-responsible-and-errors.mjs

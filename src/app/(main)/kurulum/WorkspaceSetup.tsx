@@ -30,7 +30,7 @@ export default function WorkspaceSetup({operationsEnabled}:{operationsEnabled:bo
   {error?<p role="alert" className="text-sm text-red-700">{error}</p>:busy||!value?<p role="status">Kayıtlar kontrol ediliyor…</p>:<>
    <p className="text-sm text-slate-600">Bu liste mevcut kayıtları gösterir. Kayıt bulunması kurulumun veya pilot kontrolünün tamamlandığı anlamına gelmez.</p>
    <ol className="divide-y divide-slate-100">{[
-    {title:'Firmaları ekleyin',description:'Hizmet verdiğiniz müşterileri kaydedin.',count:`${value.companies} aktif firma`,href:'/firmalar',button:'Firmalara git',ops:false},
+    {title:'Firmaları ekleyin',description:'Hizmet verdiğiniz müşterileri kaydedin.',count:`${value.companies} operasyona uygun firma`,href:'/firmalar',button:'Firmalara git',ops:false},
     {title:'Şubeleri toplu aktarın',description:'Her şubeyi tek tek girmek yerine lokasyon listesini içe aktarın.',count:`${value.locations} aktif firmaya bağlı aktif lokasyon`,href:'/talepler/gunluk',button:'Lokasyon aktarımını aç',ops:true},
     {title:'Ekip erişimini gözden geçirin',description:'Mevcut kullanıcıları ve rollerini kontrol edin. Personel dizini, uygulamaya giriş yapan kullanıcı listesinden ayrıdır.',count:`${value.members} çalışma alanı üyesi`,href:'/ayarlar',button:'Kullanıcıları görüntüle',ops:false},
     {title:'Personel dizinini hazırlayın',description:'Yerleştirmede kullanacağınız personeli tanımlayın.',count:`${value.workers} aktif personel`,href:'/talepler/dizin',button:'Personel dizinini aç',ops:true},

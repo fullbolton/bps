@@ -69,7 +69,7 @@ export default function WeeklyOperations(){
       <Link className="mb-4 mr-5 inline-block text-sm underline" href={`/talepler/kontrol?firma=${companyId}&gun=${date}`}>Operasyon kontrol listesi</Link>
       <Link className="mb-4 inline-block text-sm underline" href={`/talepler/gunluk?firma=${companyId}&gun=${date}`}>Günlük plana dön</Link>
       <fieldset disabled={exporting} className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border bg-white p-4">
-        <label className="flex flex-col gap-1 text-sm">Firma<select className={field} value={companyId} onChange={e=>setCompanyId(e.target.value)}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?'':' (pasif)'}</option>)}</select></label>
+        <label className="flex flex-col gap-1 text-sm">Firma<select className={field} value={companyId} onChange={e=>setCompanyId(e.target.value)}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?'':' (operasyona kapalı)'}</option>)}</select></label>
         <label className="flex flex-col gap-1 text-sm">Haftadan bir gün<input className={field} type="date" min="2000-01-01" max="2100-12-31" value={date} onChange={e=>{if(validDay(e.target.value))setDate(e.target.value);}} /></label>
         <button className={button} disabled={!validDay(addDays(date,-7))} onClick={()=>setDate(addDays(date,-7))}>Önceki hafta</button>
         <button className={button} disabled={!validDay(addDays(date,7))} onClick={()=>setDate(addDays(date,7))}>Sonraki hafta</button>

@@ -1,0 +1,12 @@
+✔ x7a filtresiz çıktı parseFilteredStartBoard'dan geçer, dayTotal=7 (1081.47925ms)
+JS urgent: 420 422 423 426 · SQL urgent: 420 422 423 426
+✔ x7b SQL "aksiyon" kümesi == JS startRowState.urgent kümesi (aynı snapshot) (4.775125ms)
+✔ x7c arama ve "sorumlu olduklarım" sayfalama öncesi; literal % ve _ joker değil (6.309083ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1594.441709

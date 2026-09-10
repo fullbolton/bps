@@ -1,0 +1,16 @@
+✔ 2a lease canlıyken diğer kullanıcı (güncel revision ile): call/claim/release START_CLAIMED (648.393791ms)
+✔ 2b eşzamanlı: A claim açık transaction'da, B call BEKLER (pg_blocking_pids), commit sonrası START_STALE (414.517792ms)
+✔ 2c süre dolunca (claim_until geçmişe alınır) diğer kullanıcı aramayı yapar, lease temizlenir (36.891583ms)
+✔ 2d eski sekmeden release/call: eski revision START_STALE; boş plana release izinli ama revision artırır (not) (40.179458ms)
+✔ 2e aynı revision ile iki gerçek bağlantıdan eşzamanlı claim: tek kazanan, diğeri START_STALE (7.812625ms)
+✔ 2f aynı revision ile eşzamanlı confirm (iki bağlantı): tek teyit, tek present, tek olay (7.139333ms)
+✔ 2g lease sahibi olmayan kullanıcı, lease canlıyken TEYİT verebilir (davranış notu, hata değil) (10.604625ms)
+✔ 2h geçmiş kayıpsız: her başarılı işlem için tam olarak bir olay, revision boşluksuz (3.439375ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1260.447625
