@@ -99,6 +99,10 @@ try{
    run('python3',['-c',"import csv,sys,json\nr=list(csv.DictReader(open(sys.argv[1],encoding='utf-8-sig',newline=''),delimiter=';'))\ne=json.loads(sys.argv[2])\nassert all(x['Firma']==sys.argv[3] for x in r)\nassert [len(r),sum(int(x['Talep edilen kişi']) for x in r),sum(int(x['Atanan kişi']) for x in r),sum(int(x['Aktif açık']) for x in r)]==e",file,JSON.stringify(expected),name==='bank'?'Sentetik Kent Bankası':'Sentetik Sahil Oteli']);
    pass(name+': real loopback CSV attachment and independent decoded totals',{expected});
   }
+  if(process.env.BPS_PILOT_BROWSER==='1'){
+   const {acceptSectorBrowser}=await import('./qa-local-sector-browser.mjs');
+   await acceptSectorBrowser({origin:httpOrigin,jar,bank,hotel,day,requestId:todayRequest.id,output,pass});
+  }
   const denied=await c.rpc('ops_execute_scoped',{...args,p_tenant_id:id(2),p_command_id:randomUUID(),p_kind:'location',p_payload:{companyId:bank,name:'Denied',city:'Istanbul'}});assert.ok(denied.error);
   sql(`UPDATE profiles SET role='ik' WHERE id='${uid}'`);await assert.rejects(service.loadPilotWeek(c,bank,day));
   pass('foreign tenant and current role loss rejected with existing session');
@@ -106,6 +110,6 @@ try{
   sql(`BEGIN;DELETE FROM ops_start_events WHERE assignment_id IN (SELECT a.id FROM ops_assignments a JOIN ops_daily_requests r ON r.id=a.request_id WHERE r.company_id IN (${owned}));DELETE FROM ops_start_plans WHERE assignment_id IN (SELECT a.id FROM ops_assignments a JOIN ops_daily_requests r ON r.id=a.request_id WHERE r.company_id IN (${owned}));DELETE FROM ops_events WHERE actor_id='${uid}';DELETE FROM ops_commands WHERE actor_id='${uid}';DELETE FROM ops_assignments WHERE request_id IN (SELECT id FROM ops_daily_requests WHERE company_id IN (${owned}));DELETE FROM ops_daily_requests WHERE company_id IN (${owned});DELETE FROM ops_locations WHERE company_id IN (${owned});${workers.map(w=>`DELETE FROM ops_workers WHERE id='${w}';`).join('')}DELETE FROM companies WHERE id IN (${owned});DELETE FROM tenant_memberships WHERE user_id='${uid}';DELETE FROM profiles WHERE id='${uid}';COMMIT;`);
   assert.ifError((await admin.auth.admin.deleteUser(uid)).error);assert.equal(sql(`SELECT count(*) FROM companies WHERE id IN (${owned})`),'0');pass('owned synthetic records and account cleaned');
  }
- writeFileSync(output+'/report.json',JSON.stringify({status:'passed',environment:'dedicated_local',checks,production:false,browserAcceptance:false},null,2)+'\n',{mode:0o600});console.log('Evidence: '+output);
+ writeFileSync(output+'/report.json',JSON.stringify({status:'passed',environment:'dedicated_local',checks,production:false,browserAcceptance:process.env.BPS_PILOT_BROWSER==='1'},null,2)+'\n',{mode:0o600});console.log('Evidence: '+output);
 }catch(e){console.error('Sector pilot failed: '+e.message);process.exitCode=1;}
 finally{release?.();}

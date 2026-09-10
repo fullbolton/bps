@@ -1,5 +1,23 @@
 # Banka şubesi ve dönemsel otel — yerel uçtan uca kabul
 
+## 046 — 2026-09-10: Tarayıcı okuma, gezinme ve indirme kabulü geçti
+
+045 fikstürü temizlenmeden önce `BPS_PILOT_BROWSER=1` ile `scripts/qa-local-sector-browser.mjs` çalışır. Ayrı Chromium profiline yalnız geçici yerel test hesabının oturum çerezleri bellekte aktarılır. Gerçek hesap/profil/Downloads erişimi kullanılmaz. Browser yalnız izole 3010 adresini kabul eder; parent test finally ile kayıtları temizler.
+
+- Her iki firmada günlük → haftalık → günlük geçişinde firma ve gün korundu. Banka özetleri 9 talep / 9 ihtiyaç / 3 atama / 6 açık; otel 2 / 5 / 4 / 1 olarak ekranda doğrulandı.
+- Gerçek CSV butonu iki dosyayı Chromium download olayıyla indirdi. Python CSV okuyucusu tüm iş alanlarını önceki HTTP çıktısıyla birebir karşılaştırdı. Her istekte değişen **Veri alınma zamanı** ISO olarak ayrıca doğrulandı; dosyaların byte düzeyinde aynı olduğu iddia edilmez.
+- Otelde “Gerçekleşmeyi getir” ile 1 geldi, 1 gelmedi bildirimi, 3 bildirilmemiş aktif atama görüldü. Günlüğe dönüp reload sonrası eski gelmeyenin kaldırılmış ataması ve yeni yedeğin geldi bildirimi birlikte korundu.
+- 1440 px haftalık ve 390 px günlük ekran görüntüleri incelendi; personel geçmişi ve butonlar okunuyor. Browser runtime error listesi boş. Bu dar mobil kontrol tüm cihazların kabulü değildir.
+- Önceki 8 API/HTTP/yetki/cleanup grubu dahil **11 grup geçti**. Browser veri yazmadı; yedek atama bu koşumda API ile oluşturuldu. Gerçek müşteri pilotu değildir.
+
+Kanıt: `supabase/manual/local-20260910-046.json`; sentetik dosya ve ekranlar `/private/tmp/bps-sector-pilot-FjjpWD`. Uygulama hashleri canlı 044 manifestiyle eşleşti; yeni uygulama/SQL/deploy yok.
+
+İlk denemelerde testin tam etiket eşleştirmesi, asenkron select seçeneklerini beklememesi ve değişken CSV zamanını byte karşılaştırması düzeltildi; her başarısız koşumda da cleanup geçti. Bunlar uygulama düzeltmesi olarak sayılmadı.
+
+Çalıştırma: `BPS_PILOT_HTTP_ORIGIN=http://127.0.0.1:3010 BPS_PILOT_BROWSER=1 BPS_PLAYWRIGHT_MODULE=<playwright modül yolu> BPS_CHROME_EXECUTABLE=<Chrome yolu> node scripts/qa-local-sector-pilot.mjs`. Öncesinde dedicated sentetik Supabase ve env dosyasız 3010 uygulama kopyası hazır olmalı.
+
+Kalan: aynı iki sektör senaryosunun browser üzerinden **yazma** kabulü, gerçek müşteri pilotu, native yazdırma diyalogu ve canlı CSV byte kontrolü. 045'teki tarayıcı açığı bu dilimde yalnız yukarıdaki kapsamda kapandı.
+
 ## 045 — 2026-09-10: Birleşik Auth/RPC/HTTP kabulü geçti
 
 `scripts/qa-local-sector-pilot.mjs` dedicated sentetik Supabase kimliğini ve Docker portlarını doğrular. Mevcut uygulamadan ayrı, env dosyasız kaynak kopyası 3010 portunda kullanıldı. Test kendi hesabını ve iki şirketini oluşturur; finally bloğu yalnız bu kimliklerin kayıtlarını ve hesabını temizler. Gerçek müşteri pilotu veya tarayıcı kabulü değildir.
