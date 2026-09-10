@@ -3,6 +3,7 @@
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import { taskAssigneeLabel } from "@/lib/task-assignee-label";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import CollapsibleFilters from "@/components/ui/CollapsibleFilters";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
@@ -251,6 +252,9 @@ export default function GorevlerPage() {
   // Holds profiles.id ("" = unassigned). The display name is derived on save.
   const [editAtananKisiId, setEditAtananKisiId] = useState("");
   const [saving, setSaving] = useState(false);
+  const saveBusy = useRef(false);
+  const [discardIntent, setDiscardIntent] = useState<string | null>(null);
+  useEffect(() => { setDiscardIntent(null); setPanelError(null); }, [selectedId, listScope]);
 
 
   // ------------------------------------------------------------------
@@ -372,6 +376,14 @@ export default function GorevlerPage() {
     () => enrichedRows.find((task) => task.id === selectedId) ?? null,
     [enrichedRows, selectedId]
   );
+
+  const hasUnsavedChanges = !!selectedTask && (editDurum !== selectedTask.status ||
+    (role !== "ik" && editAtananKisiId !== (selectedTask.assigned_to_user_id ?? "")));
+  function requestPanelClose() {
+    if (saveBusy.current) return;
+    if (hasUnsavedChanges) setDiscardIntent("close");
+    else setSelectedId(null);
+  }
 
   const selectedTaskId = selectedTask?.id;
   const selectedTaskStatus = selectedTask?.status;
@@ -524,7 +536,8 @@ export default function GorevlerPage() {
 
       <RightSidePanel
         open={!!selectedTask}
-        onClose={() => setSelectedId(null)}
+        onClose={requestPanelClose}
+        closeDisabled={saving}
         title="Görev Hızlı Güncelle"
       >
         {selectedTask && (
@@ -542,7 +555,12 @@ export default function GorevlerPage() {
               <div>
                 <dt className={DL_LABEL}>Bağlı Firma</dt>
                 <dd className={`${TYPE_BODY} mt-0.5`}>
-                  <Link href={`/firmalar/${selectedTask.company_id}`}
+                  <Link href={`/firmalar/${selectedTask.company_id}`} aria-disabled={saving || undefined}
+                    onClick={event => {
+                      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                      if (saveBusy.current) { event.preventDefault(); return; }
+                      if (hasUnsavedChanges) { event.preventDefault(); setDiscardIntent(`/firmalar/${selectedTask.company_id}`); }
+                    }}
                     className={`${TEXT_LINK} inline-block min-h-11 max-w-full break-words py-2 underline underline-offset-4`}>
                     {selectedTask.firma_name === "—" ? "Firma kaydını aç" : selectedTask.firma_name}
                   </Link>
@@ -562,7 +580,7 @@ export default function GorevlerPage() {
               </div>
             </dl>
 
-            <div className={`space-y-4 border-t ${BORDER_SUBTLE} pt-4`}>
+            <fieldset disabled={saving} className={`space-y-4 border-t ${BORDER_SUBTLE} pt-4`}>
               <div>
                 <label htmlFor={`${editFormId}-status`} className={FORM_LABEL}>
                   Durum
@@ -571,7 +589,7 @@ export default function GorevlerPage() {
                   id={`${editFormId}-status`}
                   value={editDurum}
                   onChange={(e) => setEditDurum(e.target.value as GorevDurumu)}
-                  className={INPUT_BASE}
+                  className={`${INPUT_BASE} min-h-11`}
                 >
                   <option value="acik">Açık</option>
                   <option value="devam_ediyor">Devam Ediyor</option>
@@ -591,7 +609,7 @@ export default function GorevlerPage() {
                     value={editAtananKisiId}
                     onChange={(e) => setEditAtananKisiId(e.target.value)}
                     disabled={profilesDurum !== "ready" || kullaniciOptions.length === 0}
-                    className={INPUT_BASE}
+                    className={`${INPUT_BASE} min-h-11`}
                   >
                     <option value="">
                       {profilesDurum === "loading"
@@ -629,7 +647,9 @@ export default function GorevlerPage() {
               <button
                 disabled={saving}
                 onClick={async () => {
-                  if (!selectedTask) return;
+                  if (!selectedTask || saveBusy.current) return;
+                  saveBusy.current = true;
+                  const saveScope = listScope;
                   setSaving(true);
                   setPanelError(null);
                   try {
@@ -642,11 +662,13 @@ export default function GorevlerPage() {
                         ? { assignedToUserId: editAtananKisiId || null }
                         : {}),
                     });
+                    if (taskLiveScope.current !== saveScope) return;
                     feedback.show("Görev güncellendi.");
                     setSelectedId(null);
                     await reload();
                     router.refresh();
                   } catch (err) {
+                    if (taskLiveScope.current !== saveScope) return;
                     // Surface the failure — a silent catch left the panel
                     // looking saved when nothing was written.
                     setPanelError(
@@ -655,18 +677,30 @@ export default function GorevlerPage() {
                         : "Görev güncellenirken bir hata oluştu.",
                     );
                   } finally {
+                    saveBusy.current = false;
                     setSaving(false);
                   }
                 }}
-                className={`w-full px-4 py-2 ${TYPE_BODY} font-medium ${BUTTON_PRIMARY} ${RADIUS_SM} disabled:opacity-40 disabled:cursor-not-allowed`}
+                className={`min-h-11 w-full px-4 py-2 ${TYPE_BODY} font-medium ${BUTTON_PRIMARY} ${RADIUS_SM} disabled:opacity-40 disabled:cursor-not-allowed`}
               >
                 {saving ? "Kaydediliyor..." : "Güncellemeyi Uygula"}
               </button>
-            </div>
+              {saving && <p role="status" className="text-sm text-blue-700">Görev kaydediliyor, lütfen bekleyin.</p>}
+            </fieldset>
           </div>
         )}
         {selectedTask&&<TaskAssignmentHistory key={`${user?.id}:${selectedTask.id}:${selectedTask.revision}`} client={supabase} taskId={selectedTask.id} profiles={allProfiles} />}
       </RightSidePanel>
+      {discardIntent && selectedTask && <ConfirmActionDialog
+        title="Kaydedilmemiş değişiklikler" recordName={selectedTask.title}
+        description="Bu görevdeki kaydedilmemiş düzenlemeler bırakılacak. Kayıtlı görev değişmeyecek."
+        confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardIntent(null)}
+        onConfirm={async () => {
+          const destination = discardIntent;
+          setDiscardIntent(null); setSelectedId(null);
+          if (destination !== "close") router.push(destination);
+        }} />}
+
 
       {transferOpen && role === "yonetici" && user && <TaskTransferModal
         key={`${user.id}:${user.app_metadata?.active_tenant}:${role}`}
