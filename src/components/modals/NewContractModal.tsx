@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useId, useRef, useState } from "react";
+import PickerFeedback, {type PickerStatus} from "@/components/ui/PickerFeedback";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { ModalShell } from "@/components/ui";
 import type { ContractRow } from "@/types/database.types";
@@ -41,6 +42,8 @@ interface NewContractModalProps {
   open: boolean;
   onClose: () => void;
   firmalar: FirmaOption[];
+  firmalarDurum?: PickerStatus;
+  onRetryFirmalar?: () => void;
   /** If provided, the modal is in edit mode. The firma selector locks. */
   editData?: ContractRow | null;
   /** Optional firma to pre-select when creating from a firma context. */
@@ -57,6 +60,8 @@ export default function NewContractModal({
   open,
   onClose,
   firmalar,
+  firmalarDurum = "ready",
+  onRetryFirmalar,
   editData,
   defaultFirmaId,
   onSubmit,
@@ -112,7 +117,8 @@ export default function NewContractModal({
   }, [editData, defaultFirmaId, open]);
 
   const dateError = baslangic && bitis && bitis < baslangic ? "Bitiş tarihi başlangıç tarihinden önce olamaz." : null;
-  const isValid = sozlesmeAdi.trim() && firmaId && !dateError;
+  const companyValid = isEdit ? firmaId === editData.company_id : firmalarDurum === "ready" && firmalar.some(f => f.id === firmaId);
+  const isValid = sozlesmeAdi.trim() && firmaId && companyValid && !dateError;
 
   async function handleSubmit() {
     if (!isValid || submitting.current) return;
@@ -214,16 +220,20 @@ export default function NewContractModal({
             <select required id={`${formId}-firmaId`}
               value={firmaId}
               onChange={(e) => setFirmaId(e.target.value)}
-              disabled={isEdit || saving}
+              disabled={isEdit || saving || firmalarDurum !== "ready"}
+              aria-describedby={!isEdit && (firmalarDurum !== "ready" || firmalar.length === 0) ? `${formId}-companies` : undefined}
               className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
             >
-              <option value="">Firma seçin</option>
+              <option value="">{!isEdit && firmalarDurum === "loading" ? "Firmalar yükleniyor…" : !isEdit && firmalarDurum === "error" ? "Firma listesi yüklenemedi" : "Firma seçin"}</option>
+              {firmaId && !firmalar.some(f => f.id === firmaId) && <option value={firmaId} disabled>{isEdit ? "Sözleşmenin kayıtlı firması" : firmalarDurum === "ready" ? "Seçili firma listede yok" : "Seçili firma doğrulanıyor"}</option>}
               {firmalar.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.ad}
                 </option>
               ))}
             </select>
+            {!isEdit && <PickerFeedback id={`${formId}-companies`} status={firmalarDurum} count={firmalar.length} name="Firma listesi"
+              emptyText="Listede firma yok. Önce Firmalar bölümünden bir firma ekleyin." onRetry={onRetryFirmalar} />}
             {isEdit && (
               <p className="text-xs text-slate-400 mt-1">
                 Sözleşme firması düzenleme modunda değiştirilemez.

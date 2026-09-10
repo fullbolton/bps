@@ -3,6 +3,7 @@
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import PickerFeedback from "@/components/ui/PickerFeedback";
 import AsyncSection from "@/components/ui/AsyncSection";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
@@ -168,10 +169,13 @@ export default function SozlesmelerPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   // Real companies for the firma filter + New Contract modal.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "ready" | "error"} | null>(null);
+  const [companyRetry, setCompanyRetry] = useState(0);
 
   const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
+  const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("sozlesmeler", listScope, LIST_FILTER_DEFAULTS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -206,19 +210,18 @@ export default function SozlesmelerPage() {
     void reload();
   }, [reload]);
 
-  // Companies for the firma filter + New Contract modal. RLS-scoped.
+  // The directory belongs to the resolved account/tenant/role; failures are not empty results.
   useEffect(() => {
+    if (!listScope) return;
     let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
+    setCompanySnapshot(null);
+    void selectAllCompanies(supabase).then(rows => {
+      if (active) setCompanySnapshot({scope: listScope, rows, status: "ready"});
+    }).catch(() => {
+      if (active) setCompanySnapshot({scope: listScope, rows: [], status: "error"});
+    });
     return () => { active = false; };
-  }, [supabase]);
+  }, [supabase, listScope, companyRetry]);
 
   const firmaOptions = useMemo(
     () =>
@@ -324,6 +327,8 @@ export default function SozlesmelerPage() {
       <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
 
       <div className="space-y-4">
+        <PickerFeedback id="contract-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
+          emptyText="Listede firma yok. Önce Firmalar bölümünden bir firma ekleyin." onRetry={() => setCompanyRetry(value => value + 1)} />
         {loadError && (
           <AsyncSection isLoading={false} hasError onRetry={() => { setLoading(true); void reload(); }}>
             {null}
@@ -499,6 +504,8 @@ export default function SozlesmelerPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         firmalar={firmaOptions}
+        firmalarDurum={companiesDurum}
+        onRetryFirmalar={() => setCompanyRetry(value => value + 1)}
         onSubmit={async (data) => {
           // Persist via the server action — it resolves tenant_id
           // server-side (`current_user_active_tenant()`), enforces the

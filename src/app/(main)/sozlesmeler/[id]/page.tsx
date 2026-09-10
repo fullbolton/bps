@@ -21,8 +21,6 @@ import { useAuth } from "@/context/AuthContext";
 // removed in this slice — see the cutover report's "what was
 // implemented" + "unresolved items" sections.
 import { createClient } from "@/lib/supabase/client";
-import { selectAllCompanies } from "@/lib/supabase/companies";
-import type { CompanyRow } from "@/types/database.types";
 import {
   getContractById,
   updateContractContent,
@@ -111,31 +109,8 @@ export default function SozlesmeDetayPage({
   const [pdfLoading, setPdfLoading] = useState(true);
   const [pdfReadError, setPdfReadError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  // Real companies for the edit-modal firma dropdown (partner-scoped
-  // via RLS). Empty on error → honest empty picker.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
-    return () => { active = false; };
-  }, [supabase]);
-
-  const firmaOptions = useMemo(
-    () =>
-      allCompanies.map((c) => ({
-        id: c.legacy_mock_id ?? c.id,
-        ad: c.name,
-      })),
-    [allCompanies],
-  );
+  // Editing cannot move a contract. Use its already loaded company UUID/name.
+  const firmaOptions = useMemo(() => contract ? [{id: contract.company_id, ad: firmaName || "Sözleşmenin kayıtlı firması"}] : [], [contract, firmaName]);
 
   const reload = useCallback(async () => {
     const pdfGeneration = ++pdfReadGeneration.current;
