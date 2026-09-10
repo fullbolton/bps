@@ -142,7 +142,6 @@ const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
 
 const TABS: TabItem[] = [
   { key: "genel", label: "Genel Bakış" },
-  { key: "zaman-cizgisi", label: "Zaman Çizgisi" },
   { key: "yetkililer", label: "Yetkililer" },
   { key: "sozlesmeler", label: "Sözleşmeler" },
   { key: "talepler", label: "Talepler" },
@@ -599,7 +598,7 @@ export default function FirmaDetayPage({
       />
 
       {companyShell && (role === "yonetici" || role === "operasyon") && (
-        <button className="mb-4 text-sm underline" onClick={() => router.push(`/talepler/gunluk?firma=${companyShell.id}`)}>
+        <button className="mb-5 inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" onClick={() => router.push(`/talepler/gunluk?firma=${companyShell.id}`)}>
           Günlük personel planını aç
         </button>
       )}
@@ -630,7 +629,7 @@ export default function FirmaDetayPage({
         onTabChange={setActiveTab}
       />
 
-      <div className="mt-4">
+      <div className="mt-6 min-w-0">
         {/* ────────────────────────────────────────────────
             Genel Bakış — 8 documented overview cards
             ──────────────────────────────────────────────── */}
@@ -1066,38 +1065,7 @@ export default function FirmaDetayPage({
             </div>
           )}
 
-          {/* Son Bahsetmeler — hidden for görüntüleyici + muhasebe */}
-          {!["goruntuleyici", "muhasebe"].includes(role) && (
-            <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
-                <AtSign size={12} />
-                Son Bahsetmeler
-              </h3>
-              <EmptyState title="Bahsetme akışı henüz aktif değil." size="card" />
-            </div>
-          )}
-
-          {/* Bekleyen Yönlendirmeler — cross-unit routing signals */}
-          {role !== "goruntuleyici" && (
-            <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
-                <ArrowRightLeft size={12} />
-                Bekleyen Yönlendirmeler
-              </h3>
-              <EmptyState title="Yönlendirme akışı henüz aktif değil." size="card" />
-            </div>
-          )}
           </>
-        )}
-
-        {/* Zaman Çizgisi tab */}
-        {activeTab === "zaman-cizgisi" && (
-          <div className={CARD_LG}>
-            <EmptyState
-              title="Firma zaman çizgisi henüz aktif değil."
-              size="tab"
-            />
-          </div>
         )}
 
         {/* Yetkililer tab — firm contacts, max 5 */}

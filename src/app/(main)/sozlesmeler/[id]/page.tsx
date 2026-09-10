@@ -299,7 +299,7 @@ export default function SozlesmeDetayPage({
         sozlesmeAdi={contract.name}
         durum={contract.status}
         firmaAdi={firmaName}
-        firmaHref={firmaLegacyId ? `/firmalar/${firmaLegacyId}` : "#"}
+        firmaHref={`/firmalar/${firmaLegacyId || contract.company_id}`}
         tur={contract.contract_type ?? "—"}
         baslangic={contract.start_date ? formatDateTR(contract.start_date.slice(0, 10)) : ""}
         bitis={contract.end_date ? formatDateTR(contract.end_date.slice(0, 10)) : ""}
@@ -310,15 +310,16 @@ export default function SozlesmeDetayPage({
 
       {/* Contract-owned write actions — yonetici / partner only */}
       {canEdit && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 rounded-xl border border-slate-200 bg-white p-3">
           <div className="flex items-center gap-2">
             <label className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
               Durum:
             </label>
             <select
+              aria-label="Sözleşme durumu"
               value={contract.status}
               onChange={(e) => { void handleStatusChange(e.target.value as SozlesmeDurumu); }}
-              className={`px-2 py-1 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
+              className={`min-h-11 px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
             >
               {CONTRACT_STATUSES.map((s) => (
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -342,10 +343,13 @@ export default function SozlesmeDetayPage({
         </p>
       )}
 
-      <div className="space-y-6">
+      <nav aria-label="Sözleşme bölümleri" className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        {[["belgeler", "PDF ve ekler"], ["maddeler", "Kritik maddeler"], ["yenileme", "Yenileme"], ["isler", "Bağlı işler"]].map(([key,label]) => <a key={key} href={`#${key}`} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-4 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800">{label}</a>)}
+      </nav>
+      <div className="grid grid-cols-1 xl:grid-cols-2 items-start gap-5 [&>*]:min-w-0">
         {/* One current PDF with version history. Upload/resume/cancel is manager-only;
             a uploaded file is not an attestation that the contract was signed. */}
-        <section className={SECTION}>
+        <section id="belgeler" className={`${SECTION} xl:col-span-2 scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Sözleşme PDF&apos;i</h2>
           {pdfLoading ? <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>PDF bilgisi yükleniyor…</p> : pdfReadError ? <p role="alert" className="text-sm text-red-700">{pdfReadError}</p> : contractDoc ? (
             <div className="space-y-2">
@@ -390,10 +394,10 @@ export default function SozlesmeDetayPage({
           {user && <PdfVersionHistory key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${id}:${contractDoc?.revision}`} actorId={user.id} contractId={id} />}
         </section>
 
-        {user && typeof user.app_metadata?.active_tenant === "string" && <ContractAppendices key={`${user.id}:${user.app_metadata.active_tenant}:${id}:${role}`} actorId={user.id} tenantId={user.app_metadata.active_tenant} contractId={id} canUpload={role === 'yonetici'} />}
+        <div className="xl:col-span-2">{user && typeof user.app_metadata?.active_tenant === "string" && <ContractAppendices key={`${user.id}:${user.app_metadata.active_tenant}:${id}:${role}`} actorId={user.id} tenantId={user.app_metadata.active_tenant} contractId={id} canUpload={role === 'yonetici'} />}</div>
 
         {/* Kritik Maddeler Özeti — real DB column */}
-        <section className={SECTION}>
+        <section id="maddeler" className={`${SECTION} scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Kritik Maddeler Özeti</h2>
           {contract.critical_clauses.length === 0 ? (
             <EmptyState title="Kritik madde tanımlanmamış" size="card" />
@@ -413,7 +417,7 @@ export default function SozlesmeDetayPage({
         </section>
 
         {/* Yenileme Takibi — bounded renewal-tracking truth (scope item 5) */}
-        <section className="space-y-2">
+        <section id="yenileme" className="space-y-2 scroll-mt-24">
           {user && <RenewalTaskPanel key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${contract.id}:${contract.updated_at}`} actorId={user.id} contractId={contract.id} onCreated={() => { void reload(); }} />}
           {canEdit && (
             <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
@@ -465,7 +469,7 @@ export default function SozlesmeDetayPage({
         )}
 
         {/* Bağlı Görevler — Faz 3 real truth via tasks service */}
-        <section className={SECTION}>
+        <section id="isler" className={`${SECTION} scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Bağlı Görevler</h2>
           {linkedTasks.length === 0 ? (
             <EmptyState title="Bağlı görev yok" size="card" />
@@ -506,7 +510,7 @@ export default function SozlesmeDetayPage({
         {/* Kalıcı silme — yonetici-only. Hard delete (Faz 1), güçlü
             onay zorunlu. contracts DELETE RLS de yonetici-only. */}
         {role === "yonetici" && (
-          <section className={`${SURFACE_PRIMARY} border border-red-200 ${RADIUS_DEFAULT} p-5`}>
+          <section className={`${SURFACE_PRIMARY} border border-red-200 ${RADIUS_DEFAULT} p-5 xl:col-span-2`}>
             <h2 className={`${TYPE_CARD_TITLE} text-red-700 mb-1`}>Sözleşmeyi Sil</h2>
             <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mb-3`}>
               Bu işlem geri alınamaz. Sözleşme ve onunla ilişkili görünürlük kalıcı olarak kaldırılır.

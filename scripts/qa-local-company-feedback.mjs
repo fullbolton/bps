@@ -56,6 +56,32 @@ try {
   await page.getByText(`${name} mevcut kayıtlardan seçildi.`,{exact:true}).waitFor();assert.equal(count(name),'1');assert.equal(await picker.locator('option:checked').textContent(),name);
   await page.screenshot({path:output+'/'+suffix+'.png'});console.log('PASS '+suffix+' new/existing feedback, selected company and no duplicate row');
  }
+ if(process.env.BPS_DETAIL_DESIGN_CHECK==='1'){
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID();
+  assert.match(company,/^[a-f0-9-]{36}$/);
+  assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');
+  sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,start_date,end_date,responsible,scope,created_by) VALUES('${contract}','${id(1)}','${company}','UX uzun sözleşme adı bölge hizmetleri ve operasyon takibi','aktif','2026-09-01','2027-09-01','Sentetik ekip notu','Sentetik kapsam','${user}');`);
+  for(const width of [1280,390]){
+   await page.setViewportSize({width,height:900});await page.goto(origin+'/firmalar/'+company);
+   await page.getByRole('region',{name:'Firma özeti'}).waitFor();
+   const tabs=page.getByRole('navigation',{name:'Sayfa bölümleri'});
+   await tabs.getByRole('button',{name:'Sözleşmeler',exact:true}).click();
+   assert.equal(await tabs.getByRole('button',{name:'Sözleşmeler',exact:true}).getAttribute('aria-pressed'),'true');
+   await page.getByText('UX uzun sözleşme adı bölge hizmetleri ve operasyon takibi',{exact:true}).first().waitFor();
+   await tabs.getByRole('button',{name:'Notlar',exact:true}).click();await tabs.getByRole('button',{name:'Genel Bakış',exact:true}).click();
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Company detail overflow '+width);
+   await page.screenshot({path:output+'/company-detail-'+width+'.png',fullPage:true});
+   await page.goto(origin+'/sozlesmeler/'+contract);const summary=page.getByRole('region',{name:'Sözleşme özeti'});await summary.waitFor();
+   await page.getByRole('button',{name:'Sözleşmeyi Düzenle',exact:true}).waitFor();
+   assert.equal(await summary.getByRole('link').getAttribute('href'),'/firmalar/'+company);
+   await page.getByRole('navigation',{name:'Sözleşme bölümleri'}).getByRole('link',{name:'Yenileme',exact:true}).click();await page.waitForURL(u=>u.hash==='#yenileme');
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Contract detail overflow '+width);
+   await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:output+'/contract-detail-'+width+'.png',fullPage:true});
+   await summary.getByRole('link').click();await page.waitForURL('**/firmalar/'+company);await page.getByRole('region',{name:'Firma özeti'}).waitFor();
+  }
+  await page.setViewportSize({width:1280,height:900});
+  console.log('PASS company/contract detail desktop/mobile, tabs, renewal anchor and UUID company return');
+ }
  if(process.env.BPS_WORKSPACE_DESIGN_CHECK==='1'){
   for(const [path,title] of [['/dashboard','Genel Bakış'],['/firmalar','Firmalar'],['/gorevler','Görevler'],['/randevular','Randevular'],['/sozlesmeler','Sözleşmeler'],['/finansal-ozet','Finansal Özet']]){
    await page.goto(origin+path);await page.getByRole('heading',{name:title,exact:true,level:1}).waitFor();
