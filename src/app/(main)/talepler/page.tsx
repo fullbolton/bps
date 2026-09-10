@@ -13,7 +13,7 @@
  * persisted — the DB has no column for it by design.
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Plus } from "lucide-react";
@@ -28,6 +28,8 @@ import {
   RightSidePanel,
   EmptyState,
 } from "@/components/ui";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import PickerFeedback from "@/components/ui/PickerFeedback";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { NewRequestModal, AssignOwnerModal } from "@/components/modals";
@@ -205,24 +207,30 @@ const COLUMNS: ColumnDef<DemandListRow>[] = [
 
 export default function TaleplerPage() {
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const router = useRouter();
 
   // ---------------------------------------------------------------------------
   // Supabase data state
   // ---------------------------------------------------------------------------
   const supabase = useMemo(() => createClient(), []);
-  const [demands, setDemands] = useState<StaffingDemandRow[]>([]);
-  const [companyNameById, setCompanyNameById] = useState<
-    Record<string, string>
-  >({});
-  const [companyLegacyById, setCompanyLegacyById] = useState<
-    Record<string, string>
-  >({});
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // Real companies for the firma filter + New Request modal.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const context = useMemo(() => ({scope: listScope}), [listScope]);
+  const liveContext = useRef<typeof context | null>(context);
+  liveContext.current = context;
+  const generation = useRef(0);
+  const feedback = useActionNotice(listScope ?? "pending");
+  const [snapshot, setSnapshot] = useState<{scope: string; rows: StaffingDemandRow[]; names: Record<string,string>; legacy: Record<string,string>} | null>(null);
+  const [readState, setReadState] = useState<{scope: string; loading: boolean; error: string | null} | null>(null);
+  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "ready" | "error"} | null>(null);
+  const [companyRetry, setCompanyRetry] = useState(0);
+  const demands = useMemo(() => snapshot?.scope === listScope ? snapshot?.rows ?? [] : [], [snapshot, listScope]);
+  const companyNameById = useMemo(() => snapshot?.scope === listScope ? snapshot?.names ?? {} : {}, [snapshot, listScope]);
+  const companyLegacyById = useMemo(() => snapshot?.scope === listScope ? snapshot?.legacy ?? {} : {}, [snapshot, listScope]);
+  const loading = readState?.scope !== listScope || readState?.loading !== false;
+  const loadError = readState?.scope === listScope ? readState?.error : null;
+  const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
+  const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
 
   // ---------------------------------------------------------------------------
   // UI state
@@ -247,54 +255,45 @@ export default function TaleplerPage() {
   // Fetch / reload
   // ---------------------------------------------------------------------------
   const reload = useCallback(async () => {
-    setLoadError(null);
+    if (!listScope || liveContext.current !== context) return;
+    const request = ++generation.current;
+    const isCurrent = () => request === generation.current && liveContext.current === context;
+    setReadState({scope: listScope, loading: true, error: null});
     try {
       const rows = await listAllDemands(supabase);
-      setDemands(rows);
-      // Resolve firma display names + legacy ids for the rows we just
-      // fetched. This is a single batched round trip.
-      const uniqueCompanyIds = Array.from(
-        new Set(rows.map((r) => r.company_id)),
-      );
-      const display = await getCompanyDisplayMapByIds(
-        supabase,
-        uniqueCompanyIds,
-      );
-      setCompanyNameById(display.nameById);
-      setCompanyLegacyById(display.legacyById);
+      if (!isCurrent()) return;
+      const display = await getCompanyDisplayMapByIds(supabase, Array.from(new Set(rows.map(row => row.company_id))));
+      if (!isCurrent()) return;
+      setSnapshot({scope: listScope, rows, names: display.nameById, legacy: display.legacyById});
+      setReadState({scope: listScope, loading: false, error: null});
     } catch (err) {
-      setDemands([]);
-      setCompanyNameById({});
-      setCompanyLegacyById({});
-      setLoadError(
-        err instanceof Error
-          ? err.message
-          : "Talepler yuklenirken bir hata olustu.",
-      );
-    } finally {
-      setLoading(false);
+      if (!isCurrent()) return;
+      setSnapshot(null);
+      setReadState({scope: listScope, loading: false, error: err instanceof Error ? err.message : "Talepler yüklenirken bir hata oluştu."});
     }
-  }, [supabase]);
+  }, [supabase, listScope, context]);
 
   useEffect(() => {
-    setLoading(true);
+    liveContext.current = context;
+    setSnapshot(null); setNewOpen(false); setSelectedId(null); setOwnerTarget({open: false});
+    feedback.clear();
     void reload();
-  }, [reload]);
+    return () => { generation.current++; liveContext.current = null; };
+    // Notice functions are recreated on render; clear only when context changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reload, context]);
 
-  // Companies for the firma filter + New Request modal. Errors fall to
-  // an empty list (honest empty state).
   useEffect(() => {
+    if (!listScope) return;
     let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
+    setCompanySnapshot(null);
+    void selectAllCompanies(supabase).then(rows => {
+      if (active) setCompanySnapshot({scope: listScope, rows, status: "ready"});
+    }).catch(() => {
+      if (active) setCompanySnapshot({scope: listScope, rows: [], status: "error"});
+    });
     return () => { active = false; };
-  }, [supabase]);
+  }, [supabase, listScope, companyRetry]);
 
   // ---------------------------------------------------------------------------
   // Derived / enriched data
@@ -414,17 +413,21 @@ export default function TaleplerPage() {
         ]}
       />
 
+      <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
       <div className="space-y-4">
+        <PickerFeedback id="request-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
+          emptyText="Listede firma yok. Talep formundan yeni firma ekleyebilirsiniz." onRetry={() => setCompanyRetry(value => value + 1)} />
         {loadError && (
           <p
             className={`${TYPE_CAPTION} text-red-600`}
             role="alert"
             aria-live="polite"
           >
-            {loadError}
+            Talep listesi yüklenemedi. Listeyi tekrar yükleyebilirsiniz.
           </p>
         )}
 
+        {!loading && !loadError && <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPIStatCard label="Yeni" value={statusCounts["yeni"] ?? 0} />
           <KPIStatCard
@@ -460,6 +463,7 @@ export default function TaleplerPage() {
             ))}
         </div>
 
+        </>}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
             <SearchInput
@@ -471,9 +475,11 @@ export default function TaleplerPage() {
         </div>
 
         {loading ? (
-          <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>
-            Yukleniyor...
+          <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>
+            Talepler yükleniyor…
           </p>
+        ) : loadError ? (
+          <button type="button" onClick={() => void reload()} className="min-h-11 rounded-lg border border-slate-200 px-4 text-sm font-medium text-blue-700">Listeyi tekrar yükle</button>
         ) : (
           <DataTable<DemandListRow>
             columns={COLUMNS}
@@ -588,10 +594,14 @@ export default function TaleplerPage() {
       </RightSidePanel>
 
       <NewRequestModal
+        key={listScope}
         open={newOpen}
-        onClose={() => setNewOpen(false)}
+        onClose={() => { if (liveContext.current === context) setNewOpen(false); }}
         firmalar={firmaOptions}
+        firmalarDurum={companiesDurum}
+        onRetryFirmalar={() => setCompanyRetry(value => value + 1)}
         onSubmit={async (p) => {
+          if (liveContext.current !== context) return;
           const payload: DemandCreateInput = {
             legacyCompanyId: p.firmaId,
             position: p.pozisyon,
@@ -602,8 +612,11 @@ export default function TaleplerPage() {
             responsible: p.sorumlu || undefined,
           };
           const result = await createDemandAction(payload);
+          if (liveContext.current !== context) return;
           if (!result.ok) throw new Error(result.error);
+          feedback.show(`${p.pozisyon} için ${p.adet} kişilik personel talebi kaydedildi.`);
           await reload();
+          if (liveContext.current !== context) return;
           router.refresh();
         }}
       />

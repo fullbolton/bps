@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState, useRef, useId } from "react";
+import PickerFeedback, {type PickerStatus} from "@/components/ui/PickerFeedback";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import NewCompanyModal from "./NewCompanyModal";
 import type { CreatedCompany } from "./NewCompanyModal";
@@ -45,6 +46,8 @@ const NEW_COMPANY_OPTION = "__new_company__";
 interface NewRequestModalProps {
   open: boolean;
   onClose: () => void;
+  firmalarDurum?: PickerStatus;
+  onRetryFirmalar?: () => void;
   firmalar: { id: string; ad: string }[];
   /**
    * Persistence callback. Awaited by the modal so the parent can throw
@@ -58,6 +61,8 @@ export default function NewRequestModal({
   open,
   onClose,
   firmalar,
+  firmalarDurum = "ready",
+  onRetryFirmalar,
   onSubmit,
 }: NewRequestModalProps) {
   const submitting = useRef(false);
@@ -95,7 +100,7 @@ export default function NewRequestModal({
 
   const requiresOwner = oncelik === "yuksek" || oncelik === "kritik";
   const canSubmit = !!(
-    tumFirmalar.some((firma) => firma.id === firmaId) &&
+    firmalarDurum === "ready" && tumFirmalar.some((firma) => firma.id === firmaId) &&
     pozisyon.trim() &&
     Number.isSafeInteger(Number(adet)) && Number(adet) >= 1 &&
     (!requiresOwner || sorumlu.trim())
@@ -219,10 +224,12 @@ export default function NewRequestModal({
               }
               setFirmaId(e.target.value);
             }}
-            disabled={saving}
+            disabled={saving || firmalarDurum !== "ready"}
+            aria-describedby={firmalarDurum !== "ready" || tumFirmalar.length === 0 ? `${formId}-companies` : undefined}
             className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
           >
-            <option value="">Firma seçin</option>
+            <option value="">{firmalarDurum === "loading" ? "Firmalar yükleniyor…" : firmalarDurum === "error" ? "Firma listesi yüklenemedi" : "Firma seçin"}</option>
+            {firmaId && !tumFirmalar.some(f => f.id === firmaId) && <option value={firmaId} disabled>{firmalarDurum === "ready" ? "Seçili firma listede yok" : "Seçili firma doğrulanıyor"}</option>}
             {tumFirmalar.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.ad}
@@ -231,6 +238,8 @@ export default function NewRequestModal({
             <option disabled>──────────────</option>
             <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
           </select>
+          <PickerFeedback id={`${formId}-companies`} status={firmalarDurum} count={tumFirmalar.length} name="Firma listesi"
+            emptyText="Listede firma yok. Yeni firma ekleyebilirsiniz." onRetry={onRetryFirmalar} />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
