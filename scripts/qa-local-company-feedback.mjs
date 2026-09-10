@@ -388,6 +388,38 @@ try {
   await page.waitForTimeout(3300);assert.equal(await pending.inputValue(),'');assert.equal(await page.getByTestId('callback-count').textContent(),'1');assert.equal(await page.getByTestId('submit-count').textContent(),'0');
   console.log('PASS four list empty-result reset, mobile/keyboard/focus, persisted clearing and pending debounce cancellation without form submit');
  }
+ if(process.env.BPS_ASSIGNEE_LABEL_CHECK==='1') {
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
+  assert.equal(sql("SELECT obj_description('public.tasks'::regclass)"),'BPS synthetic task-prefill fixture v1');
+  const currentName=prefix+'-current-name',base=prefix+'-assignment',assigned=base+'-uuid',unassigned=base+'-none',legacy=base+'-legacy';
+  sql(`UPDATE profiles SET display_name='${currentName}' WHERE id='${user}';
+   INSERT INTO tasks(tenant_id,company_id,title,assigned_to_user_id,assigned_to,created_by) VALUES
+   ('${id(1)}','${company}','${assigned}','${user}',NULL,'${user}'),
+   ('${id(1)}','${company}','${unassigned}',NULL,NULL,'${user}'),
+   ('${id(1)}','${company}','${legacy}',NULL,'Eski kişi','${user}');`);
+  await page.setViewportSize({width:1280,height:900});await page.goto(origin+'/gorevler');const search=page.getByRole('textbox',{name:'Görev, firma, kişi ara...',exact:true});await search.fill(base);
+  const row=title=>page.getByRole('row').filter({has:page.getByRole('cell',{name:title,exact:true})});
+  await row(assigned).getByRole('cell',{name:currentName,exact:true}).waitFor();await row(unassigned).getByRole('cell',{name:'Atanmadı',exact:true}).waitFor();await row(legacy).getByRole('cell',{name:'Eski kişi (eski kayıt)',exact:true}).waitFor();
+  await search.fill(currentName);await page.waitForFunction(query=>Object.keys(sessionStorage).filter(k=>k.startsWith('bps:list-view:v1:')).some(k=>JSON.parse(k.slice('bps:list-view:v1:'.length))[0]==='gorevler'&&JSON.parse(sessionStorage.getItem(k)).search===query),currentName);await row(assigned).waitFor();assert.equal(await page.getByRole('table').locator('tbody tr').count(),1);
+  await search.fill(base);await row(legacy).waitFor();
+  let directoryReached;const directoryIncoming=new Promise(resolve=>directoryReached=resolve),directoryGate=new Promise(resolve=>releaseRequest=resolve);
+  const delayed=async route=>{directoryReached();await directoryGate;await route.continue();};await page.route('**/rest/v1/rpc/active_tenant_profiles',delayed);await page.reload();
+  let directoryTimer;try{await Promise.race([directoryIncoming,new Promise((_,reject)=>{directoryTimer=setTimeout(()=>reject(Error('Directory request missing')),20000);})]);}finally{clearTimeout(directoryTimer);}
+  await row(assigned).getByRole('cell',{name:'Atanan kişi yükleniyor…',exact:true}).waitFor();await row(assigned).getByRole('cell',{name:assigned,exact:true}).click();
+  const editing=page.getByRole('dialog',{name:'Görev Hızlı Güncelle',exact:true});await editing.getByLabel('Durum',{exact:true}).selectOption('devam_ediyor');releaseRequest();
+  await editing.getByLabel('Atanan Kişi',{exact:true}).locator('option:checked').filter({hasText:currentName}).waitFor({state:'attached'});assert.equal(await editing.getByLabel('Durum',{exact:true}).inputValue(),'devam_ediyor');
+  await page.keyboard.press('Escape');await page.unroute('**/rest/v1/rpc/active_tenant_profiles',delayed);assert.equal(sql(`SELECT status FROM tasks WHERE title='${assigned}' AND created_by='${user}'`),'acik');
+  const failed=route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic profile directory unavailable'})});
+  await page.route('**/rest/v1/rpc/active_tenant_profiles',failed);await page.reload();await row(assigned).getByRole('cell',{name:'Atanan kişi bilgisi alınamadı',exact:true}).waitFor();assert.equal(await row(assigned).getByText('Atanmadı',{exact:true}).count(),0);
+  await page.getByRole('button',{name:'Kişi listesini tekrar yükle',exact:true}).waitFor();await page.screenshot({path:output+'/assignee-directory-error.png'});await page.unroute('**/rest/v1/rpc/active_tenant_profiles',failed);
+  await page.getByRole('button',{name:'Kişi listesini tekrar yükle',exact:true}).click();await row(assigned).getByRole('cell',{name:currentName,exact:true}).waitFor();
+  const missing=route=>route.fulfill({status:200,contentType:'application/json',body:'[]'});await page.route('**/rest/v1/rpc/active_tenant_profiles',missing);await page.reload();await row(assigned).getByRole('cell',{name:'Atanan kullanıcı listede yok',exact:true}).waitFor();
+  await row(assigned).getByRole('cell',{name:assigned,exact:true}).click();const panel=page.getByRole('dialog',{name:'Görev Hızlı Güncelle',exact:true});await panel.waitFor();const picker=panel.getByLabel('Atanan Kişi',{exact:true});assert.equal(await picker.inputValue(),user);assert.ok(await picker.isDisabled());assert.equal(await picker.locator('option:checked').textContent(),'Atanan kullanıcı listede yok');await panel.getByLabel('Durum',{exact:true}).waitFor();
+  await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/assignee-missing-panel-390.png'});await page.keyboard.press('Escape');await page.unroute('**/rest/v1/rpc/active_tenant_profiles',missing);
+  assert.equal(sql(`SELECT assigned_to_user_id FROM tasks WHERE title='${assigned}' AND created_by='${user}'`),user);
+  await page.reload();await row(assigned).getByRole('cell',{name:currentName,exact:true}).waitFor();await page.setViewportSize({width:1280,height:900});
+  console.log('PASS UUID name without legacy text, true unassigned/legacy rows, current-name search, delayed directory preserves unsaved edit, directory failure/retry, missing user and preserved disabled picker identity without writes');
+ }
  if(process.env.BPS_LIST_MEMORY_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID(),contractName=prefix+'-memory';assert.match(company,/^[a-f0-9-]{36}$/);
   assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${id(1)}','${company}','${contractName}','taslak','${user}')`);

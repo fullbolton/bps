@@ -2,11 +2,12 @@
 
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
+import { taskAssigneeLabel } from "@/lib/task-assignee-label";
 import CollapsibleFilters from "@/components/ui/CollapsibleFilters";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 
-import { Suspense, useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { Suspense, useState, useRef, useId, useMemo, useCallback, useEffect } from "react";
 import TaskPrefillBanner from "./TaskPrefillBanner";
 import TaskAssignmentHistory from "./TaskAssignmentHistory";
 import type { TaskPrefill } from "@/lib/operations/task-prefill";
@@ -86,6 +87,7 @@ const STATUS_LABELS: Record<string, string> = {
 interface TaskListRow extends TaskRow {
   firma_name: string;
   firma_legacy_id: string | null;
+  assignee_label: string;
 }
 
 const FILTER_CONFIG: FilterConfig[] = [
@@ -173,9 +175,8 @@ const COLUMNS: ColumnDef<TaskListRow>[] = [
     render: (val) => <TaskSourceBadge source={val as TaskSourceType} />,
   },
   {
-    key: "assigned_to",
+    key: "assignee_label",
     header: "Atanan Kişi",
-    render: (val) => <span>{(val as string | null) ?? "Atanmadı"}</span>,
   },
   {
     key: "due_date",
@@ -224,12 +225,16 @@ export default function GorevlerPage() {
   // RLS-scoped; option id prefers legacy_mock_id so the modal's write
   // path (createTask → legacyCompanyId) keeps working.
   const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
-  const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
-  const [profilesDurum, setProfilesDurum] = useState<"loading" | "error" | "ready">("loading");
+  const [profileSnapshot, setProfileSnapshot] = useState<{ scope: string; rows: ProfileRow[]; status: "loading" | "error" | "ready" } | null>(null);
+  const [profileReloadKey, setProfileReloadKey] = useState(0);
 
+  const editFormId = useId();
   const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("gorevler", listScope, LIST_FILTER_DEFAULTS);
+  const allProfiles = useMemo(() => profileSnapshot?.scope === listScope ? profileSnapshot?.rows ?? [] : [], [profileSnapshot, listScope]);
+  const profilesDurum = profileSnapshot?.scope === listScope ? profileSnapshot?.status ?? "loading" : "loading";
+  const profileNames = useMemo(() => new Map(allProfiles.map(profile => [profile.id, profile.display_name])), [allProfiles]);
   const [transferOpen, setTransferOpen] = useState(false);
   useEffect(() => { setTransferOpen(false); }, [user?.id, user?.app_metadata?.active_tenant, role]);
   const [newOpen, setNewOpen] = useState(false);
@@ -289,21 +294,18 @@ export default function GorevlerPage() {
     return () => { active = false; };
   }, [supabase]);
 
-  // Assignable users for the assignee picker. Same honest-empty contract as
-  // companies above: on failure the picker renders disabled rather than
-  // pretending nobody exists.
+  // Scope the directory snapshot so a previous account/tenant cannot name current rows.
   useEffect(() => {
+    if (!listScope) return;
     let active = true;
-    (async () => {
-      try {
-        const rows = await listActiveTenantProfiles(supabase);
-        if (active) { setAllProfiles(rows); setProfilesDurum("ready"); }
-      } catch {
-        if (active) { setAllProfiles([]); setProfilesDurum("error"); }
-      }
-    })();
+    setProfileSnapshot({ scope: listScope, rows: [], status: "loading" });
+    void listActiveTenantProfiles(supabase).then(rows => {
+      if (active) setProfileSnapshot({ scope: listScope, rows, status: "ready" });
+    }).catch(() => {
+      if (active) setProfileSnapshot({ scope: listScope, rows: [], status: "error" });
+    });
     return () => { active = false; };
-  }, [supabase]);
+  }, [supabase, listScope, profileReloadKey]);
 
   // ------------------------------------------------------------------
   // Enriched rows — add firma_name for display + filtering
@@ -313,8 +315,9 @@ export default function GorevlerPage() {
       ...t,
       firma_name: companyNameById[t.company_id] ?? "—",
       firma_legacy_id: companyLegacyById[t.company_id] ?? null,
+      assignee_label: taskAssigneeLabel(t, t.assigned_to_user_id ? profileNames.get(t.assigned_to_user_id) : undefined, profilesDurum),
     }));
-  }, [tasks, companyNameById, companyLegacyById]);
+  }, [tasks, companyNameById, companyLegacyById, profileNames, profilesDurum]);
 
   // ------------------------------------------------------------------
   // Status counts — computed from loaded tasks
@@ -345,7 +348,7 @@ export default function GorevlerPage() {
         const match =
           g.title.toLowerCase().includes(q) ||
           g.firma_name.toLowerCase().includes(q) ||
-          (g.assigned_to ?? "").toLowerCase().includes(q);
+          g.assignee_label.toLowerCase().includes(q);
         if (!match) return false;
       }
       if (filters.durum && g.status !== filters.durum) return false;
@@ -369,11 +372,15 @@ export default function GorevlerPage() {
     [enrichedRows, selectedId]
   );
 
+  const selectedTaskId = selectedTask?.id;
+  const selectedTaskStatus = selectedTask?.status;
+  const selectedTaskAssignee = selectedTask?.assigned_to_user_id;
+  const selectedTaskRevision = selectedTask?.revision;
   useEffect(() => {
-    if (!selectedTask) return;
-    setEditDurum(selectedTask.status);
-    setEditAtananKisiId(selectedTask.assigned_to_user_id ?? "");
-  }, [selectedTask]);
+    if (!selectedTaskId || !selectedTaskStatus) return;
+    setEditDurum(selectedTaskStatus);
+    setEditAtananKisiId(selectedTaskAssignee ?? "");
+  }, [selectedTaskId, selectedTaskStatus, selectedTaskAssignee, selectedTaskRevision]);
 
   const firmaOptions = useMemo(
     () =>
@@ -449,6 +456,10 @@ export default function GorevlerPage() {
       </Suspense>}
 
       <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+      {profilesDurum === "error" && <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <p>Kişi listesi alınamadı. Görevler gösteriliyor; atanan kişi adları doğrulanamadı.</p>
+        <button type="button" className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3" onClick={() => setProfileReloadKey(value => value + 1)}>Kişi listesini tekrar yükle</button>
+      </div>}
 
       <div className="space-y-4">
         {/* Loading state */}
@@ -539,6 +550,10 @@ export default function GorevlerPage() {
                 </dd>
               </div>
               <div>
+                <dt className={DL_LABEL}>Atanan kişi</dt>
+                <dd className={DL_VALUE}>{selectedTask.assignee_label}</dd>
+              </div>
+              <div>
                 <dt className={DL_LABEL}>Termin</dt>
                 <dd className={DL_VALUE}>
                   {selectedTask.due_date
@@ -550,10 +565,11 @@ export default function GorevlerPage() {
 
             <div className={`space-y-4 border-t ${BORDER_SUBTLE} pt-4`}>
               <div>
-                <label className={FORM_LABEL}>
+                <label htmlFor={`${editFormId}-status`} className={FORM_LABEL}>
                   Durum
                 </label>
                 <select
+                  id={`${editFormId}-status`}
                   value={editDurum}
                   onChange={(e) => setEditDurum(e.target.value as GorevDurumu)}
                   className={INPUT_BASE}
@@ -568,10 +584,11 @@ export default function GorevlerPage() {
               {/* Atanan Kişi — hidden for ik (no cross-role reassignment) */}
               {role !== "ik" && (
                 <div>
-                  <label className={FORM_LABEL}>
+                  <label htmlFor={`${editFormId}-assignee`} className={FORM_LABEL}>
                     Atanan Kişi
                   </label>
                   <select
+                    id={`${editFormId}-assignee`}
                     value={editAtananKisiId}
                     onChange={(e) => setEditAtananKisiId(e.target.value)}
                     disabled={profilesDurum !== "ready" || kullaniciOptions.length === 0}
@@ -586,6 +603,9 @@ export default function GorevlerPage() {
                             ? "Atanabilecek kullanıcı yok"
                             : "Atanmadı"}
                     </option>
+                    {editAtananKisiId && !kullaniciOptions.some(option => option.id === editAtananKisiId) && (
+                      <option value={editAtananKisiId} disabled>{selectedTask.assignee_label}</option>
+                    )}
                     {kullaniciOptions.map((k) => (
                       <option key={k.id} value={k.id}>
                         {k.ad}
