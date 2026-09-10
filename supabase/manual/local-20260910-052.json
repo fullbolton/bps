@@ -1,0 +1,27 @@
+{
+  "slice": "052",
+  "status": "local_recovery_passed",
+  "nativeSqlGroups": 12,
+  "unitTests": 9,
+  "realAuthGroups": 4,
+  "browserChecks": [
+    "commit response lost then reload and resolve",
+    "request blocked before server then resolve fence and edit",
+    "recipient role revoked then resolve remove tag and correct",
+    "normal two-session mention reply read navigation"
+  ],
+  "evidenceDirectory": "/private/tmp/bps-conversation-browser-GKMawr",
+  "production": false,
+  "appliedToDedicatedLocalOnly": true,
+  "ownedFixturesCleaned": true,
+  "sources": {
+    "supabase/migrations/20260910000400_comment_command_recovery.sql": "fb62fada86de94552acf98bfdf3a3d5614fee70f62ceca47c29ecf243a803992",
+    "src/components/communication/RequestConversation.tsx": "92a05456bfd82ac9c16e19563f891c3b6c60bd1dccbe9146c3f7677a08b1371f",
+    "src/app/(main)/iletisim/actions.ts": "4698d4733c9fb30a4c31be0e04fcd92018a08e7f4730f23ea2724a8bfcb7cd0d",
+    "src/lib/operations/conversation-command.ts": "c7db9cfdfd4bbf49c492074e5106d509f17bb4232b959659acf904f8389b5ae7",
+    "scripts/qa-local-conversation-browser.mjs": "ddc5a127a39defcd30df206f70b1dd114f1269f624e0fa40a6217b5fac59a74e",
+    "scripts/qa-local-conversation-auth.mjs": "c805f4a8cb76977827079fae21c70cc4ab4b571f357e8c6b468007e61f926928",
+    "scripts/qa-local-conversation-sql.mjs": "e4b268cc9f7034bb20c9be1519118e801f83f40a8607877e53de33410bee122f"
+  },
+  "productionBuild": "passed with conversation flag enabled"
+}

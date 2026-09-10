@@ -1,0 +1,15 @@
+{
+  "slice": "049",
+  "status": "native_sql_passed",
+  "groups": 8,
+  "environment": "disposable_database_in_validated_dedicated_local_container",
+  "auth": "fixture helpers; not real Auth login",
+  "production": false,
+  "appliedToDedicatedMainDatabase": false,
+  "uiConnected": false,
+  "temporaryDatabaseRemoved": true,
+  "sources": {
+    "supabase/migrations/20260910000200_request_conversation.sql": "66a4e93753fb8b979953a60b345c2f0fba4f57c4ca2b95c6403459b4e34e25f6",
+    "scripts/qa-local-conversation-sql.mjs": "7ef2983a1cdcd5068b7c8684b5dc7fdca1708d2c7ccadda8e13efe54e21bfa6b"
+  }
+}

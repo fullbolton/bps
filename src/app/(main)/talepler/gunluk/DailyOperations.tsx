@@ -1,6 +1,7 @@
 "use client";
 import { useCallback,useEffect,useRef,useState } from "react";
 import Link from "next/link";
+import RequestConversation from "@/components/communication/RequestConversation";
 import AttendancePanel from "./AttendancePanel";
 import RequestBatch from "./RequestBatch";
 import PendingOperations from "./PendingOperations";
@@ -159,6 +160,7 @@ export default function DailyOperations() {
               </details>
             </li>;
           })}</ul>
+          {process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED==="true"&&<RequestConversation requestId={r.id} />}
           <AttendancePanel records={r.attendance} workers={board.workers} future={r.workDate>today()} disabled={busy||!writeReady} onRecord={(a,status)=>void submit("attendance",{assignmentId:a.id,expectedRevision:a.revision,status})} />
           {r.lifecycle==="active"&&<div className="flex flex-wrap items-end gap-3"><form className="flex flex-wrap items-end gap-2" onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void submit("assign",{requestId:r.id,workerId:String(d.get("workerId"))});}}><label className="text-sm">Personel<select className={inputClass} name="workerId" required disabled={busy||!writeReady||!company?.active||coverage.open===0} defaultValue=""><option value="" disabled>Personel seçin</option>{board.workers.filter(w=>w.active).map(w=><option disabled={w.booked} key={w.id} value={w.id}>{w.name} · {w.code}{w.booked?" (bu gün atanmış)":""}</option>)}</select></label><button className={buttonClass} disabled={busy||!writeReady||!company?.active||coverage.open===0}>Ata</button></form><button className="px-3 py-2 text-sm text-red-700 underline disabled:opacity-40" disabled={busy||!writeReady} onClick={()=>{setError("");setCancelTarget({id:r.id,label:`${location?.name??"Lokasyon"} · ${r.position} · ${r.workDate}`});}}>Talebi iptal et</button></div>}
         </article>;

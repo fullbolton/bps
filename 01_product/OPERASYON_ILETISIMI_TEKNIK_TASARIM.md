@@ -52,3 +52,74 @@ Metin yazma, cevap verme ve kullanıcı seçerek etiketleme aynı formda. Metind
 İki gerçek yerel Auth hesabı: A mesajda B'yi seçer → B yalnız kendi kutusunda tek bildirim görür → doğru talebe gider → okundu kalır → cevap A'ya ulaşır. Reload, ağ cevabı kaybından sonra aynı komut, aynı kimlik/farklı içerik, yanlış tenant, kaynak yetki kaybı, yanlış parent, rol/üyelik değişimi, kendine etiket, etiket+cevap çakışması test edilir. Başarısız RPC boş liste veya başarılı gönderim gibi sunulmaz.
 
 Bu kabul ve uygulama build'i tamamlanmadan iletişim yayında denmez. Yeni migration'lar kullanıcı onaylı normal teslim akışıyla Supabase'e, ardından uyumlu uygulama Vercel'e alınır. Mevcut canlı 044 ve geçmiş SQL dosyaları değiştirilmez.
+
+
+## 048 — İlk kod: komut ve makbuz sözleşmesi (yerel)
+
+`src/lib/operations/conversation-command.ts` katı alan listesi, UUID normalizasyonu, 4.000 Unicode karakter sınırı, UTF-8'e taşınamayan surrogate/NUL reddi, CRLF normalizasyonu ve en fazla 10 seçilmiş etiket girdisi uygular. Etiketler normalize edilip tekilleştirilir ve sıralanır; metindeki @ad kimlik sayılmaz. Canonical JSON tekrar karşılaştırması için kullanılır; hash/imza veya yetki kanıtı değildir ve loglanmamalıdır.
+
+Başarı makbuzunda command/actor/tenant/request kimlikleri ve messageId doğrulanır. Null veya yanlış kapsamlı cevap pending kaydını temizlemek için kullanılamaz. Yetkilendirme, parent'ın aynı konuşmaya aidiyeti ve alıcının kaynak erişimi yalnız bu yardımcıyla sağlanmaz; gelecek SQL bunları bağımsız uygular.
+
+`node --test scripts/conversation-command.test.mjs`: 5/5. Gerçek TS modülü yüklenir; sahte alan/rota, Unicode sınırı, etiket normalizasyonu, kapsam/içerik farkında retry kimliği, hatalı RPC makbuzu test edildi. `npx tsc --noEmit` geçti. Test standart `qa:operations` listesine eklendi.
+
+UI veya SQL bağlantısı henüz yok. Kullanıcıya açık özellik değildir. Dedicated Supabase'e bu tur değişiklik uygulanmadı. Sıradaki mesaj+bildirim+makbuz transaction'ı, kaynak/üyelik sınırı ve iki authenticated hesaplı SQL kabulüdür; ardından ekran bağlantısı.
+
+
+## 049 — Native SQL temeli (yerel, UI bağlantısı yok)
+
+Yeni kaynak `20260910000200_request_conversation.sql`: `ops_messages`, `ops_message_notifications`, `ops_comment_send/list/inbox/read` RPC. Konuşma kaynağı gerçek talep FK'si; composite parent FK yanlış talebe cevabı engeller. Talepte `(tenant_id,id)` unique index eklenir. Silmeler cascade değildir.
+
+Mesaj satırı komut makbuzunu taşır: actor/tenant/command unique ve önceki body/parent/mention/source karşılaştırması. Mesaj/bildirim tek transaction. Profil ve üyelik satırları sıralı SHARE kilitlenir; yetki yeniden kontrol edilir. Aynı komut advisory lock ile sıralanır. Explicit yetkisiz etiket tüm işlemi reddeder; cevap yazarı artık uygun rolde değilse cevap saklanır ama bildirim gönderilmez. Kendine bildirim yok; reply+mention tek recipient/message satırıdır.
+
+RLS açık, PUBLIC/anon/authenticated direct table erişimi kapalı. Sadece authenticated RPC. Context helper dışarıya kapalı; actor/auth.uid, doğrulanmış tenant ve yönetici/operasyon rolü kontrol edilir. Bu iki rol tüm tenant taleplerini okuyabilir; başka kaynaklar eklenirken onların dar erişim kuralları ayrıca uygulanmalı.
+
+Mesajlar 30 kayıt ve kaynak doğrulanmış cursor ile sayfalanır. Inbox şimdilik son 30 bildirim ve toplam unread döndürür; eski inbox sayfaları eklenmeden tam kutu kabulü yapılmaz. Okundu yalnız kendi bildirimi için idempotent. Yazar adı ve etiket seçenekleri henüz API yüzeyinde değil.
+
+`node scripts/qa-local-conversation-sql.mjs`: 8 grup geçti. Replay/payload çatışması; inbox/okundu sahipliği; reply+mention dedupe; yanlış alıcı/parent atomik ret; tenant/rol/üyelik retleri; direct/anon ret; içerik sınırı; 30+3 cursor sayfalama. İlk koşumda test.user GUC tırnaklaması düzeltildi; başarısız koşum da DB'yi temizledi.
+
+Ölçüm sınırı: dedicated container içindeki geçici DB, fixture Auth helperları. Gerçek Auth login, eşzamanlı bağlantı yarışı ve UI kabulü değildir. Ana yerel DB/üretime uygulanmadı. Sıradaki gerçek iki Auth hesabıyla RPC kabulü, yarış testleri, sonra UI/pending bağlantısı. Üretim kapısı kapalı. Kanıt: `supabase/manual/local-20260910-049.json`.
+
+
+## 050 — Gerçek yerel Auth/RPC + yarış kabulü
+
+`qa-local-conversation-sql.mjs` artık 10 grup: iki bağımsız PostgreSQL bağlantısıyla aynı komut tek mesaj/bildirim üretir. Rol değişimi profili kilitlerken gönderim başlatılır; pg_stat_activity PgSleep bariyeri rol transaction'ının açık olduğunu doğrular. Kilit sonrası yeni rol görülüp COMM_FORBIDDEN döner, mesaj oluşmaz. İlk 8 grup da tekrar geçti.
+
+`qa-local-conversation-auth.mjs` yalnız validateLocalStatus + sentetik documents marker doğrulamasından sonra çalışır. 00200 SQL dedicated ana yerel şemaya uygulandı; kaynak SHA256 tablo comment'i DDL ile aynı transaction'da yazıldı. Tekrar koşum farklı hash görürse üzerine yazmaz. Supabase migration ledger değiştirilmedi; üretime uygulanmadı.
+
+İki geçici Auth hesabı gerçek anon client login ile RPC'leri çağırdı. Aynı komut eşzamanlı tekrarında tek mesaj; yalnız alıcı kutusu ve doğru şirket/talep; kendi bildirimini okundu yapma, başkasınınkine ret; reply+mention tek bildirim; rol kaybında inbox ve yeni etiket reddi, kısmi mesaj yok. 4 grup geçti. Yalnız bu teste ait kayıtlar ve Auth hesapları temizlendi. Mesajın self-referential parent FK'siyle toplu fixture temizliği de geçti.
+
+Gerçek `src/lib/services/conversation.ts` sendRequestComment bu kabulde kullanıldı: 048 komut doğrulaması → RPC → kapsamı doğrulanmış başarı makbuzu. Transport/RPC/hatalı başarı cevabı yutulmaz; servis yeni komut UUID'si üretmez. Client pending depolaması ve UI daha sonra bağlanacak. Komut unit 5/5, TypeScript geçti.
+
+Kalan ilk dilim: uygun alıcı/ad çözümleme, inbox eski kayıt cursor'u, server actions, günlük kart konuşması, Topbar bildirim kutusu, reload sonrası pending komut uzlaştırması ve iki tarayıcı oturumuyla uçtan uca kabul. Bu sonuç henüz kullanıcıya açık iletişim ekranı değildir. Üretim/push/deploy yapılmadı.
+
+
+## 051 — İlk yerel UI dilimi
+
+`20260910000300_conversation_read_surfaces.sql` uygun kişi listesini ve alıcıya ait doğrulanmış cursor ile inbox sayfalamasını ekler. Kaynak SHA marker'ı yerel notification tablosunda tutulur; farklı kaynak üzerine sessiz overwrite yok. UI `iletisim/actions.ts` üzerinden gerçek Supabase çağırır. İşlem/okuma hataları başarısız sonuçtur, boş liste/sıfır sayaç diye gösterilmez. 00300 sadece dedicated yerelde uygulandı; local migration ledger veya üretim değişmedi.
+
+Günlük kartta RequestConversation: açıldığında yüklenir; not, yanıt, seçilmiş kişi etiketleri, 30'luk önceki notlar, yenileme. Kişi araması ve yüksekliği sınırlı liste mobilde uzun ekranı önler. Rolü/üyeliği değişmiş eski yazar için fallback isim kullanılır. Topbar ConversationInbox: kutu açıldığında veya Yenile ile yüklenir; otomatik polling/realtime henüz yok. Okunmamış sayı son başarılı okumayı gösterir; bağlantı hatasında bilinmiyor olur. Bildirimi görmek otomatik okundu değildir; ayrı düğme vardır.
+
+Pending gönderim body/kimlikleri actor+tenant+request anahtarlı localStorage'da tutulur, credentials içermez. Web Locks aynı tarayıcının sekmelerini sıralar. Başka sekmenin yeni pending mesajını fark edince sessizce göndermez, kullanıcıya gösterir. Aynı UUID ile retry yapılır; makbuz doğrulanmadan temizlenmez. Bu mekanizmanın bağlantı kopması/reload hata enjeksiyonu ve kalıcı retleri güvenli temizleme/uzlaştırma akışı henüz kabul edilmedi; yayın kapısıdır. Normal başarılı gönderim local pending'i temizler. Kullanıcı/kaynak değişiminde konuşma state'i sıfırlanır.
+
+Yerel açma: NEXT_PUBLIC_BPS_CONVERSATION_ENABLED=true ile build/dev; server actions aynı bayrağı kontrol eder. Varsayılan kapalı. 3010 env dosyasız izole kaynak kopyasında test edildi; kullanıcının 3000 süreci/env dosyası değiştirilmedi. Yerel test hesabı çerezleri yalnız geçici Chromium profiline bellekten aktarıldı.
+
+`qa-local-conversation-auth.mjs` + BPS_CONVERSATION_BROWSER=1 iki gerçek Auth hesabı/iki tarayıcı: not+etiket, reload'da liste kaydı, diğer kişinin kutusu, sahipli okundu ve reload, doğru talebe bağlantı, yanıta bildirim. 4 gerçek RPC grubu da geçti; test hesapları ve kayıtları temizlendi. Son görseller `/private/tmp/bps-conversation-browser-umCkmJ`; masaüstü ve 390px görünüm incelendi. Testte textarea'daki taslak ile kayıt paragrafı karışması ve navigasyon beklemesi düzeltildi; ürün kaydı sanılmadı. İlk mobil uzun liste aramalı kaydırma alanına dönüştürüldü.
+
+Komut+okuma parser testleri 8/8. Son kaynak için izole production build ayrıca kayda alınır. Kullanılabilir ilk yerel dilimdir; tüm iletişim bloğu tamamlandı veya canlıya çıktı değildir. Kalan: pending hata/kesinti kabulü ve ret uzlaştırması, okunmamış sayının yenilenme davranışı, geniş inbox sayfalama/yetki regresyonları, dosya ekleri, mevcut göreve atomik dönüşüm, diğer kaynak ekranları. Kişisel performans ve süreye bağlı yönetici bildirimi yok.
+
+051 son kaynak izole production build: geçti (konuşma bayrağı açık). Kanıt `supabase/manual/local-20260910-051.json`.
+
+
+## 052 — Belirsiz gönderim ve kalıcı ret kurtarması
+
+00400 `ops_closed_comment_commands` ve `ops_comment_resolve` ekler. `ops_comment_send` aynı advisory lock altında kapatılmış komutu reddeder. Resolve eski mesajı bulursa payload/source eşitliğini denetleyip sent makbuzu döndürür; bulamazsa eski kimliği kalıcı kapatır ve closed döndürür. Geç gelen send artık bu kimlikle mesaj oluşturamaz. Kapalı komutlar replay güvenliği nedeniyle normal ürün akışında silinmez; test cleanup yalnız kendine ait talepleri temizler. Üretime uygulanmadı.
+
+UI Gönderimi kontrol et düğmesi aynı browser lock ve saklı komutla çalışır. Sunucu terminal sonucunu doğrulamadan localStorage temizlenmez. Sent durumunda metin temizlenir; closed durumunda metin/yanıt/etiketler düzenlenebilir kalır ve bir sonraki gönderim yeni UUID alır. Yanlış kapsamlı/bozuk response ret edilir. Kaynak erişimi kaldırılmışsa kurtarma da erişim vermez; otomatik rol aşımı yok.
+
+Etiket seçeneklerinden düşen kişi artık seçilmiş etiketler satırından kaldırılabilir. Gönderme sırasında alıcı rolü değiştirilip ret oluşturulan tarayıcı testinde kontrol→closed→etiketi kaldır→düzelt→gönder geçti.
+
+Test: native SQL 12 grup, send/resolve eşzamanlı yarışı dahil; komut+okuma unit 9/9. Gerçek yerel Auth 4 grup ve iki Chromium oturumu. Playwright testinde bir POST sunucuya gitmeden abort edildi; diğerinde route.fetch ile gerçek commit tamamlandıktan sonra cevap abort edildi. Her iki durumda reload pending'i buldu, resolve güvenle temizledi; ilkinde eski kimlik kapandı, ikincisinde mevcut tek kayıt kullanıldı. Yerel pending deposu boşaldı. Son 7 mesaj ve yalnız testin kayıtları/Auth hesapları temizlendi.
+
+Son sentetik ekranlar `/private/tmp/bps-conversation-browser-GKMawr`; rapor `supabase/manual/local-20260910-052.json`. İlk 051'de açık olan pending ağ-kesintisi ve ret uzlaştırması bu dar kapsamda kapandı. Tüm iletişim bloğu veya üretim yayını değildir. Sıradaki nottan mevcut göreve atomik dönüşüm ve dosya ekleri; çoklu sekme/hesap değişimi geniş regresyonu ve yayın paketi ayrıca korunur.
+
+052 son kaynak izole production build (bayrak açık): geçti.

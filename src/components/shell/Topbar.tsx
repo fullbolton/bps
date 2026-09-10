@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ConversationInbox from "@/components/communication/ConversationInbox";
 import { User, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -72,6 +73,7 @@ export default function Topbar() {
         )}
 
         <div className="flex items-center gap-2 ml-auto">
+          {process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED==="true"&&<ConversationInbox />}
           {/* User menu */}
           <div ref={userMenuRef} className="relative">
             <button

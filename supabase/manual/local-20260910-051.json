@@ -1,0 +1,23 @@
+{
+  "slice": "051",
+  "status": "local_first_ui_passed",
+  "unitTests": 8,
+  "realAuthGroups": 4,
+  "twoBrowserAcceptance": true,
+  "productionBuild": "passed with conversation flag enabled",
+  "environment": "dedicated_local_synthetic",
+  "production": false,
+  "featureFlagDefault": false,
+  "pendingFaultInjectionTested": false,
+  "evidenceDirectory": "/private/tmp/bps-conversation-browser-umCkmJ",
+  "ownedFixtureCleaned": true,
+  "sources": {
+    "supabase/migrations/20260910000300_conversation_read_surfaces.sql": "ca382b167abad69f1f57ef0ec69af1a6e12a5cf961e708adb845e5d2af171178",
+    "src/components/communication/RequestConversation.tsx": "2467303292e33d64f1317eb5df6b93c1d6f5642df9204ee0460bd509a297b7b2",
+    "src/components/communication/ConversationInbox.tsx": "60bdef4eb1ea16af77e81d56c01ed60ed3d5c4b69441eff701530e0c4195a3a1",
+    "src/app/(main)/iletisim/actions.ts": "71b81dcbe2f14dfecb531fe42a7f030a53835a143a729b52923e2a8357261cae",
+    "src/lib/operations/conversation-read.ts": "4fb51b1d6c7ba7ab6204e204b5a5b7dabc6aa4c9ea82affc9434c8caea254550",
+    "scripts/qa-local-conversation-auth.mjs": "9459f5e9b089b19708f37aacb7c4f20cfcda978afafb54a091bbb84c0618b9a8",
+    "scripts/qa-local-conversation-browser.mjs": "4d7458b3c55267a04cc10a81ea868dd3ccde70e57909b5eff6eb1049cfa82199"
+  }
+}

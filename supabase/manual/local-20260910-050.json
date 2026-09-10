@@ -1,0 +1,19 @@
+{
+  "slice": "050",
+  "status": "passed",
+  "nativeSqlGroups": 10,
+  "realAuthGroups": 4,
+  "commandUnitTests": 5,
+  "environment": "dedicated_local_synthetic",
+  "migrationAppliedToLocalSchema": true,
+  "localSupabaseMigrationLedgerUpdated": false,
+  "production": false,
+  "uiConnected": false,
+  "ownedAuthAccountsAndDataCleaned": true,
+  "sources": {
+    "supabase/migrations/20260910000200_request_conversation.sql": "66a4e93753fb8b979953a60b345c2f0fba4f57c4ca2b95c6403459b4e34e25f6",
+    "scripts/qa-local-conversation-sql.mjs": "6da78da7ae8cc00818195203d7be216a1f3701271b713d56efcaf422babdcf61",
+    "scripts/qa-local-conversation-auth.mjs": "cb3fb2358e098891c54a59bcdc991f3a421b0e0e19dba6d46fd77011f178e3f9",
+    "src/lib/services/conversation.ts": "36232c3b796e800d0384ce49fcd9722b80c843658eaac4ff5b58d1ec1788cfec"
+  }
+}
