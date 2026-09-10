@@ -8,6 +8,7 @@ import {createClient} from '@supabase/supabase-js';
 import {createServerClient} from '@supabase/ssr';
 import {validateLocalStatus,acquireLock} from './helpers/acceptance-runner.mjs';
 import {id} from './fixtures/daily-operations.mjs';
+import {checkAppointmentLink} from './helpers/appointment-link-acceptance.mjs';
 import {checkContractTaskLink} from './helpers/contract-task-link-acceptance.mjs';
 import {checkContractDetail} from './helpers/contract-detail-acceptance.mjs';
 const run=(cmd,args,input)=>execFileSync(cmd,args,{input,encoding:'utf8',stdio:['pipe','pipe','pipe'],timeout:20000});
@@ -22,6 +23,7 @@ try {
  sql=q=>run('docker',['exec','-i',container,'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],q).trim();
  assert.equal(sql("SELECT obj_description(to_regclass('public.documents'))='BPS synthetic documents fixture v1'"),'t');
  sql(readFileSync(new URL('./fixtures/local-company-feedback.sql',import.meta.url),'utf8'));
+ if(process.env.BPS_APPOINTMENT_LINK_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contract-appointments.sql',import.meta.url),'utf8'));
  if(process.env.BPS_REQUEST_FORM_CHECK==='1'||process.env.BPS_REQUEST_RECOVERY_CHECK==='1'||process.env.BPS_OWNER_FORM_CHECK==='1'||process.env.BPS_REQUEST_LIST_CHECK==='1'||process.env.BPS_REQUEST_MOBILE_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-request-feedback.sql',import.meta.url),'utf8'));
  if(process.env.BPS_RECORD_DELETE_CHECK==='1'){sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));}
  admin=createClient(s.API_URL,s.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -721,6 +723,7 @@ try {
   }
   console.log('PASS workspace desktop/mobile six routes, no page overflow, mobile dialog/Escape');
  }
+ if(process.env.BPS_APPOINTMENT_LINK_CHECK==='1') await checkAppointmentLink({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_CONTRACT_TASK_LINK_CHECK==='1') await checkContractTaskLink({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_CONTRACT_DETAIL_CHECK==='1') await checkContractDetail({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_CONTRACT_REFRESH_CHECK==='1') {

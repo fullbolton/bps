@@ -4,6 +4,7 @@ import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import PickerFeedback from "@/components/ui/PickerFeedback";
+import AppointmentLinkOpener from "./AppointmentLinkOpener";
 import AppointmentTasks from "./AppointmentTasks";
 import AsyncSection from "@/components/ui/AsyncSection";
 
@@ -22,7 +23,7 @@ import AsyncSection from "@/components/ui/AsyncSection";
  * update and the task creation atomically.
  */
 
-import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { Suspense, useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDateTR } from "@/lib/format-date";
@@ -86,7 +87,7 @@ const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colo
 const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
 const CHIP_INACTIVE = "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
 const DL_LABEL = `${TYPE_CAPTION} ${TEXT_SECONDARY}`;
-const DL_VALUE = `${TYPE_BODY} ${TEXT_BODY} mt-0.5`;
+const DL_VALUE = `${TYPE_BODY} ${TEXT_BODY} mt-0.5 break-words`;
 const COL_TRUNCATED = `${TYPE_BODY} ${TEXT_SECONDARY} truncate max-w-[200px] block`;
 
 const STATUS_LABELS: Record<string, string> = {
@@ -223,6 +224,9 @@ export default function RandevularPage() {
     randevuId?: string;
   }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const openLinkedAppointment = useCallback((id: string) => {
+    if (liveContext.current === context) setSelectedId(id);
+  }, [context]);
 
 
   // ------------------------------------------------------------------
@@ -399,6 +403,10 @@ export default function RandevularPage() {
         ]}
       />
 
+      <Suspense fallback={null}>
+        <AppointmentLinkOpener key={listScope} ready={!!listScope && !loading && !loadError && snapshot?.scope === listScope}
+          appointmentIds={appointments.map(row => row.id)} onOpen={openLinkedAppointment} />
+      </Suspense>
       <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
 
       <div className="space-y-4">
