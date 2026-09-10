@@ -3,6 +3,7 @@
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import AppointmentTasks from "./AppointmentTasks";
 import AsyncSection from "@/components/ui/AsyncSection";
 
 /**
@@ -65,8 +66,6 @@ import type {
   RowAction,
   OncelikSeviyesi,
 } from "@/types/ui";
-import { selectTasksByAppointmentId } from "@/lib/supabase/tasks";
-import type { TaskRow } from "@/types/database.types";
 import { clsx } from "clsx";
 import {
   TYPE_BODY,
@@ -213,7 +212,6 @@ export default function RandevularPage() {
     randevuId?: string;
   }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedTasks, setSelectedTasks] = useState<TaskRow[]>([]);
 
 
   // ------------------------------------------------------------------
@@ -274,29 +272,6 @@ export default function RandevularPage() {
     })();
     return () => { active = false; };
   }, [supabase]);
-
-  // ------------------------------------------------------------------
-  // Load tasks linked to the selected appointment (for the side panel)
-  // ------------------------------------------------------------------
-
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedTasks([]);
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const tasks = await selectTasksByAppointmentId(supabase, selectedId);
-        if (!cancelled) setSelectedTasks(tasks);
-      } catch {
-        if (!cancelled) setSelectedTasks([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, selectedId]);
 
   // ------------------------------------------------------------------
   // Derived data
@@ -523,18 +498,12 @@ export default function RandevularPage() {
                 <dd className={DL_VALUE}>{selectedRandevu.next_action}</dd>
               </div>
             )}
-            {selectedTasks.length > 0 && (
-              <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
-                <dt className={DL_LABEL}>Bu Randevudan Acilan Gorevler</dt>
-                <dd className="mt-1 space-y-1.5">
-                  {selectedTasks.map((task) => (
-                    <p key={task.id} className={`${TYPE_BODY} ${TEXT_BODY}`}>
-                      {task.title}
-                    </p>
-                  ))}
-                </dd>
-              </div>
-            )}
+            <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
+              <dt className={DL_LABEL}>Bu randevuya bağlı görevler</dt>
+              <dd className="mt-1">
+                <AppointmentTasks key={`${listScope}:${selectedRandevu.id}`} client={supabase} appointmentId={selectedRandevu.id} />
+              </dd>
+            </div>
           </dl>
         )}
       </RightSidePanel>

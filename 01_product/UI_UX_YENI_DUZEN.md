@@ -203,3 +203,14 @@ Bağlantı altı çizili, minimum 44 px ve uzun adları sarabilecek biçimdedir.
 BPS_COMPANY_LINK_CHECK=1 kabulünde dedicated sentetik DB ve gerçek Auth kullanıldı. Kendi firmasının legacy kimliği önce NULL, sonra sentetik değer yapılarak iki durumda da hem görev hem randevu paneli açıldı. href gerçek UUID, 390 px taşmama/44 px, odak+Enter ile doğru firma başlığının açılması, açık dialog/scroll kilidi kalmaması ve browser back sonrası önceki arama/durum filtresi doğrulandı. Dört akış geçti. Kanıt `/private/tmp/bps-company-feedback-UlMq2Y`; iki mobil panel görüntüsü incelendi. Firma kayıt/tek POST ve sunucu yetki reddi regresyonu da geçti.
 
 TypeScript/lint ve izole production build başarılı. Yalnız kendi test kayıtları/Auth hesabı temizlendi. Yeni unit testi yok; gezinme gerçek tarayıcıda doğrulandı. Ürün SQL/migration/push/deploy yok.
+
+
+## 071 — Randevuya bağlı görevlerde doğru yükleme ve hata görünümü
+
+Randevular paneli selectTasksByAppointmentId hatasını [] yapıp bölümü gizliyordu. Ayrıca başka randevu seçilirken selectedTasks önceki satırları yeni okuma tamamlanana kadar tutuyordu. AppointmentTasks bileşeni randevu ve listScope anahtarıyla mount edilir; yükleme/error/ready durumları içerir, cleanup bayrağı kapanmış okuyucunun yanıtını uygulamaz. Liste/panelin başka okuyucuları bu tur değiştirilmedi.
+
+Bölüm artık sürekli görünür: yüklenirken Yükleniyor, okumada hata varsa Veri yüklenemedi ve Tekrar dene, başarılı sıfır satırda Bu randevuya bağlı görev yok. İçerikte görev başlığı ve gerçek durum rozeti vardır. Eski raw reader ve appointment_id eşitlik filtresi korunur; sorgu/yetki/yazma semantiği değişmez. Okuma panel açılınca veya hatadan tekrar deneyince yapılır; realtime güncelleme eklenmedi.
+
+BPS_APPOINTMENT_TASKS_CHECK=1: dedicated sentetik Supabase + gerçek Auth; kendi üç randevusundan ilk ikisine bağlı görevler. İlkine REST 503 enjekte edilince boş demedi, retry ile Açık görev geldi. İkinci randevu sorgusu tutulurken loading ve önceki görevin yokluğu doğrulandı; ilk randevuya geri dönülüp geciken ikinci yanıt serbest bırakılınca yanlış kayıt görünmedi. İkinci yeniden açıldığında Tamamlandı görev geldi. Üçüncü gerçek sıfır satırda boş durum ve retry bulunmaması doğrulandı. Mobil hata görünümü 390 px taşmıyor. Kanıt `/private/tmp/bps-company-feedback-zqnyAW`; hata ve içerik ekranları görsel incelendi.
+
+TypeScript/lint ve izole production build başarılı. Kendi görev/randevu/firma ve Auth kayıtları temizlendi. Yeni unit testi yok; asenkron durumlar ve yanıt sırası gerçek tarayıcıyla ölçüldü. Ürün SQL/migration/push/deploy yok.

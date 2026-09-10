@@ -445,6 +445,30 @@ try {
   }
   console.log('PASS task/appointment company links use canonical UUID with and without legacy ID, mobile/Enter navigation, correct company, dialog cleanup and preserved back filters');
  }
+ if(process.env.BPS_APPOINTMENT_TASKS_CHECK==='1') {
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
+  assert.equal(sql("SELECT obj_description('public.tasks'::regclass)"),'BPS synthetic task-prefill fixture v1');
+  const ids=[randomUUID(),randomUUID(),randomUUID()],names=ids.map((_,index)=>prefix+'-linked-'+index),titles=[prefix+'-follow-up-A',prefix+'-follow-up-B'];
+  for(let index=0;index<3;index++)sql(`INSERT INTO appointments(id,tenant_id,company_id,meeting_date,meeting_type,status,attendee,created_by) VALUES('${ids[index]}','${id(1)}','${company}','2026-09-10','ziyaret','planlandi','${names[index]}','${user}')`);
+  for(let index=0;index<2;index++)sql(`INSERT INTO tasks(tenant_id,company_id,appointment_id,title,source_type,status,created_by) VALUES('${id(1)}','${company}','${ids[index]}','${titles[index]}','randevu','${index?'tamamlandi':'acik'}','${user}')`);
+  await page.setViewportSize({width:1280,height:900});await page.goto(origin+'/randevular');await page.getByRole('textbox',{name:'Firma, katilimci ara...',exact:true}).fill(prefix+'-linked-');
+  const panel=page.getByRole('dialog',{name:'Randevu Detay',exact:true}),section=panel.getByRole('region',{name:'Bağlı görevler',exact:true});
+  const open=async index=>{if(await panel.isVisible())await page.keyboard.press('Escape');await page.getByRole('cell',{name:names[index],exact:true}).click();await panel.waitFor();};
+  const pattern='**/rest/v1/tasks?*';
+  const failed=async route=>{const url=new URL(route.request().url());if(url.searchParams.get('appointment_id')==='eq.'+ids[0])await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic linked tasks unavailable'})});else await route.continue();};
+  await page.route(pattern,failed);await open(0);await section.getByText('Veri yüklenemedi',{exact:true}).waitFor();assert.equal(await section.getByText('Bu randevuya bağlı görev yok.',{exact:true}).count(),0);
+  await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/appointment-tasks-error-390.png'});
+  await page.unroute(pattern,failed);await section.getByRole('button',{name:'Tekrar dene',exact:true}).click();await section.getByText(titles[0],{exact:true}).waitFor();await section.getByText('Açık',{exact:true}).waitFor();
+  await page.setViewportSize({width:1280,height:900});await page.keyboard.press('Escape');
+  let reached,finished;const incoming=new Promise(resolve=>reached=resolve),gate=new Promise(resolve=>releaseRequest=resolve),completed=new Promise(resolve=>finished=resolve);
+  const delayed=async route=>{const url=new URL(route.request().url());if(url.searchParams.get('appointment_id')==='eq.'+ids[1]){reached();await gate;try{await route.continue();}finally{finished();}}else await route.continue();};
+  await page.route(pattern,delayed);await open(1);let timer;try{await Promise.race([incoming,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Linked task request missing')),20000);})]);}finally{clearTimeout(timer);}
+  await section.getByText('Yükleniyor…',{exact:true}).waitFor();assert.equal(await section.getByText(titles[0],{exact:true}).count(),0);assert.equal(await section.getByText('Bu randevuya bağlı görev yok.',{exact:true}).count(),0);
+  await open(0);await section.getByText(titles[0],{exact:true}).waitFor();releaseRequest();await completed;await page.waitForTimeout(300);assert.equal(await section.getByText(titles[1],{exact:true}).count(),0);await page.unroute(pattern,delayed);
+  await open(1);await section.getByText(titles[1],{exact:true}).waitFor();await section.getByText('Tamamlandı',{exact:true}).waitFor();await page.screenshot({path:output+'/appointment-tasks-content.png'});
+  await open(2);await section.getByText('Bu randevuya bağlı görev yok.',{exact:true}).waitFor();assert.equal(await section.getByRole('button',{name:'Tekrar dene',exact:true}).count(),0);await page.keyboard.press('Escape');
+  console.log('PASS appointment task loading/error/retry/empty/content, task statuses, mobile fit and delayed prior appointment response isolation');
+ }
  if(process.env.BPS_LIST_MEMORY_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID(),contractName=prefix+'-memory';assert.match(company,/^[a-f0-9-]{36}$/);
   assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${id(1)}','${company}','${contractName}','taslak','${user}')`);
