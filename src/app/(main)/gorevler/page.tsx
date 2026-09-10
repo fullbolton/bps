@@ -4,6 +4,7 @@ import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import { taskAssigneeLabel } from "@/lib/task-assignee-label";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
+import PickerFeedback from "@/components/ui/PickerFeedback";
 import CollapsibleFilters from "@/components/ui/CollapsibleFilters";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
@@ -227,7 +228,8 @@ export default function GorevlerPage() {
   // Real companies for the firma filter + New Task modal dropdown.
   // RLS-scoped; option id prefers legacy_mock_id so the modal's write
   // path (createTask → legacyCompanyId) keeps working.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "loading" | "error" | "ready"} | null>(null);
+  const [companyReloadKey, setCompanyReloadKey] = useState(0);
   const [profileSnapshot, setProfileSnapshot] = useState<{ scope: string; rows: ProfileRow[]; status: "loading" | "error" | "ready" } | null>(null);
   const [profileReloadKey, setProfileReloadKey] = useState(0);
 
@@ -235,6 +237,12 @@ export default function GorevlerPage() {
   const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("gorevler", listScope, LIST_FILTER_DEFAULTS);
+  const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
+  const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
+  const creationContext = useMemo(() => ({scope: listScope}), [listScope]);
+  const liveCreationContext = useRef<typeof creationContext | null>(creationContext);
+  liveCreationContext.current = creationContext;
+  useEffect(() => { liveCreationContext.current = creationContext; return () => { liveCreationContext.current = null; }; }, [creationContext]);
   const tasks = useMemo(() => taskDataScope === listScope ? taskRows : [], [taskDataScope, listScope, taskRows]);
   const taskLiveScope = useRef(listScope);
   taskLiveScope.current = listScope;
@@ -245,7 +253,7 @@ export default function GorevlerPage() {
   useEffect(() => { setTransferOpen(false); }, [user?.id, user?.app_metadata?.active_tenant, role]);
   const [newOpen, setNewOpen] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState<TaskPrefill | null>(null);
-  useEffect(() => { setNewOpen(false); setTaskPrefill(null); }, [user?.id, role]);
+  useEffect(() => { setNewOpen(false); setTaskPrefill(null); }, [listScope]);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editDurum, setEditDurum] = useState<GorevDurumu>("acik");
@@ -285,20 +293,18 @@ export default function GorevlerPage() {
   }, [reload]);
   const openLinkedTask = useCallback((id: string) => { setPanelError(null); setSelectedId(id); }, []);
 
-  // Companies for the firma filter + New Task modal. Errors fall to
-  // an empty list so both surfaces show an honest empty state.
+  // Distinguish directory errors from a genuinely empty list and bind it to auth scope.
   useEffect(() => {
+    if (!listScope) return;
     let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
+    setCompanySnapshot({scope: listScope, rows: [], status: "loading"});
+    void selectAllCompanies(supabase).then(rows => {
+      if (active) setCompanySnapshot({scope: listScope, rows, status: "ready"});
+    }).catch(() => {
+      if (active) setCompanySnapshot({scope: listScope, rows: [], status: "error"});
+    });
     return () => { active = false; };
-  }, [supabase]);
+  }, [supabase, listScope, companyReloadKey]);
 
   // Scope the directory snapshot so a previous account/tenant cannot name current rows.
   useEffect(() => {
@@ -463,7 +469,7 @@ export default function GorevlerPage() {
       />
 
       {(role === "yonetici" || role === "operasyon") && <Suspense fallback={<p role="status">Talep bağlantısı hazırlanıyor…</p>}>
-        <TaskPrefillBanner key={`${user?.id}:${role}`} disabled={newOpen} onPrepare={prefill => {
+        <TaskPrefillBanner key={listScope} disabled={newOpen} onPrepare={prefill => {
           setTaskPrefill(prefill); setNewOpen(true);
         }} />
       </Suspense>}
@@ -473,6 +479,8 @@ export default function GorevlerPage() {
           taskIds={tasks.map(task => task.id)} onOpen={openLinkedTask} />
       </Suspense>
       <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+      <PickerFeedback id="task-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
+        emptyText="Firma filtresinde gösterilecek firma yok." onRetry={() => setCompanyReloadKey(value => value + 1)} />
       {profilesDurum === "error" && <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         <p>Kişi listesi alınamadı. Görevler gösteriliyor; atanan kişi adları doğrulanamadı.</p>
         <button type="button" className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3" onClick={() => setProfileReloadKey(value => value + 1)}>Kişi listesini tekrar yükle</button>
@@ -708,9 +716,13 @@ export default function GorevlerPage() {
         onApplied={() => { void reload(); router.refresh(); }}
       />}
       <NewTaskModal
+        key={listScope}
         open={newOpen}
-        onClose={() => { setNewOpen(false); setTaskPrefill(null); }}
+        onClose={() => { if (liveCreationContext.current !== creationContext) return; setNewOpen(false); setTaskPrefill(null); }}
         firmalar={taskPrefill ? [{id:taskPrefill.companyId,ad:taskPrefill.companyName}] : firmaOptions}
+        firmalarDurum={taskPrefill ? "ready" : companiesDurum}
+        onRetryFirmalar={taskPrefill ? undefined : () => setCompanyReloadKey(value => value + 1)}
+        onRetryKullanicilar={() => setProfileReloadKey(value => value + 1)}
         defaultFirmaId={taskPrefill?.companyId}
         defaultBaslik={taskPrefill?.title}
         prefillNotice={taskPrefill ? "Şube ve gün bilgisi görev başlığına kopyalandı. Talepteki sonraki değişiklikler bu göreve yansımaz; görevi tamamlamak talebi kapatmaz." : undefined}
@@ -733,9 +745,11 @@ export default function GorevlerPage() {
             priority: oncelik,
           };
           const result = await createTaskAction(input);
+          if (liveCreationContext.current !== creationContext) return;
           if (!result.ok) throw new Error(result.error);
           feedback.show(`${baslik} görevlere eklendi.`);
           await reload();
+          if (liveCreationContext.current !== creationContext) return;
           router.refresh();
         }}
       />
