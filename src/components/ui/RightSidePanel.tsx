@@ -1,16 +1,8 @@
 "use client";
 
-import { X } from "lucide-react";
-import {
-  PANEL_OVERLAY,
-  PANEL_CONTAINER,
-  PANEL_HEADER,
-  PANEL_BODY,
-  TYPE_SECTION_TITLE,
-  TEXT_PRIMARY,
-  TEXT_MUTED,
-  RADIUS_SM,
-} from "@/styles/tokens";
+import {useId} from "react";
+import {X} from "lucide-react";
+import {useModalDialog} from "./useModalDialog";
 
 interface RightSidePanelProps {
   open: boolean;
@@ -19,36 +11,20 @@ interface RightSidePanelProps {
   children: React.ReactNode;
 }
 
-/**
- * Generic slide-in panel from right.
- * Accepts only open, onClose, title, and children.
- * No domain-specific props — content is composed at screen level.
- */
-export default function RightSidePanel({
-  open,
-  onClose,
-  title,
-  children,
-}: RightSidePanelProps) {
+export default function RightSidePanel({open, onClose, title = "Detay", children}: RightSidePanelProps) {
+  const ref = useModalDialog(open);
+  const titleId = useId();
   if (!open) return null;
-
-  return (
-    <>
-      <div className={PANEL_OVERLAY} onClick={onClose} />
-      <div className={PANEL_CONTAINER}>
-        <div className={PANEL_HEADER}>
-          {title && (
-            <h2 className={`${TYPE_SECTION_TITLE} ${TEXT_PRIMARY}`}>{title}</h2>
-          )}
-          <button
-            onClick={onClose}
-            className={`p-1.5 ${RADIUS_SM} hover:bg-slate-100 ${TEXT_MUTED} hover:text-slate-600 ml-auto`}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div className={PANEL_BODY}>{children}</div>
+  return <dialog ref={ref} aria-labelledby={titleId}
+    className="[&:not([open])]:hidden fixed inset-0 m-0 flex h-dvh max-h-none w-screen max-w-none justify-end border-0 bg-transparent p-0 text-slate-900 backdrop:bg-slate-950/40"
+    onCancel={e => { e.preventDefault(); onClose(); }}
+    onClick={e => { if (e.target === ref.current) onClose(); }}>
+    <div className="flex h-full w-full max-w-xl flex-col bg-white shadow-2xl sm:rounded-l-2xl">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <h2 id={titleId} className="text-base font-semibold">{title}</h2>
+        <button type="button" onClick={onClose} aria-label={`${title} panelini kapat`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"><X size={20}/></button>
       </div>
-    </>
-  );
+      <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">{children}</div>
+    </div>
+  </dialog>;
 }

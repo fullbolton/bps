@@ -15,15 +15,9 @@ import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import type { FirmaAlacakEntry, FirmaKesilmemisEntry } from "@/types/batch5-finansal";
 import {
-  TYPE_BODY,
   TYPE_CAPTION,
-  TEXT_PRIMARY,
   TEXT_SECONDARY,
   TEXT_MUTED,
-  SURFACE_PRIMARY,
-  BORDER_DEFAULT,
-  RADIUS_DEFAULT,
-  RADIUS_SM,
 } from "@/styles/tokens";
 
 export default function FinansalOzetPage() {
@@ -253,7 +247,7 @@ export default function FinansalOzetPage() {
     <>
       <PageHeader
         title="Finansal Özet"
-        subtitle="Şirket geneli yönetim görünürlüğü"
+        subtitle="Kayıtlı mali özetler, firma alacakları ve maliyet görünümü."
         actions={[{label:"Gelişmiş özet",onClick:()=>setAdvancedOpen(true),variant:"secondary" as const},...pageActions]}
       />
 
@@ -294,31 +288,18 @@ export default function FinansalOzetPage() {
         </div>
       )}
 
-      <button type="button" disabled={loading} onClick={fetchFinancials} className="mb-4 text-sm text-blue-700 disabled:opacity-50 print:hidden">Mali verileri yenile</button>
+      <section aria-label="Mali veri kapsamı" className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4"><div className="max-w-2xl"><h2 className="text-sm font-semibold text-slate-900">Kayıtlı mali özet</h2><p className="mt-2 text-sm leading-6 text-slate-600">Bu ekran kaydedilmiş son özetleri gösterir. Seçilmiş bir dönemin gelir tablosu veya proje kârlılığı değildir. Veri olmayan alanlar “—” ile gösterilir.</p></div>
+          <button type="button" disabled={loading} onClick={fetchFinancials} className="min-h-11 shrink-0 rounded-xl border border-blue-200 bg-white px-4 text-sm font-medium text-blue-700 disabled:opacity-50 print:hidden">Mali verileri yenile</button>
+        </div>
+        <p className="mt-3 text-xs text-slate-500">Yönetim görünürlüğü — resmi muhasebe kaydı değildir.</p>
+      </section>
       <AsyncSection isLoading={loading} hasError={loadError} onRetry={fetchFinancials}>
       <div className="space-y-6">
-        <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-          <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-3`}>Finansal portföy</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-            <div>
-              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Aktif Firma</span>
-              <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{aktifFirma ?? "—"}</p>
-            </div>
-            <div>
-              <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Toplam Açık Alacak</span>
-              <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{portfolio?.total_open_receivable ?? "—"}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Management-visibility boundary banner */}
-        <div className={`${TYPE_CAPTION} ${TEXT_MUTED} border ${BORDER_DEFAULT} ${RADIUS_SM} px-3 py-2`}>
-          Yönetim görünürlüğü — resmi muhasebe kaydı değildir
-        </div>
-
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold text-slate-900">Alacak ve faturalama</h2><span className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">Aktif firma: {aktifFirma ?? "—"}</span></div>
         {/* 6 top-level KPI cards — read from real financial_summaries
             portfolio row (company_id IS NULL). Absent row = honest "—". */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <FinancialSummaryCard
             label="Toplam Açık Alacak"
             value={portfolio?.total_open_receivable ?? "—"}
@@ -341,6 +322,8 @@ export default function FinansalOzetPage() {
                 : undefined
             }
           />
+        </div>
+        <section aria-label="Maliyet özeti"><h2 className="mb-4 text-lg font-semibold text-slate-900">Kayıtlı maliyetler</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FinancialSummaryCard
             label="Maaş Giderleri"
             value={portfolio?.salary_costs ?? "—"}
@@ -351,7 +334,7 @@ export default function FinansalOzetPage() {
             value={portfolio?.fixed_costs ?? "—"}
             subLabel="Operasyonel sabit maliyetler"
           />
-        </div>
+        </div></section>
 
         {/* Honest absence note when portfolio row has not been confirmed yet */}
         {portfolio === null && (

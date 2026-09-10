@@ -133,10 +133,10 @@ export const INPUT_BASE = `w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT
 // ---------------------------------------------------------------------------
 
 export const MODAL_OVERLAY = `fixed inset-0 ${SURFACE_OVERLAY_DARK} flex items-center justify-center ${Z_OVERLAY}`;
-export const MODAL_CONTAINER = `${SURFACE_PRIMARY} ${RADIUS_DEFAULT} ${SHADOW_OVERLAY} w-full max-w-lg mx-4 flex flex-col max-h-[85vh]`;
+export const MODAL_CONTAINER = `${SURFACE_PRIMARY} ${RADIUS_DEFAULT} ${SHADOW_OVERLAY} w-full max-w-lg mx-4 flex flex-col max-h-[90dvh]`;
 export const MODAL_HEADER = `flex items-center justify-between px-5 py-4 border-b ${BORDER_DEFAULT} flex-shrink-0`;
 export const MODAL_BODY = "flex-1 overflow-y-auto px-5 py-4";
-export const MODAL_FOOTER = `px-5 py-3 border-t ${BORDER_DEFAULT} flex justify-end gap-2 flex-shrink-0`;
+export const MODAL_FOOTER = `px-5 py-4 bg-slate-50 border-t ${BORDER_DEFAULT} flex flex-wrap justify-end gap-2 flex-shrink-0 rounded-b-2xl`;
 
 // ---------------------------------------------------------------------------
 // Tab navigation

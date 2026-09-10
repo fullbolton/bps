@@ -55,6 +55,30 @@ try {
   await picker.selectOption('__new_company__');await nameInput().fill(name);await create().click();await page.getByRole('button',{name:'Bunu seç',exact:true}).click();
   await page.getByText(`${name} mevcut kayıtlardan seçildi.`,{exact:true}).waitFor();assert.equal(count(name),'1');assert.equal(await picker.locator('option:checked').textContent(),name);
   await page.screenshot({path:output+'/'+suffix+'.png'});console.log('PASS '+suffix+' new/existing feedback, selected company and no duplicate row');
+  if(process.env.BPS_DIALOG_DESIGN_CHECK==='1'){
+   const dialogTitle = suffix==='request'?'Yeni Personel Talebi':title;
+   await picker.focus();await picker.selectOption('__new_company__');const child=page.getByRole('dialog',{name:'Yeni Firma',exact:true});await child.waitFor();
+   for(let k=0;k<12;k++){await page.keyboard.press(k%2?'Tab':'Shift+Tab');assert.ok(await child.evaluate(d=>d.contains(document.activeElement)),'Focus escapes nested dialog');}
+   await page.keyboard.press('Escape');await child.waitFor({state:'hidden'});assert.ok(await page.getByRole('dialog',{name:dialogTitle,exact:true}).isVisible());
+   assert.ok(await picker.evaluate(e=>e===document.activeElement),'Return to nested company picker');assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden');
+   await page.keyboard.press('Escape');await page.getByRole('dialog',{name:dialogTitle,exact:true}).waitFor({state:'hidden'});
+   assert.equal(await page.evaluate(()=>document.body.style.overflow),'');assert.ok(await page.getByRole('button',{name:title,exact:true}).evaluate(e=>e===document.activeElement),'Return to parent trigger');
+  }
+
+ }
+ if(process.env.BPS_DIALOG_DESIGN_CHECK==='1'){
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
+  sql(`INSERT INTO appointments(id,tenant_id,company_id,meeting_date,meeting_type,status,attendee,created_by) VALUES('${randomUUID()}','${id(1)}','${company}','2026-09-10','ziyaret','planlandi','UX panel kabulü','${user}');`);
+  for(const width of [1280,390]){
+   await page.setViewportSize({width,height:900});await page.goto(origin+'/randevular');await page.getByRole('cell',{name:first,exact:true}).click();const panel=page.getByRole('dialog',{name:'Randevu Detay',exact:true});await panel.waitFor();
+   for(let k=0;k<8;k++){await page.keyboard.press('Tab');assert.ok(await panel.evaluate(d=>d.contains(document.activeElement)));}
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/panel-'+width+'.png'});await page.keyboard.press('Escape');await panel.waitFor({state:'hidden'});assert.equal(await page.evaluate(()=>document.body.style.overflow),'');
+   await page.goto(origin+'/finansal-ozet');await page.getByRole('heading',{name:'Kayıtlı maliyetler',exact:true}).waitFor();
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/finance-'+width+'.png',fullPage:true});
+   const trigger=page.getByRole('button',{name:'Gelişmiş özet',exact:true});await trigger.click();const dialog=page.getByRole('dialog',{name:'Gelişmiş finansal özet',exact:true});await dialog.waitFor();
+   await page.keyboard.press('Shift+Tab');assert.ok(await dialog.evaluate(d=>d.contains(document.activeElement)));await page.screenshot({path:output+'/finance-advanced-'+width+'.png'});await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});assert.ok(await trigger.evaluate(e=>e===document.activeElement));
+  }
+  await page.setViewportSize({width:1280,height:900});console.log('PASS native nested dialogs, focus containment/return, scroll lock, side panels and finance desktop/mobile');
  }
  if(process.env.BPS_DETAIL_DESIGN_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID();
@@ -107,7 +131,7 @@ try {
 finally {
  releaseRequest?.();await browser?.close();
  if(sql&&user)try{
-  sql(`BEGIN;DELETE FROM companies WHERE tenant_id='${id(1)}' AND created_by='${user}' AND name LIKE '${prefix}%';DELETE FROM tenant_memberships WHERE user_id='${user}';DELETE FROM profiles WHERE id='${user}';COMMIT;`);
+  sql(`BEGIN;DELETE FROM appointments WHERE created_by='${user}' AND company_id IN (SELECT id FROM companies WHERE name LIKE '${prefix}%' AND tenant_id='${id(1)}');DELETE FROM companies WHERE tenant_id='${id(1)}' AND created_by='${user}' AND name LIKE '${prefix}%';DELETE FROM tenant_memberships WHERE user_id='${user}';DELETE FROM profiles WHERE id='${user}';COMMIT;`);
   assert.ifError((await admin.auth.admin.deleteUser(user)).error);console.log('Owned synthetic companies and Auth account removed');
  }catch(e){console.error('Cleanup failed: '+e.message);process.exitCode=1;}
  release?.();
