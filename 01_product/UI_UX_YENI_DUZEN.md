@@ -192,3 +192,14 @@ Panelin Durum ve Atanan Kişi label/id bağları eklendi. Seçeneklerde olmayan 
 Gerçek TS yardımcı testi 6/6 (UUID/metinsiz, güncel adın eski metni geçmesi, loading/error/missing, boş ad, legacy-only, gerçekten atanmamış); qa:operations listesine eklendi. BPS_ASSIGNEE_LABEL_CHECK=1: dedicated sentetik DB ve gerçek Auth ile UUID/null metin görevi güncel adla gösterildi, kişi adına arama doğru tek satırı verdi; legacy ve atanmamış satırlar ayrıldı. RPC 503'te atanmamış denmedi, tekrar yüklemeyle ad geldi. RPC [] halinde seçicide UUID ve doğru eksik-kullanıcı etiketi korundu. Geciktirilmiş RPC sırasında panelde durum değiştirildi; kişi dizini gelince taslak değişiklik korundu, kaydetmeden kapatınca DB durumunun değişmediği doğrulandı. Son kaynak kanıt `/private/tmp/bps-company-feedback-gGj21K`; önceki daha dar kabul `/private/tmp/bps-company-feedback-GODGzn`. Mobil eksik-kullanıcı paneli ve hata ekranı görsel incelendi.
 
 Son kaynak TypeScript/lint ve izole production build geçti. Test kayıtları/Auth hesabı temizlendi. Ürün SQL/migration/push/deploy yok.
+
+
+## 070 — Görev ve randevu panelinden bağlı firmaya geçiş
+
+İki panel firma bağlantısını yalnız legacy_mock_id bulunduğunda gösteriyordu; yeni oluşturulan UUID tabanlı firmalar düz metin kalıyordu. Firma detayının mevcut resolveCompanyByIdOrLegacy yolu UUID zaten kabul eder. Artık görev ve randevu panelinde company_id ile /firmalar/{UUID} Link vardır. Legacy kimliği bulunan kayıtlar da aynı kanonik hedefe gider. Ad çözümlenememişse anlaşılır Firma kaydını aç metni kullanılır; firma okuma ve yetki kontrolü mevcut detay sayfasında sürer. Yeni erişim veya yazma yolu eklenmedi.
+
+Bağlantı altı çizili, minimum 44 px ve uzun adları sarabilecek biçimdedir. Görev sayfasında yalnız bu link için tutulan companyLegacyById/firma_legacy_id kaldırıldı. Firma seçici/yazma katmanının legacy uyumu değişmedi; randevu sayfasında görev oluşturma için gereken harita kaldı.
+
+BPS_COMPANY_LINK_CHECK=1 kabulünde dedicated sentetik DB ve gerçek Auth kullanıldı. Kendi firmasının legacy kimliği önce NULL, sonra sentetik değer yapılarak iki durumda da hem görev hem randevu paneli açıldı. href gerçek UUID, 390 px taşmama/44 px, odak+Enter ile doğru firma başlığının açılması, açık dialog/scroll kilidi kalmaması ve browser back sonrası önceki arama/durum filtresi doğrulandı. Dört akış geçti. Kanıt `/private/tmp/bps-company-feedback-UlMq2Y`; iki mobil panel görüntüsü incelendi. Firma kayıt/tek POST ve sunucu yetki reddi regresyonu da geçti.
+
+TypeScript/lint ve izole production build başarılı. Yalnız kendi test kayıtları/Auth hesabı temizlendi. Yeni unit testi yok; gezinme gerçek tarayıcıda doğrulandı. Ürün SQL/migration/push/deploy yok.

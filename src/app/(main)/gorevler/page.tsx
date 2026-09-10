@@ -12,6 +12,7 @@ import TaskPrefillBanner from "./TaskPrefillBanner";
 import TaskAssignmentHistory from "./TaskAssignmentHistory";
 import type { TaskPrefill } from "@/lib/operations/task-prefill";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { formatDateTR } from "@/lib/format-date";
 import { Plus } from "lucide-react";
 import {
@@ -86,7 +87,6 @@ const STATUS_LABELS: Record<string, string> = {
  */
 interface TaskListRow extends TaskRow {
   firma_name: string;
-  firma_legacy_id: string | null;
   assignee_label: string;
 }
 
@@ -218,7 +218,6 @@ export default function GorevlerPage() {
   const supabase = useMemo(() => createClient(), []);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [companyNameById, setCompanyNameById] = useState<Record<string, string>>({});
-  const [companyLegacyById, setCompanyLegacyById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   // Real companies for the firma filter + New Task modal dropdown.
@@ -256,16 +255,14 @@ export default function GorevlerPage() {
     try {
       const rows = await listAllTasks(supabase);
       setTasks(rows);
-      // Resolve firma display names + legacy ids in a single batched
+      // Resolve firma display names in a single batched
       // round trip — getCompanyDisplayMapByIds deduplicates internally.
       const uniqueCompanyIds = Array.from(new Set(rows.map((r) => r.company_id)));
       const display = await getCompanyDisplayMapByIds(supabase, uniqueCompanyIds);
       setCompanyNameById(display.nameById);
-      setCompanyLegacyById(display.legacyById);
     } catch (err) {
       setTasks([]);
       setCompanyNameById({});
-      setCompanyLegacyById({});
       setLoadError(
         err instanceof Error ? err.message : "Görevler yüklenirken bir hata oluştu.",
       );
@@ -314,10 +311,9 @@ export default function GorevlerPage() {
     return tasks.map((t) => ({
       ...t,
       firma_name: companyNameById[t.company_id] ?? "—",
-      firma_legacy_id: companyLegacyById[t.company_id] ?? null,
       assignee_label: taskAssigneeLabel(t, t.assigned_to_user_id ? profileNames.get(t.assigned_to_user_id) : undefined, profilesDurum),
     }));
-  }, [tasks, companyNameById, companyLegacyById, profileNames, profilesDurum]);
+  }, [tasks, companyNameById, profileNames, profilesDurum]);
 
   // ------------------------------------------------------------------
   // Status counts — computed from loaded tasks
@@ -537,16 +533,10 @@ export default function GorevlerPage() {
               <div>
                 <dt className={DL_LABEL}>Bağlı Firma</dt>
                 <dd className={`${TYPE_BODY} mt-0.5`}>
-                  {selectedTask.firma_legacy_id ? (
-                    <a
-                      href={`/firmalar/${selectedTask.firma_legacy_id}`}
-                      className={`${TEXT_LINK} hover:underline`}
-                    >
-                      {selectedTask.firma_name}
-                    </a>
-                  ) : (
-                    <span className={TEXT_BODY}>{selectedTask.firma_name}</span>
-                  )}
+                  <Link href={`/firmalar/${selectedTask.company_id}`}
+                    className={`${TEXT_LINK} inline-block min-h-11 max-w-full break-words py-2 underline underline-offset-4`}>
+                    {selectedTask.firma_name === "—" ? "Firma kaydını aç" : selectedTask.firma_name}
+                  </Link>
                 </dd>
               </div>
               <div>

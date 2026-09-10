@@ -22,6 +22,7 @@ import AsyncSection from "@/components/ui/AsyncSection";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { formatDateTR } from "@/lib/format-date";
 import { Plus } from "lucide-react";
 import {
@@ -486,16 +487,10 @@ export default function RandevularPage() {
             <div>
               <dt className={DL_LABEL}>Firma</dt>
               <dd className={`${TYPE_BODY} mt-0.5`}>
-                {companyLegacyById[selectedRandevu.company_id] ? (
-                  <a
-                    href={`/firmalar/${companyLegacyById[selectedRandevu.company_id]}`}
-                    className={`${TEXT_LINK} hover:underline`}
-                  >
-                    {selectedRandevu.firma_name}
-                  </a>
-                ) : (
-                  <span className={TEXT_BODY}>{selectedRandevu.firma_name}</span>
-                )}
+                <Link href={`/firmalar/${selectedRandevu.company_id}`}
+                  className={`${TEXT_LINK} inline-block min-h-11 max-w-full break-words py-2 underline underline-offset-4`}>
+                  {selectedRandevu.firma_name === "—" ? "Firma kaydını aç" : selectedRandevu.firma_name}
+                </Link>
               </dd>
             </div>
             <div>

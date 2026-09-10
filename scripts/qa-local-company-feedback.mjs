@@ -420,6 +420,31 @@ try {
   await page.reload();await row(assigned).getByRole('cell',{name:currentName,exact:true}).waitFor();await page.setViewportSize({width:1280,height:900});
   console.log('PASS UUID name without legacy text, true unassigned/legacy rows, current-name search, delayed directory preserves unsaved edit, directory failure/retry, missing user and preserved disabled picker identity without writes');
  }
+ if(process.env.BPS_COMPANY_LINK_CHECK==='1') {
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
+  assert.equal(sql("SELECT obj_description('public.tasks'::regclass)"),'BPS synthetic task-prefill fixture v1');
+  const taskTitle=prefix+'-company-link-task',attendee=prefix+'-company-link-meeting';
+  sql(`INSERT INTO tasks(tenant_id,company_id,title,created_by) VALUES('${id(1)}','${company}','${taskTitle}','${user}');
+   INSERT INTO appointments(tenant_id,company_id,meeting_date,meeting_type,status,attendee,created_by) VALUES('${id(1)}','${company}','2026-09-10','ziyaret','planlandi','${attendee}','${user}');`);
+  for(const legacy of [false,true]) {
+   sql(`UPDATE companies SET legacy_mock_id=${legacy?"'legacy-"+prefix+"'":"NULL"} WHERE id='${company}' AND created_by='${user}'`);
+   for(const [route,query,placeholder,status,panelName] of [
+    ['gorevler',taskTitle,'Görev, firma, kişi ara...','acik','Görev Hızlı Güncelle'],
+    ['randevular',attendee,'Firma, katilimci ara...','planlandi','Randevu Detay'],
+   ]) {
+    await page.setViewportSize({width:1280,height:900});await page.goto(origin+'/'+route);
+    const search=page.getByRole('textbox',{name:placeholder,exact:true});await search.fill(query);await page.getByRole('combobox',{name:'Durum',exact:true}).selectOption(status);
+    await page.waitForFunction(({route,query})=>Object.keys(sessionStorage).filter(k=>k.startsWith('bps:list-view:v1:')).some(k=>JSON.parse(k.slice('bps:list-view:v1:'.length))[0]===route&&JSON.parse(sessionStorage.getItem(k)).search===query),{route,query});
+    await page.getByRole('cell',{name:query,exact:true}).click();const panel=page.getByRole('dialog',{name:panelName,exact:true});await panel.waitFor();const link=panel.getByRole('link',{name:first,exact:true});
+    assert.equal(await link.getAttribute('href'),'/firmalar/'+company);await page.setViewportSize({width:390,height:844});assert.ok(await link.evaluate(e=>e.getBoundingClientRect().height>=44));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:output+'/company-link-'+route+'-'+(legacy?'legacy':'uuid')+'-390.png'});await link.focus();await page.keyboard.press('Enter');
+    await page.waitForURL(origin+'/firmalar/'+company);await page.getByRole('heading',{name:first,exact:true}).waitFor();assert.equal(await page.getByRole('dialog').count(),0);assert.equal(await page.evaluate(()=>document.body.style.overflow),'');
+    await page.goBack();await page.waitForURL(origin+'/'+route);if(await panel.isVisible())await page.keyboard.press('Escape');await search.waitFor();assert.equal(await search.inputValue(),query);
+    await page.setViewportSize({width:1280,height:900});assert.equal(await page.getByRole('combobox',{name:'Durum',exact:true}).inputValue(),status);await page.getByRole('cell',{name:query,exact:true}).waitFor();
+   }
+  }
+  console.log('PASS task/appointment company links use canonical UUID with and without legacy ID, mobile/Enter navigation, correct company, dialog cleanup and preserved back filters');
+ }
  if(process.env.BPS_LIST_MEMORY_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID(),contractName=prefix+'-memory';assert.match(company,/^[a-f0-9-]{36}$/);
   assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${id(1)}','${company}','${contractName}','taslak','${user}')`);
