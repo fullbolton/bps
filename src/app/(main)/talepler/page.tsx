@@ -249,6 +249,17 @@ export default function TaleplerPage() {
     initialSorumlu?: string;
   }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const mobileDetailControls = useRef(new Map<string, HTMLButtonElement>());
+  const closeDetail = () => {
+    const id = selectedId;
+    setSelectedId(null);
+    // Reload can replace the original trigger while a detail stays open.
+    requestAnimationFrame(() => {
+      if (liveContext.current !== context) return;
+      const trigger = id ? mobileDetailControls.current.get(id) : null;
+      if (trigger?.isConnected && trigger.getClientRects().length) trigger.focus({preventScroll: true});
+    });
+  };
 
 
   // ---------------------------------------------------------------------------
@@ -359,16 +370,32 @@ export default function TaleplerPage() {
     [allCompanies],
   );
 
+  const openOwner = (row: DemandListRow) => setOwnerTarget({
+    open: true, talepRef: `${row.position} — ${row.firma_name}`,
+    talepId: row.id, initialSorumlu: row.responsible ?? "",
+  });
+
+  const columns = useMemo<ColumnDef<DemandListRow>[]>(() => COLUMNS.map(column => column.key !== "firma_name" ? column : {
+    ...column,
+    render: (_value, row) => <div className="w-56 whitespace-normal break-words sm:w-auto">
+      <span>{row.firma_name}</span>
+      <div className="mt-2 space-y-2 sm:hidden">
+        <p className="font-medium text-slate-900">{row.position}</p>
+        <StatusBadge status={row.status} />
+        <p className="text-xs text-slate-600">{row.requested_count} kişi talep · {row.provided_count} sağlanan · {row.open_count} açık</p>
+        <button type="button" ref={element => {
+          if (element) mobileDetailControls.current.set(row.id, element);
+          else mobileDetailControls.current.delete(row.id);
+        }} onClick={event => { event.stopPropagation(); setSelectedId(row.id); }}
+          aria-label={`${row.position} talebini aç`} className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-blue-700">Talep detayı</button>
+      </div>
+    </div>,
+  }), []);
+
   const rowActions: RowAction<DemandListRow>[] = [
     {
       label: "Sorumlu Ata",
-      onClick: (row) =>
-        setOwnerTarget({
-          open: true,
-          talepRef: `${row.position} — ${row.firma_name}`,
-          talepId: row.id,
-          initialSorumlu: row.responsible ?? "",
-        }),
+      onClick: openOwner,
     },
   ];
 
@@ -483,7 +510,7 @@ export default function TaleplerPage() {
           <button type="button" onClick={() => void reload()} className="min-h-11 rounded-lg border border-slate-200 px-4 text-sm font-medium text-blue-700">Listeyi tekrar yükle</button>
         ) : (
           <DataTable<DemandListRow>
-            columns={COLUMNS}
+            columns={columns}
             data={filteredData}
             rowKey="id"
             onRowClick={(row) => setSelectedId(row.id)}
@@ -502,7 +529,7 @@ export default function TaleplerPage() {
       {/* RequestDetailDrawer */}
       <RightSidePanel
         open={!!selectedTalep}
-        onClose={() => setSelectedId(null)}
+        onClose={closeDetail}
         title="Talep Detay"
       >
         {selectedTalep && (
@@ -586,7 +613,12 @@ export default function TaleplerPage() {
             <div>
               <dt className={DL_LABEL}>Sorumlu</dt>
               <dd className={DL_VALUE}>
-                {selectedTalep.responsible ?? "—"}
+                {selectedTalep.responsible?.trim() || "Henüz sorumlu atanmadı"}
+              </dd>
+              <dd className="mt-2">
+                <button type="button" onClick={() => openOwner(selectedTalep)} className="min-h-11 rounded-lg border border-slate-200 px-4 text-sm font-medium text-blue-700 hover:bg-blue-50">
+                  {selectedTalep.responsible?.trim() ? "Sorumluyu değiştir" : "Sorumlu ata"}
+                </button>
               </dd>
             </div>
           </dl>
