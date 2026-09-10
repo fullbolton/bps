@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useImperativeHandle, type Ref } from "react";
 import { Search, X } from "lucide-react";
 import {
   TYPE_BODY,
@@ -10,7 +10,10 @@ import {
   TEXT_MUTED,
 } from "@/styles/tokens";
 
+export interface SearchInputHandle { clear: () => void; }
+
 interface SearchInputProps {
+  ref?: Ref<SearchInputHandle>;
   placeholder?: string;
   value?: string;
   onChange: (value: string) => void;
@@ -19,6 +22,7 @@ interface SearchInputProps {
 }
 
 export default function SearchInput({
+  ref,
   placeholder = "Ara...",
   value: externalValue,
   onChange,
@@ -51,6 +55,7 @@ export default function SearchInput({
     callback.current("");
     inputRef.current?.focus();
   }
+  useImperativeHandle(ref, () => ({ clear: handleClear }));
 
   return (
     <div className="relative">

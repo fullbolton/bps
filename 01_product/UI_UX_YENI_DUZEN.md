@@ -168,3 +168,14 @@ Temizle düğmesi minimum 44 px, type=button ve işlem sonrası ilk filtre kontr
 Kabul: dedicated sentetik Supabase/gerçek Auth ile BPS_OPERATIONS_LIST_MEMORY_CHECK + BPS_TASK_MOBILE_CHECK + BPS_FILTER_BAR_CHECK. 065/066 filtre hafızası/mobil özeti regresyonu geçti. Yalnız disposable snapshot'a eklenen qa-filter-bar-acceptance rotası gerçek FilterBar ile görünür label ve benzersiz id'leri, aktif seçeneğin kaldırılmasında değerin korunmasını/açıklama bağını, geri gelmesini, kullanıcı temizlemesini, tarih temizlemeyi, Enter ile Temizle'nin form göndermemesini ve odağı doğruladı. 320/390/1280 ekranlarda taşma yok. Kanıt `/private/tmp/bps-company-feedback-fDoJf7`; `filter-missing-320.png` ve `task-filters-expanded-390.png` görsel incelendi.
 
 TypeScript/lint ve izole production build geçti; sonrasında yalnız JSX girintisi düzenlendi. Kendi sentetik kayıtlar/Auth hesabı temizlendi. Kabul rotası ürün src ağacında yok. Ortak bileşen değişikliği diğer FilterBar kullanıcılarına da uygulanır; her ekranın tüm iş akışı test edildi iddiası yok. Yeni SQL/migration/push/deploy yok.
+
+
+## 068 — Boş arama sonucundan tek adımda dönüş
+
+Firma, sözleşme, görev ve randevu listeleri: yüklenmiş kayıt varsa, arama veya aktif filtre uygulanmışsa ve sonuç boşsa 'Arama ve filtreleri temizle' aksiyonu sunulur. DataTable opsiyonel emptyAction'ı EmptyState'e aktarır; dolu tabloda veya bu dört listede henüz hiç kayıt yokken bu aksiyon gösterilmez. Okuma hata yüzeyleri değişmedi.
+
+Aksiyon SearchInput'un React 19 ref handle clear metoduyla aramayı ve zamanlayıcıyı temizler, son onChange callback'ini çağırır ve input'a odak verir; sayfa filtre varsayılanlarını uygular. Mevcut useListViewState üzerinden sekme kaydı da temizlenir. Dış value zaten boşken bekleyen kullanıcı yazısı varsa da doğrudan clear çalışır; sadece dış value effect'ine güvenilmez. Ref kullanmayan mevcut SearchInput çağrılarının davranışı değişmez. EmptyState aksiyonları minimum 44 px ve type=button olur.
+
+Kabul: BPS_LIST_RECOVERY_CHECK=1, dedicated sentetik Supabase + gerçek Auth. Dört listede eşleşmeyen sorgu ve durum filtresi, 390 px aksiyon/taşmama, Enter ile temizleme, gerçek listenin dönüşü, arama odağı, tüm filtrelerin boşluğu ve reload sonrası temiz kalması geçti. Snapshot-only qa-list-recovery-acceptance gerçek DataTable/EmptyState/SearchInput ile 3 saniyelik pending debounce kurar; callback henüz 0 iken aksiyon uygulanır, 3.3 saniye sonra yalnız clear callback'i (1) kalır. Form submit sayısı 0 ve odak aramadadır. Kanıt `/private/tmp/bps-company-feedback-XpX5iB`; firma/görev mobil görselleri incelendi.
+
+İlk TypeScript turunda metinsel yerleştirme ve kabul fixture'ının ColumnDef header alanı hataları yakalanıp düzeltildi; son TypeScript ve izole production build/lint başarılı. Derlemeden sonra yalnız JSX girintisi düzenlendi. Kendi sentetik kayıtları/Auth hesabı temizlendi; test rotası ürün src ağacında yok. Yeni SQL/migration/push/deploy yok.

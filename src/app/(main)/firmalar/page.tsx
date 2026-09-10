@@ -1,5 +1,6 @@
 "use client";
 
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 
 /**
@@ -45,7 +46,7 @@ import { useListViewState } from "@/components/ui/useListViewState";
  *      garanti edilir, "oldu mu olmadı mı" belirsizliği bırakılmaz.
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
@@ -132,6 +133,7 @@ export default function FirmalarPage() {
   const [newOpen, setNewOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("firmalar", listScope, LIST_FILTER_DEFAULTS);
 
@@ -326,7 +328,7 @@ export default function FirmalarPage() {
         )}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput key={listScope} maxLength={512} value={search} placeholder="Firma, yetkili, sektor ara..." onChange={handleSearch} />
+            <SearchInput ref={searchControl} key={listScope} maxLength={512} value={search} placeholder="Firma, yetkili, sektor ara..." onChange={handleSearch} />
           </div>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>
@@ -336,6 +338,10 @@ export default function FirmalarPage() {
           rowKey="id"
           rowActions={rowActions}
           onRowClick={(row) => router.push(`/firmalar/${row.id}`)}
+          emptyAction={(companies.length > 0 && (search !== "" || Object.values(filters).some(Boolean))) ? {
+            label: "Arama ve filtreleri temizle",
+            onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
+          } : undefined}
           emptyTitle={
             companies.length === 0 ? "Portfoyde firma yok" : "Firma bulunamadi"
           }

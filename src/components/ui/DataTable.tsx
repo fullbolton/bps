@@ -31,6 +31,7 @@ interface DataTableProps<T extends object> {
   rowActions?: RowAction<T>[];
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyAction?: { label: string; onClick: () => void };
   pageSize?: number;
   /** Opt-in loading state. When true, shows a loading skeleton instead of data. */
   loading?: boolean;
@@ -44,6 +45,7 @@ export default function DataTable<T extends object>({
   rowActions,
   emptyTitle = "Veri bulunamadı",
   emptyDescription,
+  emptyAction,
   pageSize = TABLE_PAGE_SIZE,
   loading = false,
 }: DataTableProps<T>) {
@@ -98,7 +100,7 @@ export default function DataTable<T extends object>({
   }
 
   if (data.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} size="page" />;
+    return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} size="page" />;
   }
 
   return (

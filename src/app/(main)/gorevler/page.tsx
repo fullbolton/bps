@@ -1,11 +1,12 @@
 "use client";
 
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import CollapsibleFilters from "@/components/ui/CollapsibleFilters";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 
-import { Suspense, useState, useMemo, useCallback, useEffect } from "react";
+import { Suspense, useState, useRef, useMemo, useCallback, useEffect } from "react";
 import TaskPrefillBanner from "./TaskPrefillBanner";
 import TaskAssignmentHistory from "./TaskAssignmentHistory";
 import type { TaskPrefill } from "@/lib/operations/task-prefill";
@@ -226,6 +227,7 @@ export default function GorevlerPage() {
   const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
   const [profilesDurum, setProfilesDurum] = useState<"loading" | "error" | "ready">("loading");
 
+  const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("gorevler", listScope, LIST_FILTER_DEFAULTS);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -480,7 +482,7 @@ export default function GorevlerPage() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="w-full sm:max-w-xs">
-                <SearchInput key={listScope} value={search} maxLength={512} placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />
+                <SearchInput ref={searchControl} key={listScope} value={search} maxLength={512} placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />
               </div>
               <CollapsibleFilters key={listScope} activeCount={Object.values(filters).filter(Boolean).length}>
                 <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
@@ -493,6 +495,10 @@ export default function GorevlerPage() {
               rowKey="id"
               onRowClick={(row) => setSelectedId(row.id)}
               rowActions={rowActions}
+              emptyAction={(tasks.length > 0 && (search !== "" || Object.values(filters).some(Boolean))) ? {
+                label: "Arama ve filtreleri temizle",
+                onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
+              } : undefined}
               emptyTitle={tasks.length === 0 ? "Henüz görev yok" : "Bu filtrelerle eşleşen görev yok"}
               emptyDescription={tasks.length === 0 ? "Yeni Görev ile ilk işinizi oluşturabilirsiniz.":"Aramayı veya filtreleri değiştirerek yeniden deneyin."}
             />

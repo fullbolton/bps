@@ -1,10 +1,11 @@
 "use client";
 
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
@@ -169,6 +170,7 @@ export default function SozlesmelerPage() {
   // Real companies for the firma filter + New Contract modal.
   const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
 
+  const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("sozlesmeler", listScope, LIST_FILTER_DEFAULTS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -351,7 +353,7 @@ export default function SozlesmelerPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput
+            <SearchInput ref={searchControl}
               key={listScope}
               maxLength={512}
               value={search}
@@ -375,6 +377,10 @@ export default function SozlesmelerPage() {
             rowKey="id"
             onRowClick={(row) => router.push(`/sozlesmeler/${row.id}`)}
             rowActions={rowActions}
+            emptyAction={(contracts.length > 0 && (search !== "" || Object.values(filters).some(Boolean))) ? {
+              label: "Arama ve filtreleri temizle",
+              onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
+            } : undefined}
             emptyTitle={contracts.length === 0 ? "Henüz sözleşme yok" : "Bu filtrelerle eşleşen sözleşme yok"}
             emptyDescription={contracts.length === 0 ? (canCreate?"Yeni Sözleşme ile ilk taslağınızı oluşturabilirsiniz.":"Ekibiniz sözleşme eklediğinde burada görünecek."):"Aramayı veya filtreleri değiştirerek yeniden deneyin."}
           />

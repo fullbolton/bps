@@ -367,6 +367,27 @@ try {
   await company.selectOption('A');await page.getByRole('button',{name:'Seçenekleri değiştir',exact:true}).click();await hint.waitFor();await company.selectOption('');assert.equal(await hint.count(),0);assert.equal(await page.getByTestId('filter-value').textContent(),'boş');
   console.log('PASS visible filter labels/unique IDs, unavailable selection stays honest, option recovery, date/clear focus without submit and 320/390/1280 fit');
  }
+ if(process.env.BPS_LIST_RECOVERY_CHECK==='1') {
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
+  assert.equal(sql("SELECT obj_description('public.tasks'::regclass)"),'BPS synthetic task-prefill fixture v1');
+  assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');
+  sql(`INSERT INTO tasks(tenant_id,company_id,title,created_by) VALUES('${id(1)}','${company}','${prefix}-recovery','${user}');
+   INSERT INTO appointments(tenant_id,company_id,meeting_date,meeting_type,status,attendee,created_by) VALUES('${id(1)}','${company}','2026-09-10','ziyaret','planlandi','${prefix}-recovery','${user}');
+   INSERT INTO contracts(tenant_id,company_id,name,status,created_by) VALUES('${id(1)}','${company}','${prefix}-recovery','taslak','${user}');`);
+  for(const [route,placeholder,status] of [['firmalar','Firma, yetkili, sektor ara...','aday'],['sozlesmeler','Sözleşme, firma ara...','taslak'],['gorevler','Görev, firma, kişi ara...','acik'],['randevular','Firma, katilimci ara...','planlandi']]) {
+   await page.setViewportSize({width:1280,height:900});await page.goto(origin+'/'+route);
+   const search=page.getByRole('textbox',{name:placeholder,exact:true}),filter=page.getByRole('combobox',{name:'Durum',exact:true}),reset=page.getByRole('button',{name:'Arama ve filtreleri temizle',exact:true});
+   await search.fill(prefix+'-never-matches');await filter.selectOption(status);await reset.waitFor();
+   await page.setViewportSize({width:390,height:844});assert.ok(await reset.evaluate(e=>e.getBoundingClientRect().height>=44));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/recovery-'+route+'-390.png'});
+   await reset.focus();await page.keyboard.press('Enter');await page.getByRole('table').waitFor();assert.equal(await search.inputValue(),'');assert.ok(await search.evaluate(e=>e===document.activeElement));assert.equal(await reset.count(),0);
+   await page.setViewportSize({width:1280,height:900});for(const select of await page.getByRole('combobox').all())assert.equal(await select.inputValue(),'');
+   await page.reload();await search.waitFor();assert.equal(await search.inputValue(),'');assert.equal(await filter.inputValue(),'');await page.getByRole('table').waitFor();assert.equal(await reset.count(),0);
+  }
+  await page.goto(origin+'/qa-list-recovery-acceptance');const pending=page.getByRole('textbox',{name:'Bekleyen arama',exact:true});await pending.fill('Zamanlayıcıdaki eski arama');
+  assert.equal(await page.getByTestId('callback-count').textContent(),'0');await page.getByRole('button',{name:'Arama ve filtreleri temizle',exact:true}).click();assert.equal(await pending.inputValue(),'');assert.ok(await pending.evaluate(e=>e===document.activeElement));
+  await page.waitForTimeout(3300);assert.equal(await pending.inputValue(),'');assert.equal(await page.getByTestId('callback-count').textContent(),'1');assert.equal(await page.getByTestId('submit-count').textContent(),'0');
+  console.log('PASS four list empty-result reset, mobile/keyboard/focus, persisted clearing and pending debounce cancellation without form submit');
+ }
  if(process.env.BPS_LIST_MEMORY_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID(),contractName=prefix+'-memory';assert.match(company,/^[a-f0-9-]{36}$/);
   assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${id(1)}','${company}','${contractName}','taslak','${user}')`);

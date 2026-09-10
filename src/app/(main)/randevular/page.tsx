@@ -1,5 +1,6 @@
 "use client";
 
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
@@ -19,7 +20,7 @@ import AsyncSection from "@/components/ui/AsyncSection";
  * update and the task creation atomically.
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Plus } from "lucide-react";
@@ -196,6 +197,7 @@ export default function RandevularPage() {
   const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
   const [profilesDurum, setProfilesDurum] = useState<"loading" | "error" | "ready">("loading");
 
+  const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("randevular", listScope, LIST_FILTER_DEFAULTS);
   const [newOpen, setNewOpen] = useState(false);
@@ -450,7 +452,7 @@ export default function RandevularPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput key={listScope} value={search} maxLength={512} placeholder="Firma, katilimci ara..." onChange={handleSearch} />
+            <SearchInput ref={searchControl} key={listScope} value={search} maxLength={512} placeholder="Firma, katilimci ara..." onChange={handleSearch} />
           </div>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>
@@ -464,6 +466,10 @@ export default function RandevularPage() {
             rowKey="id"
             onRowClick={(row) => setSelectedId(row.id)}
             rowActions={rowActions}
+            emptyAction={(appointments.length > 0 && (search !== "" || Object.values(filters).some(Boolean))) ? {
+              label: "Arama ve filtreleri temizle",
+              onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
+            } : undefined}
             emptyTitle={appointments.length === 0 ? "Henüz randevu yok" : "Bu filtrelerle eşleşen randevu yok"}
             emptyDescription={appointments.length === 0 ? "Yeni Randevu ile ilk görüşmenizi planlayabilirsiniz.":"Aramayı veya filtreleri değiştirerek yeniden deneyin."}
           />
