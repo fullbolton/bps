@@ -12,6 +12,12 @@ export function useModalDialog(open: boolean) {
     if (!open || !dialog) return;
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     dialog.showModal();
+    // React autoFocus can run while a native dialog is still closed. Focus the
+    // requested field only after showModal, preserving the outside return target.
+    const initial = dialog.querySelector<HTMLElement>("[data-dialog-initial-focus]");
+    if (initial && !initial.matches(":disabled") && initial.getClientRects().length > 0 && initial.closest("dialog") === dialog) {
+      initial.focus({preventScroll: true});
+    }
     // Native inertness blocks the page; wrap Tab at the dialog edges as well,
     // so desktop browsers do not move focus into their browser chrome.
     const wrapFocus = (event: KeyboardEvent) => {

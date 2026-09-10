@@ -8,7 +8,7 @@
  * and this modal shows a saving spinner + inline error on failure.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import NewCompanyModal from "./NewCompanyModal";
@@ -45,6 +45,7 @@ export default function NewAppointmentModal({
   allowNewCompany = true,
   onSubmit,
 }: NewAppointmentModalProps) {
+  const formId = useId();
   const [firmaId, setFirmaId] = useState(defaultFirmaId);
   const submitting = useRef(false);
   const [tarih, setTarih] = useState("");
@@ -105,7 +106,7 @@ export default function NewAppointmentModal({
       onClose();
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Randevu olusturulurken bir hata olustu.",
+        err instanceof Error ? err.message : "Randevu oluşturulurken bir hata oluştu.",
       );
     } finally {
       setSaving(false);
@@ -136,114 +137,120 @@ export default function NewAppointmentModal({
       footer={
         <>
           <button
+            type="button"
             onClick={resetAndClose}
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40"
           >
-            Iptal
+            İptal
           </button>
           <button
-            onClick={handleSubmit}
+            type="submit"
+            form={formId}
             disabled={!tumFirmalar.some((f) => f.id === firmaId) || !tarih || saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? "Kaydediliyor..." : "Olustur"}
+            {saving ? "Kaydediliyor..." : "Oluştur"}
           </button>
         </>
       }
     >
-      <fieldset disabled={saving} className="space-y-4">
-        {companyNotice && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{companyNotice}</p>}
-        {submitError && (
-          <p className="text-xs text-red-600" role="alert" aria-live="polite">
-            {submitError}
-          </p>
-        )}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Firma <span className="text-red-500">*</span>
-          </label>
-          <select
-            aria-label="Randevu firması"
-            value={firmaId}
-            onChange={(e) => {
-              if (allowNewCompany && e.target.value === NEW_COMPANY_OPTION) {
-                setCompanyModalOpen(true);
-                return;
-              }
-              setFirmaId(e.target.value);
-            }}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Firma secin</option>
-            {tumFirmalar.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.ad}
-              </option>
-            ))}
-            {allowNewCompany && <>
-              <option disabled>──────────────</option>
-              <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
-            </>}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+      <form id={formId} onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }} aria-describedby={`${formId}-help`}>
+        <p id={`${formId}-help`} className="mb-4 text-sm text-slate-500">* işaretli alanlar zorunludur. Diğer bilgileri daha sonra tamamlayabilirsiniz.</p>
+        {saving && <p role="status" className="mb-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Kaydediliyor, lütfen bekleyin…</p>}
+        <fieldset disabled={saving} aria-busy={saving} className="min-w-0 space-y-4">
+          {companyNotice && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{companyNotice}</p>}
+          {submitError && (
+            <p className="text-xs text-red-600" role="alert" aria-live="polite">
+              {submitError}
+            </p>
+          )}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Tarih <span className="text-red-500">*</span>
+            <label htmlFor={`${formId}-firmaId`} className="block text-sm font-medium text-slate-700 mb-1">
+              Firma <span className="text-red-500">*</span>
             </label>
-            <input
-              type="date"
-              aria-label="Randevu tarihi"
-              value={tarih}
-              onChange={(e) => setTarih(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <select required data-dialog-initial-focus id={`${formId}-firmaId`}
+              aria-label="Randevu firması"
+              value={firmaId}
+              onChange={(e) => {
+                if (allowNewCompany && e.target.value === NEW_COMPANY_OPTION) {
+                  setCompanyModalOpen(true);
+                  return;
+                }
+                setFirmaId(e.target.value);
+              }}
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Firma seçin</option>
+              {tumFirmalar.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.ad}
+                </option>
+              ))}
+              {allowNewCompany && <>
+                <option disabled>──────────────</option>
+                <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
+              </>}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor={`${formId}-tarih`} className="block text-sm font-medium text-slate-700 mb-1">
+                Tarih <span className="text-red-500">*</span>
+              </label>
+              <input required id={`${formId}-tarih`}
+                type="date"
+                aria-label="Randevu tarihi"
+                value={tarih}
+                onChange={(e) => setTarih(e.target.value)}
+                className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor={`${formId}-saat`} className="block text-sm font-medium text-slate-700 mb-1">
+                Saat
+              </label>
+              <input id={`${formId}-saat`}
+                type="time"
+                aria-label="Randevu saati"
+                value={saat}
+                onChange={(e) => setSaat(e.target.value)}
+                className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Saat
+            <label htmlFor={`${formId}-tip`} className="block text-sm font-medium text-slate-700 mb-1">
+              Görüşme Tipi
             </label>
-            <input
-              type="time"
-              aria-label="Randevu saati"
-              value={saat}
-              onChange={(e) => setSaat(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <select id={`${formId}-tip`}
+              aria-label="Görüşme tipi"
+              value={tip}
+              onChange={(e) => setTip(e.target.value as AppointmentMeetingType)}
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {(Object.keys(APPOINTMENT_TYPE_LABELS) as AppointmentMeetingType[]).map((t) => (
+                <option key={t} value={t}>
+                  {APPOINTMENT_TYPE_LABELS[t]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor={`${formId}-katilimci`} className="block text-sm font-medium text-slate-700 mb-1">
+              Katılımcı
+            </label>
+            <input id={`${formId}-katilimci`}
+              type="text"
+              aria-label="Katılımcı"
+              value={katilimci}
+              onChange={(e) => setKatilimci(e.target.value)}
+              placeholder="Katılımcı adı"
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Gorusme Tipi
-          </label>
-          <select
-            aria-label="Görüşme tipi"
-            value={tip}
-            onChange={(e) => setTip(e.target.value as AppointmentMeetingType)}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {(Object.keys(APPOINTMENT_TYPE_LABELS) as AppointmentMeetingType[]).map((t) => (
-              <option key={t} value={t}>
-                {APPOINTMENT_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Katilimci
-          </label>
-          <input
-            type="text"
-            aria-label="Katılımcı"
-            value={katilimci}
-            onChange={(e) => setKatilimci(e.target.value)}
-            placeholder="Katilimci adi"
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </fieldset>
+        </fieldset>
+      </form>
     </ModalShell>
 
     {/* ModalShell'in KARDESI — icine konsaydi modal govdesinin max-h

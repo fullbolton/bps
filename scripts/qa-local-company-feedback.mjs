@@ -32,7 +32,7 @@ try {
  page=await context.newPage();page.setDefaultTimeout(30000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const nameInput=()=>page.getByLabel('Firma Adı',{exact:false});
- const create=()=>page.getByRole('button',{name:'Oluştur',exact:true});
+ const create=()=>page.getByRole('dialog',{name:'Yeni Firma',exact:true}).getByRole('button',{name:'Oluştur',exact:true});
  const heading=()=>page.getByRole('heading',{name:'Yeni Firma',exact:true});
  const count=name=>sql(`SELECT count(*) FROM companies WHERE tenant_id='${id(1)}' AND name='${name}' AND created_by='${user}'`);
  await page.goto(origin+'/firmalar');await page.getByRole('button',{name:'Yeni Firma',exact:true}).click();
@@ -66,14 +66,35 @@ try {
   }
 
  }
+ const checkForm=async(dialog,firstField,slug)=>{
+  if(process.env.BPS_FORM_DESIGN_CHECK!=='1')return;
+  assert.ok(await firstField.evaluate(e=>e===document.activeElement),'Initial field focus: '+slug);
+  assert.ok(await dialog.locator('label').evaluateAll(labels=>labels.length>0&&labels.every(label=>label.control&&label.control.id===label.htmlFor)),'Every label has a control: '+slug);
+  assert.ok(await dialog.getByRole('button',{name:'Oluştur',exact:true}).isDisabled(),'Missing required input: '+slug);
+  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile form width: '+slug);
+  await page.screenshot({path:output+'/form-'+slug+'-mobile.png'});await page.setViewportSize({width:1280,height:900});await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});const title={task:'Yeni Görev',appointment:'Yeni Randevu',contract:'Yeni Sözleşme'}[slug];const trigger=page.getByRole('button',{name:title,exact:true});assert.ok(await trigger.evaluate(e=>e===document.activeElement),'Focus returns to form trigger');await trigger.click();await dialog.waitFor();
+ };
+ const submitForm=async(dialog,field,token)=>{
+  if(process.env.BPS_FORM_DESIGN_CHECK!=='1'){await dialog.getByRole('button',{name:'Oluştur',exact:true}).click();return;}
+  let reached,posts=0;const incoming=new Promise(r=>reached=r),gate=new Promise(r=>releaseRequest=r);
+  const handler=async route=>{if(route.request().method()==='POST'&&(route.request().postData()??'').includes(token)){posts++;reached();await gate;await route.continue();}else await route.fallback();};
+  await page.route('**/*',handler);await field.press('Enter');let timer;
+  try{await Promise.race([incoming,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Enter did not submit '+token)),20000);})]);}finally{clearTimeout(timer);}
+  await dialog.getByRole('status').filter({hasText:'Kaydediliyor, lütfen bekleyin…'}).waitFor();
+  assert.ok(await dialog.locator('input,select,textarea').evaluateAll(fields=>fields.every(f=>f.matches(':disabled'))),'Pending fields are locked');
+  await page.keyboard.press('Escape');assert.ok(await dialog.isVisible());await dialog.getByRole('button',{name:/penceresini kapat$/}).click();assert.ok(await dialog.isVisible());
+  await dialog.locator('form').evaluate(form=>{form.requestSubmit();form.requestSubmit();});
+  releaseRequest();await dialog.waitFor({state:'hidden'});await page.unroute('**/*',handler);assert.equal(posts,1,'Only one pending submit');
+ };
  if(process.env.BPS_WRITE_FEEDBACK_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
   await page.goto(origin+'/gorevler');await page.getByRole('button',{name:'Yeni Görev',exact:true}).click();
   const taskDialog=page.getByRole('dialog',{name:'Yeni Görev',exact:true}),taskTitle=prefix+'-task';
-  await taskDialog.getByPlaceholder('Görev başlığını girin').fill(taskTitle);await taskDialog.locator('select').first().selectOption({label:first});
+  await checkForm(taskDialog,taskDialog.getByLabel('Görev Başlığı',{exact:false}),'task');await taskDialog.getByLabel('Görev Başlığı',{exact:false}).fill(taskTitle);await taskDialog.locator('select').first().selectOption({label:first});
   let failedReads=0;
   const failList=async route=>{const u=new URL(route.request().url());if(route.request().method()==='GET'&&u.pathname==='/rest/v1/tasks'&&u.searchParams.get('select')==='*'){failedReads++;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Sentetik liste yenileme hatası'})});}else await route.continue();};
-  await page.route('**/rest/v1/tasks?*',failList);await taskDialog.getByRole('button',{name:'Oluştur',exact:true}).click();
+  await page.route('**/rest/v1/tasks?*',failList);await submitForm(taskDialog,taskDialog.getByLabel('Görev Başlığı',{exact:false}),taskTitle);
   await taskDialog.waitFor({state:'hidden'});await page.getByRole('status').filter({hasText:taskTitle+' görevlere eklendi.'}).waitFor();
   await page.getByText('Veri yüklenemedi',{exact:true}).waitFor();assert.ok(failedReads>0);assert.equal(await page.getByRole('heading',{name:'Henüz görev yok',exact:true}).count(),0);
   assert.equal(sql(`SELECT count(*) FROM tasks WHERE company_id='${company}' AND title='${taskTitle}'`),'1');
@@ -83,20 +104,34 @@ try {
   await taskPanel.getByRole('button',{name:'Güncellemeyi Uygula',exact:true}).click();await taskPanel.waitFor({state:'hidden'});await page.getByRole('status').filter({hasText:'Görev güncellendi.'}).waitFor();
   await page.getByRole('button',{name:'İşlem bildirimini kapat',exact:true}).click();assert.equal(await page.getByText('Görev güncellendi.',{exact:true}).count(),0);
   await page.goto(origin+'/randevular');await page.getByRole('button',{name:'Yeni Randevu',exact:true}).click();const appointmentDialog=page.getByRole('dialog',{name:'Yeni Randevu',exact:true});
-  await appointmentDialog.locator('select').first().selectOption({label:first});await appointmentDialog.locator('input[type="date"]').fill('2026-09-10');await appointmentDialog.getByPlaceholder('Katilimci adi').fill(prefix+'-attendee');
-  await appointmentDialog.getByRole('button',{name:'Olustur',exact:true}).click();await appointmentDialog.waitFor({state:'hidden'});
+  await checkForm(appointmentDialog,appointmentDialog.getByLabel('Randevu firması',{exact:true}),'appointment');await appointmentDialog.getByLabel('Randevu firması',{exact:true}).selectOption({label:first});await appointmentDialog.locator('input[type="date"]').fill('2026-09-10');await appointmentDialog.getByLabel('Katılımcı',{exact:true}).fill(prefix+'-attendee');
+  await submitForm(appointmentDialog,appointmentDialog.getByLabel('Katılımcı',{exact:true}),prefix+'-attendee');await appointmentDialog.waitFor({state:'hidden'});
   await page.getByRole('status').filter({hasText:'Randevu oluşturuldu. Durumu: planlandı.'}).waitFor();assert.equal(sql(`SELECT count(*) FROM appointments WHERE created_by='${user}' AND company_id='${company}' AND attendee='${prefix}-attendee'`),'1');
   await page.setViewportSize({width:390,height:844});await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),JSON.stringify(await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth&&!e.closest('table')).slice(0,25).map(e=>({tag:e.tagName,cls:e.className,right:e.getBoundingClientRect().right,overflow:getComputedStyle(e).overflow,width:e.clientWidth,scroll:e.scrollWidth})),containers:[...document.querySelectorAll('table')].map(e=>({self:e.getBoundingClientRect().toJSON(),parent:e.parentElement.getBoundingClientRect().toJSON(),css:getComputedStyle(e.parentElement).overflow}))}))));await page.screenshot({path:output+'/appointment-notice-mobile.png'});await page.setViewportSize({width:1280,height:900});
   await page.goto(origin+'/sozlesmeler');await page.getByRole('button',{name:'Yeni Sözleşme',exact:true}).click();const contractDialog=page.getByRole('dialog',{name:'Yeni Sözleşme',exact:true}),contractTitle=prefix+'-contract';
-  await contractDialog.getByPlaceholder('Sözleşme adını girin').fill(contractTitle);await contractDialog.locator('select').first().selectOption({label:first});await contractDialog.getByRole('button',{name:'Oluştur',exact:true}).click();await contractDialog.waitFor({state:'hidden'});
+  await checkForm(contractDialog,contractDialog.getByLabel('Sözleşme Adı',{exact:false}),'contract');await contractDialog.getByLabel('Sözleşme Adı',{exact:false}).fill(contractTitle);await contractDialog.getByLabel('Firma',{exact:false}).selectOption({label:first});
+  if(process.env.BPS_FORM_DESIGN_CHECK==='1'){
+   await contractDialog.getByLabel('Başlangıç',{exact:true}).fill('2026-10-01');await contractDialog.getByLabel('Bitiş',{exact:true}).fill('2026-09-01');await contractDialog.getByRole('alert').filter({hasText:'Bitiş tarihi başlangıç tarihinden önce olamaz.'}).waitFor();
+   assert.ok(await contractDialog.getByRole('button',{name:'Oluştur',exact:true}).isDisabled());assert.equal(await contractDialog.getByLabel('Bitiş',{exact:true}).getAttribute('aria-invalid'),'true');
+   assert.equal(sql(`SELECT count(*) FROM contracts WHERE company_id='${company}'`),'0');await contractDialog.getByLabel('Bitiş',{exact:true}).fill('2027-10-01');
+   sql(`UPDATE companies SET status='pasif' WHERE id='${company}' AND created_by='${user}'`);await contractDialog.getByRole('button',{name:'Oluştur',exact:true}).click();await contractDialog.getByRole('alert').filter({hasText:/[Pp]asif/}).waitFor();
+   assert.equal(await contractDialog.getByLabel('Sözleşme Adı',{exact:false}).inputValue(),contractTitle);assert.ok(await contractDialog.getByLabel('Sözleşme Adı',{exact:false}).isEnabled());assert.equal(sql(`SELECT count(*) FROM contracts WHERE company_id='${company}'`),'0');
+   sql(`UPDATE companies SET status='aday' WHERE id='${company}' AND created_by='${user}'`);
+  }
+  await submitForm(contractDialog,contractDialog.getByLabel('Sözleşme Adı',{exact:false}),contractTitle);await contractDialog.waitFor({state:'hidden'});
   await page.getByRole('status').filter({hasText:contractTitle+' sözleşmelere eklendi. Durumu: taslak.'}).waitFor();assert.equal(sql(`SELECT count(*) FROM contracts WHERE created_by='${user}' AND company_id='${company}' AND name='${contractTitle}' AND status='taslak'`),'1');
-  await page.screenshot({path:output+'/contract-notice.png'});console.log('PASS task/create/update, appointment/contract saved notices, dismiss, mobile fit and successful task write with failed list refresh');
+  await page.screenshot({path:output+'/contract-notice.png'});
+  if(process.env.BPS_FORM_DESIGN_CHECK==='1'){
+   const contractId=sql(`SELECT id FROM contracts WHERE company_id='${company}' AND name='${contractTitle}'`);assert.match(contractId,/^[a-f0-9-]{36}$/);await page.goto(origin+'/sozlesmeler/'+contractId);await page.getByRole('button',{name:'Sözleşmeyi Düzenle',exact:true}).click();const edit=page.getByRole('dialog',{name:'Sözleşme Düzenle',exact:true});await edit.waitFor();
+   assert.ok(await edit.getByLabel('Firma',{exact:false}).isDisabled());await edit.getByLabel('Sözleşme Adı',{exact:false}).fill(contractTitle+'-edited');await edit.getByLabel('Sözleşme Adı',{exact:false}).press('Enter');await edit.waitFor({state:'hidden'});assert.equal(sql(`SELECT name FROM contracts WHERE id='${contractId}'`),contractTitle+'-edited');console.log('PASS contract edit via Enter closes and persists while company remains locked');
+  }
+  if(process.env.BPS_FORM_DESIGN_CHECK==='1')console.log('PASS three accessible mobile forms, initial focus, Enter submit, pending locks/close guards, one POST, date validation and server rejection/recovery');console.log('PASS task/create/update, appointment/contract saved notices, dismiss, mobile fit and successful task write with failed list refresh');
  }
  if(process.env.BPS_DIALOG_DESIGN_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
   sql(`INSERT INTO appointments(id,tenant_id,company_id,meeting_date,meeting_type,status,attendee,created_by) VALUES('${randomUUID()}','${id(1)}','${company}','2026-09-10','ziyaret','planlandi','UX panel kabulü','${user}');`);
   for(const width of [1280,390]){
-   await page.setViewportSize({width,height:900});await page.goto(origin+'/randevular');await page.getByRole('cell',{name:first,exact:true}).click();const panel=page.getByRole('dialog',{name:'Randevu Detay',exact:true});await panel.waitFor();
+   await page.setViewportSize({width,height:900});await page.goto(origin+'/randevular');await page.getByRole('cell',{name:first,exact:true}).first().click();const panel=page.getByRole('dialog',{name:'Randevu Detay',exact:true});await panel.waitFor();
    for(let k=0;k<8;k++){await page.keyboard.press('Tab');assert.ok(await panel.evaluate(d=>d.contains(document.activeElement)));}
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/panel-'+width+'.png'});await page.keyboard.press('Escape');await panel.waitFor({state:'hidden'});assert.equal(await page.evaluate(()=>document.body.style.overflow),'');
    await page.goto(origin+'/finansal-ozet');await page.getByRole('heading',{name:'Kayıtlı maliyetler',exact:true}).waitFor();

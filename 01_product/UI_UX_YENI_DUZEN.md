@@ -79,3 +79,16 @@ Tarayıcıda uzun sentetik firma/katılımcı adlarıyla bulunan mobil taşma: D
 Kabul: gerçek yerel Auth ile firma oluşturma/bekleme/hata/inline seçim regresyonu; görev oluşturma ve panel güncelleme; randevu ve taslak sözleşme oluşturma; tek DB kaydı; bildirimi kapatma; 390 px yatay taşma geçti. Görev okumasına 503 enjekte edildi: yazma bildirimi ve ayrı okuma hatası, boş başlığın görünmemesi, Tekrar dene ile aynı tek kaydın okunması ve sayfa yenilemesinde kalıcılık doğrulandı. Kanıt `/private/tmp/bps-company-feedback-3SQISr`; mobil bildirim ve masaüstü başarılı yazma/hatalı okuma ekranları incelendi. Kendi sentetik kayıtları ve Auth hesabı temizlendi. Randevudan manuel görev ek bildirimi koddan kontrol edildi; bu tur o alt akışın ayrıca tarayıcı kabulü veya tenant değişim yarışı testi yapılmadı. Ürün SQL veya canlı yayın yok.
 
 Son kaynak ile TypeScript/lint ve izole production build geçti. Yeni test rotası veya üretim ortamı değişikliği yok.
+
+
+## 061 — Formların klavye, mobil ve kayıt davranışı
+
+NewTaskModal, NewAppointmentModal ve NewContractModal: native form ve form dışında ilişkili submit düğmesi; Enter ile gönderme, useId ile benzersiz htmlFor/id bağları, required alanlar ve açıklama. Alanlar ve footer düğmeleri en az 44 px, mobilde tek sütun, kaydırılabilir gövde ve görünür footer. Randevu formundaki Türkçe etiketler düzeltildi. Görev kaynak referans UUID'si kullanıcı metninden çıkarıldı; payload/bağlantı korunur.
+
+Üç formda disabled fieldset ve erişilebilir bekleme durumu var. Görev/randevudaki senkron gönderim koruması korunur; sözleşmeye ref kilidi eklendi. Sözleşme başarılı kayıtta doğrudan kapanır; kapanma koruması kullanıcı iptaline uygulanır. Bitiş başlangıçtan önceyse ilgili alanda aria-invalid + açıklama ve kaydetme engeli bulunur; mevcut sunucu doğrulaması aynen durur. Bu istemci kilidi sunucu idempotency veya ağ kopmasında komut uzlaştırması iddiası değildir.
+
+Native dialog açılmadan çalışan React autoFocus tarayıcı kabulünde ilk alana odak veremedi. useModalDialog, yalnız data-dialog-initial-focus işaretli, görünür ve etkin alanı showModal sonrasında odaklar. Dışarıdaki dönüş hedefi önce kaydedilir; işaretli alanı olmayan diğer pencerelerin başlangıç davranışı korunur.
+
+Kabul: gerçek sentetik Auth/Chromium ile her formda etiket-alan eşleşmesi, ilk odak, eksik zorunlu alanda disabled submit, 390 px görünüm, Escape ile iptalde odağın tetikleyiciye dönüşü, Enter ile gönderme; geciktirilen POST sırasında bütün alanların kilitlenmesi, Escape/kapatmanın engellenmesi ve requestSubmit tekrarlarına rağmen tek POST + DB kaydı geçti. Sözleşmede yanlış tarih aralığı; sunucunun pasif firma reddinde değerlerin korunması ve hata giderilince kayıt; düzenlemede firma kilidi ve Enter sonrası DB kalıcılığı geçti. 060 görev yazma + liste 503 + yalnız okuma yeniden deneme regresyonu, firma inline oluşturma/mevcut seçim, iç içe dialog Tab/Escape/odak/scroll kilidi, yan panel ve finans 1280/390 px kontrolleri geçti. Kanıt `/private/tmp/bps-company-feedback-1HpKOk`. Mobil görev/sözleşme form görselleri incelendi. Sentetik test verileri ve Auth hesabı temizlendi. Fiziksel iOS/Android klavye veya tüm formlar için kabul iddiası yok. Ürün SQL/push/deploy yapılmadı.
+
+Son kaynak ile TypeScript/lint ve izole production build geçti.

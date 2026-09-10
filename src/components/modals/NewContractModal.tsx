@@ -16,7 +16,7 @@
  * a contract cannot move between firmas without recreating it.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui";
 import type { ContractRow } from "@/types/database.types";
 
@@ -60,6 +60,7 @@ export default function NewContractModal({
   defaultFirmaId,
   onSubmit,
 }: NewContractModalProps) {
+  const formId = useId();
   const [sozlesmeAdi, setSozlesmeAdi] = useState("");
   const [firmaId, setFirmaId] = useState("");
   const [tur, setTur] = useState("");
@@ -68,6 +69,7 @@ export default function NewContractModal({
   const [kapsam, setKapsam] = useState("");
   const [tutar, setTutar] = useState("");
   const [sorumlu, setSorumlu] = useState("");
+  const submitting = useRef(false);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -98,10 +100,12 @@ export default function NewContractModal({
     setSubmitError(null);
   }, [editData, defaultFirmaId, open]);
 
-  const isValid = sozlesmeAdi.trim() && firmaId;
+  const dateError = baslangic && bitis && bitis < baslangic ? "Bitiş tarihi başlangıç tarihinden önce olamaz." : null;
+  const isValid = sozlesmeAdi.trim() && firmaId && !dateError;
 
   async function handleSubmit() {
-    if (!isValid || saving) return;
+    if (!isValid || submitting.current) return;
+    submitting.current = true;
     setSaving(true);
     setSubmitError(null);
     try {
@@ -115,18 +119,19 @@ export default function NewContractModal({
         tutar: tutar.trim(),
         sorumlu: sorumlu.trim(),
       });
-      resetAndClose();
+      onClose();
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu.",
       );
     } finally {
+      submitting.current = false;
       setSaving(false);
     }
   }
 
   function resetAndClose() {
-    if (saving) return;
+    if (submitting.current) return;
     setSozlesmeAdi("");
     setFirmaId("");
     setTur("");
@@ -147,143 +152,152 @@ export default function NewContractModal({
       footer={
         <>
           <button
+            type="button"
             onClick={resetAndClose}
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             İptal
           </button>
           <button
-            onClick={handleSubmit}
+            type="submit"
+            form={formId}
             disabled={!isValid || saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? "Kaydediliyor…" : isEdit ? "Güncelle" : "Oluştur"}
           </button>
         </>
       }
     >
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Sözleşme Adı <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={sozlesmeAdi}
-            onChange={(e) => setSozlesmeAdi(e.target.value)}
-            placeholder="Sözleşme adını girin"
-            disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Firma <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={firmaId}
-            onChange={(e) => setFirmaId(e.target.value)}
-            disabled={isEdit || saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-          >
-            <option value="">Firma seçin</option>
-            {firmalar.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.ad}
-              </option>
-            ))}
-          </select>
-          {isEdit && (
-            <p className="text-xs text-slate-400 mt-1">
-              Sözleşme firması düzenleme modunda değiştirilemez.
+      <form id={formId} onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }} aria-describedby={`${formId}-help`}>
+        <p id={`${formId}-help`} className="mb-4 text-sm text-slate-500">* işaretli alanlar zorunludur. Diğer bilgileri daha sonra tamamlayabilirsiniz.</p>
+        {saving && <p role="status" className="mb-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Kaydediliyor, lütfen bekleyin…</p>}
+        <fieldset disabled={saving} aria-busy={saving} className="min-w-0 space-y-4">
+          <div>
+            <label htmlFor={`${formId}-sozlesmeAdi`} className="block text-sm font-medium text-slate-700 mb-1">
+              Sözleşme Adı <span className="text-red-500">*</span>
+            </label>
+            <input required data-dialog-initial-focus id={`${formId}-sozlesmeAdi`}
+              type="text"
+              value={sozlesmeAdi}
+              onChange={(e) => setSozlesmeAdi(e.target.value)}
+              placeholder="Sözleşme adını girin"
+              disabled={saving}
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-firmaId`} className="block text-sm font-medium text-slate-700 mb-1">
+              Firma <span className="text-red-500">*</span>
+            </label>
+            <select required id={`${formId}-firmaId`}
+              value={firmaId}
+              onChange={(e) => setFirmaId(e.target.value)}
+              disabled={isEdit || saving}
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="">Firma seçin</option>
+              {firmalar.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.ad}
+                </option>
+              ))}
+            </select>
+            {isEdit && (
+              <p className="text-xs text-slate-400 mt-1">
+                Sözleşme firması düzenleme modunda değiştirilemez.
+              </p>
+            )}
+          </div>
+          <div>
+            <label htmlFor={`${formId}-tur`} className="block text-sm font-medium text-slate-700 mb-1">
+              Tür
+            </label>
+            <input id={`${formId}-tur`}
+              type="text"
+              value={tur}
+              onChange={(e) => setTur(e.target.value)}
+              placeholder="ör. Hizmet, Ek Protokol"
+              disabled={saving}
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor={`${formId}-baslangic`} className="block text-sm font-medium text-slate-700 mb-1">
+                Başlangıç
+              </label>
+              <input id={`${formId}-baslangic`}
+                type="date"
+                value={baslangic}
+                onChange={(e) => setBaslangic(e.target.value)}
+                disabled={saving}
+                className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              />
+            </div>
+            <div>
+              <label htmlFor={`${formId}-bitis`} className="block text-sm font-medium text-slate-700 mb-1">
+                Bitiş
+              </label>
+              <input id={`${formId}-bitis`}
+                type="date"
+                aria-invalid={!!dateError}
+                aria-describedby={dateError ? `${formId}-date-error` : undefined}
+                value={bitis}
+                onChange={(e) => setBitis(e.target.value)}
+                disabled={saving}
+                className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              />
+            </div>
+          </div>
+          {dateError && <p id={`${formId}-date-error`} role="alert" className="text-sm text-red-600">{dateError}</p>}
+          <div>
+            <label htmlFor={`${formId}-sorumlu`} className="block text-sm font-medium text-slate-700 mb-1">
+              Sorumlu
+            </label>
+            <input id={`${formId}-sorumlu`}
+              type="text"
+              value={sorumlu}
+              onChange={(e) => setSorumlu(e.target.value)}
+              placeholder="Sorumlu kişi"
+              disabled={saving}
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-tutar`} className="block text-sm font-medium text-slate-700 mb-1">
+              Tutar
+            </label>
+            <input id={`${formId}-tutar`}
+              type="text"
+              value={tutar}
+              onChange={(e) => setTutar(e.target.value)}
+              placeholder="₺ tutar (opsiyonel)"
+              disabled={saving}
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-kapsam`} className="block text-sm font-medium text-slate-700 mb-1">
+              Kapsam
+            </label>
+            <textarea id={`${formId}-kapsam`}
+              value={kapsam}
+              onChange={(e) => setKapsam(e.target.value)}
+              placeholder="Sözleşme kapsamı (opsiyonel)"
+              rows={2}
+              disabled={saving}
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:bg-slate-50 disabled:text-slate-400"
+            />
+          </div>
+          {submitError && (
+            <p className="text-xs text-red-600" role="alert" aria-live="polite">
+              {submitError}
             </p>
           )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Tür
-          </label>
-          <input
-            type="text"
-            value={tur}
-            onChange={(e) => setTur(e.target.value)}
-            placeholder="ör. Hizmet, Ek Protokol"
-            disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Başlangıç
-            </label>
-            <input
-              type="date"
-              value={baslangic}
-              onChange={(e) => setBaslangic(e.target.value)}
-              disabled={saving}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Bitiş
-            </label>
-            <input
-              type="date"
-              value={bitis}
-              onChange={(e) => setBitis(e.target.value)}
-              disabled={saving}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Sorumlu
-          </label>
-          <input
-            type="text"
-            value={sorumlu}
-            onChange={(e) => setSorumlu(e.target.value)}
-            placeholder="Sorumlu kişi"
-            disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Tutar
-          </label>
-          <input
-            type="text"
-            value={tutar}
-            onChange={(e) => setTutar(e.target.value)}
-            placeholder="₺ tutar (opsiyonel)"
-            disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Kapsam
-          </label>
-          <textarea
-            value={kapsam}
-            onChange={(e) => setKapsam(e.target.value)}
-            placeholder="Sözleşme kapsamı (opsiyonel)"
-            rows={2}
-            disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:bg-slate-50 disabled:text-slate-400"
-          />
-        </div>
-        {submitError && (
-          <p className="text-xs text-red-600" role="alert" aria-live="polite">
-            {submitError}
-          </p>
-        )}
-      </div>
+        </fieldset>
+      </form>
     </ModalShell>
   );
 }
