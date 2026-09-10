@@ -246,6 +246,7 @@ export default function TaleplerPage() {
     open: boolean;
     talepRef?: string;
     talepId?: string;
+    initialSorumlu?: string;
   }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -367,6 +368,7 @@ export default function TaleplerPage() {
           open: true,
           talepRef: `${row.position} — ${row.firma_name}`,
           talepId: row.id,
+          initialSorumlu: row.responsible ?? "",
         }),
     },
   ];
@@ -621,13 +623,24 @@ export default function TaleplerPage() {
         }}
       />
       <AssignOwnerModal
+        key={`${listScope}:${ownerTarget.talepId ?? "none"}`}
         open={ownerTarget.open}
-        onClose={() => setOwnerTarget({ open: false })}
+        onClose={() => { if (liveContext.current === context) setOwnerTarget({ open: false }); }}
         talepRef={ownerTarget.talepRef}
         talepId={ownerTarget.talepId}
+        initialSorumlu={ownerTarget.initialSorumlu}
         onSubmit={async ({ talepId, sorumlu }) => {
-          await updateDemand(supabase, talepId, { responsible: sorumlu });
+          if (liveContext.current !== context) return;
+          try {
+            await updateDemand(supabase, talepId, { responsible: sorumlu });
+          } catch {
+            if (liveContext.current !== context) return;
+            throw new Error("Sorumlu kaydedilemedi. Lütfen tekrar deneyin.");
+          }
+          if (liveContext.current !== context) return;
+          feedback.show(`${ownerTarget.talepRef ?? "Talep"} için sorumlu ${sorumlu} olarak kaydedildi.`);
           await reload();
+          if (liveContext.current !== context) return;
           router.refresh();
         }}
       />

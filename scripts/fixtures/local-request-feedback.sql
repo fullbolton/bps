@@ -26,6 +26,11 @@ CREATE POLICY requests_fixture_select ON public.staffing_demands FOR SELECT TO a
 DROP POLICY IF EXISTS requests_fixture_insert ON public.staffing_demands;
 CREATE POLICY requests_fixture_insert ON public.staffing_demands FOR INSERT TO authenticated
  WITH CHECK(tenant_id=current_user_verified_tenant() AND current_user_role() IN ('yonetici','operasyon') AND created_by=auth.uid());
+DROP POLICY IF EXISTS requests_fixture_update ON public.staffing_demands;
+CREATE POLICY requests_fixture_update ON public.staffing_demands FOR UPDATE TO authenticated
+ USING(tenant_id=current_user_verified_tenant() AND current_user_role() IN ('yonetici','operasyon') AND created_by=auth.uid())
+ WITH CHECK(tenant_id=current_user_verified_tenant() AND current_user_role() IN ('yonetici','operasyon') AND created_by=auth.uid());
 GRANT SELECT,INSERT ON public.staffing_demands TO authenticated;
+GRANT UPDATE(responsible) ON public.staffing_demands TO authenticated;
 NOTIFY pgrst,'reload schema';
 COMMIT;
