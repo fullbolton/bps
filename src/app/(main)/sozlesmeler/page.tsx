@@ -163,17 +163,23 @@ export default function SozlesmelerPage() {
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
-  const [contracts, setContracts] = useState<ContractRow[]>([]);
-  const [companyNameById, setCompanyNameById] = useState<Record<string, string>>({});
-  const [companyLegacyById, setCompanyLegacyById] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<{scope: string; rows: ContractRow[]; names: Record<string,string>; legacy: Record<string,string>} | null>(null);
+  const [readState, setReadState] = useState<{scope: string; loading: boolean; error: string | null} | null>(null);
+  const generation = useRef(0);
   // Real companies for the firma filter + New Contract modal.
   const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "ready" | "error"} | null>(null);
   const [companyRetry, setCompanyRetry] = useState(0);
 
   const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const context = useMemo(() => ({scope: listScope}), [listScope]);
+  const liveContext = useRef<typeof context | null>(context);
+  liveContext.current = context;
+  const contracts = useMemo(() => snapshot?.scope === listScope ? snapshot?.rows ?? [] : [], [snapshot, listScope]);
+  const companyNameById = useMemo(() => snapshot?.scope === listScope ? snapshot?.names ?? {} : {}, [snapshot, listScope]);
+  const companyLegacyById = useMemo(() => snapshot?.scope === listScope ? snapshot?.legacy ?? {} : {}, [snapshot, listScope]);
+  const loading = readState?.scope !== listScope || readState?.loading !== false;
+  const loadError = readState?.scope === listScope ? readState?.error : null;
   const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
   const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("sozlesmeler", listScope, LIST_FILTER_DEFAULTS);
@@ -182,33 +188,33 @@ export default function SozlesmelerPage() {
 
 
   const reload = useCallback(async () => {
-    setLoadError(null);
+    if (!listScope || liveContext.current !== context) return;
+    const request = ++generation.current;
+    const isCurrent = () => request === generation.current && liveContext.current === context;
+    setReadState({scope: listScope, loading: true, error: null});
     try {
       const rows = await listAllContracts(supabase);
-      setContracts(rows);
-      // Resolve firma display names + legacy ids for the rows we just
-      // fetched. This is a single batched round trip — the
-      // getCompanyDisplayMapByIds helper deduplicates ids internally.
-      const uniqueCompanyIds = Array.from(new Set(rows.map((r) => r.company_id)));
-      const display = await getCompanyDisplayMapByIds(supabase, uniqueCompanyIds);
-      setCompanyNameById(display.nameById);
-      setCompanyLegacyById(display.legacyById);
+      if (!isCurrent()) return;
+      const display = await getCompanyDisplayMapByIds(supabase, Array.from(new Set(rows.map(row => row.company_id))));
+      if (!isCurrent()) return;
+      setSnapshot({scope: listScope, rows, names: display.nameById, legacy: display.legacyById});
+      setReadState({scope: listScope, loading: false, error: null});
     } catch (err) {
-      setContracts([]);
-      setCompanyNameById({});
-      setCompanyLegacyById({});
-      setLoadError(
-        err instanceof Error ? err.message : "Sözleşmeler yüklenirken bir hata oluştu.",
-      );
-    } finally {
-      setLoading(false);
+      if (!isCurrent()) return;
+      setSnapshot(null);
+      setReadState({scope: listScope, loading: false, error: err instanceof Error ? err.message : "Sözleşmeler yüklenirken bir hata oluştu."});
     }
-  }, [supabase]);
+  }, [supabase, listScope, context]);
 
   useEffect(() => {
-    setLoading(true);
+    liveContext.current = context;
+    setSnapshot(null); setCreateOpen(false); setSelectedId(null);
+    feedback.clear();
     void reload();
-  }, [reload]);
+    return () => { generation.current++; liveContext.current = null; };
+    // Notice methods are recreated on render; clear only when context changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reload, context]);
 
   // The directory belongs to the resolved account/tenant/role; failures are not empty results.
   useEffect(() => {
@@ -330,13 +336,13 @@ export default function SozlesmelerPage() {
         <PickerFeedback id="contract-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
           emptyText="Listede firma yok. Önce Firmalar bölümünden bir firma ekleyin." onRetry={() => setCompanyRetry(value => value + 1)} />
         {loadError && (
-          <AsyncSection isLoading={false} hasError onRetry={() => { setLoading(true); void reload(); }}>
+          <AsyncSection isLoading={false} hasError onRetry={() => { void reload(); }}>
             {null}
           </AsyncSection>
         )}
 
         {/* Status summary chips — clickable as filter shortcuts */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {!loading && !loadError && <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(statusCounts).map(([status, count]) => (
             <button
               key={status}
@@ -354,7 +360,7 @@ export default function SozlesmelerPage() {
               {STATUS_LABELS[status] ?? status} ({count})
             </button>
           ))}
-        </div>
+        </div>}
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
@@ -366,6 +372,7 @@ export default function SozlesmelerPage() {
               onChange={handleSearch}
             />
           </div>
+          <button type="button" disabled={loading} onClick={() => void reload()} className="min-h-11 shrink-0 self-start rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-blue-700 disabled:opacity-40">Listeyi yenile</button>
           <FilterBar
             filters={filterConfig}
             values={filters}
@@ -374,7 +381,7 @@ export default function SozlesmelerPage() {
         </div>
 
         {loading ? (
-          <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Yükleniyor…</p>
+          <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Sözleşmeler yükleniyor…</p>
         ) : !loadError ? (
           <DataTable<ContractListRow>
             columns={COLUMNS}
@@ -501,8 +508,9 @@ export default function SozlesmelerPage() {
       </RightSidePanel>
 
       <NewContractModal
+        key={listScope}
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => { if (liveContext.current === context) setCreateOpen(false); }}
         firmalar={firmaOptions}
         firmalarDurum={companiesDurum}
         onRetryFirmalar={() => setCompanyRetry(value => value + 1)}
@@ -516,6 +524,7 @@ export default function SozlesmelerPage() {
           // and close. router.refresh() invalidates the entire client
           // Router Cache so cached firma detail / firmalar list pages
           // will re-fetch on their next visit.
+          if (liveContext.current !== context) return;
           const payload: ContractCreateInput = {
             legacyCompanyId: data.firmaId,
             name: data.sozlesmeAdi,
@@ -527,11 +536,13 @@ export default function SozlesmelerPage() {
             responsible: data.sorumlu || undefined,
           };
           const result = await createContractAction(payload);
+          if (liveContext.current !== context) return;
           if (!result.ok) {
             throw new Error(result.error);
           }
           feedback.show(`${data.sozlesmeAdi} sözleşmelere eklendi. Durumu: taslak.`);
           await reload();
+          if (liveContext.current !== context) return;
           router.refresh();
         }}
       />
