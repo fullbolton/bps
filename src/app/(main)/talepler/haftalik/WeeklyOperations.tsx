@@ -64,7 +64,7 @@ export default function WeeklyOperations(){
   if(authLoading)return <p role="status">Oturum yükleniyor…</p>;
   if(!allowed)return <EmptyState title="Bu çalışma alanına erişiminiz yok" />;
   return <>
-    <style>{'@media print { @page { size: A4 landscape; margin: 12mm; } }'}</style>
+    <style>{'@media print { @page { size: A4 landscape; margin: 12mm; } .weekly-plan-totals { grid-template-columns: repeat(4, minmax(0, 1fr)); break-inside: avoid; } .weekly-plan-report th:nth-child(1) { width: 9%; } .weekly-plan-report th:nth-child(2) { width: 21%; } .weekly-plan-report th:nth-child(3) { width: 17%; } .weekly-plan-report th:nth-child(4), .weekly-plan-report th:nth-child(5), .weekly-plan-report th:nth-child(6) { width: 6%; } .weekly-plan-report th:nth-child(7) { width: 27%; } .weekly-plan-report th:nth-child(8) { width: 8%; } }'}</style>
     <div className="print:hidden"><PageHeader title="Haftalık personel planı" subtitle="Şube ihtiyaçları, atamalar ve haftalık açıklar." />
       <Link className="mb-4 mr-5 inline-block text-sm underline" href={`/talepler/kontrol?firma=${companyId}&gun=${date}`}>Operasyon kontrol listesi</Link>
       <Link className="mb-4 inline-block text-sm underline" href={`/talepler/gunluk?firma=${companyId}&gun=${date}`}>Günlük plana dön</Link>
@@ -80,14 +80,26 @@ export default function WeeklyOperations(){
       {error&&<p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-800">{error}</p>}
       <div className="mb-4 flex flex-wrap gap-3"><button className={button} disabled={!current||!rows.length||loading||exporting} onClick={()=>void prepareOutput('csv')}>Müşteri listesi indir (CSV)</button><button className={button} disabled={!current||!rows.length||loading||exporting} onClick={()=>void prepareOutput('print')}>Yazdır / PDF</button>{exporting&&<p role="status">Güncel liste doğrulanıyor…</p>}</div>
     </div>
-    {loading?<p role="status">Haftalık plan yükleniyor…</p>:!current?<p role="status">{companyId?'Plan doğrulanmadan liste ve çıktı gösterilmez.':'Önce firma seçin.'}</p>:<section aria-label="Haftalık plan">
+    {loading?<p role="status">Haftalık plan yükleniyor…</p>:!current?<p role="status">{companyId?'Plan doğrulanmadan liste ve çıktı gösterilmez.':'Önce firma seçin.'}</p>:<section aria-label="Haftalık plan" className="weekly-plan-report">
       <h2 className="text-lg font-semibold">{current.companyName} · {start} — {end}</h2>
       <p className="mt-1 text-sm text-slate-600">{showCancelled?'İptaller dahil':'Aktif talepler'} · Veri: {new Intl.DateTimeFormat('tr-TR',{dateStyle:'short',timeStyle:'medium',timeZone:'Europe/Istanbul'}).format(new Date(current.generatedAt))} (İstanbul)</p>
       <p className="mt-2 text-sm">Planlanan atamalar gösterilir; gerçekleşen mesai veya puantaj değildir.</p>
-      <div className="my-4 grid grid-cols-2 gap-3 lg:grid-cols-4">{[['Aktif talep',totals!.requests],['İhtiyaç (kişi-gün)',totals!.required],['Atanan (kişi-gün)',totals!.assigned],['Açık (kişi-gün)',totals!.open]].map(([label,value])=><div key={label} className="rounded-xl border bg-white p-3"><p className="text-sm text-slate-600">{label}</p><p className="text-2xl font-semibold">{value}</p></div>)}</div>
+      <div className="weekly-plan-totals my-4 grid grid-cols-2 gap-3 lg:grid-cols-4">{[['Aktif talep',totals!.requests],['İhtiyaç (kişi-gün)',totals!.required],['Atanan (kişi-gün)',totals!.assigned],['Açık (kişi-gün)',totals!.open]].map(([label,value])=><div key={label} className="rounded-xl border bg-white p-3"><p className="text-sm text-slate-600">{label}</p><p className="text-2xl font-semibold">{value}</p></div>)}</div>
       <p className="mb-3 text-sm text-slate-600">{totals!.cancelled} iptal talep toplamların dışında. Aynı personelin farklı günlerdeki atamaları ayrı kişi-gün sayılır.</p>
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7 print:grid-cols-7">{Array.from({length:7},(_,i)=>addDays(start,i)).map(day=>{const t=weeklyTotals(current.requests.filter(r=>r.workDate===day));return <Link key={day} className="rounded-lg border bg-white p-3 text-sm print:no-underline" href={`/talepler/gunluk?firma=${companyId}&gun=${day}`}><strong>{dayLabel(day)}</strong><p>{t.assigned}/{t.required} atama</p><p>{t.open} açık</p></Link>;})}</div>
-      {!rows.length?<EmptyState title="Bu kapsamda talep yok" />:<div className="overflow-x-auto rounded-xl border bg-white print:overflow-visible print:border-0"><table className="w-full min-w-[850px] text-left text-sm print:min-w-0 print:table-fixed print:break-words print:text-xs"><caption className="sr-only">{current.companyName} haftalık personel listesi</caption><thead className="bg-slate-50"><tr>{['Gün','Şube / İl','Hizmet / Pozisyon','İhtiyaç','Atanan','Açık','Personel','Durum'].map(h=><th key={h} scope="col" className="p-3 print:p-1">{h}</th>)}</tr></thead><tbody>{rows.map(r=><tr key={r.id} className="border-t align-top print:break-inside-avoid"><td className="p-3 print:p-1">{dayLabel(r.workDate)}</td><td className="p-3 print:p-1"><p>{r.locationName}</p><p className="text-slate-500">{r.city}</p></td><td className="p-3 print:p-1"><p>{r.serviceLine}</p><p>{r.position}</p></td><td className="p-3 print:p-1">{r.requiredCount}</td><td className="p-3 print:p-1">{r.assignments.length}</td><td className="p-3 print:p-1">{r.lifecycle==='cancelled'?'—':r.requiredCount-r.assignments.length}</td><td className="max-w-72 break-words p-3 print:p-1">{r.assignments.length?r.assignments.map(a=>a.name).join(', '):'Atama yok'}</td><td className="p-3 print:p-1">{r.lifecycle==='cancelled'?'İptal':'Aktif'}</td></tr>)}</tbody></table></div>}
+      {!rows.length?<EmptyState title="Bu kapsamda talep yok" />:<div className="overflow-x-auto rounded-xl border bg-white print:overflow-visible print:border-0"><table className="w-full min-w-[850px] text-left text-sm print:min-w-0 print:table-fixed print:break-words print:text-xs"><caption className="sr-only">{current.companyName} haftalık personel listesi</caption><thead className="bg-slate-50"><tr>{['Gün','Şube / İl','Hizmet / Pozisyon','İhtiyaç','Atanan','Açık','Personel','Durum'].map(h=><th key={h} scope="col" className="p-3 print:p-1">{h}</th>)}</tr></thead><tbody>{rows.flatMap(r=>Array.from({length:Math.max(1,Math.ceil(r.assignments.length/12))},(_,part)=>{
+        const names=r.assignments.slice(part*12,(part+1)*12).map(a=>a.name).join(', ');
+        return <tr key={`${r.id}:${part}`} className={`${part?'hidden print:table-row ':''}border-t align-top print:break-inside-avoid`}>
+          <td className="p-3 print:p-1">{dayLabel(r.workDate)}</td>
+          <td className="p-3 print:p-1"><p>{r.locationName}</p><p className="text-slate-500">{r.city}</p>{part>0&&<p>Personel listesi devamı</p>}</td>
+          <td className="p-3 print:p-1"><p>{r.serviceLine}</p><p>{r.position}</p></td>
+          <td className="p-3 print:p-1">{part?'—':r.requiredCount}</td>
+          <td className="p-3 print:p-1">{part?'—':r.assignments.length}</td>
+          <td className="p-3 print:p-1">{part||r.lifecycle==='cancelled'?'—':r.requiredCount-r.assignments.length}</td>
+          <td className="max-w-72 break-words p-3 print:p-1"><span className="print:hidden">{r.assignments.length?r.assignments.map(a=>a.name).join(', '):'Atama yok'}</span><span className="hidden print:inline">{names||'Atama yok'}</span></td>
+          <td className="p-3 print:p-1">{r.lifecycle==='cancelled'?'İptal':'Aktif'}</td>
+        </tr>;
+      }))}</tbody></table></div>}
     </section>}
     {companyId&&<WeeklyAttendance key={`${user?.id}:${companyId}:${date}`} companyId={companyId} date={date} />}
   </>;
