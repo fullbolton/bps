@@ -92,7 +92,7 @@ export type DownloadResult =
   | { ok: false; error: string };
 
 export type DeleteResult =
-  | { ok: true; warning?: string }
+  | { ok: true; deleted: boolean; warning?: string }
   | { ok: false; error: string };
 
 export type ContactDeleteResult =
@@ -440,7 +440,7 @@ export async function deleteCompanyDocumentAction(
   }
   if (!doc) {
     // Already gone or not visible — idempotent success.
-    return { ok: true };
+    return { ok: true, deleted: false };
   }
 
   // DB-first delete with RETURNING. RLS enforces yonetici. `.select()`
@@ -466,7 +466,7 @@ export async function deleteCompanyDocumentAction(
   if (deletedRows.length === 0) {
     // Nothing was actually deleted (already gone / concurrent delete /
     // RLS-filtered). Idempotent no-op — storage is NOT touched.
-    return { ok: true };
+    return { ok: true, deleted: false };
   }
 
   // Storage remove — second. Use the path from the row that was
@@ -480,12 +480,13 @@ export async function deleteCompanyDocumentAction(
     if (remove.error) {
       return {
         ok: true,
+        deleted: true,
         warning: `DB kaydı silindi, storage dosyası silinemedi (orphan): ${deletedPath}`,
       };
     }
   }
 
-  return { ok: true };
+  return { ok: true, deleted: true };
 }
 
 /**

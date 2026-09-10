@@ -1,5 +1,6 @@
 "use client";
 
+import AsyncSection from "@/components/ui/AsyncSection";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 
@@ -172,6 +173,13 @@ export default function FirmaDetayPage({
   companyScopeRef.current = companyScope;
   const feedback = useActionNotice(companyScope);
   const [statusAction, setStatusAction] = useState<{ scope: string; next: "aktif" | "pasif" } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ scope: string; kind: "contact" | "document"; id: string; name: string } | null>(null);
+  const [deletionNotice, setDeletionNotice] = useState<{ scope: string; text: string } | null>(null);
+  function requestDelete(kind: "contact" | "document", recordId: string, name: string) {
+    feedback.clear();
+    setDeletionNotice(null);
+    setDeleteTarget({ scope: companyScope, kind, id: recordId, name });
+  }
   const [activeTab, setActiveTab] = useState("genel");
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteDefaultIcerik, setNoteDefaultIcerik] = useState("");
@@ -201,22 +209,21 @@ export default function FirmaDetayPage({
   const [yetkililer, setYetkililer] = useState<ContactRow[]>([]);
   const [yetkililerLoading, setYetkililerLoading] = useState(true);
   const [yetkililerError, setYetkililerError] = useState<string | null>(null);
+  const contactsGeneration = useRef(0);
   const reloadYetkililer = useCallback(async () => {
+    const generation = ++contactsGeneration.current;
+    const current = () => generation === contactsGeneration.current && companyScopeRef.current === companyScope;
+    setYetkililerLoading(true);
     setYetkililerError(null);
     try {
       const rows = await listContactsByLegacyCompanyId(supabase, id);
-      setYetkililer(rows);
-    } catch (err) {
-      setYetkililer([]);
-      setYetkililerError(
-        err instanceof Error
-          ? err.message
-          : "Yetkili kişiler yüklenirken bir hata oluştu.",
-      );
+      if (current()) setYetkililer(rows);
+    } catch {
+      if (current()) { setYetkililer([]); setYetkililerError("Yetkili kişiler yüklenemedi."); }
     } finally {
-      setYetkililerLoading(false);
+      if (current()) setYetkililerLoading(false);
     }
-  }, [supabase, id]);
+  }, [supabase, id, companyScope]);
   useEffect(() => {
     setYetkililerLoading(true);
     void reloadYetkililer();
@@ -263,30 +270,6 @@ export default function FirmaDetayPage({
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [editPhoneEmailOnly, setEditPhoneEmailOnly] = useState(false);
-  // Contact hard-delete (yonetici-only) — busy flag per row; errors
-  // surface on the existing Yetkililer inline error line.
-  const [contactDeletingId, setContactDeletingId] = useState<string | null>(null);
-
-  async function handleContactDelete(ytk: ContactRow) {
-    if (!window.confirm("Bu yetkili kişiyi kalıcı olarak silmek üzeresiniz. Bu işlem geri alınamaz.")) {
-      return;
-    }
-    setYetkililerError(null);
-    setContactDeletingId(ytk.id);
-    try {
-      const result = await deleteContactAction(ytk.id);
-      if (result.ok) {
-        await reloadYetkililer();
-        router.refresh();
-      } else {
-        setYetkililerError(result.error);
-      }
-    } catch (err) {
-      setYetkililerError(err instanceof Error ? err.message : "Yetkili silinemedi.");
-    } finally {
-      setContactDeletingId(null);
-    }
-  }
   // Ticari Temas — outbound draft helpers
   const [temasType, setTemasType] = useState<"yeniden_temas" | "odeme_takibi" | null>(null);
   const [temasDraftText, setTemasDraftText] = useState<string | null>(null);
@@ -440,28 +423,51 @@ export default function FirmaDetayPage({
   // Phase 4A — Firma Evraklar (real Supabase truth)
   // -------------------------------------------------------------------------
   const [firmaDocs, setFirmaDocs] = useState<DocumentRow[]>([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+  const [docsError, setDocsError] = useState(false);
+  const docsGeneration = useRef(0);
   const reloadDocs = useCallback(async () => {
+    const generation = ++docsGeneration.current;
+    const current = () => generation === docsGeneration.current && companyScopeRef.current === companyScope;
+    setDocsLoading(true);
+    setDocsError(false);
     try {
       const rows = await listDocumentsByLegacyCompanyId(supabase, id);
-      setFirmaDocs(rows);
+      if (current()) setFirmaDocs(rows);
     } catch {
-      setFirmaDocs([]);
+      if (current()) { setFirmaDocs([]); setDocsError(true); }
+    } finally {
+      if (current()) setDocsLoading(false);
     }
-  }, [supabase, id]);
-  useEffect(() => {
-    void reloadDocs();
-  }, [reloadDocs]);
+  }, [supabase, id, companyScope]);
+  useEffect(() => { void reloadDocs(); }, [reloadDocs]);
+
+  async function confirmRecordDelete(target: NonNullable<typeof deleteTarget>) {
+    if (target.scope !== companyScopeRef.current) throw new Error("Firma bilgisi değişti. Sayfayı yenileyin.");
+    if (target.kind === "contact") {
+      const result = await deleteContactAction(target.id);
+      if (!result.ok) throw new Error(result.error);
+      if (target.scope !== companyScopeRef.current) return;
+      if (result.deletedName !== undefined) feedback.show(`${result.deletedName} yetkili kişilerden silindi.`);
+      else setDeletionNotice({ scope: companyScope, text: "Silinen yetkili kaydı doğrulanamadı. Kayıt daha önce kaldırılmış veya silme erişiminiz değişmiş olabilir." });
+      await reloadYetkililer();
+    } else {
+      const result = await deleteCompanyDocumentAction(target.id);
+      if (!result.ok) throw new Error(result.error);
+      if (target.scope !== companyScopeRef.current) return;
+      if (result.warning) setDeletionNotice({ scope: companyScope, text: `${target.name}: Belge kaydı silindi, dosyanın temizlenmesi tamamlanamadı. Yönetici kontrolü gerekiyor.` });
+      else if (result.deleted) feedback.show(`${target.name} belge kaydı silindi.`);
+      else setDeletionNotice({ scope: companyScope, text: "Silinen belge kaydı doğrulanamadı. Kayıt daha önce kaldırılmış veya silme erişiminiz değişmiş olabilir." });
+      await reloadDocs();
+    }
+    if (target.scope === companyScopeRef.current) router.refresh();
+  }
 
   // Document upload modal + per-row download error (item-level — never
   // collapses the tab; matches the Evraklar page resilience pattern).
   const [evrakUploadOpen, setEvrakUploadOpen] = useState(false);
   const [evrakUploadError, setEvrakUploadError] = useState<string | null>(null);
   const [evrakDownloadError, setEvrakDownloadError] = useState<string | null>(null);
-  // Delete feedback (error or orphan warning) — surfaced inline above
-  // the table, never collapses the tab.
-  const [evrakDeleteMessage, setEvrakDeleteMessage] = useState<string | null>(null);
-  const [evrakDeletingId, setEvrakDeletingId] = useState<string | null>(null);
-
   if (companyLoading || loadedCompanyScope !== companyScope) {
     return <p className="text-sm text-slate-500 py-12 text-center">Yukleniyor...</p>;
   }
@@ -563,6 +569,18 @@ export default function FirmaDetayPage({
       )}
 
       <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+      {deletionNotice?.scope === companyScope && <p role="alert" className="mb-5 break-words rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{deletionNotice.text}</p>}
+      {deleteTarget?.scope === companyScope && role === "yonetici" && (
+        <ConfirmActionDialog key={`${companyScope}:${deleteTarget.kind}:${deleteTarget.id}`}
+          title={deleteTarget.kind === "contact" ? "Yetkili kişiyi kalıcı olarak sil" : "Belgeyi kalıcı olarak sil"}
+          recordName={deleteTarget.name}
+          description={deleteTarget.kind === "contact"
+            ? "Bu kişinin firma içindeki yetkili kaydı kalıcı olarak kaldırılır. Bu işlem geri alınamaz. Firma ve diğer yetkililer korunur."
+            : "Belge kaydı kalıcı olarak kaldırılır; bağlı dosya varsa temizlenmesi de denenir. Bu işlem geri alınamaz. Sürüm geçmişine bağlı belgeler sistem tarafından korunur."}
+          confirmLabel="Kalıcı olarak sil" destructive onConfirm={() => confirmRecordDelete(deleteTarget)}
+          onClose={() => { if (companyScopeRef.current === companyScope) setDeleteTarget(null); }}
+        />
+      )}
       {statusAction?.scope === companyScope && role === "yonetici" && (
         <ConfirmActionDialog key={`${companyScope}:${statusAction.next}`}
           title={statusAction.next === "pasif" ? "Firmayı pasife al" : "Firmayı aktife al"}
@@ -1055,20 +1073,12 @@ export default function FirmaDetayPage({
                 )}
               </div>
             </div>
-            {yetkililerError && (
-              <p
-                className={`${TYPE_CAPTION} text-red-600 mb-3`}
-                role="alert"
-                aria-live="polite"
-              >
-                {yetkililerError}
-              </p>
-            )}
+            {yetkililerError && <AsyncSection isLoading={false} hasError onRetry={() => void reloadYetkililer()}>{null}</AsyncSection>}
             {yetkililerLoading ? (
               <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>
                 Yetkili kişiler yükleniyor…
               </p>
-            ) : yetkililer.length === 0 ? (
+            ) : yetkililerError ? null : yetkililer.length === 0 ? (
               <div className="py-2 -mx-1">
                 <EmptyState
                   title="Yetkili kişi yok"
@@ -1124,7 +1134,7 @@ export default function FirmaDetayPage({
                               setEditPhoneEmailOnly(role === "operasyon");
                               setContactModalOpen(true);
                             }}
-                            className={`p-1.5 ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
+                            className={`min-h-11 min-w-11 inline-flex items-center justify-center ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
                             aria-label={`${ytk.full_name} — düzenle`}
                           >
                             <Pencil size={13} aria-hidden />
@@ -1133,9 +1143,8 @@ export default function FirmaDetayPage({
                         {role === "yonetici" && (
                           <button
                             type="button"
-                            onClick={() => { void handleContactDelete(ytk); }}
-                            disabled={contactDeletingId === ytk.id}
-                            className={`p-1.5 ${TEXT_MUTED} hover:text-red-600 hover:bg-red-50 ${RADIUS_SM} transition-colors disabled:opacity-40 disabled:cursor-not-allowed`}
+                            onClick={() => requestDelete("contact", ytk.id, ytk.full_name)}
+                            className={`min-h-11 min-w-11 inline-flex items-center justify-center ${TEXT_MUTED} hover:text-red-600 hover:bg-red-50 ${RADIUS_SM} transition-colors disabled:opacity-40 disabled:cursor-not-allowed`}
                             aria-label={`${ytk.full_name} — kalıcı olarak sil`}
                             title="Yetkili kişiyi kalıcı olarak sil"
                           >
@@ -1334,31 +1343,6 @@ export default function FirmaDetayPage({
             setEvrakDownloadError(result.error);
           }
 
-          async function handleEvrakDelete(documentId: string) {
-            // Hard delete (Faz 1). Mandatory confirm — no delete without it.
-            if (!window.confirm("Bu belgeyi kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
-              return;
-            }
-            setEvrakDeleteMessage(null);
-            setEvrakDeletingId(documentId);
-            try {
-              const result = await deleteCompanyDocumentAction(documentId);
-              if (result.ok) {
-                // Orphan warning (DB gone, storage remove failed) is still
-                // a success for the row — surface it but refresh the list.
-                if (result.warning) setEvrakDeleteMessage(result.warning);
-                await reloadDocs();
-                router.refresh();
-              } else {
-                setEvrakDeleteMessage(result.error);
-              }
-            } catch (err) {
-              setEvrakDeleteMessage(err instanceof Error ? err.message : "Belge silinemedi.");
-            } finally {
-              setEvrakDeletingId(null);
-            }
-          }
-
           return (
             <div className={CARD_LG}>
               <div className="flex items-center justify-between mb-4">
@@ -1383,12 +1367,7 @@ export default function FirmaDetayPage({
                 </p>
               )}
 
-              {evrakDeleteMessage && (
-                <p className={`${TYPE_CAPTION} text-amber-700 mb-3`} role="alert" aria-live="polite">
-                  {evrakDeleteMessage}
-                </p>
-              )}
-
+              <AsyncSection isLoading={docsLoading} hasError={docsError} onRetry={() => void reloadDocs()}>
               {firmaDocs.length === 0 ? (
                 <EmptyState title="Belge yok" description="Bu firmaya ait belge bulunmuyor." size="tab" />
               ) : (
@@ -1422,7 +1401,7 @@ export default function FirmaDetayPage({
                                 type="button"
                                 onClick={() => { void handleEvrakDownload(d.id); }}
                                 disabled={!d.storage_path}
-                                className={`inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                                className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
                                 title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
                               >
                                 <Download size={12} />
@@ -1431,13 +1410,13 @@ export default function FirmaDetayPage({
                               {canDeleteDocs && !d.contract_id && (
                                 <button
                                   type="button"
-                                  onClick={() => { void handleEvrakDelete(d.id); }}
-                                  disabled={evrakDeletingId === d.id}
-                                  className={`inline-flex items-center gap-1 ${TYPE_CAPTION} text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                                  onClick={() => requestDelete("document", d.id, d.name)}
+                                  aria-label={`${d.name} — kalıcı olarak sil`}
+                                  className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
                                   title="Belgeyi kalıcı olarak sil"
                                 >
                                   <Trash2 size={12} />
-                                  {evrakDeletingId === d.id ? "Siliniyor..." : "Sil"}
+                                  Sil
                                 </button>
                               )}
                             </div>
@@ -1448,6 +1427,7 @@ export default function FirmaDetayPage({
                   </table>
                 </div>
               )}
+              </AsyncSection>
             </div>
           );
         })()}

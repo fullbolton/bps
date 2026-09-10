@@ -12,6 +12,7 @@ const run=(cmd,args,input)=>execFileSync(cmd,args,{input,encoding:'utf8',stdio:[
 const container='supabase_db_bps-supabase-acceptance',origin='http://127.0.0.1:3010';
 const prefix=`UX-${randomUUID()}`,output=mkdtempSync('/private/tmp/bps-company-feedback-');
 let release,sql,admin,user,browser,page,releaseRequest;
+const ownedStoragePaths=[];
 try {
  const s=JSON.parse(run('supabase',['status','--workdir','/private/tmp/bps-supabase-acceptance','-o','json']));
  const [db,gateway]=JSON.parse(run('docker',['inspect',container,'supabase_kong_bps-supabase-acceptance']));
@@ -19,6 +20,7 @@ try {
  sql=q=>run('docker',['exec','-i',container,'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],q).trim();
  assert.equal(sql("SELECT obj_description(to_regclass('public.documents'))='BPS synthetic documents fixture v1'"),'t');
  sql(readFileSync(new URL('./fixtures/local-company-feedback.sql',import.meta.url),'utf8'));
+ if(process.env.BPS_RECORD_DELETE_CHECK==='1'){sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));}
  admin=createClient(s.API_URL,s.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
  const email=`ux-${randomUUID()}@example.test`,password=randomUUID()+'Aa1!';
  const a=await admin.auth.admin.createUser({email,password,email_confirm:true,app_metadata:{active_tenant:id(1)}});assert.ifError(a.error);user=a.data.user.id;
@@ -187,6 +189,51 @@ try {
   await page.setViewportSize({width:1280,height:900});
   console.log('PASS company/contract detail desktop/mobile, tabs, renewal anchor and UUID company return');
  }
+ if(process.env.BPS_RECORD_DELETE_CHECK==='1'){
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
+  let nativeDialogs=0;page.on('dialog',async d=>{nativeDialogs++;await d.dismiss();});
+  for(const kind of ['contact','document']){
+   const table=kind==='contact'?'contacts':'documents',tab=kind==='contact'?'Yetkililer':'Evraklar',title=kind==='contact'?'Yetkili kişiyi kalıcı olarak sil':'Belgeyi kalıcı olarak sil';
+   for(const absent of [false,true]){
+    const record=randomUUID(),name=prefix+'-'+kind+(absent?'-absent':'-delete');
+    let storagePath=null;
+    if(kind==='contact')sql(`INSERT INTO contacts(id,tenant_id,company_id,full_name,email,created_by) VALUES('${record}','${id(1)}','${company}','${name}','synthetic@example.test','${user}')`);
+    else{
+     if(!absent){storagePath=company+'/'+name+'.pdf';ownedStoragePaths.push(storagePath);assert.ifError((await admin.storage.from('documents').upload(storagePath,Buffer.from('%PDF-1.4\n% synthetic deletion acceptance\n%%EOF'),{contentType:'application/pdf'})).error);}
+     sql(`INSERT INTO documents(id,tenant_id,company_id,name,category,status,created_by,storage_path) VALUES('${record}','${id(1)}','${company}','${name}','diger','tam','${user}',${storagePath?"'"+storagePath+"'":'NULL'})`);
+    }
+    await page.goto(origin+'/firmalar/'+company);await page.getByRole('navigation',{name:'Sayfa bölümleri'}).getByRole('button',{name:tab,exact:true}).click();
+    const trigger=page.getByRole('button',{name:name+' — kalıcı olarak sil',exact:true});await trigger.click();const dialog=page.getByRole('dialog',{name:title,exact:true});await dialog.waitFor();await dialog.getByText(name,{exact:true}).waitFor();assert.ok(await dialog.getByRole('button',{name:'Vazgeç',exact:true}).evaluate(e=>e===document.activeElement));
+    await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});assert.equal(sql(`SELECT count(*) FROM ${table} WHERE id='${record}'`),'1');assert.ok(await trigger.evaluate(e=>e===document.activeElement));await trigger.click();
+    if(absent){sql(`DELETE FROM ${table} WHERE id='${record}' AND created_by='${user}'`);await dialog.getByRole('button',{name:'Kalıcı olarak sil',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.getByRole('alert').filter({hasText:kind==='contact'?'Silinen yetkili kaydı doğrulanamadı':'Silinen belge kaydı doğrulanamadı'}).waitFor();}
+    else{
+     sql(`UPDATE profiles SET role='operasyon' WHERE id='${user}'`);await dialog.getByRole('button',{name:'Kalıcı olarak sil',exact:true}).click();await dialog.getByRole('alert').filter({hasText:'Yetkisiz:'}).waitFor();assert.equal(sql(`SELECT count(*) FROM ${table} WHERE id='${record}'`),'1');sql(`UPDATE profiles SET role='yonetici' WHERE id='${user}'`);
+     let reached,posts=0;const incoming=new Promise(r=>reached=r),gate=new Promise(r=>releaseRequest=r);
+     const handler=async route=>{if(route.request().method()==='POST'&&(route.request().postData()??'').includes(record)){posts++;reached();await gate;await route.continue();}else await route.fallback();};
+     await page.route('**/*',handler);await dialog.getByRole('button',{name:'Kalıcı olarak sil',exact:true}).click();let timer;try{await Promise.race([incoming,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Delete POST missing')),20000);})]);}finally{clearTimeout(timer);}
+     await dialog.getByRole('status').waitFor();assert.ok(await dialog.getByRole('button',{name:'İşlem sürüyor…',exact:true}).isDisabled());await page.keyboard.press('Escape');await dialog.getByRole('button',{name:/penceresini kapat$/}).click();assert.ok(await dialog.isVisible());
+     await page.setViewportSize({width:390,height:844});await page.screenshot({path:output+'/delete-'+kind+'-mobile.png'});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));releaseRequest();await dialog.waitFor({state:'hidden'});await page.unroute('**/*',handler);assert.equal(posts,1);
+     await page.getByRole('status').filter({hasText:name+(kind==='contact'?' yetkili kişilerden silindi.':' belge kaydı silindi.')}).waitFor();assert.equal(sql(`SELECT count(*) FROM ${table} WHERE id='${record}'`),'0');
+     if(storagePath)assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name='${storagePath}'`),'0');await page.setViewportSize({width:1280,height:900});
+    }
+   }
+  }
+  // A trigger scoped to this owned path makes the real Storage API fail after DB deletion.
+  const orphanId=randomUUID(),orphanName=prefix+'-storage-failure',orphanPath=company+'/'+orphanName+'.pdf';ownedStoragePaths.push(orphanPath);
+  assert.ifError((await admin.storage.from('documents').upload(orphanPath,Buffer.from('%PDF-1.4\n% synthetic storage failure\n%%EOF'),{contentType:'application/pdf'})).error);
+  sql(`INSERT INTO documents(id,tenant_id,company_id,name,category,status,created_by,storage_path) VALUES('${orphanId}','${id(1)}','${company}','${orphanName}','diger','tam','${user}','${orphanPath}')`);
+  const fault='ux_delete_'+randomUUID().replaceAll('-','');
+  sql(`BEGIN; CREATE FUNCTION public.${fault}() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $$ BEGIN IF OLD.bucket_id='documents' AND OLD.name=TG_ARGV[0] THEN RAISE EXCEPTION 'SYNTHETIC_STORAGE_DELETE_FAILURE'; END IF; RETURN OLD; END $$; CREATE TRIGGER ${fault} BEFORE DELETE ON storage.objects FOR EACH ROW EXECUTE FUNCTION public.${fault}('${orphanPath}'); COMMIT;`);
+  try{
+   await page.goto(origin+'/firmalar/'+company);await page.getByRole('navigation',{name:'Sayfa bölümleri'}).getByRole('button',{name:'Evraklar',exact:true}).click();await page.getByRole('button',{name:orphanName+' — kalıcı olarak sil',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Belgeyi kalıcı olarak sil',exact:true});await dialog.getByRole('button',{name:'Kalıcı olarak sil',exact:true}).click();await dialog.waitFor({state:'hidden'});
+   await page.getByRole('alert').filter({hasText:'Belge kaydı silindi, dosyanın temizlenmesi tamamlanamadı.'}).waitFor();assert.equal(sql(`SELECT count(*) FROM documents WHERE id='${orphanId}'`),'0');assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name='${orphanPath}'`),'1');await page.screenshot({path:output+'/document-storage-warning.png'});
+  }finally{sql(`BEGIN; DROP TRIGGER IF EXISTS ${fault} ON storage.objects; DROP FUNCTION IF EXISTS public.${fault}(); COMMIT;`);}
+  const failedRead=async route=>{if(route.request().method()==='GET')await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic read failure'})});else await route.fallback();};
+  for(const [table,tab,empty] of [['contacts','Yetkililer','Yetkili kişi yok'],['documents','Evraklar','Belge yok']]){
+   const route='**/rest/v1/'+table+'?*';await page.route(route,failedRead);await page.reload();await page.getByRole('navigation',{name:'Sayfa bölümleri'}).getByRole('button',{name:tab,exact:true}).click();await page.getByText('Veri yüklenemedi',{exact:true}).waitFor();assert.equal(await page.getByRole('heading',{name:empty,exact:true}).count(),0);await page.unroute(route,failedRead);await page.getByRole('button',{name:'Tekrar dene',exact:true}).click();await page.getByRole('heading',{name:empty,exact:true}).waitFor();
+  }
+  assert.equal(nativeDialogs,0);console.log('PASS contact/document named confirmations, cancel, role rejection, pending guard, actual deletion/no-op, real Storage removal/failure warning and honest contact/document read-error/retry');
+ }
  if(process.env.BPS_CONFIRMATION_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
   let nativeDialogs=0;page.on('dialog',async d=>{nativeDialogs++;await d.dismiss();});
@@ -250,6 +297,7 @@ try {
 finally {
  releaseRequest?.();await browser?.close();
  if(sql&&user)try{
+  if(ownedStoragePaths.length)assert.ifError((await admin.storage.from('documents').remove(ownedStoragePaths)).error);
   sql(`BEGIN;DELETE FROM tasks WHERE company_id IN (SELECT id FROM companies WHERE name LIKE '${prefix}%' AND tenant_id='${id(1)}' AND created_by='${user}');DELETE FROM appointments WHERE created_by='${user}' AND company_id IN (SELECT id FROM companies WHERE name LIKE '${prefix}%' AND tenant_id='${id(1)}');DELETE FROM companies WHERE tenant_id='${id(1)}' AND created_by='${user}' AND name LIKE '${prefix}%';DELETE FROM tenant_memberships WHERE user_id='${user}';DELETE FROM profiles WHERE id='${user}';COMMIT;`);
   assert.ifError((await admin.auth.admin.deleteUser(user)).error);console.log('Owned synthetic companies and Auth account removed');
  }catch(e){console.error('Cleanup failed: '+e.message);process.exitCode=1;}
