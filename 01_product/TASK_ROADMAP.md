@@ -1,5 +1,7 @@
 # TASK_ROADMAP.md
 
+> **045 — Banka/otel birleşik yerel kabulü tamamlandı.** Gerçek yerel Auth/RPC/HTTP üzerinden 8 kontrol grubu: şube CSV tekrarları, çift atama engeli, beyan/teyit ayrımı, yedek atama ve korunmuş gelmedi geçmişi, günlük/haftalık/CSV toplamları, tenant/rol retleri ve kendi test verilerinin temizliği. Banka 9/3/6, otel 5/4/1 ihtiyaç/atama/açık; bağımsız CSV okuyucusu doğruladı. Ürün kaynakları canlı 044 ile aynı; SQL/deploy yok. Bu sonuç gerçek müşteri veya tarayıcı pilotu değildir. [Kanıt](PILOT_UCTAN_UCA_KABUL.md).
+
 > **044 yayın — 2026-09-10:** Yerel render düzeltmesi doğrudan kullanıcı devam talimatıyla canlıya alındı. Kaynak `ec0500e`, dal `codex/block-01-release`; deployment `dpl_1QvsYYMzeemMuz9ZDtxdUaSdQDhw`. 249 uygulama dosyası commit/manifest ile eşleşti; TypeScript, production build ve sağlık 5/5 geçti. 100 personelde gereksiz HTML ad tekrarları 1.000→200; ekran/PDF değişmedi. SQL veya iş verisi değişikliği yok. Önceki “yerelde/yayımlanmadı” notları yerel kabul anını anlatır.
 
 > **044 — Yerel render yükü düzeltildi; yayında değil.** 100 personelli haftalık PDF devam satırlarında tam ekran listesinin gereksiz kopyaları kaldırıldı. HTML ad tekrarları 1.000→200; gömülü CSS dahil boyut 145.473→112.417 byte. Ekran/PDF 100 isim kabulü, TypeScript ve 043 ile toplam 10 PDF sayfasında piksel eşitliği geçti. SQL/veri/push/deploy yok; canlı 043 korunuyor. [Kanıt](HAFTALIK_CIKTI_RENDER_YUKU.md).
