@@ -1,4 +1,6 @@
 "use client";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import AsyncSection from "@/components/ui/AsyncSection";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -150,7 +152,8 @@ const COLUMNS: ColumnDef<ContractListRow>[] = [
 
 export default function SozlesmelerPage() {
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
+  const feedback = useActionNotice(JSON.stringify([user?.id, user?.app_metadata?.active_tenant, role]));
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
@@ -309,18 +312,20 @@ export default function SozlesmelerPage() {
         actions={canCreate ? [
           {
             label: "Yeni Sözleşme",
-            onClick: () => setCreateOpen(true),
+            onClick: () => { feedback.clear(); setCreateOpen(true); },
             icon: <Plus size={16} />,
             variant: "primary",
           },
         ] : undefined}
       />
 
+      <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+
       <div className="space-y-4">
         {loadError && (
-          <p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">
-            {loadError}
-          </p>
+          <AsyncSection isLoading={false} hasError onRetry={() => { setLoading(true); void reload(); }}>
+            {null}
+          </AsyncSection>
         )}
 
         {/* Status summary chips — clickable as filter shortcuts */}
@@ -360,17 +365,17 @@ export default function SozlesmelerPage() {
 
         {loading ? (
           <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Yükleniyor…</p>
-        ) : (
+        ) : !loadError ? (
           <DataTable<ContractListRow>
             columns={COLUMNS}
             data={filteredData}
             rowKey="id"
             onRowClick={(row) => router.push(`/sozlesmeler/${row.id}`)}
             rowActions={rowActions}
-            emptyTitle="Sözleşme bulunamadı"
-            emptyDescription="Arama veya filtre kriterlerinizi değiştirin."
+            emptyTitle={contracts.length === 0 ? "Henüz sözleşme yok" : "Bu filtrelerle eşleşen sözleşme yok"}
+            emptyDescription={contracts.length === 0 ? (canCreate?"Yeni Sözleşme ile ilk taslağınızı oluşturabilirsiniz.":"Ekibiniz sözleşme eklediğinde burada görünecek."):"Aramayı veya filtreleri değiştirerek yeniden deneyin."}
           />
-        )}
+        ) : null}
       </div>
 
       {/* Right side panel — preview (not full detail) */}
@@ -509,6 +514,7 @@ export default function SozlesmelerPage() {
           if (!result.ok) {
             throw new Error(result.error);
           }
+          feedback.show(`${data.sozlesmeAdi} sözleşmelere eklendi. Durumu: taslak.`);
           await reload();
           router.refresh();
         }}

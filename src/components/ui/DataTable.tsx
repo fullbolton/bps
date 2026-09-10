@@ -103,7 +103,7 @@ export default function DataTable<T extends object>({
 
   return (
     <div>
-      <div tabIndex={0} role="region" aria-label="Kayıt tablosu, yatay kaydırılabilir" className={`overflow-x-auto ${TABLE_WRAPPER}`}>
+      <div tabIndex={0} role="region" aria-label="Kayıt tablosu, yatay kaydırılabilir" className={`relative overflow-x-auto ${TABLE_WRAPPER}`}>
         <table className={`min-w-full ${TABLE_DIVIDER_HEAD}`}>
           <thead className={TABLE_HEADER_BG}>
             <tr>

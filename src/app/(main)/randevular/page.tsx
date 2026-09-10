@@ -1,4 +1,6 @@
 "use client";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import AsyncSection from "@/components/ui/AsyncSection";
 
 /**
  * Randevular list page — Phase 3B cutover.
@@ -176,6 +178,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
 export default function RandevularPage() {
   const { role } = useRole();
   const { loading: authLoading, user } = useAuth();
+  const feedback = useActionNotice(JSON.stringify([user?.id, user?.app_metadata?.active_tenant, role]));
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
@@ -405,17 +408,19 @@ export default function RandevularPage() {
         actions={[
           {
             label: "Yeni Randevu",
-            onClick: () => setNewOpen(true),
+            onClick: () => { feedback.clear(); setNewOpen(true); },
             icon: <Plus size={16} />,
           },
         ]}
       />
 
+      <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+
       <div className="space-y-4">
         {loadError && (
-          <p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">
-            {loadError}
-          </p>
+          <AsyncSection isLoading={false} hasError onRetry={() => { setLoading(true); void reload(); }}>
+            {null}
+          </AsyncSection>
         )}
 
         {completionNotice && (
@@ -453,17 +458,17 @@ export default function RandevularPage() {
 
         {loading ? (
           <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Yukleniyor...</p>
-        ) : (
+        ) : !loadError ? (
           <DataTable<AppointmentListRow>
             columns={COLUMNS}
             data={filteredData}
             rowKey="id"
             onRowClick={(row) => setSelectedId(row.id)}
             rowActions={rowActions}
-            emptyTitle="Randevu bulunamadi"
-            emptyDescription="Arama veya filtre kriterlerinizi degistirin."
+            emptyTitle={appointments.length === 0 ? "Henüz randevu yok" : "Bu filtrelerle eşleşen randevu yok"}
+            emptyDescription={appointments.length === 0 ? "Yeni Randevu ile ilk görüşmenizi planlayabilirsiniz.":"Aramayı veya filtreleri değiştirerek yeniden deneyin."}
           />
-        )}
+        ) : null}
       </div>
 
       <RightSidePanel
@@ -548,6 +553,7 @@ export default function RandevularPage() {
             attendee: katilimci || undefined,
           });
           if (!result.ok) throw new Error(result.error);
+          feedback.show("Randevu oluşturuldu. Durumu: planlandı.");
           setNewOpen(false);
           void reload();
           router.refresh();
@@ -601,6 +607,7 @@ export default function RandevularPage() {
             priority: oncelik,
           });
           if (!result.ok) throw new Error(result.error);
+          feedback.show(`${baslik} görevlere eklendi.`);
           await reload();
           router.refresh();
         }}

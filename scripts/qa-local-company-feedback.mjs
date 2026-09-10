@@ -66,6 +66,32 @@ try {
   }
 
  }
+ if(process.env.BPS_WRITE_FEEDBACK_CHECK==='1'){
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
+  await page.goto(origin+'/gorevler');await page.getByRole('button',{name:'Yeni Görev',exact:true}).click();
+  const taskDialog=page.getByRole('dialog',{name:'Yeni Görev',exact:true}),taskTitle=prefix+'-task';
+  await taskDialog.getByPlaceholder('Görev başlığını girin').fill(taskTitle);await taskDialog.locator('select').first().selectOption({label:first});
+  let failedReads=0;
+  const failList=async route=>{const u=new URL(route.request().url());if(route.request().method()==='GET'&&u.pathname==='/rest/v1/tasks'&&u.searchParams.get('select')==='*'){failedReads++;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Sentetik liste yenileme hatası'})});}else await route.continue();};
+  await page.route('**/rest/v1/tasks?*',failList);await taskDialog.getByRole('button',{name:'Oluştur',exact:true}).click();
+  await taskDialog.waitFor({state:'hidden'});await page.getByRole('status').filter({hasText:taskTitle+' görevlere eklendi.'}).waitFor();
+  await page.getByText('Veri yüklenemedi',{exact:true}).waitFor();assert.ok(failedReads>0);assert.equal(await page.getByRole('heading',{name:'Henüz görev yok',exact:true}).count(),0);
+  assert.equal(sql(`SELECT count(*) FROM tasks WHERE company_id='${company}' AND title='${taskTitle}'`),'1');
+  await page.screenshot({path:output+'/task-saved-list-error.png'});await page.unroute('**/rest/v1/tasks?*',failList);
+  await page.getByRole('button',{name:'Tekrar dene',exact:true}).click();await page.getByRole('cell',{name:taskTitle,exact:true}).waitFor();await page.getByRole('status').filter({hasText:taskTitle+' görevlere eklendi.'}).waitFor();assert.equal(sql(`SELECT count(*) FROM tasks WHERE company_id='${company}' AND title='${taskTitle}'`),'1');await page.reload();await page.getByRole('cell',{name:taskTitle,exact:true}).waitFor();
+  await page.getByRole('cell',{name:taskTitle,exact:true}).click();const taskPanel=page.getByRole('dialog',{name:'Görev Hızlı Güncelle',exact:true});await taskPanel.waitFor();
+  await taskPanel.getByRole('button',{name:'Güncellemeyi Uygula',exact:true}).click();await taskPanel.waitFor({state:'hidden'});await page.getByRole('status').filter({hasText:'Görev güncellendi.'}).waitFor();
+  await page.getByRole('button',{name:'İşlem bildirimini kapat',exact:true}).click();assert.equal(await page.getByText('Görev güncellendi.',{exact:true}).count(),0);
+  await page.goto(origin+'/randevular');await page.getByRole('button',{name:'Yeni Randevu',exact:true}).click();const appointmentDialog=page.getByRole('dialog',{name:'Yeni Randevu',exact:true});
+  await appointmentDialog.locator('select').first().selectOption({label:first});await appointmentDialog.locator('input[type="date"]').fill('2026-09-10');await appointmentDialog.getByPlaceholder('Katilimci adi').fill(prefix+'-attendee');
+  await appointmentDialog.getByRole('button',{name:'Olustur',exact:true}).click();await appointmentDialog.waitFor({state:'hidden'});
+  await page.getByRole('status').filter({hasText:'Randevu oluşturuldu. Durumu: planlandı.'}).waitFor();assert.equal(sql(`SELECT count(*) FROM appointments WHERE created_by='${user}' AND company_id='${company}' AND attendee='${prefix}-attendee'`),'1');
+  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),JSON.stringify(await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth&&!e.closest('table')).slice(0,25).map(e=>({tag:e.tagName,cls:e.className,right:e.getBoundingClientRect().right,overflow:getComputedStyle(e).overflow,width:e.clientWidth,scroll:e.scrollWidth})),containers:[...document.querySelectorAll('table')].map(e=>({self:e.getBoundingClientRect().toJSON(),parent:e.parentElement.getBoundingClientRect().toJSON(),css:getComputedStyle(e.parentElement).overflow}))}))));await page.screenshot({path:output+'/appointment-notice-mobile.png'});await page.setViewportSize({width:1280,height:900});
+  await page.goto(origin+'/sozlesmeler');await page.getByRole('button',{name:'Yeni Sözleşme',exact:true}).click();const contractDialog=page.getByRole('dialog',{name:'Yeni Sözleşme',exact:true}),contractTitle=prefix+'-contract';
+  await contractDialog.getByPlaceholder('Sözleşme adını girin').fill(contractTitle);await contractDialog.locator('select').first().selectOption({label:first});await contractDialog.getByRole('button',{name:'Oluştur',exact:true}).click();await contractDialog.waitFor({state:'hidden'});
+  await page.getByRole('status').filter({hasText:contractTitle+' sözleşmelere eklendi. Durumu: taslak.'}).waitFor();assert.equal(sql(`SELECT count(*) FROM contracts WHERE created_by='${user}' AND company_id='${company}' AND name='${contractTitle}' AND status='taslak'`),'1');
+  await page.screenshot({path:output+'/contract-notice.png'});console.log('PASS task/create/update, appointment/contract saved notices, dismiss, mobile fit and successful task write with failed list refresh');
+ }
  if(process.env.BPS_DIALOG_DESIGN_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
   sql(`INSERT INTO appointments(id,tenant_id,company_id,meeting_date,meeting_type,status,attendee,created_by) VALUES('${randomUUID()}','${id(1)}','${company}','2026-09-10','ziyaret','planlandi','UX panel kabulü','${user}');`);
@@ -151,7 +177,7 @@ try {
 finally {
  releaseRequest?.();await browser?.close();
  if(sql&&user)try{
-  sql(`BEGIN;DELETE FROM appointments WHERE created_by='${user}' AND company_id IN (SELECT id FROM companies WHERE name LIKE '${prefix}%' AND tenant_id='${id(1)}');DELETE FROM companies WHERE tenant_id='${id(1)}' AND created_by='${user}' AND name LIKE '${prefix}%';DELETE FROM tenant_memberships WHERE user_id='${user}';DELETE FROM profiles WHERE id='${user}';COMMIT;`);
+  sql(`BEGIN;DELETE FROM tasks WHERE company_id IN (SELECT id FROM companies WHERE name LIKE '${prefix}%' AND tenant_id='${id(1)}' AND created_by='${user}');DELETE FROM appointments WHERE created_by='${user}' AND company_id IN (SELECT id FROM companies WHERE name LIKE '${prefix}%' AND tenant_id='${id(1)}');DELETE FROM companies WHERE tenant_id='${id(1)}' AND created_by='${user}' AND name LIKE '${prefix}%';DELETE FROM tenant_memberships WHERE user_id='${user}';DELETE FROM profiles WHERE id='${user}';COMMIT;`);
   assert.ifError((await admin.auth.admin.deleteUser(user)).error);console.log('Owned synthetic companies and Auth account removed');
  }catch(e){console.error('Cleanup failed: '+e.message);process.exitCode=1;}
  release?.();

@@ -1,4 +1,6 @@
 "use client";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import AsyncSection from "@/components/ui/AsyncSection";
 
 import { Suspense, useState, useMemo, useCallback, useEffect } from "react";
 import TaskPrefillBanner from "./TaskPrefillBanner";
@@ -210,6 +212,7 @@ import TaskTransferModal from "./TaskTransferModal";
 export default function GorevlerPage() {
   const { role } = useRole();
   const { loading: authLoading, user } = useAuth();
+  const feedback = useActionNotice(JSON.stringify([user?.id, user?.app_metadata?.active_tenant, role]));
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
@@ -439,7 +442,7 @@ export default function GorevlerPage() {
           ...(role === "yonetici" ? [{ label: "Görevleri devret", onClick: () => setTransferOpen(true) }] : []),
           {
             label: "Yeni Görev",
-            onClick: () => { setTaskPrefill(null); setNewOpen(true); },
+            onClick: () => { feedback.clear(); setTaskPrefill(null); setNewOpen(true); },
             icon: <Plus size={16} />,
           },
         ]}
@@ -451,6 +454,8 @@ export default function GorevlerPage() {
         }} />
       </Suspense>}
 
+      <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+
       <div className="space-y-4">
         {/* Loading state */}
         {loading && (
@@ -459,9 +464,9 @@ export default function GorevlerPage() {
 
         {/* Error state */}
         {loadError && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {loadError}
-          </div>
+          <AsyncSection isLoading={false} hasError onRetry={() => { setLoading(true); void reload(); }}>
+            {null}
+          </AsyncSection>
         )}
 
         {/* Main content */}
@@ -511,8 +516,8 @@ export default function GorevlerPage() {
               rowKey="id"
               onRowClick={(row) => setSelectedId(row.id)}
               rowActions={rowActions}
-              emptyTitle="Görev bulunamadı"
-              emptyDescription="Arama veya filtre kriterlerinizi değiştirin."
+              emptyTitle={tasks.length === 0 ? "Henüz görev yok" : "Bu filtrelerle eşleşen görev yok"}
+              emptyDescription={tasks.length === 0 ? "Yeni Görev ile ilk işinizi oluşturabilirsiniz.":"Aramayı veya filtreleri değiştirerek yeniden deneyin."}
             />
           </>
         )}
@@ -635,6 +640,7 @@ export default function GorevlerPage() {
                         ? { assignedToUserId: editAtananKisiId || null }
                         : {}),
                     });
+                    feedback.show("Görev güncellendi.");
                     setSelectedId(null);
                     await reload();
                     router.refresh();
@@ -692,6 +698,7 @@ export default function GorevlerPage() {
           };
           const result = await createTaskAction(input);
           if (!result.ok) throw new Error(result.error);
+          feedback.show(`${baslik} görevlere eklendi.`);
           await reload();
           router.refresh();
         }}

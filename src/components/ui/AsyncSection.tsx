@@ -47,7 +47,7 @@ export default function AsyncSection({
   children,
 }: AsyncSectionProps) {
   if (isLoading) {
-    return <p className={CENTER_LINE}>Yükleniyor…</p>;
+    return <p role="status" className={CENTER_LINE}>Yükleniyor…</p>;
   }
   if (hasError) {
     return (
@@ -60,7 +60,7 @@ export default function AsyncSection({
           <button
             type="button"
             onClick={onRetry}
-            className={`${TYPE_CAPTION} text-blue-600 hover:underline mt-1`}
+            className={`${TYPE_CAPTION} min-h-11 rounded-lg border border-slate-200 bg-white px-4 text-blue-700 hover:bg-blue-50 mt-2`}
           >
             Tekrar dene
           </button>
