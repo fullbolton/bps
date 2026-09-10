@@ -144,3 +144,14 @@ Kabul: BPS_OPERATIONS_LIST_MEMORY_CHECK=1. Dedicated sentetik DB'de sadece bu ç
 İlk test turunda atanmamış görev zaten görünürken hücreyi beklemek debounce tamamlandığını kanıtlamıyordu; reload arama yazılmadan gerçekleşti. Test sessionStorage'daki tamamlanmış aramayı bekleyecek şekilde düzeltildi. Ürün davranışı değiştirilmedi; 064'ün debounce tamamlanmadan ayrılınca girişin saklanmaması sınırı sürer. Başarısız turun kendi kayıtları da temizlendi.
 
 TypeScript, lint ve izole production build geçti. Kendi sentetik kayıtları ve Auth hesabı temizlendi. Yeni unit testi yok: ortak hook/normalizasyon 064 testleriyle, bu sayfalara bağlanması gerçek tarayıcı kabulüyle ölçülür. 064'ün sekme/cihaz/sayfalama/sıralama/scroll ve storage sınırları aynen geçerli. Ürün SQL/push/deploy yok.
+
+
+## 066 — Görev ekranında listeyi öne alma
+
+Dört büyük KPI kartı ve aynı durumların tekrarlandığı chip satırı kaldırıldı. Tümü + Açık/Devam Ediyor/Tamamlandı/Gecikti/İptal tek özet alanında: mobilde üç sütun/iki sıra, geniş ekranda altı sütun. Her durum gerçek bir button; aria-pressed ve seçili stil içerir. Seçim yalnız durum filtresini değiştirir; aynı duruma tekrar basmak bu filtreyi kaldırır. Tümü de yalnız durum filtresini temizler. Sayılar filtrelenmiş sonuç sayısı değildir: yüklenmiş tüm görünür görevlerin adetleridir; açıklama bunu açıkça belirtir.
+
+CollapsibleFilters aynı FilterBar kontrollerini mobilde başlangıçta kapalı tutar. 44 px tetikleyici, aria-expanded/aria-controls ve etkin filtre adedi içerir. Masaüstünde panel CSS ile daima görünür, mobil tetikleyici gizlidir. Kapsam anahtarı değişiminde disclosure kapanır; filtre değerleri 065 kapsamında korunur. Açık/kapalı tercihi saklanmaz. Gizli mobil kontroller Tab sırasına girmez. Arama her zaman görünür ve aktif filtre adedine dahil değildir.
+
+Gerçek Auth + dedicated sentetik Supabase kabulü: BPS_OPERATIONS_LIST_MEMORY_CHECK=1 ve BPS_TASK_MOBILE_CHECK=1. 065 tam filtre/reload/panel/browser-back/boş sonuç regresyonu; toplam adedin DB ile eşleşmesi; tamamlandı durumuna Enter ile filtreleme; sadece doğru kayıt; reload sonrası kapalı panelde etkin rozet; Enter ile açma ve Tab ile ilk select'e geçiş; ikinci filtreyle rozet artışı; temizlemenin aramayı koruması; kapatınca Tab'ın tabloya geçmesi; 320/390/1280 px sayfa taşmaması ve desktop filtre görünürlüğü geçti. 390×844 sentetik kabul sayfasında ilk görev satırının alt kenarı viewport içinde ölçüldü. Bu ölçüm ekstra talep bağlantısı/bildirim banner'ları veya daha büyük yazı ayarları için bir garanti değildir.
+
+Görsel kanıt: `/private/tmp/bps-company-feedback-0dFuD3/compact-tasks-390.png`, `task-filters-expanded-390.png`, `compact-tasks-desktop.png`. TypeScript/lint ve izole production build başarılı; kendi test kayıtları/Auth hesabı temizlendi. İş kuralları, veri okuma/yazma ve Supabase şeması değişmedi. Yeni unit testi yok; etkileşimler gerçek tarayıcıda ölçüldü. Ürün SQL/push/deploy yok.

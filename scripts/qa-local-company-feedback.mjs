@@ -317,6 +317,41 @@ try {
   }
   console.log('PASS task/appointment all filters, assigned vs unassigned, reload, panel close, browser back, empty/clear recovery, focus and mobile fit');
  }
+ if(process.env.BPS_TASK_MOBILE_CHECK==='1') {
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);
+  assert.match(company,/^[a-f0-9-]{36}$/);
+  assert.equal(sql("SELECT obj_description('public.tasks'::regclass)"),'BPS synthetic task-prefill fixture v1');
+  const query=prefix+'-compact',openTitle=query+'-open',doneTitle=query+'-done';
+  sql(`INSERT INTO tasks(tenant_id,company_id,title,status,created_by) VALUES
+   ('${id(1)}','${company}','${openTitle}','acik','${user}'),
+   ('${id(1)}','${company}','${doneTitle}','tamamlandi','${user}');`);
+  await page.setViewportSize({width:1280,height:900});await page.goto(origin+'/gorevler');
+  const search=page.getByRole('textbox',{name:'Görev, firma, kişi ara...',exact:true});await search.waitFor();
+  const clear=page.getByRole('button',{name:'Temizle',exact:true});if(await clear.isVisible())await clear.click();
+  await search.fill(query);
+  await page.waitForFunction(query=>Object.keys(sessionStorage).filter(k=>k.startsWith('bps:list-view:v1:')).some(k=>JSON.parse(k.slice('bps:list-view:v1:'.length))[0]==='gorevler'&&JSON.parse(sessionStorage.getItem(k)).search===query),query);
+  await page.getByRole('cell',{name:openTitle,exact:true}).waitFor();await page.getByRole('cell',{name:doneTitle,exact:true}).waitFor();
+  const summary=page.getByRole('group',{name:'Durum filtresi',exact:true});assert.equal(await summary.getByRole('button').count(),6);
+  const total=Number(sql(`SELECT count(*) FROM tasks WHERE tenant_id='${id(1)}'`));await summary.getByRole('button',{name:'Tümü '+total,exact:true}).waitFor();
+  await page.setViewportSize({width:390,height:844});
+  const disclosure=page.getByRole('button',{name:/^Filtreler/});assert.equal(await disclosure.getAttribute('aria-expanded'),'false');
+  assert.equal(await page.getByRole('combobox',{name:'Durum',exact:true}).count(),0);
+  assert.ok(await page.getByRole('table').locator('tbody tr').first().evaluate(e=>e.getBoundingClientRect().bottom<=innerHeight),'First task row should fit in mobile viewport');
+  await page.screenshot({path:output+'/compact-tasks-390.png'});
+  const completed=summary.getByRole('button',{name:/^Tamamlandı /});await completed.focus();await page.keyboard.press('Enter');assert.equal(await completed.getAttribute('aria-pressed'),'true');
+  await page.getByRole('cell',{name:doneTitle,exact:true}).waitFor();assert.equal(await page.getByRole('cell',{name:openTitle,exact:true}).count(),0);
+  await disclosure.filter({hasText:'1 etkin'}).waitFor();await page.reload();await disclosure.filter({hasText:'1 etkin'}).waitFor();assert.equal(await disclosure.getAttribute('aria-expanded'),'false');await page.getByRole('cell',{name:doneTitle,exact:true}).waitFor();
+  await disclosure.focus();await page.keyboard.press('Enter');assert.equal(await disclosure.getAttribute('aria-expanded'),'true');
+  const status=page.getByRole('combobox',{name:'Durum',exact:true});assert.equal(await status.inputValue(),'tamamlandi');await page.keyboard.press('Tab');assert.ok(await status.evaluate(e=>e===document.activeElement));
+  await page.getByRole('combobox',{name:'Atama',exact:true}).selectOption('atanmamis');await disclosure.filter({hasText:'2 etkin'}).waitFor();await page.screenshot({path:output+'/task-filters-expanded-390.png'});
+  await clear.click();await disclosure.filter({hasText:'Filtreler'}).waitFor();assert.equal(await disclosure.textContent(),'Filtreler');assert.equal(await search.inputValue(),query);
+  await disclosure.click();assert.equal(await disclosure.getAttribute('aria-expanded'),'false');await page.keyboard.press('Tab');assert.ok(await page.getByRole('region',{name:'Kayıt tablosu, yatay kaydırılabilir',exact:true}).evaluate(e=>e===document.activeElement));
+  for(const width of [320,390,1280]) {
+   await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+   if(width===1280){assert.ok(await status.isVisible());assert.equal(await disclosure.count(),0);await page.screenshot({path:output+'/compact-tasks-desktop.png'});}
+  }
+  console.log('PASS compact task summary, global counts, keyboard status filter, persisted mobile badge, disclosure/Tab/clear, first row visible at 390 and 320/390/1280 fit');
+ }
  if(process.env.BPS_LIST_MEMORY_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID(),contractName=prefix+'-memory';assert.match(company,/^[a-f0-9-]{36}$/);
   assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${id(1)}','${company}','${contractName}','taslak','${user}')`);

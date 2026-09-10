@@ -1,6 +1,7 @@
 "use client";
 
 import { useListViewState } from "@/components/ui/useListViewState";
+import CollapsibleFilters from "@/components/ui/CollapsibleFilters";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 
@@ -17,7 +18,6 @@ import {
   FilterBar,
   DataTable,
   StatusBadge,
-  KPIStatCard,
   PriorityBadge,
   TaskSourceBadge,
   RightSidePanel,
@@ -53,24 +53,18 @@ import {
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_CARD_TITLE,
-  TYPE_LABEL,
   TEXT_PRIMARY,
   TEXT_BODY,
   TEXT_SECONDARY,
   TEXT_MUTED,
-  TEXT_INVERSE,
   TEXT_LINK,
   BORDER_SUBTLE,
-  RADIUS_FULL,
   RADIUS_SM,
   INPUT_BASE,
   BUTTON_PRIMARY,
 } from "@/styles/tokens";
 
 // Page-local helpers
-const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
-const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
-const CHIP_INACTIVE = "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
 const DL_LABEL = `${TYPE_CAPTION} ${TEXT_SECONDARY}`;
 const DL_VALUE = `${TYPE_BODY} ${TEXT_BODY} mt-0.5`;
 const FORM_LABEL = `block ${TYPE_BODY} font-medium ${TEXT_BODY} mb-1`;
@@ -470,42 +464,27 @@ export default function GorevlerPage() {
         {/* Main content */}
         {!loading && !loadError && (
           <>
-            {/* Summary KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <KPIStatCard label="Açık" value={statusCounts.acik} />
-              <KPIStatCard label="Devam Ediyor" value={statusCounts.devam_ediyor} />
-              <KPIStatCard label="Gecikmiş" value={statusCounts.gecikti} />
-              <KPIStatCard label="Tamamlanan" value={statusCounts.tamamlandi} />
-            </div>
-
-            {/* Status chips */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {Object.entries(statusCounts)
-                .filter(([, count]) => count > 0)
-                .map(([status, count]) => (
-                  <button
-                    key={status}
-                    onClick={() =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        durum: prev.durum === status ? "" : status,
-                      }))
-                    }
-                    className={clsx(
-                      CHIP_BASE,
-                      filters.durum === status ? CHIP_ACTIVE : CHIP_INACTIVE
-                    )}
-                  >
-                    {STATUS_LABELS[status] ?? status} ({count})
+            <div role="group" aria-label="Durum filtresi">
+              <p className="mb-2 text-xs text-slate-500">Tüm görevlerin durum özeti · filtrelemek için seçin</p>
+              <div className="grid grid-cols-3 gap-2 lg:grid-cols-6">
+                {[{ status: "", label: "Tümü", count: tasks.length }, ...Object.entries(statusCounts).map(([status, count]) => ({ status, label: STATUS_LABELS[status], count }))].map(({ status, label, count }) => (
+                  <button key={status} type="button" aria-pressed={filters.durum === status}
+                    onClick={() => setFilters(previous => ({ ...previous, durum: previous.durum === status ? "" : status }))}
+                    className={clsx("flex min-h-16 min-w-0 flex-col items-start justify-center rounded-xl border px-3 py-2 text-left transition-colors", filters.durum === status ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:border-slate-400")}>
+                    <span className="text-xs">{label}</span>
+                    <span className="text-xl font-semibold tabular-nums">{count}</span>
                   </button>
                 ))}
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="w-full sm:max-w-xs">
                 <SearchInput key={listScope} value={search} maxLength={512} placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />
               </div>
-              <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
+              <CollapsibleFilters key={listScope} activeCount={Object.values(filters).filter(Boolean).length}>
+                <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
+              </CollapsibleFilters>
             </div>
 
             <DataTable<TaskListRow>
