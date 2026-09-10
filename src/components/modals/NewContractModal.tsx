@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useId, useRef, useState } from "react";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { ModalShell } from "@/components/ui";
 import type { ContractRow } from "@/types/database.types";
 
@@ -73,7 +74,16 @@ export default function NewContractModal({
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [discardOpen, setDiscardOpen] = useState(false);
   const isEdit = !!editData;
+  const isDirty = sozlesmeAdi !== (editData?.name ?? "")
+    || firmaId !== (editData?.company_id ?? defaultFirmaId ?? "")
+    || tur !== (editData?.contract_type ?? "")
+    || baslangic !== (editData?.start_date?.slice(0, 10) ?? "")
+    || bitis !== (editData?.end_date?.slice(0, 10) ?? "")
+    || kapsam !== (editData?.scope ?? "")
+    || tutar !== (editData?.contract_value ?? "")
+    || sorumlu !== (editData?.responsible ?? "");
 
   useEffect(() => {
     if (!open) return;
@@ -98,6 +108,7 @@ export default function NewContractModal({
     }
     setSaving(false);
     setSubmitError(null);
+    setDiscardOpen(false);
   }, [editData, defaultFirmaId, open]);
 
   const dateError = baslangic && bitis && bitis < baslangic ? "Bitiş tarihi başlangıç tarihinden önce olamaz." : null;
@@ -130,8 +141,15 @@ export default function NewContractModal({
     }
   }
 
+  function requestClose() {
+    if (submitting.current) return;
+    if (isDirty) setDiscardOpen(true);
+    else resetAndClose();
+  }
+
   function resetAndClose() {
     if (submitting.current) return;
+    setDiscardOpen(false);
     setSozlesmeAdi("");
     setFirmaId("");
     setTur("");
@@ -145,15 +163,17 @@ export default function NewContractModal({
   }
 
   return (
+    <>
     <ModalShell
       open={open}
-      onClose={resetAndClose}
+      onClose={requestClose}
+      closeDisabled={saving}
       title={isEdit ? "Sözleşme Düzenle" : "Yeni Sözleşme"}
       footer={
         <>
           <button
             type="button"
-            onClick={resetAndClose}
+            onClick={requestClose}
             disabled={saving}
             className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
@@ -299,5 +319,11 @@ export default function NewContractModal({
         </fieldset>
       </form>
     </ModalShell>
+    {open && discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
+      recordName={sozlesmeAdi.trim() || editData?.name || "Yeni sözleşme"}
+      description={isEdit ? "Sözleşmedeki kaydedilmemiş değişiklikler bırakılacak. Kayıtlı bilgiler korunur." : "Bu sözleşme formundaki kaydedilmemiş bilgiler bırakılacak."}
+      confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)}
+      onConfirm={async () => { resetAndClose(); }} />}
+    </>
   );
 }

@@ -149,6 +149,7 @@ try {
   try{await Promise.race([incoming,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Enter did not submit '+token)),20000);})]);}finally{clearTimeout(timer);}
   await dialog.getByRole('status').filter({hasText:'Kaydediliyor, lütfen bekleyin…'}).waitFor();
   assert.ok(await dialog.locator('input,select,textarea').evaluateAll(fields=>fields.every(f=>f.matches(':disabled'))),'Pending fields are locked');
+  assert.ok(await dialog.getByRole('button',{name:/penceresini kapat$/}).isDisabled(),'Pending close button is disabled');
   await page.keyboard.press('Escape');assert.ok(await dialog.isVisible());await dialog.getByRole('button',{name:/penceresini kapat$/}).evaluate(button=>button.click());assert.ok(await dialog.isVisible());
   await dialog.locator('form').evaluate(form=>{form.requestSubmit();form.requestSubmit();});
   releaseRequest();await dialog.waitFor({state:'hidden'});await page.unroute('**/*',handler);assert.equal(posts,1,'Only one pending submit');
@@ -717,6 +718,24 @@ try {
    await page.setViewportSize({width:1280,height:900});
   }
   console.log('PASS workspace desktop/mobile six routes, no page overflow, mobile dialog/Escape');
+ }
+ if(process.env.BPS_CONTRACT_DRAFT_GUARD_CHECK==='1') {
+  assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');const company=sql(`SELECT id FROM companies WHERE name='${first}' AND created_by='${user}'`),contract=randomUUID(),savedName=prefix+'-saved-draft';
+  sql(`INSERT INTO contracts(id,tenant_id,company_id,name,contract_type,start_date,end_date,scope,contract_value,responsible,created_by) VALUES('${contract}','${id(1)}','${company}','${savedName}','Hizmet','2026-10-01','2026-12-31','Kayıtlı kapsam','1000 TL','Kayıtlı sorumlu','${user}')`);
+  const baseline=sql(`SELECT row_to_json(c) FROM contracts c WHERE id='${contract}'`),confirmation=page.getByRole('dialog',{name:'Kaydedilmemiş değişiklikler',exact:true});
+  for(const editing of [false,true]){
+   await page.setViewportSize({width:1280,height:900});await page.goto(origin+(editing?'/sozlesmeler/'+contract:'/sozlesmeler'));const title=editing?'Sözleşme Düzenle':'Yeni Sözleşme',trigger=page.getByRole('button',{name:editing?'Sözleşmeyi Düzenle':'Yeni Sözleşme',exact:true}),dialog=page.getByRole('dialog',{name:title,exact:true});await trigger.click();await dialog.waitFor();const name=dialog.getByLabel('Sözleşme Adı',{exact:false});assert.equal(await name.inputValue(),editing?savedName:'');await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});assert.equal(await confirmation.count(),0);await trigger.click();
+   const values=[['Sözleşme Adı',prefix+'-unsaved-contract'],['Tür','Ek protokol'],['Başlangıç','2027-01-01'],['Bitiş','2027-12-31'],['Kapsam','Değiştirilmiş kapsam'],['Tutar','2500 TL'],['Sorumlu','Yeni sorumlu']];
+   for(const [label,value] of values)await dialog.getByLabel(label,{exact:label!=='Sözleşme Adı'}).fill(value);const firm=dialog.getByLabel('Firma',{exact:false});if(editing){assert.ok(await firm.isDisabled());assert.equal(await firm.inputValue(),company);}else await firm.selectOption({label:first});
+   for(const close of [()=>dialog.getByRole('button',{name:title+' penceresini kapat',exact:true}).click(),()=>page.keyboard.press('Escape'),()=>dialog.click({position:{x:4,y:4}}),()=>dialog.getByRole('button',{name:'İptal',exact:true}).click()]){await close();await confirmation.waitFor();assert.ok(await confirmation.getByRole('button',{name:'Vazgeç',exact:true}).evaluate(e=>e===document.activeElement));await confirmation.getByRole('button',{name:'Vazgeç',exact:true}).click();for(const [label,value] of values)assert.equal(await dialog.getByLabel(label,{exact:label!=='Sözleşme Adı'}).inputValue(),value);assert.equal(await firm.inputValue(),company);}
+   await page.keyboard.press('Escape');await page.keyboard.press('Escape');await confirmation.waitFor({state:'hidden'});assert.ok(await dialog.isVisible());await page.keyboard.press('Escape');await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/contract-'+(editing?'edit':'create')+'-discard-390.png'});if(editing)await confirmation.getByText('Sözleşmedeki kaydedilmemiş değişiklikler bırakılacak. Kayıtlı bilgiler korunur.',{exact:true}).waitFor();await confirmation.getByRole('button',{name:'Değişiklikleri bırak',exact:true}).click();await dialog.waitFor({state:'hidden'});assert.ok(await trigger.evaluate(e=>e===document.activeElement));assert.equal(sql(`SELECT row_to_json(c) FROM contracts c WHERE id='${contract}'`),baseline);assert.equal(sql(`SELECT count(*) FROM contracts WHERE name='${prefix}-unsaved-contract' AND created_by='${user}'`),'0');
+   await page.setViewportSize({width:1280,height:900});await trigger.click();assert.equal(await name.inputValue(),editing?savedName:'');
+   // Each independently edited field is protected; reverting all changes restores a clean close.
+   for(const [label,value] of values){const field=dialog.getByLabel(label,{exact:label!=='Sözleşme Adı'}),before=await field.inputValue();await field.fill(value);await page.keyboard.press('Escape');await confirmation.waitFor();await confirmation.getByRole('button',{name:'Vazgeç',exact:true}).click();await field.fill(before);}
+   if(!editing){await firm.selectOption({label:first});await page.keyboard.press('Escape');await confirmation.waitFor();await confirmation.getByRole('button',{name:'Vazgeç',exact:true}).click();await firm.selectOption('');}
+   await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});assert.equal(await confirmation.count(),0);
+  }
+  console.log('PASS contract create/edit clean and dirty X/Escape/backdrop/cancel, every field protected, nested cancel/focus, discard without DB changes, original values restored, locked edit company and mobile');
  }
  if(process.env.BPS_REQUEST_MOBILE_CHECK==='1') {
   const company=sql(`SELECT id FROM companies WHERE name='${first}' AND created_by='${user}'`),demand=randomUUID(),title=prefix+'-mobile-request',owner='Sentetik önceki sorumlu',updated='Sentetik yeni sorumlu';sql(`INSERT INTO staffing_demands(id,tenant_id,company_id,position,requested_count,provided_count,status,responsible,created_by) VALUES('${demand}','${id(1)}','${company}','${title}',10,7,'kismi_doldu','${owner}','${user}')`);
