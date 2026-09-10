@@ -66,10 +66,10 @@ try{
   pass('bank: nine person-days, three placements, six open; same-day double booking rejected',{requests:9,required:9,assigned:3,open:6});
   const startEvent=(assignment,revision,action,payload,command=randomUUID())=>rpc('ops_start_execute',{...args,p_command_id:command,p_assignment_id:assignment,p_expected_revision:revision,p_action:action,p_payload:payload});
   await startEvent(bankToday,0,'plan',{time:'08:00',responsibleId:uid,offsets:[-60,-30,-15]});
-  await startEvent(bankToday,1,'call',{offset:0,outcome:'claimed_arrival',occurredAt:new Date().toISOString()});
+  await startEvent(bankToday,1,'call',{offset:0,outcome:'claimed_arrival',occurredAt:sql("SELECT clock_timestamp()")});
   const readStart=async(client=c)=>{const r=await client.rpc('ops_start_board_filtered',{...args,p_day:day,p_offset:0,p_search:'Sentetik banka personeli',p_only_mine:false,p_only_urgent:false});assert.ifError(r.error);return boardParser.parseFilteredStartBoard(r.data).rows.find(r=>r.id===bankToday);};
   assert.equal((await readStart()).confirmedAt,null);
-  const confirmation=randomUUID(),at=new Date().toISOString(),payload={source:'branch',witness:'Sentetik şube teyidi',occurredAt:at};
+  const confirmation=randomUUID(),at=sql("SELECT clock_timestamp()"),payload={source:'branch',witness:'Sentetik şube teyidi',occurredAt:at};
   const confirmed=await startEvent(bankToday,2,'confirm',payload,confirmation);assert.deepEqual(await startEvent(bankToday,2,'confirm',payload,confirmation),confirmed);
   const fresh=createClient(s.API_URL,s.ANON_KEY,options);assert.ifError((await fresh.auth.signInWithPassword({email,password})).error);const freshRow=await readStart(fresh);assert.equal(freshRow.attendance,'present');assert.equal(freshRow.events.filter(e=>e.kind==='confirm').length,1);
   pass('bank: claim is not confirmation; independent confirmation replay and fresh-session persistence');
@@ -86,7 +86,7 @@ try{
   const recorded=sql(`SELECT attendance_recorded_at FROM ops_assignments WHERE id='${oldAssignment}'`);
   const replacement=randomUUID(),replacementPayload={assignmentId:oldAssignment,workerId:backup,expectedRevision:1};
   const replaced=await mutate('replace',replacementPayload,replacement);assert.deepEqual(await mutate('replace',replacementPayload,replacement),replaced);
-  await startEvent(replaced.id,1,'confirm',{source:'field',witness:'Sentetik saha teyidi',occurredAt:new Date().toISOString()});
+  await startEvent(replaced.id,1,'confirm',{source:'field',witness:'Sentetik saha teyidi',occurredAt:sql("SELECT clock_timestamp()")});
   hp=await service.loadPilotWeek(c,hotel,day);assert.deepEqual(week.weeklyTotals(hp.requests),{requests:2,cancelled:0,required:5,assigned:4,open:1});
   for(const d of hDays){const daily=await service.loadPilotBoard(c,hotel,d);assert.deepEqual(week.weeklyTotals(daily.requests),{requests:1,cancelled:0,required:d===day?2:3,assigned:2,open:d===day?0:1});}
   const history=await service.loadAttendanceWeek(c,hotel,day);const old=history.requests.flatMap(r=>r.attendance).find(a=>a.id===oldAssignment);assert.equal(old.status,'absent');assert.equal(old.removed,true);assert.equal(sql(`SELECT attendance_recorded_at FROM ops_assignments WHERE id='${oldAssignment}'`),recorded);

@@ -62,6 +62,22 @@ assert load(sys.argv[1])==load(sys.argv[2]), 'Browser CSV business rows differ f
   assert.ok(await request.getByText('Sentetik yedek personel',{exact:true}).first().isVisible());
   assert.deepEqual(errors,[],'No browser runtime errors');
   pass('hotel: browser reload preserves absent history and confirmed replacement; mobile rendering',{browserWrites:false});
+  if(process.env.BPS_OPERATIONS_DESIGN_CHECK==='1'){
+   await page.goto(daily(hotel));const summary=page.getByRole('region',{name:'Seçili firma ve gün özeti'});await summary.waitFor();
+   assert.equal(await summary.getByText('Atanan kişi',{exact:true}).locator('..').locator('dd').innerText(),'2');
+   for(const width of [1440,390]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Daily page overflow');await page.screenshot({path:output+'/daily-redesign-'+width+'.png',fullPage:true});}
+   await page.goto(`${origin}/talepler/ise-baslama?gun=${day}`);
+   const search=page.getByRole('textbox',{name:'Firma, şube veya personel'});await search.fill('Sentetik ikinci personel');await page.getByRole('button',{name:'Ara',exact:true}).click();
+   const row=page.locator('article').filter({hasText:'Sentetik ikinci personel'});await row.waitFor();
+   await row.getByRole('button',{name:'Saat ve sorumlu belirle',exact:true}).click();await row.getByLabel('Başlangıç saati',{exact:true}).fill('08:00');await row.getByRole('button',{name:'Kaydet',exact:true}).click();
+   await row.getByRole('button',{name:'Ek / ilk arama',exact:true}).waitFor();await row.getByRole('button',{name:'Ek / ilk arama',exact:true}).click();await row.getByRole('combobox',{name:'Sonuç',exact:true}).selectOption('on_way');await row.getByRole('button',{name:'Kaydet',exact:true}).click();await row.getByText(/Son görüşme .*Yolda/).waitFor();
+   assert.equal(await row.getByText('İşe başladı · teyitli',{exact:true}).count(),0,'Call must not become confirmation');
+   await page.reload();await search.fill('Sentetik ikinci personel');await page.getByRole('button',{name:'Ara',exact:true}).click();await row.getByText(/Son görüşme .*Yolda/).waitFor();
+   for(const width of [1440,390]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Start page overflow');await page.screenshot({path:output+'/start-redesign-'+width+'.png',fullPage:true});}
+   await search.fill('Sentetik banka personeli');await page.getByRole('button',{name:'Ara',exact:true}).click();const confirmed=page.locator('article').filter({hasText:'Sentetik banka personeli'});await confirmed.getByText('İşe başladı · teyitli',{exact:true}).waitFor();
+   await page.getByRole('checkbox',{name:'Aksiyon gerekenler',exact:true}).check();await page.getByText('Bu filtrelerle eşleşen atama yok.',{exact:true}).waitFor();
+   pass('operations redesign: daily totals, 1440/390 no overflow; start plan/call write and reload; call distinct from confirmation; urgent filter');
+  }
   if(writeFixture){
    await page.setViewportSize({width:1440,height:1000});
    const f=writeFixture;
