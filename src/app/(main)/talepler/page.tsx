@@ -14,6 +14,9 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useListViewState } from "@/components/ui/useListViewState";
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Plus } from "lucide-react";
@@ -205,6 +208,8 @@ const COLUMNS: ColumnDef<DemandListRow>[] = [
   },
 ];
 
+const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", oncelik: "", firma: "" };
+
 export default function TaleplerPage() {
   const { role } = useRole();
   const { loading: authLoading, user } = useAuth();
@@ -220,13 +225,12 @@ export default function TaleplerPage() {
   liveContext.current = context;
   const generation = useRef(0);
   const feedback = useActionNotice(listScope ?? "pending");
-  const [snapshot, setSnapshot] = useState<{scope: string; rows: StaffingDemandRow[]; names: Record<string,string>; legacy: Record<string,string>} | null>(null);
+  const [snapshot, setSnapshot] = useState<{scope: string; rows: StaffingDemandRow[]; names: Record<string,string>} | null>(null);
   const [readState, setReadState] = useState<{scope: string; loading: boolean; error: string | null} | null>(null);
   const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "ready" | "error"} | null>(null);
   const [companyRetry, setCompanyRetry] = useState(0);
   const demands = useMemo(() => snapshot?.scope === listScope ? snapshot?.rows ?? [] : [], [snapshot, listScope]);
   const companyNameById = useMemo(() => snapshot?.scope === listScope ? snapshot?.names ?? {} : {}, [snapshot, listScope]);
-  const companyLegacyById = useMemo(() => snapshot?.scope === listScope ? snapshot?.legacy ?? {} : {}, [snapshot, listScope]);
   const loading = readState?.scope !== listScope || readState?.loading !== false;
   const loadError = readState?.scope === listScope ? readState?.error : null;
   const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
@@ -235,12 +239,8 @@ export default function TaleplerPage() {
   // ---------------------------------------------------------------------------
   // UI state
   // ---------------------------------------------------------------------------
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({
-    durum: "",
-    oncelik: "",
-    firma: "",
-  });
+  const searchControl = useRef<SearchInputHandle>(null);
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("talepler", listScope, LIST_FILTER_DEFAULTS);
   const [newOpen, setNewOpen] = useState(false);
   const [ownerTarget, setOwnerTarget] = useState<{
     open: boolean;
@@ -250,7 +250,6 @@ export default function TaleplerPage() {
   }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
 
   // ---------------------------------------------------------------------------
   // Fetch / reload
@@ -265,7 +264,7 @@ export default function TaleplerPage() {
       if (!isCurrent()) return;
       const display = await getCompanyDisplayMapByIds(supabase, Array.from(new Set(rows.map(row => row.company_id))));
       if (!isCurrent()) return;
-      setSnapshot({scope: listScope, rows, names: display.nameById, legacy: display.legacyById});
+      setSnapshot({scope: listScope, rows, names: display.nameById});
       setReadState({scope: listScope, loading: false, error: null});
     } catch (err) {
       if (!isCurrent()) return;
@@ -378,7 +377,7 @@ export default function TaleplerPage() {
   // ---------------------------------------------------------------------------
   // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
-  if (authLoading) {
+  if (authLoading || !viewReady) {
     return (
       <>
         <PageHeader title="Personel Talepleri" subtitle="Talep yonetimi" />
@@ -468,7 +467,7 @@ export default function TaleplerPage() {
         </>}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput
+            <SearchInput ref={searchControl} key={listScope} value={search} maxLength={512}
               placeholder="Firma, pozisyon, sorumlu ara..."
               onChange={handleSearch}
             />
@@ -489,8 +488,13 @@ export default function TaleplerPage() {
             rowKey="id"
             onRowClick={(row) => setSelectedId(row.id)}
             rowActions={rowActions}
-            emptyTitle="Talep bulunamadi"
-            emptyDescription="Arama veya filtre kriterlerinizi degistirin."
+            emptyTitle={demands.length === 0 ? "Henüz personel talebi yok" : "Bu filtrelerle eşleşen talep yok"}
+            emptyDescription={demands.length === 0 ? "Yeni Talep ile ilk personel ihtiyacınızı kaydedebilirsiniz." : "Aramayı veya filtreleri değiştirerek yeniden deneyin."}
+            emptyAction={demands.length === 0 ? {
+              label: "İlk talebi oluştur", onClick: () => setNewOpen(true),
+            } : (search !== "" || Object.values(filters).some(Boolean)) ? {
+              label: "Arama ve filtreleri temizle", onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
+            } : undefined}
           />
         )}
       </div>
@@ -506,16 +510,10 @@ export default function TaleplerPage() {
             <div>
               <dt className={DL_LABEL}>Firma</dt>
               <dd className={`${TYPE_BODY} mt-0.5`}>
-                {companyLegacyById[selectedTalep.company_id] ? (
-                  <a
-                    href={`/firmalar/${companyLegacyById[selectedTalep.company_id]}`}
-                    className={`${TEXT_LINK} hover:underline`}
-                  >
-                    {selectedTalep.firma_name}
-                  </a>
-                ) : (
-                  <span className={TEXT_BODY}>{selectedTalep.firma_name}</span>
-                )}
+                <Link href={`/firmalar/${selectedTalep.company_id}`}
+                  className={`${TEXT_LINK} inline-block min-h-11 max-w-full break-words py-2 underline underline-offset-4`}>
+                  {selectedTalep.firma_name === "—" ? "Firma kaydını aç" : selectedTalep.firma_name}
+                </Link>
               </dd>
             </div>
             <div>
