@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { ModalShell } from "@/components/ui";
 import PickerFeedback, {type PickerStatus} from "@/components/ui/PickerFeedback";
 import { TASK_SOURCE_LABELS } from "@/lib/task-sources";
@@ -71,6 +72,7 @@ export default function NewTaskModal({
   onSubmit,
 }: NewTaskModalProps) {
   const formId = useId();
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [baslik, setBaslik] = useState(defaultBaslik ?? "");
   const [firmaId, setFirmaId] = useState(defaultFirmaId ?? "");
   const [kaynak, setKaynak] = useState<TaskSourceType>(defaultKaynak ?? "manuel");
@@ -84,6 +86,7 @@ export default function NewTaskModal({
   const isSourceLocked = Boolean(defaultKaynak && defaultKaynakRef);
 
   useEffect(() => {
+    setDiscardOpen(false);
     if (!open) return;
     setFirmaId(defaultFirmaId ?? "");
     setKaynak(defaultKaynak ?? "manuel");
@@ -124,6 +127,13 @@ export default function NewTaskModal({
     }
   }
 
+  const hasChanges = baslik !== (defaultBaslik ?? "") || firmaId !== (defaultFirmaId ?? "") || kaynak !== (defaultKaynak ?? "manuel") || (allowAssignee && atananKisiId !== "") || termin !== "" || oncelik !== (defaultOncelik ?? "normal");
+  function requestClose() {
+    if (submitting.current) return;
+    if (hasChanges) setDiscardOpen(true);
+    else resetAndClose();
+  }
+
   function resetAndClose() {
     if (submitting.current) return;
     setBaslik(defaultBaslik ?? "");
@@ -137,15 +147,17 @@ export default function NewTaskModal({
   }
 
   return (
+    <>
     <ModalShell
       open={open}
-      onClose={resetAndClose}
+      onClose={requestClose}
+      closeDisabled={saving}
       title="Yeni Görev"
       footer={
         <>
           <button
             type="button"
-            onClick={resetAndClose}
+            onClick={requestClose}
             disabled={saving}
             className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50"
           >
@@ -311,5 +323,11 @@ export default function NewTaskModal({
         </fieldset>
       </form>
     </ModalShell>
+    {open && discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
+      recordName={baslik.trim() || "Yeni görev"}
+      description="Bu görev formundaki kaydedilmemiş bilgiler bırakılacak."
+      confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)}
+      onConfirm={async () => { setDiscardOpen(false); resetAndClose(); }} />}
+    </>
   );
 }

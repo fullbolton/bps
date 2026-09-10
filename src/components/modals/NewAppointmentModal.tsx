@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useId, useRef, useState } from "react";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { ModalShell } from "@/components/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import PickerFeedback, {type PickerStatus} from "@/components/ui/PickerFeedback";
@@ -51,6 +52,7 @@ export default function NewAppointmentModal({
   onSubmit,
 }: NewAppointmentModalProps) {
   const formId = useId();
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [firmaId, setFirmaId] = useState(defaultFirmaId);
   const submitting = useRef(false);
   const [tarih, setTarih] = useState("");
@@ -67,6 +69,7 @@ export default function NewAppointmentModal({
   const [yeniFirmalar, setYeniFirmalar] = useState<{ id: string; ad: string }[]>([]);
 
   useEffect(() => {
+    setDiscardOpen(false);
     setFirmaId(defaultFirmaId);
     setTarih("");
     setSaat("");
@@ -121,6 +124,13 @@ export default function NewAppointmentModal({
     }
   }
 
+  const hasChanges = firmaId !== defaultFirmaId || tarih !== "" || saat !== "" || tip !== "ziyaret" || katilimci !== "" || yeniFirmalar.length > 0;
+  function requestClose() {
+    if (submitting.current) return;
+    if (hasChanges) setDiscardOpen(true);
+    else resetAndClose();
+  }
+
   function resetAndClose() {
     if (submitting.current) return;
     setCompanyModalOpen(false);
@@ -139,13 +149,14 @@ export default function NewAppointmentModal({
     <>
     <ModalShell
       open={open}
-      onClose={resetAndClose}
+      onClose={requestClose}
+      closeDisabled={saving}
       title="Yeni Randevu"
       footer={
         <>
           <button
             type="button"
-            onClick={resetAndClose}
+            onClick={requestClose}
             disabled={saving}
             className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40"
           >
@@ -265,6 +276,11 @@ export default function NewAppointmentModal({
       </form>
     </ModalShell>
 
+    {open && discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
+      recordName="Yeni randevu"
+      description={yeniFirmalar.length > 0 ? "Bu randevu formundaki kaydedilmemiş bilgiler bırakılacak. Firma kayıtları silinmez." : "Bu randevu formundaki kaydedilmemiş bilgiler bırakılacak."}
+      confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)}
+      onConfirm={async () => { setDiscardOpen(false); resetAndClose(); }} />}
     {/* ModalShell'in KARDESI — icine konsaydi modal govdesinin max-h
         kirpmasina takilirdi. Ustte cizilmesi DOM sirasindan geliyor;
         ikisi de z-50. */}
