@@ -31,7 +31,7 @@ export default function RecentActivities(){
  const rows=result?.scope===scope?result.rows:null;
  return <section aria-label="Son aktiviteler" className="rounded-lg border border-slate-200 bg-white p-5">
   <div className="flex items-center justify-between gap-3"><h3 className="font-semibold text-slate-900">Son Aktiviteler</h3><button type="button" onClick={()=>setRefresh(x=>x+1)} disabled={busy} className="text-sm text-blue-700 disabled:opacity-50">Aktiviteleri yenile</button></div>
-  <p className="mt-1 text-xs text-slate-500">Operasyon işlemleri, görev oluşturma ve atamaları, belge yüklemeleri · Son 20 kayıt</p>
+  <p className="mt-1 text-xs text-slate-500">Operasyon ve işe başlama takibi, görev oluşturma ve atamaları, belge yüklemeleri · Son 20 kayıt</p>
   {error?<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>:busy||!rows?<p className="mt-3 text-sm text-slate-500">Aktiviteler yükleniyor…</p>:rows.length===0?<p className="mt-3 text-sm text-slate-500">Henüz bu kapsamda işlem kaydı yok.</p>:<ol tabIndex={0} aria-label="Son 20 işlem" className="mt-3 max-h-96 overflow-y-auto divide-y divide-slate-100">{rows.map(row=><li key={row.id} className="py-3">
    <a href={row.href} className="text-sm text-blue-700 hover:underline">{activityLabel(row.kind)}</a>
    {row.title&&<p className="break-words text-sm text-slate-600">{row.title}</p>}

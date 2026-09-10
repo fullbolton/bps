@@ -17,5 +17,8 @@ const labels:Record<string,string>={
  'ops:worker':'Personel oluşturuldu','ops:request':'Günlük talep oluşturuldu','ops:request_batch':'Toplu talep oluşturuldu',
  'ops:assign':'Personel yerleştirildi','ops:remove':'Yerleştirme kaldırıldı','ops:cancel':'Talep iptal edildi',
  'ops:resize':'Talep adedi değiştirildi','ops:attendance':'Katılım kaydedildi','ops:replace':'Personel değiştirildi','ops:directory_active':'Rehber kaydının aktifliği değiştirildi',
+ 'ops:start_plan':'İşe başlama planı kaydedildi','ops:start_call':'İşe başlama arama sonucu kaydedildi',
+ 'ops:start_confirm':'İşe başlama teyit edildi','ops:start_reopen':'İşe başlama takibi yeniden açıldı',
+ 'ops:start_claim':'Arama takibi geçici olarak üstlenildi','ops:start_release':'Arama takibi serbest bırakıldı',
 };
 export function activityLabel(kind:string){return labels[kind]??'İşlem kaydedildi';}
