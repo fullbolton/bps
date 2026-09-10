@@ -1,4 +1,6 @@
 "use client";
+
+import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 
@@ -150,6 +152,8 @@ const COLUMNS: ColumnDef<ContractListRow>[] = [
   },
 ];
 
+const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", firma: "" };
+
 export default function SozlesmelerPage() {
   const { role } = useRole();
   const { loading: authLoading, user } = useAuth();
@@ -165,15 +169,11 @@ export default function SozlesmelerPage() {
   // Real companies for the firma filter + New Contract modal.
   const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
 
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({
-    durum: "",
-    firma: "",
-  });
+  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("sozlesmeler", listScope, LIST_FILTER_DEFAULTS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
 
   const reload = useCallback(async () => {
     setLoadError(null);
@@ -286,7 +286,7 @@ export default function SozlesmelerPage() {
 
   // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
-  if (authLoading) {
+  if (authLoading || !viewReady) {
     return (
       <>
         <PageHeader title="Sözleşmeler" subtitle="Sözleşme yaşam döngüsü" />
@@ -352,6 +352,9 @@ export default function SozlesmelerPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
             <SearchInput
+              key={listScope}
+              maxLength={512}
+              value={search}
               placeholder="Sözleşme, firma ara..."
               onChange={handleSearch}
             />

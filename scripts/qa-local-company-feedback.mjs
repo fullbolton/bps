@@ -272,6 +272,27 @@ try {
   }
   assert.equal(nativeDialogs,0);console.log('PASS named confirmations, cancel/focus/no write, server denial/retry, pending guard, company status, verified delete vs zero rows, return to list and no native confirm');
  }
+ if(process.env.BPS_LIST_MEMORY_CHECK==='1'){
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID(),contractName=prefix+'-memory';assert.match(company,/^[a-f0-9-]{36}$/);
+  assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${id(1)}','${company}','${contractName}','taslak','${user}')`);
+  for(const [route,query,status,back] of [['firmalar',first,'aday','Firmalar'],['sozlesmeler',contractName,'taslak','Sözleşmeler']]){
+   await page.goto(origin+'/'+route);const search=page.getByRole('textbox',{name:route==='firmalar'?'Firma, yetkili, sektor ara...':'Sözleşme, firma ara...',exact:true}),filter=page.getByRole('combobox',{name:'Durum',exact:true});
+   await search.fill(query);await filter.selectOption(status);await page.getByRole('cell',{name:query,exact:true}).waitFor();
+   await page.waitForFunction(({route,query})=>Object.keys(sessionStorage).filter(k=>k.startsWith('bps:list-view:v1:')).some(k=>JSON.parse(k.slice('bps:list-view:v1:'.length))[0]===route&&JSON.parse(sessionStorage.getItem(k)).search===query),{route,query});
+   await page.reload();await search.waitFor();await page.waitForTimeout(500);assert.equal(await search.inputValue(),query);assert.equal(await filter.inputValue(),status);assert.equal(await page.getByRole('table').locator('tbody tr').count(),1);
+   await page.getByRole('cell',{name:query,exact:true}).click();await page.getByRole('button',{name:back,exact:true}).click();await search.waitFor();await page.waitForTimeout(500);assert.equal(await search.inputValue(),query);assert.equal(await filter.inputValue(),status);await page.getByRole('cell',{name:query,exact:true}).waitFor();
+   await page.setViewportSize({width:390,height:844});await page.screenshot({path:output+'/remembered-'+route+'-mobile.png'});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.setViewportSize({width:1280,height:900});
+   await page.getByRole('button',{name:'Aramayı temizle',exact:true}).click();await page.getByRole('button',{name:'Temizle',exact:true}).click();await page.reload();await search.waitFor();assert.equal(await search.inputValue(),'');assert.equal(await filter.inputValue(),'');
+   await page.evaluate(route=>{const key=Object.keys(sessionStorage).find(k=>k.startsWith('bps:list-view:v1:')&&JSON.parse(k.slice('bps:list-view:v1:'.length))[0]===route);if(!key)throw Error('Missing preference key');sessionStorage.setItem(key,'{broken');},route);await page.reload();await search.waitFor();assert.equal(await search.inputValue(),'');assert.equal(await filter.inputValue(),'');
+  }
+  await page.goto(origin+'/qa-list-view-acceptance');const field=page.getByRole('textbox',{name:'Kabul araması',exact:true}),committed=page.getByTestId('committed-search');await field.fill('Birinci arama');await committed.filter({hasText:'Birinci arama'}).waitFor();await page.getByRole('combobox',{name:'Kabul durumu'}).selectOption('aktif');
+  await page.getByRole('button',{name:'İkinci kapsam',exact:true}).click();await field.waitFor();assert.equal(await field.inputValue(),'');assert.equal(await page.getByRole('combobox',{name:'Kabul durumu'}).inputValue(),'');
+  await field.fill('İkinci arama');await committed.filter({hasText:'İkinci arama'}).waitFor();await page.getByRole('button',{name:'Birinci kapsam',exact:true}).click();await field.waitFor();assert.equal(await field.inputValue(),'Birinci arama');assert.equal(await page.getByRole('combobox',{name:'Kabul durumu'}).inputValue(),'aktif');
+  await field.fill('Bekleyen eski arama');await page.getByRole('button',{name:'İkinci kapsam',exact:true}).click();await field.waitFor();await page.waitForTimeout(500);assert.equal(await field.inputValue(),'İkinci arama');assert.equal(await committed.textContent(),'İkinci arama');
+  await field.fill('Eski değer');await page.getByRole('button',{name:'Dışarıdan değiştir',exact:true}).click();await page.waitForTimeout(500);assert.equal(await field.inputValue(),'Dışarıdan');assert.equal(await committed.textContent(),'Dışarıdan');
+  await page.addInitScript(()=>Object.defineProperty(window,'sessionStorage',{value:{getItem(){throw Error('Storage blocked');},setItem(){throw Error('Storage blocked');}}}));await page.reload();await field.fill('Bellekte çalışıyor');await committed.filter({hasText:'Bellekte çalışıyor'}).waitFor();await page.reload();await field.waitFor();assert.equal(await field.inputValue(),'');
+  console.log('PASS company/contract list-detail-return, reload/clear/corrupt recovery, mobile fit, scope isolation, stale debounce cancellation and blocked-storage fallback');
+ }
  if(process.env.BPS_WORKSPACE_DESIGN_CHECK==='1'){
   for(const [path,title] of [['/dashboard','Genel Bakış'],['/firmalar','Firmalar'],['/gorevler','Görevler'],['/randevular','Randevular'],['/sozlesmeler','Sözleşmeler'],['/finansal-ozet','Finansal Özet']]){
    await page.goto(origin+path);await page.getByRole('heading',{name:title,exact:true,level:1}).waitFor();

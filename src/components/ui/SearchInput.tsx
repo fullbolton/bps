@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, X } from "lucide-react";
 import {
   TYPE_BODY,
@@ -15,6 +15,7 @@ interface SearchInputProps {
   value?: string;
   onChange: (value: string) => void;
   debounceMs?: number;
+  maxLength?: number;
 }
 
 export default function SearchInput({
@@ -22,27 +23,34 @@ export default function SearchInput({
   value: externalValue,
   onChange,
   debounceMs = 300,
+  maxLength,
 }: SearchInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [internalValue, setInternalValue] = useState(externalValue ?? "");
 
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callback = useRef(onChange);
+  callback.current = onChange;
   useEffect(() => {
     if (externalValue !== undefined) {
+      if (timer.current) clearTimeout(timer.current);
       setInternalValue(externalValue);
     }
   }, [externalValue]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onChange(internalValue);
-    }, debounceMs);
-    return () => clearTimeout(timer);
-  }, [internalValue, debounceMs, onChange]);
-
-  const handleClear = useCallback(() => {
+  function handleInput(value: string) {
+    setInternalValue(value);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { timer.current = null; callback.current(value); }, debounceMs);
+  }
+  function handleClear() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
     setInternalValue("");
+    callback.current("");
     inputRef.current?.focus();
-  }, []);
+  }
 
   return (
     <div className="relative">
@@ -54,8 +62,9 @@ export default function SearchInput({
         ref={inputRef}
         aria-label={placeholder}
         type="text"
+        maxLength={maxLength}
         value={internalValue}
-        onChange={(e) => setInternalValue(e.target.value)}
+        onChange={(e) => handleInput(e.target.value)}
         placeholder={placeholder}
         className={`w-full min-h-11 pl-9 pr-12 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
       />

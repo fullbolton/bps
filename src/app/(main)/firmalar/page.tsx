@@ -1,5 +1,7 @@
 "use client";
 
+import { useListViewState } from "@/components/ui/useListViewState";
+
 /**
  * Firmalar list — reads company shell from real Supabase truth.
  * Enrichment via UUID-keyed direct queries for all companies.
@@ -57,6 +59,7 @@ import {
 } from "@/components/ui";
 import NewCompanyModal from "@/components/modals/NewCompanyModal";
 import type { CreatedCompany } from "@/components/modals/NewCompanyModal";
+import { useAuth } from "@/context/AuthContext";
 import { useRole } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
@@ -117,18 +120,21 @@ const COLUMNS: ColumnDef<FirmaListRow>[] = [
   },
 ];
 
+const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", risk: "", sektor: "", sehir: "" };
+
 export default function FirmalarPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const { role } = useRole();
+  const { user, loading: authLoading } = useAuth();
   const isYonetici = role === "yonetici";
 
   const [newOpen, setNewOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({ durum: "", risk: "", sektor: "", sehir: "" });
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
+  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("firmalar", listScope, LIST_FILTER_DEFAULTS);
+
 
   // ---------------------------------------------------------------------------
   // Data loading — UUID-keyed enrichment for ALL companies
@@ -260,7 +266,7 @@ export default function FirmalarPage() {
    */
   const handleCompanyCreated = useCallback(
     (company: CreatedCompany, origin: "created" | "existing") => {
-      setSearch("");
+      handleSearch("");
       setFilters({ durum: "", risk: "", sektor: "", sehir: "" });
       setReloadKey((k) => k + 1);
       setNotice(
@@ -269,14 +275,14 @@ export default function FirmalarPage() {
           : `${company.name} zaten kayıtlı — listede.`,
       );
     },
-    [],
+    [handleSearch, setFilters],
   );
 
   const rowActions: RowAction<FirmaListRow>[] = [
     { label: "Detaya Git", onClick: (row) => router.push(`/firmalar/${row.id}`) },
   ];
 
-  if (loading) {
+  if (loading || !viewReady) {
     return (
       <>
         <PageHeader title="Firmalar" subtitle="Firma portfoyu" />
@@ -320,7 +326,7 @@ export default function FirmalarPage() {
         )}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput placeholder="Firma, yetkili, sektor ara..." onChange={handleSearch} />
+            <SearchInput key={listScope} maxLength={512} value={search} placeholder="Firma, yetkili, sektor ara..." onChange={handleSearch} />
           </div>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>
