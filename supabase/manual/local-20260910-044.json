@@ -1,0 +1,33 @@
+{
+  "environment": "local_synthetic_only",
+  "productionActions": false,
+  "cases": [
+    {
+      "name": "single",
+      "pdfTextUnchanged": true,
+      "htmlBytesBefore": 99645,
+      "htmlBytesAfter": 99645
+    },
+    {
+      "name": "multi",
+      "pdfTextUnchanged": true,
+      "htmlBytesBefore": 123951,
+      "htmlBytesAfter": 123951
+    },
+    {
+      "name": "long",
+      "pdfTextUnchanged": true,
+      "htmlBytesBefore": 145473,
+      "htmlBytesAfter": 112417
+    }
+  ],
+  "longListMarkersBefore": 1000,
+  "longListMarkersAfter": 200,
+  "sourceSha256": "eedb1c55d666c0f63d2b15aac48981bcf2e881097c168684ad498b15d69b42a9",
+  "pixelIdenticalPdfPages": 10,
+  "checks": [
+    "existing synthetic print QA: screen and print each show all 100 staff",
+    "TypeScript noEmit passed",
+    "git diff --check passed"
+  ]
+}

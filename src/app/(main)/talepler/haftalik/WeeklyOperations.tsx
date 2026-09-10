@@ -96,7 +96,7 @@ export default function WeeklyOperations(){
           <td className="p-3 print:p-1">{part?'—':r.requiredCount}</td>
           <td className="p-3 print:p-1">{part?'—':r.assignments.length}</td>
           <td className="p-3 print:p-1">{part||r.lifecycle==='cancelled'?'—':r.requiredCount-r.assignments.length}</td>
-          <td className="max-w-72 break-words p-3 print:p-1"><span className="print:hidden">{r.assignments.length?r.assignments.map(a=>a.name).join(', '):'Atama yok'}</span><span className="hidden print:inline">{names||'Atama yok'}</span></td>
+          <td className="max-w-72 break-words p-3 print:p-1">{part===0&&<span className="print:hidden">{r.assignments.length?r.assignments.map(a=>a.name).join(', '):'Atama yok'}</span>}<span className="hidden print:inline">{names||'Atama yok'}</span></td>
           <td className="p-3 print:p-1">{r.lifecycle==='cancelled'?'İptal':'Aktif'}</td>
         </tr>;
       }))}</tbody></table></div>}

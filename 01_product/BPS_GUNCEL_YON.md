@@ -1,5 +1,7 @@
 # BPS — Güncel Ürün ve Geliştirme Yönü
 
+> **044 — Yerel render yükü düzeltildi; yayında değil.** 100 personelli haftalık PDF devam satırlarında tam ekran listesinin gereksiz kopyaları kaldırıldı. HTML ad tekrarları 1.000→200; gömülü CSS dahil boyut 145.473→112.417 byte. Ekran/PDF 100 isim kabulü, TypeScript ve 043 ile toplam 10 PDF sayfasında piksel eşitliği geçti. SQL/veri/push/deploy yok; canlı 043 korunuyor. [Kanıt](HAFTALIK_CIKTI_RENDER_YUKU.md).
+
 > **043 — 2026-09-10: Haftalık PDF düzeni yayında.** Metin sütunları genişletildi; özetler tek satırda. Uzun personel listeleri yazdırmada 12 kişilik devam satırlarına ayrılıyor; şube/gün tekrarlanıyor, sayılar yalnız ilk satırda. Sentetik Chromium PDF kabulü: tek talep 1 sayfa, 40 talep 5 sayfa (önce 6), 100 personel 4 sayfa; kimlikler eksiksiz ve birer kez. Kaynak `b2c921b`; canlı `dpl_3496nCsZVRrsykaWEiCGJeKAdzyk`; build, sağlık 5/5 ve canlı haftalık ekran geçti. Yeni SQL/veri yok. Native yazdırma diyalogu ve canlı CSV byte kontrolü erişim engeli nedeniyle açık. [Kanıt](HAFTALIK_CIKTI_KABULU.md).
 
 > **042 — 2026-09-10: Aktivite olay adları yayında.** İşe başlama planı, arama sonucu, bağımsız teyit, yeniden açma ve geçici arama üstlenme/bırakma ayrı başlıklara sahip. Yeni SQL yok. `0446684` push edildi; canlı `dpl_5wGgUBaofM2qMH3nCK9gMnpMzUwU`. İki mevcut test, TypeScript, production build, sağlık 5/5 ve kimlikli Dashboard okuma geçti. Mevcut canlı listede takip olayı olmadığından altı yeni başlık o listede ayrıca gözlenmedi; yeni test verisi oluşturulmadı. [Kanıt](AKTIVITE_ISE_BASLAMA_ADLARI.md).
