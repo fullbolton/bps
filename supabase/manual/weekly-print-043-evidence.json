@@ -1,0 +1,30 @@
+{
+  "environment": "isolated synthetic Chromium",
+  "nativeDialogMeasured": false,
+  "productionCsvBytesMeasured": false,
+  "cases": [
+    {
+      "case": "single",
+      "pages": 1,
+      "expectedMarkers": 1,
+      "exactlyOnceInOrder": true,
+      "pdfSha256": "71fb3458e54fd25f9e574a516a405b1d3b854790ff8b69c84fcd8c369992a28d"
+    },
+    {
+      "case": "multi",
+      "pages": 5,
+      "expectedMarkers": 40,
+      "exactlyOnceInOrder": true,
+      "pdfSha256": "1ae83f36ea5fef5f5317eac755b04f95f9852261e77fdc2c75f356e904e1c78b"
+    },
+    {
+      "case": "long",
+      "pages": 4,
+      "expectedMarkers": 100,
+      "exactlyOnceInOrder": true,
+      "pdfSha256": "463da12d786d9848ca19a5525c7c7638a39c0524886cd77204934066f1a4ef89"
+    }
+  ],
+  "sourceSha256": "5757e1df1db960529e0c3eb5dfe25d8e38992b235ba7a0efdde84addb3091281",
+  "compiledCssSha256": "461c05222cae34a69f1b4e14708d72e0a41072155aa283dfffa9045fdb71467c"
+}

@@ -18,3 +18,7 @@ Canlı 2026-09-07 haftasında önceki sentetik firma için ekran 1 talep / 2 iht
 Bu yüzden canlı CSV byte kontrolü ve kullanıcı oturumundaki native PDF diyalogu açık; yerel CSV HTTP 9/9 kanıtı geçerlidir. Yeni canlı test kaydı oluşturulmadı, eski kayıt değiştirilmedi. Gerçek müşteri pilotu henüz yapılmadı.
 
 Yayın sonucu `supabase/manual/release-20260910-043.json` kaydında tutulur.
+
+## Canlı yayın
+
+Kaynak `b2c921b`, push edilen dal `codex/block-01-release`. Vercel `dpl_3496nCsZVRrsykaWEiCGJeKAdzyk` www.bpsys.net üzerinde canlı. 249 uygulama dosyası commit/manifest ile eşleşti; build ve sağlık 5/5 geçti. Kimlikli haftalık sayfa yenilemesinde 1/2/1/1 toplamları ve tek personel satırı korundu. SQL/veri değişmedi. Push ilk otomatik incelemede durdu; aynı origin/dal ve dört dosyalık kapsam doğrulandıktan sonra yeniden onaylanıp tamamlandı.

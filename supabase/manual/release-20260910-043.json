@@ -1,6 +1,6 @@
 {
   "slice": "043",
-  "state": "local_checked_frontend_pending",
+  "state": "frontend_live_layout_verified_csv_file_pending",
   "baselineDeployment": "dpl_5wGgUBaofM2qMH3nCK9gMnpMzUwU",
   "application": {
     "next-env.d.ts": "85ae5aee75f011967cf2d25cbc342f62d69314e9d925f7f4aa3456fc2cffcca6",
@@ -265,10 +265,53 @@
     "synthetic Chromium PDF: single, 40 requests, 100 staff; visual and content checks",
     "screen single request keeps all 100 staff once",
     "TypeScript noEmit passed",
-    "git diff --check passed"
+    "git diff --check passed",
+    "production build passed",
+    "249 staged files match commit and manifest",
+    "live health 5/5",
+    "authenticated weekly page reload passed"
   ],
   "limits": [
     "Production CSV bytes unmeasured: native permissions and browser downloads URL policy blocked inspection",
     "PDF measured in isolated Chromium using actual report JSX and compiled CSS; native print dialog not measured"
-  ]
+  ],
+  "sourceCommit": "b2c921b2089c8d5c79713c95078656a6c922d82a",
+  "sourcePushed": true,
+  "branch": "codex/block-01-release",
+  "deployment": "dpl_3496nCsZVRrsykaWEiCGJeKAdzyk",
+  "url": "https://www.bpsys.net",
+  "health": {
+    "checkedAt": "2026-09-10T13:49:10.530Z",
+    "deployment": "dpl_3496nCsZVRrsykaWEiCGJeKAdzyk",
+    "productionUrl": "https://www.bpsys.net",
+    "healthStatus": "ok",
+    "checks": [
+      {
+        "name": "service_role_jwt",
+        "pass": true
+      },
+      {
+        "name": "anon_jwt",
+        "pass": true
+      },
+      {
+        "name": "service_role_query",
+        "pass": true
+      },
+      {
+        "name": "cron_secret_present",
+        "pass": true
+      },
+      {
+        "name": "resend_key_format",
+        "pass": true
+      }
+    ],
+    "unauthenticatedHealthStatus": 401,
+    "unauthenticatedTrackingRedirect": "/login?returnTo=/talepler/ise-baslama",
+    "loginStatus": 200,
+    "supabaseProject": "dffdzbmnmnokbftbujsy"
+  },
+  "browserEvidence": "Authenticated weekly page: 1 request, 2 required, 1 assigned, 1 open; one visible staff row after reload",
+  "pdfEvidence": "weekly-print-043-evidence.json"
 }
