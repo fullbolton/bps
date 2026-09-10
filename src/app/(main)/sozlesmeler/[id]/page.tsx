@@ -1,5 +1,7 @@
 "use client";
 
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import AsyncSection from "@/components/ui/AsyncSection";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -9,7 +11,6 @@ import { formatDateTR } from "@/lib/format-date";
 import { formatTRY } from "@/lib/format-currency";
 import {
   EmptyState,
-  PageHeader,
   ContractSummaryHeader,
   StatusBadge,
 } from "@/components/ui";
@@ -79,19 +80,34 @@ export default function SozlesmeDetayPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { role } = useRole();
+  const { loading, user } = useAuth();
+  if (loading) return <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />;
+  if (!user || !["yonetici", "partner", "operasyon"].includes(role)) {
+    return <EmptyState title="Erişim kısıtlı" description="Bu ekran erişiminizin dışındadır." size="page" />;
+  }
+  // A fresh instance also protects A → B → A: old callbacks stay unmounted.
+  const scope = JSON.stringify([id, user.id, user.app_metadata?.active_tenant, role]);
+  return <ContractWorkspace key={scope} id={id} />;
+}
+
+function ContractWorkspace({ id }: { id: string }) {
   const router = useRouter();
   const { role } = useRole();
-  const { loading: authLoading, user } = useAuth();
-
+  const { user } = useAuth();
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  const writePending = useRef(false);
+  const [saving, setSaving] = useState(false);
   const supabase = useMemo(() => createClient(), []);
   const [contract, setContract] = useState<ContractRow | null>(null);
   const [firmaName, setFirmaName] = useState<string>("");
-  const [firmaLegacyId, setFirmaLegacyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const contractScope = JSON.stringify([id, user?.id, user?.app_metadata?.active_tenant, role]);
+  const notice = useActionNotice(contractScope);
   const contractScopeRef = useRef(contractScope);
   contractScopeRef.current = contractScope;
   const [deleteScope, setDeleteScope] = useState<string | null>(null);
@@ -105,7 +121,9 @@ export default function SozlesmeDetayPage({
   const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRow[]>([]);
   // Hafta 2: single active contract PDF document (null when none yet).
   const [contractDoc, setContractDoc] = useState<DocumentRow | null>(null);
-  const pdfReadGeneration = useRef(0);
+  const readGeneration = useRef(0);
+  const [tasksState, setTasksState] = useState({ loading: true, error: false });
+  const [appointmentsState, setAppointmentsState] = useState({ loading: true, error: false });
   const [pdfLoading, setPdfLoading] = useState(true);
   const [pdfReadError, setPdfReadError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -113,68 +131,65 @@ export default function SozlesmeDetayPage({
   const firmaOptions = useMemo(() => contract ? [{id: contract.company_id, ad: firmaName || "Sözleşmenin kayıtlı firması"}] : [], [contract, firmaName]);
 
   const reload = useCallback(async () => {
-    const pdfGeneration = ++pdfReadGeneration.current;
-    setPdfLoading(true);setPdfReadError(null);setContractDoc(null);
-    setLoadError(null);
+    if (!active.current) return;
+    const generation = ++readGeneration.current;
+    const current = () => active.current && generation === readGeneration.current;
+    setLoading(true); setLoadError(null);
+    setPdfLoading(true); setPdfReadError(null); setContractDoc(null);
+    setTasksState({ loading: true, error: false }); setLinkedTasks([]);
+    setAppointmentsState({ loading: true, error: false }); setLinkedAppointments([]);
     try {
       const row = await getContractById(supabase, id);
+      if (!current()) return;
+      const display = row ? await getCompanyDisplayMapByIds(supabase, [row.company_id]) : null;
+      if (!current()) return;
       setContract(row);
+      setFirmaName(row ? display?.nameById[row.company_id] ?? "—" : "");
       if (row) {
-        const display = await getCompanyDisplayMapByIds(supabase, [row.company_id]);
-        setFirmaName(display.nameById[row.company_id] ?? "—");
-        setFirmaLegacyId(display.legacyById[row.company_id] ?? null);
-        // Faz 3: load linked tasks and appointments for this contract
         void listTasksByContractId(supabase, row.id)
-          .then(setLinkedTasks).catch(() => setLinkedTasks([]));
+          .then(rows => { if (current()) setLinkedTasks(rows); })
+          .catch(() => { if (current()) setTasksState({ loading: false, error: true }); })
+          .finally(() => { if (current()) setTasksState(state => ({ ...state, loading: false })); });
         void listAppointmentsByContractId(supabase, row.id)
-          .then(setLinkedAppointments).catch(() => setLinkedAppointments([]));
+          .then(rows => { if (current()) setLinkedAppointments(rows); })
+          .catch(() => { if (current()) setAppointmentsState({ loading: false, error: true }); })
+          .finally(() => { if (current()) setAppointmentsState(state => ({ ...state, loading: false })); });
         void getActiveContractDocument(supabase, row.id)
-          .then(doc => {if(pdfGeneration===pdfReadGeneration.current)setContractDoc(doc);})
-          .catch(() => {if(pdfGeneration===pdfReadGeneration.current)setPdfReadError("PDF bilgisi yüklenemedi. Belgenin yokluğu doğrulanamadı.");})
-          .finally(() => {if(pdfGeneration===pdfReadGeneration.current)setPdfLoading(false);});
-      } else {
-        setFirmaName("");
-        setFirmaLegacyId(null);
-        setLinkedTasks([]);
-        setLinkedAppointments([]);
-        setContractDoc(null);
+          .then(doc => { if (current()) setContractDoc(doc); })
+          .catch(() => { if (current()) setPdfReadError("PDF bilgisi yüklenemedi. Belgenin yokluğu doğrulanamadı."); })
+          .finally(() => { if (current()) setPdfLoading(false); });
       }
     } catch (err) {
+      if (!current()) return;
       setContract(null);
-      setLoadError(
-        err instanceof Error ? err.message : "Sözleşme yüklenirken bir hata oluştu.",
-      );
+      setLoadError(err instanceof Error ? err.message : "Sözleşme yüklenirken bir hata oluştu.");
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }, [supabase, id]);
 
   useEffect(() => {
-    setLoading(true);
     void reload();
+    return () => { ++readGeneration.current; };
   }, [reload]);
 
+  async function write(action: () => Promise<unknown>, message: string) {
+    if (!active.current || writePending.current) throw new Error("İşlem sürüyor veya sözleşme bilgisi değişti.");
+    writePending.current = true; setSaving(true); setActionError(null); notice.clear();
+    try {
+      await action();
+      if (!active.current) return;
+      setEditOpen(false);
+      notice.show(message);
+      await reload();
+      if (active.current) router.refresh();
+    } finally {
+      writePending.current = false;
+      if (active.current) setSaving(false);
+    }
+  }
+
   const canEdit = role === "yonetici" || role === "partner";
-
-  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
-  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
-  if (authLoading) {
-    return (
-      <>
-        <PageHeader title="Sözleşme Detay" subtitle="Sözleşme yaşam döngüsü" />
-        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
-      </>
-    );
-  }
-
-  if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
-    return (
-      <>
-        <PageHeader title="Sözleşme Detay" subtitle="Sözleşme yaşam döngüsü" />
-        <EmptyState title="Erişim kısıtlı" description="Bu ekran erişiminizin dışındadır." size="page" />
-      </>
-    );
-  }
 
   if (deleted?.scope === contractScope) {
     return <section className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -191,7 +206,8 @@ export default function SozlesmeDetayPage({
   if (loading) {
     return (
       <div className="py-12">
-        <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center`}>Yükleniyor…</p>
+        <ActionNotice message={notice.message} onDismiss={notice.clear} />
+        <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center`}>Yükleniyor…</p>
       </div>
     );
   }
@@ -199,11 +215,12 @@ export default function SozlesmeDetayPage({
   if (!contract) {
     return (
       <div className="py-12">
+        <ActionNotice message={notice.message} onDismiss={notice.clear} />
         <EmptyState
-          title="Sözleşme bulunamadı"
+          title={loadError ? "Sözleşme yüklenemedi" : "Sözleşme bulunamadı"}
           description={loadError ?? "Bu ID ile eşleşen bir sözleşme bulunamadı veya erişim yetkiniz yok."}
           size="page"
-          action={{ label: "Sözleşmelere Dön", onClick: () => router.push("/sozlesmeler") }}
+          action={loadError ? { label: "Tekrar dene", onClick: () => { void reload(); } } : { label: "Sözleşmelere Dön", onClick: () => router.push("/sozlesmeler") }}
         />
       </div>
     );
@@ -212,14 +229,13 @@ export default function SozlesmeDetayPage({
   const kalanGun = computeRemainingDays(contract.end_date);
 
   async function handleStatusChange(next: SozlesmeDurumu) {
-    if (!contract) return;
+    if (!contract || !active.current || writePending.current) return;
     if (next === contract.status) return;
     setActionError(null);
     try {
-      await updateContractStatus(supabase, contract.id, next);
-      await reload();
-      router.refresh();
+      await write(() => updateContractStatus(supabase, contract.id, next), "Sözleşme durumu güncellendi.");
     } catch (err) {
+      if (!active.current) return;
       setActionError(
         err instanceof Error ? err.message : "Durum değiştirilemedi.",
       );
@@ -227,25 +243,31 @@ export default function SozlesmeDetayPage({
   }
 
   async function handleContractDelete() {
-    if (!contract || contractScopeRef.current !== contractScope) throw new Error("Sözleşme bilgisi değişti. Sayfayı yenileyin.");
-    const result = await deleteContractAction(contract.id);
-    if (!result.ok) throw new Error(result.error);
-    if (contractScopeRef.current !== contractScope) return;
-    setDeleted({ scope: contractScope, name: result.deletedName });
-    router.refresh();
+    if (!contract || !active.current || writePending.current) throw new Error("İşlem sürüyor veya sözleşme bilgisi değişti.");
+    writePending.current = true; setSaving(true);
+    try {
+      const result = await deleteContractAction(contract.id);
+      if (!active.current) return;
+      if (!result.ok) throw new Error(result.error);
+      ++readGeneration.current;
+      setDeleted({ scope: contractScope, name: result.deletedName });
+      router.refresh();
+    } finally {
+      writePending.current = false;
+      if (active.current) setSaving(false);
+    }
   }
 
   async function handleRenewalToggle(
     field: "renewalDiscussionOpened",
     next: boolean,
   ) {
-    if (!contract) return;
+    if (!contract || !active.current || writePending.current) return;
     setActionError(null);
     try {
-      await updateContractRenewal(supabase, contract.id, { [field]: next });
-      await reload();
-      router.refresh();
+      await write(() => updateContractRenewal(supabase, contract.id, { [field]: next }), "Yenileme görüşmesi bilgisi güncellendi.");
     } catch (err) {
+      if (!active.current) return;
       setActionError(
         err instanceof Error ? err.message : "Yenileme takibi güncellenemedi.",
       );
@@ -258,6 +280,7 @@ export default function SozlesmeDetayPage({
     const { data, error } = await supabase.storage
       .from("documents")
       .createSignedUrl(contractDoc.storage_path, 60);
+    if (!active.current) return;
     if (error || !data?.signedUrl) {
       setPdfError(`İndirme bağlantısı oluşturulamadı: ${error?.message ?? "bilinmeyen hata"}`);
       return;
@@ -267,6 +290,7 @@ export default function SozlesmeDetayPage({
 
   return (
     <>
+      <ActionNotice message={notice.message} onDismiss={notice.clear} />
       {/* Back navigation */}
       <button
         onClick={() => router.push("/sozlesmeler")}
@@ -280,7 +304,7 @@ export default function SozlesmeDetayPage({
         sozlesmeAdi={contract.name}
         durum={contract.status}
         firmaAdi={firmaName}
-        firmaHref={`/firmalar/${firmaLegacyId || contract.company_id}`}
+        firmaHref={`/firmalar/${contract.company_id}`}
         tur={contract.contract_type ?? "—"}
         baslangic={contract.start_date ? formatDateTR(contract.start_date.slice(0, 10)) : ""}
         bitis={contract.end_date ? formatDateTR(contract.end_date.slice(0, 10)) : ""}
@@ -297,6 +321,7 @@ export default function SozlesmeDetayPage({
               Durum:
             </label>
             <select
+              disabled={saving}
               aria-label="Sözleşme durumu"
               value={contract.status}
               onChange={(e) => { void handleStatusChange(e.target.value as SozlesmeDurumu); }}
@@ -309,6 +334,7 @@ export default function SozlesmeDetayPage({
           </div>
           <button
             type="button"
+            disabled={saving}
             onClick={() => setEditOpen(true)}
             className={`${BUTTON_BASE} ${BUTTON_SECONDARY} inline-flex items-center gap-1.5`}
           >
@@ -318,6 +344,7 @@ export default function SozlesmeDetayPage({
         </div>
       )}
 
+      {saving && <p role="status" className="mb-3 text-sm text-slate-600">Sözleşme güncelleniyor…</p>}
       {actionError && (
         <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
           {actionError}
@@ -370,8 +397,8 @@ export default function SozlesmeDetayPage({
               {pdfError}
             </p>
           )}
-          <button type="button" disabled={pdfLoading} onClick={() => { void reload(); }} className="mt-3 text-sm text-blue-700 disabled:opacity-50">PDF kaydını yeniden yükle</button>
-          {user && role === "yonetici" && !pdfLoading && !pdfReadError && typeof user.app_metadata?.active_tenant === "string" && <PdfUploadPanel key={`${user.id}:${user.app_metadata.active_tenant}:${id}`} actorId={user.id} tenantId={user.app_metadata.active_tenant} contractId={id} document={contractDoc} onPublished={() => { void reload(); router.refresh(); }} />}
+          <button type="button" disabled={pdfLoading} onClick={() => { void reload(); }} className="mt-3 min-h-11 rounded-lg border px-4 text-sm text-blue-700 disabled:opacity-50">PDF kaydını yeniden yükle</button>
+          {user && role === "yonetici" && !pdfLoading && !pdfReadError && typeof user.app_metadata?.active_tenant === "string" && <PdfUploadPanel key={`${user.id}:${user.app_metadata.active_tenant}:${id}`} actorId={user.id} tenantId={user.app_metadata.active_tenant} contractId={id} document={contractDoc} onPublished={() => { if (active.current) { void reload(); router.refresh(); } }} />}
           {user && <PdfVersionHistory key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${id}:${contractDoc?.revision}`} actorId={user.id} contractId={id} />}
         </section>
 
@@ -408,6 +435,7 @@ export default function SozlesmeDetayPage({
               <div className="space-y-2">
                 <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
                   <input
+                    disabled={saving}
                     type="checkbox"
                     checked={contract.renewal_discussion_opened}
                     onChange={(e) => { void handleRenewalToggle("renewalDiscussionOpened", e.target.checked); }}
@@ -452,6 +480,7 @@ export default function SozlesmeDetayPage({
         {/* Bağlı Görevler — Faz 3 real truth via tasks service */}
         <section id="isler" className={`${SECTION} scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Bağlı Görevler</h2>
+          <AsyncSection isLoading={tasksState.loading} hasError={tasksState.error} onRetry={() => { void reload(); }}>
           {linkedTasks.length === 0 ? (
             <EmptyState title="Bağlı görev yok" size="card" />
           ) : (
@@ -464,11 +493,13 @@ export default function SozlesmeDetayPage({
               ))}
             </div>
           )}
+          </AsyncSection>
         </section>
 
         {/* Bağlı Randevular — Faz 3 real truth via appointments service */}
         <section className={SECTION}>
           <h2 className={SECTION_TITLE}>Bağlı Randevular</h2>
+          <AsyncSection isLoading={appointmentsState.loading} hasError={appointmentsState.error} onRetry={() => { void reload(); }}>
           {linkedAppointments.length === 0 ? (
             <EmptyState title="Bağlı randevu yok" size="card" />
           ) : (
@@ -486,6 +517,7 @@ export default function SozlesmeDetayPage({
               ))}
             </div>
           )}
+          </AsyncSection>
         </section>
 
         {/* Kalıcı silme — yonetici-only. Hard delete (Faz 1), güçlü
@@ -498,6 +530,7 @@ export default function SozlesmeDetayPage({
             </p>
             <button
               type="button"
+              disabled={saving}
               onClick={() => setDeleteScope(contractScope)}
               className={`${BUTTON_BASE} inline-flex items-center gap-1.5 text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed`}
             >
@@ -512,13 +545,13 @@ export default function SozlesmeDetayPage({
         <ConfirmActionDialog key={contractScope} title="Sözleşmeyi kalıcı olarak sil" recordName={contract.name}
           description="Bu işlem geri alınamaz. Sözleşme kaydı kalıcı olarak kaldırılır. PDF sürümü veya yenileme geçmişi gibi bağlı kayıtlar varsa sistem silmeyi engelleyebilir."
           confirmLabel="Kalıcı olarak sil" destructive onConfirm={handleContractDelete}
-          onClose={() => { if (contractScopeRef.current === contractScope) setDeleteScope(null); }}
+          onClose={() => { if (active.current && contractScopeRef.current === contractScope) setDeleteScope(null); }}
         />
       )}
 
       <NewContractModal
         open={editOpen}
-        onClose={() => setEditOpen(false)}
+        onClose={() => { if (active.current) setEditOpen(false); }}
         firmalar={firmaOptions}
         editData={contract}
         onSubmit={async (data) => {
@@ -536,9 +569,7 @@ export default function SozlesmeDetayPage({
             contractValue: data.tutar || null,
             responsible: data.sorumlu || null,
           };
-          await updateContractContent(supabase, contract.id, patch);
-          await reload();
-          router.refresh();
+          await write(() => updateContractContent(supabase, contract.id, patch), "Sözleşme bilgileri güncellendi.");
         }}
       />
     </>

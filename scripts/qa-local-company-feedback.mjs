@@ -8,6 +8,7 @@ import {createClient} from '@supabase/supabase-js';
 import {createServerClient} from '@supabase/ssr';
 import {validateLocalStatus,acquireLock} from './helpers/acceptance-runner.mjs';
 import {id} from './fixtures/daily-operations.mjs';
+import {checkContractDetail} from './helpers/contract-detail-acceptance.mjs';
 const run=(cmd,args,input)=>execFileSync(cmd,args,{input,encoding:'utf8',stdio:['pipe','pipe','pipe'],timeout:20000});
 const container='supabase_db_bps-supabase-acceptance',origin='http://127.0.0.1:3010';
 const prefix=`UX-${randomUUID()}`,output=mkdtempSync('/private/tmp/bps-company-feedback-');
@@ -719,6 +720,7 @@ try {
   }
   console.log('PASS workspace desktop/mobile six routes, no page overflow, mobile dialog/Escape');
  }
+ if(process.env.BPS_CONTRACT_DETAIL_CHECK==='1') await checkContractDetail({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_CONTRACT_REFRESH_CHECK==='1') {
   const signal=async promise=>{let timer;try{await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Contract refresh signal timed out')),20000);})]);}finally{clearTimeout(timer);}};
   const company=sql(`SELECT id FROM companies WHERE name='${first}' AND created_by='${user}'`),contract=randomUUID(),query=prefix+'-contract-race-',old=query+'old';assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,created_by) VALUES('${contract}','${id(1)}','${company}','${old}','${user}')`);
