@@ -80,6 +80,26 @@ try {
   }
   await page.setViewportSize({width:1280,height:900});console.log('PASS native nested dialogs, focus containment/return, scroll lock, side panels and finance desktop/mobile');
  }
+ if(process.env.BPS_TABLE_DESIGN_CHECK==='1'){
+  await page.goto(origin+'/qa-ui-acceptance');const table=page.getByRole('table');await table.waitFor();
+  await page.getByRole('button',{name:'Sonraki',exact:true}).click();await page.getByText('25 kayıttan 11–20 gösteriliyor',{exact:true}).waitFor();
+  await page.getByRole('combobox',{name:'Durum',exact:true}).selectOption('aktif');await page.getByText('2 kayıttan 1–2 gösteriliyor',{exact:true}).waitFor();assert.equal(await table.locator('tbody tr').count(),2);
+  await page.getByRole('button',{name:'Temizle',exact:true}).click();await page.getByText('25 kayıttan 1–10 gösteriliyor',{exact:true}).waitFor();
+  const sort=page.getByRole('button',{name:'Kişi',exact:true});await sort.focus();await page.keyboard.press('Enter');assert.equal(await table.locator('tbody tr').first().locator('td').nth(1).innerText(),'1');
+  assert.equal(await page.getByRole('columnheader',{name:'Kişi',exact:true}).getAttribute('aria-sort'),'ascending');
+  await page.keyboard.press('Enter');assert.equal(await table.locator('tbody tr').first().locator('td').nth(1).innerText(),'100');
+  const search=page.getByRole('textbox',{name:'Firma ara',exact:true});await search.fill('bulunmayan');await page.getByRole('heading',{name:'Veri bulunamadı',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Aramayı temizle',exact:true}).click();await table.waitFor();assert.ok(await search.evaluate(e=>e===document.activeElement));
+  await table.getByRole('button',{name:'Detay',exact:true}).first().focus();await page.keyboard.press('Enter');await page.getByRole('dialog',{name:'Sentetik kayıt',exact:true}).waitFor();await page.keyboard.press('Escape');
+  for(const width of [1280,390]){
+   await page.setViewportSize({width,height:900});const trigger=table.getByRole('button',{name:'Satır işlemleri',exact:true}).last();await trigger.click();const popup=page.getByRole('group',{name:'Kayıt işlemleri',exact:true});await popup.waitFor();
+   assert.ok(await popup.getByRole('button',{name:'Kilitli işlem',exact:true}).isDisabled());const bounds=await popup.boundingBox();assert.ok(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width&&bounds.y+bounds.height<=900,'Popover clipped/outside viewport');const anchor=await trigger.boundingBox();assert.ok(Math.min(Math.abs(bounds.y-(anchor.y+anchor.height)),Math.abs(bounds.y+bounds.height-anchor.y))<=8,'Popover detached from row trigger');
+   await page.screenshot({path:output+'/table-menu-'+width+'.png'});await page.keyboard.press('Escape');await popup.waitFor({state:'hidden'});assert.ok(await trigger.evaluate(e=>e===document.activeElement));
+   await trigger.click();await popup.getByRole('button',{name:'Kaydı incele',exact:true}).click();const detail=page.getByRole('dialog',{name:'Sentetik kayıt',exact:true});await detail.waitFor();await page.keyboard.press('Escape');await detail.waitFor({state:'hidden'});
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Table page overflow');
+  }
+  await page.setViewportSize({width:1280,height:900});console.log('PASS table filtered pagination, numeric keyboard sort, empty/clear focus, keyboard details and unclipped action popovers');
+ }
  if(process.env.BPS_DETAIL_DESIGN_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID();
   assert.match(company,/^[a-f0-9-]{36}$/);

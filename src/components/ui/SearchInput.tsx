@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Search, X } from "lucide-react";
 import {
   TYPE_BODY,
@@ -23,6 +23,7 @@ export default function SearchInput({
   onChange,
   debounceMs = 300,
 }: SearchInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [internalValue, setInternalValue] = useState(externalValue ?? "");
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function SearchInput({
 
   const handleClear = useCallback(() => {
     setInternalValue("");
+    inputRef.current?.focus();
   }, []);
 
   return (
@@ -49,16 +51,20 @@ export default function SearchInput({
         className={`absolute left-3 top-1/2 -translate-y-1/2 ${TEXT_MUTED}`}
       />
       <input
+        ref={inputRef}
+        aria-label={placeholder}
         type="text"
         value={internalValue}
         onChange={(e) => setInternalValue(e.target.value)}
         placeholder={placeholder}
-        className={`w-full pl-9 pr-8 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+        className={`w-full min-h-11 pl-9 pr-12 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
       />
       {internalValue && (
         <button
+          type="button"
+          aria-label="Aramayı temizle"
           onClick={handleClear}
-          className={`absolute right-2 top-1/2 -translate-y-1/2 ${TEXT_MUTED} hover:text-slate-600`}
+          className={`absolute right-0 top-1/2 flex h-11 w-11 items-center justify-center -translate-y-1/2 ${TEXT_MUTED} hover:text-slate-600`}
         >
           <X size={14} />
         </button>
