@@ -272,6 +272,51 @@ try {
   }
   assert.equal(nativeDialogs,0);console.log('PASS named confirmations, cancel/focus/no write, server denial/retry, pending guard, company status, verified delete vs zero rows, return to list and no native confirm');
  }
+ if(process.env.BPS_OPERATIONS_LIST_MEMORY_CHECK==='1') {
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);
+  assert.match(company,/^[a-f0-9-]{36}$/);
+  assert.equal(sql("SELECT obj_description('public.tasks'::regclass)"),'BPS synthetic task-prefill fixture v1');
+  const taskTitle=prefix+'-assigned',otherTitle=prefix+'-unassigned',attendee=prefix+'-meeting';
+  sql(`INSERT INTO tasks(tenant_id,company_id,title,assigned_to_user_id,priority,status,created_by) VALUES
+   ('${id(1)}','${company}','${taskTitle}','${user}','yuksek','acik','${user}'),
+   ('${id(1)}','${company}','${otherTitle}',NULL,'normal','acik','${user}');
+   INSERT INTO appointments(tenant_id,company_id,meeting_date,meeting_type,status,attendee,created_by)
+   VALUES('${id(1)}','${company}','2026-09-10','ziyaret','planlandi','${attendee}','${user}');`);
+  const cases=[
+   {route:'gorevler',query:taskTitle,placeholder:'Görev, firma, kişi ara...',panel:'Görev Hızlı Güncelle',
+    filters:[['Durum','acik'],['Atama','bana'],['Öncelik','yuksek'],['Kaynak','manuel'],['Firma',first]]},
+   {route:'randevular',query:attendee,placeholder:'Firma, katilimci ara...',panel:'Randevu Detay',
+    filters:[['Durum','planlandi'],['Tip','ziyaret'],['Firma',first]]},
+  ];
+  for(const {route,query,placeholder,panel,filters} of cases) {
+   await page.goto(origin+'/'+route);
+   const search=page.getByRole('textbox',{name:placeholder,exact:true});
+   await search.fill(query);assert.equal(await search.getAttribute('maxlength'),'512');
+   for(const [label,value] of filters)await page.getByRole('combobox',{name:label,exact:true}).selectOption(value);
+   await page.waitForFunction(({route,query})=>Object.keys(sessionStorage).filter(k=>k.startsWith('bps:list-view:v1:')).some(k=>JSON.parse(k.slice('bps:list-view:v1:'.length))[0]===route&&JSON.parse(sessionStorage.getItem(k)).search===query),{route,query});
+   const assertRestored=async()=>{
+    await search.waitFor();await page.waitForTimeout(400);assert.equal(await search.inputValue(),query);
+    for(const [label,value] of filters)assert.equal(await page.getByRole('combobox',{name:label,exact:true}).inputValue(),value);
+    await page.getByRole('cell',{name:query,exact:true}).waitFor();assert.equal(await page.getByRole('table').locator('tbody tr').count(),1);
+   };
+   await page.reload();await assertRestored();
+   await page.getByRole('cell',{name:query,exact:true}).click();await page.getByRole('dialog',{name:panel,exact:true}).waitFor();
+   await page.keyboard.press('Escape');await page.getByRole('dialog',{name:panel,exact:true}).waitFor({state:'hidden'});await assertRestored();
+   await page.goto(origin+'/firmalar');await page.getByRole('heading',{name:'Firmalar',level:1,exact:true}).waitFor();await page.goBack();await assertRestored();
+   await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/remembered-'+route+'-mobile.png'});await page.setViewportSize({width:1280,height:900});
+   await search.fill(prefix+'-no-match');await page.getByRole('heading',{name:route==='gorevler'?'Bu filtrelerle eşleşen görev yok':'Bu filtrelerle eşleşen randevu yok',exact:true}).waitFor();
+   await page.getByRole('button',{name:'Aramayı temizle',exact:true}).click();assert.ok(await search.evaluate(e=>e===document.activeElement));
+   await page.getByRole('button',{name:'Temizle',exact:true}).click();await page.reload();await search.waitFor();assert.equal(await search.inputValue(),'');
+   for(const [label] of filters)assert.equal(await page.getByRole('combobox',{name:label,exact:true}).inputValue(),'');
+   if(route==='gorevler') {
+    await search.fill(otherTitle);await page.getByRole('combobox',{name:'Atama',exact:true}).selectOption('atanmamis');await page.getByRole('cell',{name:otherTitle,exact:true}).waitFor();
+    await page.waitForFunction(query=>Object.keys(sessionStorage).filter(k=>k.startsWith('bps:list-view:v1:')).some(k=>JSON.parse(k.slice('bps:list-view:v1:'.length))[0]==='gorevler'&&JSON.parse(sessionStorage.getItem(k)).search===query),otherTitle);
+    await page.reload();await search.waitFor();assert.equal(await page.getByRole('combobox',{name:'Atama',exact:true}).inputValue(),'atanmamis');await page.getByRole('cell',{name:otherTitle,exact:true}).waitFor();
+    await page.getByRole('combobox',{name:'Atama',exact:true}).selectOption('bana');await page.getByRole('heading',{name:'Bu filtrelerle eşleşen görev yok',exact:true}).waitFor();
+   }
+  }
+  console.log('PASS task/appointment all filters, assigned vs unassigned, reload, panel close, browser back, empty/clear recovery, focus and mobile fit');
+ }
  if(process.env.BPS_LIST_MEMORY_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID(),contractName=prefix+'-memory';assert.match(company,/^[a-f0-9-]{36}$/);
   assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${id(1)}','${company}','${contractName}','taslak','${user}')`);

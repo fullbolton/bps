@@ -1,4 +1,6 @@
 "use client";
+
+import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 
@@ -209,6 +211,8 @@ const COLUMNS: ColumnDef<TaskListRow>[] = [
 
 import TaskTransferModal from "./TaskTransferModal";
 
+const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", oncelik: "", kaynak: "", firma: "", atama: "" };
+
 export default function GorevlerPage() {
   const { role } = useRole();
   const { loading: authLoading, user } = useAuth();
@@ -228,13 +232,8 @@ export default function GorevlerPage() {
   const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
   const [profilesDurum, setProfilesDurum] = useState<"loading" | "error" | "ready">("loading");
 
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({
-    durum: "",
-    oncelik: "",
-    kaynak: "",
-    firma: "",
-  });
+  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("gorevler", listScope, LIST_FILTER_DEFAULTS);
   const [transferOpen, setTransferOpen] = useState(false);
   useEffect(() => { setTransferOpen(false); }, [user?.id, user?.app_metadata?.active_tenant, role]);
   const [newOpen, setNewOpen] = useState(false);
@@ -247,7 +246,6 @@ export default function GorevlerPage() {
   const [editAtananKisiId, setEditAtananKisiId] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
 
   // ------------------------------------------------------------------
   // Data loader — mirrors the Faz 2 Sözleşmeler pattern
@@ -415,7 +413,7 @@ export default function GorevlerPage() {
   // ------------------------------------------------------------------
   // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
-  if (authLoading) {
+  if (authLoading || !viewReady) {
     return (
       <>
         <PageHeader title="Görevler" subtitle="Operasyon takibi" />
@@ -505,7 +503,7 @@ export default function GorevlerPage() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="w-full sm:max-w-xs">
-                <SearchInput placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />
+                <SearchInput key={listScope} value={search} maxLength={512} placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />
               </div>
               <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
             </div>

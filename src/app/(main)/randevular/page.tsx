@@ -1,4 +1,6 @@
 "use client";
+
+import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 
@@ -175,6 +177,8 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
   },
 ];
 
+const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", firma: "", tip: "" };
+
 export default function RandevularPage() {
   const { role } = useRole();
   const { loading: authLoading, user } = useAuth();
@@ -192,12 +196,8 @@ export default function RandevularPage() {
   const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
   const [profilesDurum, setProfilesDurum] = useState<"loading" | "error" | "ready">("loading");
 
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({
-    durum: "",
-    firma: "",
-    tip: "",
-  });
+  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("randevular", listScope, LIST_FILTER_DEFAULTS);
   const [newOpen, setNewOpen] = useState(false);
   const [resultTarget, setResultTarget] = useState<{ open: boolean; randevuId?: string }>({ open: false });
   useEffect(()=>{setResultTarget({open:false});setNewOpen(false);},[user?.id,user?.app_metadata?.active_tenant,role]);
@@ -212,7 +212,6 @@ export default function RandevularPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTasks, setSelectedTasks] = useState<TaskRow[]>([]);
 
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
 
   // ------------------------------------------------------------------
   // Data loading
@@ -382,7 +381,7 @@ export default function RandevularPage() {
 
   // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
-  if (authLoading) {
+  if (authLoading || !viewReady) {
     return (
       <>
         <PageHeader title="Randevular" subtitle="Gorusme takibi" />
@@ -451,7 +450,7 @@ export default function RandevularPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput placeholder="Firma, katilimci ara..." onChange={handleSearch} />
+            <SearchInput key={listScope} value={search} maxLength={512} placeholder="Firma, katilimci ara..." onChange={handleSearch} />
           </div>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>

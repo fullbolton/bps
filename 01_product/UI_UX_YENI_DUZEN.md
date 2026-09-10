@@ -133,3 +133,14 @@ Gerçek Auth + dedicated sentetik Supabase tarayıcı kabulü: iki listede tam a
 Gerçek TS yardımcılarını çalıştıran list-view-state.test.mjs 4/4; qa:operations'a eklendi. Son kaynak izole production build, TypeScript ve lint geçti. Kendi test kayıtları/hesabı temizlendi. Kabul rotası ürün src ağacında bulunmaz. Ürün SQL/push/deploy yok.
 
 Sınırlar: sayfa numarası, sıralama ve scroll saklanmaz; URL veya cihazlar arası paylaşım yok. Debounce tamamlanmadan ayrılınca bekleyen giriş saklanmaz. Seçenek değerleri güncel veriye karşı yeniden eşleştirilmez; silinmiş firma filtresi kullanıcı temizleyene kadar boş sonuç verebilir. Engelli storage durumunda yalnız mount süresince bellek kullanılır, yenilemede varsayılana dönülür.
+
+
+## 065 — Görev ve randevu filtrelerini koruma
+
+064'te doğrulanan useListViewState, Görevler ve Randevular sayfalarında kullanılır. Görevler için durum/atama/öncelik/kaynak/firma, randevular için durum/tip/firma anahtarları açık varsayılan listesine dahildir. Özellikle atama anahtarı normalize sırasında düşmez. Arama kontrollü, kapsam anahtarıyla yeniden mount olan ve maxLength=512 içeren SearchInput üzerinden yapılır. Yetki/kapsam hazırlığı bitmeden kayıtlı tercihle uyumsuz ilk liste gösterilmez. Veri okuyucuları/yazıcıları, RLS ve rol kapıları değişmedi.
+
+Kabul: BPS_OPERATIONS_LIST_MEMORY_CHECK=1. Dedicated sentetik DB'de sadece bu çalışmaya ait firma, atanmış ve atanmamış iki görev, bir randevu ile gerçek Auth tarayıcı testi. Her iki sayfada tüm filtreler birlikte uygulandı; tek doğru satır, reload, detay panelini Escape ile kapatma, başka sayfadan browser back, 390 px yatay taşmama, eşleşmeyen arama, arama temizlemede odak, tüm filtreleri temizleyip reload doğrulandı. Görevde Atanmamış tercihi reload sonrası korundu, aynı sorguyu Bana atanan yapınca boş sonuç geldi. Firma kayıt/pending/tek POST ve sunucu yetki reddi regresyonu geçti. Kanıt `/private/tmp/bps-company-feedback-rcpA4H`.
+
+İlk test turunda atanmamış görev zaten görünürken hücreyi beklemek debounce tamamlandığını kanıtlamıyordu; reload arama yazılmadan gerçekleşti. Test sessionStorage'daki tamamlanmış aramayı bekleyecek şekilde düzeltildi. Ürün davranışı değiştirilmedi; 064'ün debounce tamamlanmadan ayrılınca girişin saklanmaması sınırı sürer. Başarısız turun kendi kayıtları da temizlendi.
+
+TypeScript, lint ve izole production build geçti. Kendi sentetik kayıtları ve Auth hesabı temizlendi. Yeni unit testi yok: ortak hook/normalizasyon 064 testleriyle, bu sayfalara bağlanması gerçek tarayıcı kabulüyle ölçülür. 064'ün sekme/cihaz/sayfalama/sıralama/scroll ve storage sınırları aynen geçerli. Ürün SQL/push/deploy yok.
