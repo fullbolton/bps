@@ -1,5 +1,7 @@
 # TASK_ROADMAP.md
 
+> **044 yayın — 2026-09-10:** Yerel render düzeltmesi doğrudan kullanıcı devam talimatıyla canlıya alındı. Kaynak `ec0500e`, dal `codex/block-01-release`; deployment `dpl_1QvsYYMzeemMuz9ZDtxdUaSdQDhw`. 249 uygulama dosyası commit/manifest ile eşleşti; TypeScript, production build ve sağlık 5/5 geçti. 100 personelde gereksiz HTML ad tekrarları 1.000→200; ekran/PDF değişmedi. SQL veya iş verisi değişikliği yok. Önceki “yerelde/yayımlanmadı” notları yerel kabul anını anlatır.
+
 > **044 — Yerel render yükü düzeltildi; yayında değil.** 100 personelli haftalık PDF devam satırlarında tam ekran listesinin gereksiz kopyaları kaldırıldı. HTML ad tekrarları 1.000→200; gömülü CSS dahil boyut 145.473→112.417 byte. Ekran/PDF 100 isim kabulü, TypeScript ve 043 ile toplam 10 PDF sayfasında piksel eşitliği geçti. SQL/veri/push/deploy yok; canlı 043 korunuyor. [Kanıt](HAFTALIK_CIKTI_RENDER_YUKU.md).
 
 > **043 — 2026-09-10: Haftalık PDF düzeni yayında.** Metin sütunları genişletildi; özetler tek satırda. Uzun personel listeleri yazdırmada 12 kişilik devam satırlarına ayrılıyor; şube/gün tekrarlanıyor, sayılar yalnız ilk satırda. Sentetik Chromium PDF kabulü: tek talep 1 sayfa, 40 talep 5 sayfa (önce 6), 100 personel 4 sayfa; kimlikler eksiksiz ve birer kez. Kaynak `b2c921b`; canlı `dpl_3496nCsZVRrsykaWEiCGJeKAdzyk`; build, sağlık 5/5 ve canlı haftalık ekran geçti. Yeni SQL/veri yok. Native yazdırma diyalogu ve canlı CSV byte kontrolü erişim engeli nedeniyle açık. [Kanıt](HAFTALIK_CIKTI_KABULU.md).

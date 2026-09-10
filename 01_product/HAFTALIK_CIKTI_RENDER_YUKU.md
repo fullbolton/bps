@@ -1,5 +1,7 @@
 # 044 — Haftalık personel listesinde gereksiz HTML tekrarları
 
+> **044 yayın — 2026-09-10:** Yerel render düzeltmesi doğrudan kullanıcı devam talimatıyla canlıya alındı. Kaynak `ec0500e`, dal `codex/block-01-release`; deployment `dpl_1QvsYYMzeemMuz9ZDtxdUaSdQDhw`. 249 uygulama dosyası commit/manifest ile eşleşti; TypeScript, production build ve sağlık 5/5 geçti. 100 personelde gereksiz HTML ad tekrarları 1.000→200; ekran/PDF değişmedi. SQL veya iş verisi değişikliği yok. Önceki “yerelde/yayımlanmadı” notları yerel kabul anını anlatır.
+
 2026-09-10 · Yerelde tamamlandı; yayımlanmadı.
 
 043'ün PDF devam satırlarında her satır, ekrana ait tam personel listesini de gizli olarak taşıyordu. 100 personel için dokuz devam parçası oluştuğunda HTML'de 900 ekran adı + 100 yazdırma adı bulunuyordu. Ekran ve PDF doğruydu, fakat gereksiz içerik üretiliyordu.
