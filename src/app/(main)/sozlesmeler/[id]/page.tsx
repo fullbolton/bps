@@ -7,6 +7,7 @@ import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { taskLinkHref } from "@/lib/task-link";
 import { formatDateTR } from "@/lib/format-date";
 import { formatTRY } from "@/lib/format-currency";
 import {
@@ -512,9 +513,13 @@ function ContractWorkspace({ id }: { id: string }) {
           ) : (
             <div className="space-y-2">
               {linkedTasks.map((g) => (
-                <a key={g.id} href="/gorevler" className={`flex items-center justify-between py-2 border-b ${BORDER_SUBTLE} last:border-0`}>
-                  <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{g.title}</span>
-                  <StatusBadge status={g.status} />
+                <a key={g.id} href={taskLinkHref(g.id)} aria-label={`${g.title} görevini aç`}
+                  className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                  <span className="min-w-0 flex-1">
+                    <span className={`block break-words ${TYPE_BODY} ${TEXT_BODY}`}>{g.title}</span>
+                    <span className="mt-1 block text-xs text-blue-700">Görevi aç →</span>
+                  </span>
+                  <span className="shrink-0"><StatusBadge status={g.status} /></span>
                 </a>
               ))}
             </div>
