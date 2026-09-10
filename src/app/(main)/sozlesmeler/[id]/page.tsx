@@ -130,6 +130,38 @@ function ContractWorkspace({ id }: { id: string }) {
   // Editing cannot move a contract. Use its already loaded company UUID/name.
   const firmaOptions = useMemo(() => contract ? [{id: contract.company_id, ad: firmaName || "Sözleşmenin kayıtlı firması"}] : [], [contract, firmaName]);
 
+  // Retrying one linked section must not remount PDF upload/form state elsewhere.
+  const tasksGeneration = useRef(0);
+  const appointmentsGeneration = useRef(0);
+  const reloadTasks = useCallback(async () => {
+    if (!active.current) return;
+    const generation = ++tasksGeneration.current, parent = readGeneration.current;
+    const current = () => active.current && parent === readGeneration.current && generation === tasksGeneration.current;
+    setTasksState({ loading: true, error: false }); setLinkedTasks([]);
+    try {
+      const rows = await listTasksByContractId(supabase, id);
+      if (current()) setLinkedTasks(rows);
+    } catch {
+      if (current()) setTasksState({ loading: false, error: true });
+    } finally {
+      if (current()) setTasksState(state => ({ ...state, loading: false }));
+    }
+  }, [supabase, id]);
+  const reloadAppointments = useCallback(async () => {
+    if (!active.current) return;
+    const generation = ++appointmentsGeneration.current, parent = readGeneration.current;
+    const current = () => active.current && parent === readGeneration.current && generation === appointmentsGeneration.current;
+    setAppointmentsState({ loading: true, error: false }); setLinkedAppointments([]);
+    try {
+      const rows = await listAppointmentsByContractId(supabase, id);
+      if (current()) setLinkedAppointments(rows);
+    } catch {
+      if (current()) setAppointmentsState({ loading: false, error: true });
+    } finally {
+      if (current()) setAppointmentsState(state => ({ ...state, loading: false }));
+    }
+  }, [supabase, id]);
+
   const reload = useCallback(async () => {
     if (!active.current) return;
     const generation = ++readGeneration.current;
@@ -146,14 +178,8 @@ function ContractWorkspace({ id }: { id: string }) {
       setContract(row);
       setFirmaName(row ? display?.nameById[row.company_id] ?? "—" : "");
       if (row) {
-        void listTasksByContractId(supabase, row.id)
-          .then(rows => { if (current()) setLinkedTasks(rows); })
-          .catch(() => { if (current()) setTasksState({ loading: false, error: true }); })
-          .finally(() => { if (current()) setTasksState(state => ({ ...state, loading: false })); });
-        void listAppointmentsByContractId(supabase, row.id)
-          .then(rows => { if (current()) setLinkedAppointments(rows); })
-          .catch(() => { if (current()) setAppointmentsState({ loading: false, error: true }); })
-          .finally(() => { if (current()) setAppointmentsState(state => ({ ...state, loading: false })); });
+        void reloadTasks();
+        void reloadAppointments();
         void getActiveContractDocument(supabase, row.id)
           .then(doc => { if (current()) setContractDoc(doc); })
           .catch(() => { if (current()) setPdfReadError("PDF bilgisi yüklenemedi. Belgenin yokluğu doğrulanamadı."); })
@@ -166,7 +192,7 @@ function ContractWorkspace({ id }: { id: string }) {
     } finally {
       if (current()) setLoading(false);
     }
-  }, [supabase, id]);
+  }, [supabase, id, reloadTasks, reloadAppointments]);
 
   useEffect(() => {
     void reload();
@@ -480,7 +506,7 @@ function ContractWorkspace({ id }: { id: string }) {
         {/* Bağlı Görevler — Faz 3 real truth via tasks service */}
         <section id="isler" className={`${SECTION} scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Bağlı Görevler</h2>
-          <AsyncSection isLoading={tasksState.loading} hasError={tasksState.error} onRetry={() => { void reload(); }}>
+          <AsyncSection isLoading={tasksState.loading} hasError={tasksState.error} onRetry={() => { void reloadTasks(); }}>
           {linkedTasks.length === 0 ? (
             <EmptyState title="Bağlı görev yok" size="card" />
           ) : (
@@ -499,7 +525,7 @@ function ContractWorkspace({ id }: { id: string }) {
         {/* Bağlı Randevular — Faz 3 real truth via appointments service */}
         <section className={SECTION}>
           <h2 className={SECTION_TITLE}>Bağlı Randevular</h2>
-          <AsyncSection isLoading={appointmentsState.loading} hasError={appointmentsState.error} onRetry={() => { void reload(); }}>
+          <AsyncSection isLoading={appointmentsState.loading} hasError={appointmentsState.error} onRetry={() => { void reloadAppointments(); }}>
           {linkedAppointments.length === 0 ? (
             <EmptyState title="Bağlı randevu yok" size="card" />
           ) : (

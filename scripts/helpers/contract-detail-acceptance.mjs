@@ -31,9 +31,38 @@ export async function checkContractDetail({page,sql,user,tenant,first,prefix,ori
   await page.route(linkedPattern,hold);await page.reload();await signal(incoming);await edit.waitFor();
   await section.getByText('Yükleniyor…',{exact:true}).waitFor();assert.equal(await section.getByRole('heading',{name:empty,exact:true}).count(),0);
   release();await section.getByText('Veri yüklenemedi',{exact:true}).waitFor();assert.equal(await section.getByRole('heading',{name:empty,exact:true}).count(),0);
-  await page.unroute(linkedPattern,hold);await section.getByRole('button',{name:'Tekrar dene',exact:true}).click();await section.getByRole('heading',{name:empty,exact:true}).waitFor();
+  await page.unroute(linkedPattern,hold);
+  const pdf=page.locator('#belgeler'),filename=table+'-draft.pdf';
+  await pdf.getByLabel('Sözleşme PDF dosyası',{exact:true}).setInputFiles({name:filename,mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n% Synthetic selection only; never uploaded.\n')});
+  await pdf.getByText('Seçilen: '+filename,{exact:true}).waitFor();
+  let retryReached,retryRelease;const retryIncoming=new Promise(r=>retryReached=r),retryGate=new Promise(r=>retryRelease=r);setRelease(retryRelease);
+  const retryHold=async route=>{const response=await route.fetch();retryReached();await retryGate;await route.fulfill({response});};
+  await page.route(linkedPattern,retryHold);const requests=[];const watch=r=>{if(new URL(r.url()).pathname.startsWith('/rest/v1/'))requests.push([r.method(),new URL(r.url()).pathname]);};page.on('request',watch);
+  await section.getByRole('button',{name:'Tekrar dene',exact:true}).click();await signal(retryIncoming);
+  await section.getByText('Yükleniyor…',{exact:true}).waitFor();assert.ok(await edit.isVisible());await pdf.getByText('Seçilen: '+filename,{exact:true}).waitFor();
+  // An unrelated edit opened during this retry must survive the response too.
+  await edit.click();await editor.getByLabel('Kapsam',{exact:true}).fill('Bölüm yenilenirken taslak');
+  retryRelease();await section.getByRole('heading',{name:empty,exact:true}).waitFor();
+  assert.deepEqual(requests,[['GET','/rest/v1/'+table]]);page.off('request',watch);await page.unroute(linkedPattern,retryHold);
+  assert.ok(await editor.isVisible());assert.equal(await editor.getByLabel('Kapsam',{exact:true}).inputValue(),'Bölüm yenilenirken taslak');
+  await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'Kaydedilmemiş değişiklikler',exact:true}).getByRole('button',{name:'Değişiklikleri bırak',exact:true}).click();await editor.waitFor({state:'hidden'});
+  await pdf.getByText('Seçilen: '+filename,{exact:true}).waitFor();
+  if(table==='tasks'){await page.setViewportSize({width:390,height:844});await pdf.scrollIntoViewIfNeeded();await page.screenshot({path:output+'/contract-section-draft-390.png'});await page.setViewportSize({width:1280,height:900});}
+
  }
  console.log('PASS contract detail read failure/retry, canonical company link and linked loading/error/empty separation');
+ console.log('PASS isolated task/appointment retry sends only its own GET and preserves selected PDF plus unrelated edit draft');
+ // A whole-detail refresh supersedes an older section request, even if it later fails.
+ for(const [table,section,empty] of [['tasks',tasks,'Bağlı görev yok'],['appointments',appointments,'Bağlı randevu yok']]){
+  let reached,release,done,held=false;const incoming=new Promise(r=>reached=r),gate=new Promise(r=>release=r),finished=new Promise(r=>done=r);setRelease(release);
+  const linkedPattern='**/rest/v1/'+table+'?*';
+  const old=async route=>{if(!held&&new URL(route.request().url()).searchParams.get('contract_id')==='eq.'+contract){held=true;reached();await gate;await failure(route);done();}else await route.fallback();};
+  await page.route(linkedPattern,old);await page.reload();await signal(incoming);
+  await page.getByRole('button',{name:'PDF kaydını yeniden yükle',exact:true}).click();await section.getByRole('heading',{name:empty,exact:true}).waitFor();release();await signal(finished);await page.waitForTimeout(300);
+  await section.getByRole('heading',{name:empty,exact:true}).waitFor();assert.equal(await section.getByText('Veri yüklenemedi',{exact:true}).count(),0);await page.unroute(linkedPattern,old);
+ }
+ console.log('PASS old task/appointment failure cannot overwrite a newer full-detail refresh');
+
  // Hold a real write: all competing controls remain disabled; repeat DOM events do not PATCH again.
  let reached,release,patches=0;const incoming=new Promise(r=>reached=r),gate=new Promise(r=>release=r);setRelease(release);
  const held=async route=>{if(route.request().method()==='PATCH'&&new URL(route.request().url()).searchParams.get('id')==='eq.'+contract){patches++;reached();await gate;}await route.fallback();};
