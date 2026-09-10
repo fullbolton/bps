@@ -328,3 +328,18 @@ BPS_COMPANY_DRAFT_GUARD_CHECK=1: gerçek Auth/dedicated sentetik Supabase ve Chr
 BPS_DIALOG_DESIGN_CHECK=1 ile randevu/talep iç firma yaratma ve mevcut seçme, Tab odak sınırı/geri dönüş, body scroll kilidi, yan panel ve finans masaüstü/mobil regresyonları geçti. Standart şirket kabulü beklemede kapatma/gönderim/alan kilitlerini, tek POST/DB satırını ve sunucu yetki reddinde düzenlenebilir formun korunmasını doğruladı. Kanıt `/private/tmp/bps-company-feedback-UnFAGN`; company-discard-390.png görsel incelendi. Kendi test kayıtları/Auth hesabı temizlendi. TypeScript/lint ve izole production build başarılı.
 
 Sınır: sayfa yenileme, tarayıcı geri/tab kapatma ve üst bileşenin unmount etmesi taslağı korumaz; kalıcı taslak yok. Bu blok yalnız firma formunu kapsar. SQL/migration/push/deploy yok.
+
+
+## 080 — Personel talebi formu ve taslak koruması
+
+NewRequestModal native form/Enter kullanır; yedi label useId üzerinden kontrolüne bağlıdır. İlk odak firma seçicisinde; required alanlar native doğrulamaya bağlıdır. Adet pozitif güvenli tam sayı olmalıdır (önceki min=1 niyeti artık handler/canSubmit içinde de uygulanır); seçilen firma tumFirmalar içinde bulunmalıdır. Yüksek/kritik sorumlu zorunluluğu korunur. Inline firmalar payload firma adının çözümlemesine dahil edildi. Türkçe etiketler düzeltildi; 44 px kontrol ve mobil tek sütun düzeni uygulandı.
+
+Senkron submitting ref aynı turdaki çift requestSubmit'i engeller. Pending açıklaması/aria-busy ve closeDisabled kayıt süresince görünür; başarı ref'i serbest bırakıp onaysız kapatır, hata alanları düzenlenebilir bırakır. X/Escape/backdrop/İptal değişiklik varsa bırakma onayı ister. Temiz varsayılan veya düzenlemeyi geri alma onaysız kapanır. Inline firma yaratılmış/seçilmişse açıklama firma kayıtlarının silinmediğini söyler. Açılışta eski firma bildirimi, inline seçenekler ve iç pencere/onay state'i de sıfırlanır.
+
+BPS_REQUEST_FORM_CHECK=1 için dedicated sentetik DB'de staffing_demands yoktu; local-request-feedback.sql marker kontrolüyle yalnız sentetik tabloyu kurar. Kolonlar ve sayım kontrolleri ürün şemasından alınmıştır; fixture RLS yalnız yerel kabulü mümkün kılar, prod RLS güvenlik kanıtı değildir. Şirket FK'si ON DELETE CASCADE olduğundan harness'in kendine ait şirket temizliği talepleri de kaldırır. Ürün migration değişmedi/uygulanmadı.
+
+Gerçek Auth/Chrome kabulü: yedi label/ilk odak, temiz Escape; kirli X/Escape/backdrop/İptal sonrası alanların korunması; onayda Escape; bırakmada DB 0; yeniden açılış ve temiz hale dönüş geçti. Inline firma eklenip talep bırakıldıktan sonra firma DB 1 kaldı, eski bildirim yeniden açılan formda görünmedi. 0/-1/1.5 kişi sayıları gönderimi kapattı; yüksek öncelikte sorumlu girilince açıldı. Enter ile gönderime 503 verildi: hata görünür, form düzenlenebilir, DB 0. Retry'da aynı anda iki requestSubmit: tek POST ve DB'de doğru 3 kişi/tarih/konum/öncelik/sorumlu satırı. Pending X disabled, Escape/backdrop kapatmadı. 390 px ekran görüntüsü incelendi.
+
+BPS_DIALOG_DESIGN_CHECK=1 randevu/talep iç firma seçme/oluşturma, odak sınırı/geri dönüş, scroll kilidi, panel ve finans mobil regresyonları geçti. Eski dialog testi talep taslağını artık açıkça bırakıyor. Standart firma bekleme/tek kayıt/yetki reddi de geçti. Kanıt `/private/tmp/bps-company-feedback-IiEa1P`; kendi şirket/talep/Auth verileri temizlendi. TypeScript/lint ve izole production build geçti (ardından yalnız JSX girintisi düzeltildi).
+
+Sınır: üst sayfa yenileme/auth unmount veya browser geri/tab kapatma koruması yok; kalıcı taslak yok. Sunucu yetkileri/sayım kuralları değişmedi. Talepler sayfasının firma dizini loading/error ayrımı, kayıt sonrası görünür sonuç mesajı ve kapsam/geç yanıt yönetimi bu bloğun dışında, sonraki inceleme adayıdır. Ürün SQL/push/deploy yok.
