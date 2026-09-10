@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui";
+import PickerFeedback, {type PickerStatus} from "@/components/ui/PickerFeedback";
 import { TASK_SOURCE_LABELS } from "@/lib/task-sources";
 import type { TaskSourceType } from "@/lib/task-sources";
 
@@ -16,6 +17,9 @@ interface NewTaskModalProps {
   open: boolean;
   onClose: () => void;
   firmalar: { id: string; ad: string }[];
+  firmalarDurum?: PickerStatus;
+  onRetryFirmalar?: () => void;
+  onRetryKullanicilar?: () => void;
   /**
    * Assignable users (profiles). The picker replaced a free-text field: a
    * typed name cannot carry identity, so it could not back the "my tasks"
@@ -52,6 +56,9 @@ export default function NewTaskModal({
   open,
   onClose,
   firmalar,
+  firmalarDurum = "ready",
+  onRetryFirmalar,
+  onRetryKullanicilar,
   kullanicilar = [],
   kullanicilarDurum = "ready",
   allowAssignee = true,
@@ -87,8 +94,11 @@ export default function NewTaskModal({
     setOncelik(defaultOncelik ?? "normal");
   }, [open, defaultFirmaId, defaultKaynak, defaultKaynakRef, defaultBaslik, defaultOncelik]);
 
+  const companyValid = firmalarDurum === "ready" && firmalar.some(f => f.id === firmaId);
+  const assigneeValid = !allowAssignee || !atananKisiId || (kullanicilarDurum === "ready" && kullanicilar.some(k => k.id === atananKisiId));
+
   async function handleSubmit() {
-    if (submitting.current || !baslik.trim() || !firmaId) return;
+    if (submitting.current || !baslik.trim() || !companyValid || !assigneeValid) return;
     submitting.current = true;
     const payload = {
       baslik: baslik.trim(),
@@ -144,7 +154,7 @@ export default function NewTaskModal({
           <button
             type="submit"
             form={formId}
-            disabled={!baslik.trim() || !firmaId || saving}
+            disabled={!baslik.trim() || !companyValid || !assigneeValid || saving}
             className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? "Kaydediliyor..." : "Oluştur"}
@@ -189,17 +199,22 @@ export default function NewTaskModal({
               Firma <span className="text-red-500">*</span>
             </label>
             <select required id={`${formId}-firmaId`}
+              disabled={firmalarDurum !== "ready"}
+              aria-describedby={firmalarDurum !== "ready" || firmalar.length === 0 ? `${formId}-companies` : undefined}
               value={firmaId}
               onChange={(e) => setFirmaId(e.target.value)}
               className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Firma seçin</option>
+              <option value="">{firmalarDurum === "loading" ? "Firmalar yükleniyor…" : firmalarDurum === "error" ? "Firma listesi yüklenemedi" : "Firma seçin"}</option>
+              {firmaId && !firmalar.some(f => f.id === firmaId) && <option value={firmaId} disabled>{firmalarDurum === "ready" ? "Seçili firma listede yok" : "Seçili firma doğrulanıyor"}</option>}
               {firmalar.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.ad}
                 </option>
               ))}
             </select>
+            <PickerFeedback id={`${formId}-companies`} status={firmalarDurum} count={firmalar.length} name="Firma listesi"
+              emptyText="Listede firma yok." onRetry={onRetryFirmalar} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -243,9 +258,10 @@ export default function NewTaskModal({
                   Atanan Kişi
                 </label>
                 <select id={`${formId}-atananKisiId`}
+                  aria-describedby={kullanicilarDurum !== "ready" || kullanicilar.length === 0 ? `${formId}-people` : undefined}
                   value={atananKisiId}
                   onChange={(e) => setAtananKisiId(e.target.value)}
-                  disabled={kullanicilarDurum !== "ready" || kullanicilar.length === 0}
+                  disabled={kullanicilarDurum !== "ready" || (kullanicilar.length === 0 && !atananKisiId)}
                   className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
                 >
                   <option value="">
@@ -254,15 +270,18 @@ export default function NewTaskModal({
                       : kullanicilarDurum === "error"
                         ? "Kullanıcı listesi yüklenemedi"
                         : kullanicilar.length === 0
-                          ? "Atanabilecek kullanıcı yok"
+                          ? (atananKisiId ? "Atanmadan devam et" : "Atanabilecek kullanıcı yok")
                           : "Atanmadı"}
                   </option>
+                  {atananKisiId && !kullanicilar.some(k => k.id === atananKisiId) && <option value={atananKisiId} disabled>{kullanicilarDurum === "ready" ? "Seçili kişi listede yok" : "Seçili kişi doğrulanıyor"}</option>}
                   {kullanicilar.map((k) => (
                     <option key={k.id} value={k.id}>
                       {k.ad}
                     </option>
                   ))}
                 </select>
+                <PickerFeedback id={`${formId}-people`} status={kullanicilarDurum} count={kullanicilar.length} name="Kişi listesi"
+                  emptyText="Atanabilecek kişi yok. Görevi atamadan oluşturabilirsiniz." onRetry={onRetryKullanicilar} />
               </div>
               <div>
                 <label htmlFor={`${formId}-termin`} className="block text-sm font-medium text-slate-700 mb-1">

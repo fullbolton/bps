@@ -11,6 +11,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
+import PickerFeedback, {type PickerStatus} from "@/components/ui/PickerFeedback";
 import NewCompanyModal from "./NewCompanyModal";
 import type { CreatedCompany } from "./NewCompanyModal";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
@@ -25,6 +26,8 @@ interface NewAppointmentModalProps {
   open: boolean;
   onClose: () => void;
   firmalar: { id: string; ad: string }[];
+  firmalarDurum?: PickerStatus;
+  onRetryFirmalar?: () => void;
   defaultFirmaId?: string;
   allowNewCompany?: boolean;
   onSubmit: (payload: {
@@ -41,6 +44,8 @@ export default function NewAppointmentModal({
   open,
   onClose,
   firmalar,
+  firmalarDurum = "ready",
+  onRetryFirmalar,
   defaultFirmaId = "",
   allowNewCompany = true,
   onSubmit,
@@ -78,6 +83,8 @@ export default function NewAppointmentModal({
     ...yeniFirmalar.filter((y) => !firmalar.some((f) => f.id === y.id)),
   ];
 
+  const companyValid = firmalarDurum === "ready" && tumFirmalar.some(f => f.id === firmaId);
+
   function handleCompanyCreated(company: CreatedCompany, origin: "created" | "existing") {
     setCompanyNotice(origin === "created" ? `${company.name} firmalara eklendi ve bu formda seçildi.` : `${company.name} mevcut kayıtlardan seçildi.`);
     setYeniFirmalar((prev) =>
@@ -89,7 +96,7 @@ export default function NewAppointmentModal({
   }
 
   async function handleSubmit() {
-    if (!firmaId || !tarih || submitting.current || !tumFirmalar.some((f) => f.id === firmaId)) return;
+    if (!companyValid || !tarih || submitting.current) return;
     submitting.current = true;
     const payload = {
       firmaId,
@@ -147,7 +154,7 @@ export default function NewAppointmentModal({
           <button
             type="submit"
             form={formId}
-            disabled={!tumFirmalar.some((f) => f.id === firmaId) || !tarih || saving}
+            disabled={!companyValid || !tarih || saving}
             className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? "Kaydediliyor..." : "Oluştur"}
@@ -171,6 +178,8 @@ export default function NewAppointmentModal({
             </label>
             <select required data-dialog-initial-focus id={`${formId}-firmaId`}
               aria-label="Randevu firması"
+              disabled={firmalarDurum !== "ready"}
+              aria-describedby={firmalarDurum !== "ready" || tumFirmalar.length === 0 ? `${formId}-companies` : undefined}
               value={firmaId}
               onChange={(e) => {
                 if (allowNewCompany && e.target.value === NEW_COMPANY_OPTION) {
@@ -181,7 +190,8 @@ export default function NewAppointmentModal({
               }}
               className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Firma seçin</option>
+              <option value="">{firmalarDurum === "loading" ? "Firmalar yükleniyor…" : firmalarDurum === "error" ? "Firma listesi yüklenemedi" : "Firma seçin"}</option>
+              {firmaId && !tumFirmalar.some(f => f.id === firmaId) && <option value={firmaId} disabled>{firmalarDurum === "ready" ? "Seçili firma listede yok" : "Seçili firma doğrulanıyor"}</option>}
               {tumFirmalar.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.ad}
@@ -192,6 +202,8 @@ export default function NewAppointmentModal({
                 <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
               </>}
             </select>
+            <PickerFeedback id={`${formId}-companies`} status={firmalarDurum} count={tumFirmalar.length} name="Firma listesi"
+              emptyText="Listede firma yok." onRetry={onRetryFirmalar} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>

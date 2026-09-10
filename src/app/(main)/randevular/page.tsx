@@ -3,6 +3,7 @@
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import PickerFeedback from "@/components/ui/PickerFeedback";
 import AppointmentTasks from "./AppointmentTasks";
 import AsyncSection from "@/components/ui/AsyncSection";
 
@@ -190,7 +191,9 @@ export default function RandevularPage() {
   const [snapshot, setSnapshot] = useState<{scope: string; rows: AppointmentRow[]; names: Record<string,string>; legacy: Record<string,string>} | null>(null);
   const [readState, setReadState] = useState<{scope: string; loading: boolean; error: string | null} | null>(null);
   const generation = useRef(0);
-  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]} | null>(null);
+  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "ready" | "error"} | null>(null);
+  const [companyRetry, setCompanyRetry] = useState(0);
+  const [profileRetry, setProfileRetry] = useState(0);
   const [profileSnapshot, setProfileSnapshot] = useState<{scope: string; rows: ProfileRow[]; status: "ready" | "error"} | null>(null);
 
   const searchControl = useRef<SearchInputHandle>(null);
@@ -207,6 +210,7 @@ export default function RandevularPage() {
   const loadError = readState?.scope === listScope ? readState?.error : null;
   const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
   const allProfiles = useMemo(() => profileSnapshot?.scope === listScope ? profileSnapshot?.rows ?? [] : [], [profileSnapshot, listScope]);
+  const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
   const profilesDurum = profileSnapshot?.scope === listScope ? profileSnapshot?.status ?? "loading" : "loading";
   const [newOpen, setNewOpen] = useState(false);
   const [resultTarget, setResultTarget] = useState<{ open: boolean; randevuId?: string }>({ open: false });
@@ -256,19 +260,26 @@ export default function RandevularPage() {
   useEffect(() => {
     if (!listScope) return;
     let active = true;
-    setCompanySnapshot(null); setProfileSnapshot(null);
+    setCompanySnapshot(null);
     void selectAllCompanies(supabase).then(rows => {
-      if (active) setCompanySnapshot({scope: listScope, rows});
+      if (active) setCompanySnapshot({scope: listScope, rows, status: "ready"});
     }).catch(() => {
-      if (active) setCompanySnapshot({scope: listScope, rows: []});
+      if (active) setCompanySnapshot({scope: listScope, rows: [], status: "error"});
     });
+    return () => { active = false; };
+  }, [supabase, listScope, companyRetry]);
+
+  useEffect(() => {
+    if (!listScope) return;
+    let active = true;
+    setProfileSnapshot(null);
     void listActiveTenantProfiles(supabase).then(rows => {
       if (active) setProfileSnapshot({scope: listScope, rows, status: "ready"});
     }).catch(() => {
       if (active) setProfileSnapshot({scope: listScope, rows: [], status: "error"});
     });
     return () => { active = false; };
-  }, [supabase, listScope]);
+  }, [supabase, listScope, profileRetry]);
 
   // ------------------------------------------------------------------
   // Derived data
@@ -397,6 +408,8 @@ export default function RandevularPage() {
           </AsyncSection>
         )}
 
+        <PickerFeedback id="appointment-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
+          emptyText="Firma filtresinde gösterilecek firma yok." onRetry={() => setCompanyRetry(value => value + 1)} />
         {completionNotice && (
           <p className={`${TYPE_CAPTION} text-amber-600`} role="status" aria-live="polite">
             {completionNotice}
@@ -515,6 +528,8 @@ export default function RandevularPage() {
         open={newOpen}
         onClose={() => { if (liveContext.current === context) setNewOpen(false); }}
         firmalar={firmaOptions}
+        firmalarDurum={companiesDurum}
+        onRetryFirmalar={() => setCompanyRetry(value => value + 1)}
         onSubmit={async ({ firmaId, tarih, saat, gorusmeTipi, katilimci }) => {
           const result = await createAppointmentAction({
             legacyCompanyId: firmaId,
@@ -566,8 +581,11 @@ export default function RandevularPage() {
         open={taskTarget.open}
         onClose={() => { if (liveContext.current === context) setTaskTarget({ open: false }); }}
         firmalar={firmaOptions}
+        firmalarDurum={companiesDurum}
+        onRetryFirmalar={() => setCompanyRetry(value => value + 1)}
         kullanicilar={kullaniciOptions}
         kullanicilarDurum={profilesDurum}
+        onRetryKullanicilar={() => setProfileRetry(value => value + 1)}
         defaultKaynak="randevu"
         defaultFirmaId={taskTarget.firmaId}
         defaultKaynakRef={taskTarget.randevuId}
