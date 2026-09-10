@@ -53,6 +53,7 @@ export default function NewAppointmentModal({
   const [katilimci, setKatilimci] = useState("");
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [companyNotice, setCompanyNotice] = useState<string | null>(null);
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
   // Bu oturumda inline yaratilan firmalar. Parent kendi listesini randevu
   // kaydedildikten sonra zaten yeniliyor; buradaki amac yeni firmanin
@@ -68,6 +69,7 @@ export default function NewAppointmentModal({
     setSubmitError(null);
     setCompanyModalOpen(false);
     setYeniFirmalar([]);
+    setCompanyNotice(null);
   }, [open, defaultFirmaId]);
 
   const tumFirmalar = [
@@ -75,7 +77,8 @@ export default function NewAppointmentModal({
     ...yeniFirmalar.filter((y) => !firmalar.some((f) => f.id === y.id)),
   ];
 
-  function handleCompanyCreated(company: CreatedCompany) {
+  function handleCompanyCreated(company: CreatedCompany, origin: "created" | "existing") {
+    setCompanyNotice(origin === "created" ? `${company.name} firmalara eklendi ve bu formda seçildi.` : `${company.name} mevcut kayıtlardan seçildi.`);
     setYeniFirmalar((prev) =>
       prev.some((p) => p.id === company.id)
         ? prev
@@ -120,6 +123,7 @@ export default function NewAppointmentModal({
     setKatilimci("");
     setSubmitError(null);
     setYeniFirmalar([]);
+    setCompanyNotice(null);
     onClose();
   }
 
@@ -149,6 +153,7 @@ export default function NewAppointmentModal({
       }
     >
       <fieldset disabled={saving} className="space-y-4">
+        {companyNotice && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{companyNotice}</p>}
         {submitError && (
           <p className="text-xs text-red-600" role="alert" aria-live="polite">
             {submitError}

@@ -17,7 +17,7 @@
  * adı taşıyabilir, o yüzden bloklamak meşru bir kaydı imkânsız kılardı.
  */
 
-import { useState } from "react";
+import { useState, useRef, useId } from "react";
 import { ModalShell } from "@/components/ui";
 import { SECTOR_CODES, SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
@@ -60,6 +60,8 @@ export default function NewCompanyModal({
   onClose,
   onCreated,
 }: NewCompanyModalProps) {
+  const submitting = useRef(false);
+  const fieldId = useId();
   const [firmaAdi, setFirmaAdi] = useState("");
   const [sektor, setSektor] = useState<SectorCode | "">("");
   const [sehir, setSehir] = useState("");
@@ -68,6 +70,7 @@ export default function NewCompanyModal({
   const [duplicates, setDuplicates] = useState<DuplicateMatch[] | null>(null);
 
   function resetAndClose() {
+    if (submitting.current) return;
     setFirmaAdi("");
     setSektor("");
     setSehir("");
@@ -78,14 +81,17 @@ export default function NewCompanyModal({
   }
 
   function handleSelectExisting(match: DuplicateMatch) {
+    if (submitting.current) return;
     onCreated({ id: match.id, name: match.name }, "existing");
     resetAndClose();
   }
 
   async function submit(confirmDuplicate: boolean) {
+    if (submitting.current) return;
     const name = firmaAdi.trim();
     if (!name) return;
 
+    submitting.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -99,6 +105,7 @@ export default function NewCompanyModal({
       );
 
       if (result.ok) {
+        submitting.current = false;
         onCreated(
           { id: result.companyId, name: result.companyName },
           "created",
@@ -118,6 +125,7 @@ export default function NewCompanyModal({
         err instanceof Error ? err.message : "Firma oluşturulamadı.",
       );
     } finally {
+      submitting.current = false;
       setSaving(false);
     }
   }
@@ -152,7 +160,8 @@ export default function NewCompanyModal({
         </>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-4" aria-busy={saving}>
+        {saving && <p role="status" className="text-sm text-slate-600">Firma kaydediliyor, lütfen bekleyin…</p>}
         {showingDuplicates && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
             <p className="text-sm font-medium text-amber-900">
@@ -171,6 +180,7 @@ export default function NewCompanyModal({
                     </span>
                   </span>
                   <button
+                    disabled={saving}
                     onClick={() => handleSelectExisting(m)}
                     className="shrink-0 px-2 py-1 text-xs font-medium text-amber-900 bg-white border border-amber-300 rounded hover:bg-amber-100"
                   >
@@ -186,16 +196,19 @@ export default function NewCompanyModal({
         )}
 
         {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor={`${fieldId}-name`} className="block text-sm font-medium text-slate-700 mb-1">
             Firma Adı <span className="text-red-500">*</span>
           </label>
           <input
+            id={`${fieldId}-name`}
+            disabled={saving}
+            autoFocus
             type="text"
             value={firmaAdi}
             onChange={(e) => {
@@ -208,25 +221,29 @@ export default function NewCompanyModal({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Sektor
+          <label htmlFor={`${fieldId}-sector`} className="block text-sm font-medium text-slate-700 mb-1">
+            Sektör
           </label>
           <select
+            id={`${fieldId}-sector`}
+            disabled={saving}
             value={sektor}
             onChange={(e) => setSektor(e.target.value as SectorCode | "")}
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            <option value="">Sektor secin (opsiyonel)</option>
+            <option value="">Sektör seçin (isteğe bağlı)</option>
             {SECTOR_CODES.map((code) => (
               <option key={code} value={code}>{SECTOR_LABELS[code]}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor={`${fieldId}-city`} className="block text-sm font-medium text-slate-700 mb-1">
             Şehir
           </label>
           <input
+            id={`${fieldId}-city`}
+            disabled={saving}
             type="text"
             value={sehir}
             onChange={(e) => setSehir(e.target.value)}

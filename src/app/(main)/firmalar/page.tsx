@@ -265,7 +265,7 @@ export default function FirmalarPage() {
       setReloadKey((k) => k + 1);
       setNotice(
         origin === "created"
-          ? `${company.name} eklendi — durumu "aday". Aktife almak için firma detayına girin.`
+          ? `${company.name} firmalara eklendi. Durumu: aday.`
           : `${company.name} zaten kayıtlı — listede.`,
       );
     },
@@ -307,7 +307,7 @@ export default function FirmalarPage() {
       />
       <div className="space-y-4">
         {notice && (
-          <div className="flex items-start justify-between gap-3 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+          <div role="status" aria-live="polite" className="flex items-start justify-between gap-3 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
             <span>{notice}</span>
             <button
               type="button"
