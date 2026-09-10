@@ -352,6 +352,21 @@ try {
   }
   console.log('PASS compact task summary, global counts, keyboard status filter, persisted mobile badge, disclosure/Tab/clear, first row visible at 390 and 320/390/1280 fit');
  }
+ if(process.env.BPS_FILTER_BAR_CHECK==='1') {
+  await page.goto(origin+'/qa-filter-bar-acceptance');
+  const company=page.getByLabel('Kabul firması',{exact:true}),date=page.getByLabel('Kabul tarihi',{exact:true}),other=page.getByLabel('Diğer durum',{exact:true});
+  await company.waitFor();assert.equal(new Set(await Promise.all([company,date,other].map(field=>field.getAttribute('id')))).size,3);
+  for(const label of ['Kabul firması','Kabul tarihi','Diğer durum'])assert.ok(await page.locator('label').filter({hasText:label}).isVisible());
+  await company.selectOption('A');await date.fill('2026-09-10');await page.getByRole('button',{name:'Seçenekleri değiştir',exact:true}).click();
+  assert.equal(await company.inputValue(),'A');assert.equal(await page.getByTestId('filter-value').textContent(),'A');assert.equal(await company.locator('option:checked').textContent(),'Kayıtlı seçim (listede yok)');
+  const hint=page.getByText('Kayıtlı seçim mevcut seçeneklerde yok. Seçimi değiştirin veya filtreleri temizleyin.',{exact:true});await hint.waitFor();assert.equal(await company.getAttribute('aria-describedby'),await hint.getAttribute('id'));
+  for(const width of [320,390,1280]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/filter-missing-'+width+'.png'});}
+  await page.getByRole('button',{name:'Seçenekleri değiştir',exact:true}).click();assert.equal(await company.inputValue(),'A');assert.equal(await hint.count(),0);assert.equal(await company.locator('option:checked').textContent(),'Firma A');
+  const clear=page.getByRole('button',{name:'Temizle',exact:true});assert.ok(await clear.evaluate(e=>e.getBoundingClientRect().height>=44));await clear.focus();await page.keyboard.press('Enter');
+  assert.equal(await company.inputValue(),'');assert.equal(await date.inputValue(),'');assert.equal(await page.getByTestId('submit-count').textContent(),'0');assert.ok(await company.evaluate(e=>e===document.activeElement));assert.equal(await clear.count(),0);
+  await company.selectOption('A');await page.getByRole('button',{name:'Seçenekleri değiştir',exact:true}).click();await hint.waitFor();await company.selectOption('');assert.equal(await hint.count(),0);assert.equal(await page.getByTestId('filter-value').textContent(),'boş');
+  console.log('PASS visible filter labels/unique IDs, unavailable selection stays honest, option recovery, date/clear focus without submit and 320/390/1280 fit');
+ }
  if(process.env.BPS_LIST_MEMORY_CHECK==='1'){
   const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`),contract=randomUUID(),contractName=prefix+'-memory';assert.match(company,/^[a-f0-9-]{36}$/);
   assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${id(1)}','${company}','${contractName}','taslak','${user}')`);
