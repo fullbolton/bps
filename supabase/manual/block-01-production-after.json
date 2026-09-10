@@ -1,6 +1,6 @@
 {
   "observedAt": "2026-09-10",
-  "state": "supabase_applied_frontend_pending",
+  "state": "supabase_applied_frontend_live_verified",
   "functions": [
     {
       "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
@@ -143,19 +143,30 @@
       "name": "start_board_filters",
       "sha256": "214e06b38428c300723011f7978d8aac248d31678acea7c3f77b8cb3c0e765a7",
       "version": "20260910125320",
-      "target": "20260909002800"
+      "target": "20260909002800",
+      "mcpGeneratedVersion": "20260910125320",
+      "remoteVersion": "20260909002800"
     },
     {
       "name": "start_event_validation",
       "sha256": "a715c39742c7c75b9bffc262b60d58e5bc44356e2e6ea964afe3dd7e2bd2cbdc",
       "version": "20260910125339",
-      "target": "20260909002900"
+      "target": "20260909002900",
+      "mcpGeneratedVersion": "20260910125339",
+      "remoteVersion": "20260909002900"
     },
     {
       "name": "candidate_company_operations",
       "sha256": "d4411edee123a137f84ee86c1cbe89a16498f1dc1230f16f8597d1f3863515ba",
       "version": "20260910125401",
-      "target": "20260910000100"
+      "target": "20260910000100",
+      "mcpGeneratedVersion": "20260910125401",
+      "remoteVersion": "20260910000100"
     }
-  ]
+  ],
+  "sourceCommit": "565059e3e18b5628bc7f0edcffbdfe22ef7203eb",
+  "branch": "codex/block-01-release",
+  "deployment": "dpl_DZvtjhLdoishravp1YYwJnM9Uuoq",
+  "productionUrl": "https://www.bpsys.net",
+  "ledgerRepairedAndRechecked": true
 }

@@ -1,64 +1,54 @@
 # Blok 1 — Günlük operasyon ve işe başlama teslimi
 
-> **041 — Yayın sürüyor (doğrudan kullanıcı devam talimatı).** Supabase OAuth yenilendi; 27 eski ledger hash’i ve 9 mevcut fonksiyon gövdesi baseline ile eşleşti. Üç yeni migration uygulandı, kaynak SHA256 ve owner/ACL doğrulandı; ledger sürümleri hash korumasıyla dosya sürümlerine uzlaştırıldı. Yeni frontend henüz yayında değil. Bu üst kayıt önceki otomatik çalışma kısıtı ve üç SQL bekliyor notlarının güncel durumudur.
+2026-09-10 · **041: Yayında; çekirdek canlı kabul tamamlandı.**
 
-2026-09-10 · Durum: yerel kabul paketi hazır; production yayın ve canlı blok kabulü açık.
+[Canlı uygulama](https://www.bpsys.net/talepler/ise-baslama) · Kaynak commit: `565059e3e18b5628bc7f0edcffbdfe22ef7203eb` · Push edilen dal: `codex/block-01-release`. Main'e birleştirme yapılmadı.
 
 ## Kullanılabilir sonuç
 
-Firma → şube → personel → günlük talep → atama → işe başlama planı → arama → bağımsız teyit → Dashboard. Haftalık plan ve müşteri CSV çıktısı bu zincirin planlama görünümüdür; gerçekleşen mesai veya bordro onayı değildir.
+Firma → şube → personel → günlük talep → atama → işe başlama planı → arama → bağımsız teyit → Dashboard zinciri canlı Supabase üzerinde çalışıyor. Haftalık plan ve müşteri CSV çıktısı planlama içindir; gerçekleşen mesai veya bordro onayı değildir.
 
-Yayındaki 035'e göre yerel farklar: 036 tüm gün filtreleri; 037 Dashboard işe başlama özeti; 038 Fable ret/zaman/giriş düzeltmeleri; 039 aday firma uyumluluğu. Bu kayıt ve üretilecek kaynak manifesti tek inceleme paketidir; her dilim için ayrı Claude sohbeti gerekmez.
+035 yayını üzerine 036 tüm gün filtreleri, 037 Dashboard işe başlama özeti, 038 Fable ret/zaman/giriş düzeltmeleri ve 039 aday firma uyumluluğu birlikte yayımlandı. Aday ve aktif firma operasyona uygun; CRM durumu kendiliğinden değişmez. “Şubede olduğunu söylüyor” personelin beyanıdır; işe başlama ancak ayrı şube/saha teyidiyle kapanır.
 
-## SQL ve yayın sırası
+## Yayın ve Supabase kanıtı
 
-1. `20260909002800_start_board_filters.sql`
-2. `20260909002900_start_event_validation.sql`
-3. `20260910000100_candidate_company_operations.sql`
-4. Bu üç migration ile uyumlu frontend.
+- Proje: `dffdzbmnmnokbftbujsy`.
+- Bu teslimin 30 migration'ı canlı: önceki 27 kaynak hash'i değişmedi; bekleyen üçü sırasıyla `20260909002800` → `20260909002900` → `20260910000100` uygulandı.
+- MCP'nin oluşturduğu sürümler, önce tam SQL SHA256 eşleşmesi ölçülerek dosya sürümlerine uzlaştırıldı. Son okumada üç sürüm/hash tekrar eşleşti.
+- Dokuz eski fonksiyonun başlangıç gövdesi ölçüldü; uygulama sonrası 10 ilgili fonksiyonun owner/ACL/search_path kontrolü yapıldı. Anon execute yok; özel replacement yardımcısı authenticated'a açılmadı.
+- 249 uygulama dosyası frozen kabul manifesti, commit ve temiz Vercel yüklemesiyle birebir eşleşti. SQL, env, doküman ve Git dizini yayına yüklenmedi; `vercel.json` dahil.
+- Yeni deployment: `dpl_DZvtjhLdoishravp1YYwJnM9Uuoq`. Önce alan adından ayrı production build, ardından `www.bpsys.net` terfisi tamamlandı.
+- Production sağlık 5/5; yetkisiz health 401, takip sayfası login yönlendirmesi, login 200. Doğru Supabase projesi ölçüldü. Bildirim e-postaları kapalı.
 
-Üçü de dedicated yerelde uygulandı. Bu otomatik çalışma üretime migration/veri yazmaz, push veya deploy yapmaz. Kayıtlı canlı baseline `dpl_7dGwr1wHZc2REPBUYuJwjNnE6RZk`, Git yayın içeriği `fb1b218`; HEAD `2b53d98` aynı 246 yayın kaynağını içerir. Yeni çalışma ağacı bundan ileridedir. Üretimdeki 27 eski migration dosyası değişmeden korunur.
+[Birleşik yayın envanteri](../supabase/manual/release-20260910-block01.json), [SQL sonrası kanıt](../supabase/manual/block-01-production-after.json), [sağlık ölçümü](../supabase/manual/block-01-live-health.json).
 
-## Kabul kapsamı
+## Gerçek tarayıcı ve sunucu kabulü
 
-- 036: filtreler sayfalama öncesi; 60 atama, 8 native kontrol, yerel API ve tarayıcı.
-- 037: Dashboard takip sayısı ve gün/aksiyon bağlantısı; yerel sayaç ve tarayıcı kabulü.
-- 038: 7 native kontrol, Fable yarış/kapsam regresyonları 26/26, gerçek yerel Auth/RPC ve tarayıcı ret UX'i.
-- 039: aday/aktif/pasif/null/bilinmeyen durum matrisi 9 native kontrol; gerçek yerel Auth zinciri aday firmadan tek teyide kadar; form kullanılabilirliği; 159 unit, genel 5/5 ve build.
-- 040 haftalık CSV: gerçek yerel HTTP 9/9; iki kapsam bağımsız Python CSV okuyucusunda doğrulandı. Tarayıcıda toplam, iptal filtresi ve boş haftada indirme engeli geçti.
+Mevcut hesapla canlı arayüzden yalnız sentetik firma/şube/personel oluşturuldu. Aday firmada 2 kişilik talep ve 1 atama kaydedildi.
 
-Bu testler aynı katman değildir ve tek bir “tüm testler geçti” sayısına birleştirilmez. Sonuçların ayrıntısı ilgili dilim notlarında ve kabul günlüklerindedir.
+1. Tekrarlı arama aralığı reddedildi. Form alanları korundu, “kaydedilmedi” mesajı çıktı; yanlış belirsiz işlem uyarısı kalmadı.
+2. Geç oluşturulmuş planda eski arama saatleri “Plan öncesi · uygulanmaz” oldu.
+3. Atamadan sonra fakat plandan önce gerçekleşmiş manuel görüşme kaydedildi; sunucu zaman karşılaştırması iki sınırı doğruladı.
+4. “Şubede olduğunu söylüyor” görüşmesi teyit oluşturmadı. Ayrı şube teyidi tamamlandı; tam sayfa yenilemede “İşe başladı · teyitli” kaldı.
+5. Sunucu: attendance `present`, attendance revision 1, plan revision 3; tam bir plan, bir arama, bir teyit.
+6. Dashboard: 1 talep / 2 ihtiyaç / 1 atama / 1 eksik; takip bekleyen 0, gün toplamı 1.
 
-## Kalan teslim kapıları
+Ardından yalnız bu tur oluşturulan kesin kimlikler temizlendi: firma, şube, personel, talep, atama, plan, üç takip olayı ve yedi aktivite. FK bağımlılıkları kontrol edildi; beklenmeyen kayıt olsa transaction duracaktı. Önceki test firması/personeli korundu. Komut makbuzları ve kapalı komut izleri geç gelen tekrarların kayıt yaratmasını önlemek için kaldı. Gerçek hesaplara dokunulmadı; tam içerik yedeği alınmadı.
 
-- Kaynak ve SQL snapshotını doğrula; manifest değişen kodu eski kabul ile karıştırmasın.
-- Git teslimi/push ve gerçek Supabase/Vercel yayını mevcut otomasyon kapsamı dışında; yapılmış sayılmaz.
-- Yayın sonrası canlıda seçilmiş kayıtla plan → arama → bağımsız teyit → reload, aday firma akışı ve çıktı kabulü. Chat'in 035 üzerinde ölçtüğü dört adım bu yeni yayın kabulünün yerine geçmez.
-- Native yazdırma/PDF sayfalaması ölçülmedi; CSV kabulü bunu kapsamaz.
-- Test verisi temizliği yalnız bilinen kayıt manifesti ve mevcut yetki kapsamında; belirsiz şirket adı üzerinden silme yok.
+Temizlikten sonra Dashboard 0/0/0/0 ve takip 0/0; bu tur test aktiviteleri yok. [Canlı kabul kaydı](../supabase/manual/block-01-live-smoke.json), [sunucu ölçümü](../supabase/manual/block-01-live-smoke-server.json), [uygulanan dar temizlik](../supabase/manual/block-01-live-smoke-cleanup.sql).
 
-Dış inceleme bu pakete bağlı tek bulgu listesiyle yapılabilir. Kritik somut açıklar giderilir; rutin ilerleme dış ajan yanıtını beklemez. İlk blok canlı kabulü kapanmadan yeni modül açılmaz.
+## Yerel kabul ve kapsam sınırı
 
-## 040 — Toplu teslim kanıtı
+- 036: 60 atama üzerinden filtre/sayfalama, 8 native SQL kontrolü, gerçek Auth/API/tarayıcı.
+- 038: 7 native kontrol; Fable yarış/kapsam regresyonları 26/26; ret mesajı ve zaman sınırı kabulü.
+- 039: aday/aktif/pasif/null/bilinmeyen matrisi 9 native kontrol; 159 unit, genel 5/5, gerçek Auth zinciri ve build.
+- 040: haftalık CSV gerçek HTTP 9/9; bağımsız CSV okuyucusuyla Türkçe, BOM, tırnak/noktalı virgül, formül güvenliği ve kapsam. Tarayıcı toplam, iptal filtresi ve boş hafta kontrolü.
+- Manifest testi 2/2; yayımlanan kaynakların snapshot kontrolü geçti. Bu test sayıları farklı katmanlardır; tek toplam başarı sayısına dönüştürülmez.
 
-`supabase/manual/block-01-local-release.json`: 249 uygulama dosyası (Vercel yapılandırması dahil), 30 SQL dosyası ve 17 kabul aracı dosyasının SHA256 envanteri. 30 SQL = yayındaki 27 dosyanın değişmeyen kaynakları + production bekleyen 3 dosya. Bu sayı 30 migration'ın canlıda olduğu anlamına gelmez. `.DS_Store` yalnız metadata olarak hariç; .env ve symlink/special dosyalar kabul edilmez.
+CSV byte kabulü dedicated yerelde yapıldı; bu canlı turda CSV dosyasının içeriği ayrıca ölçülmedi. Native yazdırma/PDF sayfalaması açık. Sentetik canlı kabul gerçek müşteri pilotu değildir. Tarihsel `block-01-local-release.json` ve 035 yayın manifesti yeniden yazılmadı; güncel yayın envanteri yukarıdadır.
 
-Uygulama dosyaları 035 yayın manifesti üzerine 036–039 kabul manifestleri sırayla uygulanarak oluşturulan 249 dosyalık beklentiyle birebir eşleşti. Son uygulama build'i 039'da geçti; 040 uygulama veya SQL gövdesi değiştirmedi, test/teslim araçlarını geliştirdi. Git HEAD bu paketin commit'i değildir; pakette çalışma ağacı olduğu açıkça yazılıdır.
+## Sıradaki çalışma
 
-```sh
-node scripts/block-release-manifest.mjs --check
-```
+Çekirdek operasyon ve işe başlama yayın kapısı kapandı. Sonraki küçük dilim: Son Aktiviteler’de plan/arama/teyidin genel “İşlem kaydedildi” yerine anlaşılır olay adlarıyla görünmesi; ardından canlı müşteri çıktısı ve gerçek kullanım pilotu. Pilot için gerçek personel/şube verisi uydurulmayacak. Daha büyük yeni modül bu kullanım sonuçları ve mevcut ürün planıyla seçilecek.
 
-Kontrol ekleme/silme/içerik değişikliğinde hata verir. `--write` bu bloğun kabul edilmiş uygulama snapshotlarıyla eşleşmeyen uygulama kodunu yeni bir manifest yazarak kabul edilmiş gösteremez. Daha sonraki dilimler kendi kabul kaydıyla bu sözleşmeye eklenmelidir. İki manifest regresyon testi geçti; genel kabul runner'ına dahil edildi. Genel 5/5 raporu: `/var/folders/fg/qm_gg6w16299dhr_lz9xr38r0000gn/T/bps-acceptance-Ykz7Oa/report.md`. Son metadata/Vercel kapsam düzeltmesinden sonra manifestin iki testi ve gerçek `--write`/`--check` tekrar geçti.
-
-### Haftalık müşteri CSV kabulü
-
-Güncellenen `scripts/qa-local-export.mjs`, yalnız doğrulanmış dedicated yerel ortamda kendi sentetik aday firması ve hesabını kurar. 9 HTTP kontrolü: aktif/iptal dahil iki attachment, anon, yabancı tenant, geçersiz firma, boş hafta, oturum sonrası rol kaybı, üyelik kaybı ve kendi geçici kayıtlarının temizliği. Gerçek byte'lar bağımsız CSV okuyucusunda çözüldü: 2 aktif talep, 4 ihtiyaç, 2 atama, 2 açık; üçüncü iptal aktif toplamların dışında. UTF-8 BOM, Türkçe, tırnak/noktalı virgül, formül başlangıcının metin kalması ve başka haftanın dışlanması geçti.
-
-Kanıt: `/private/tmp/bps-weekly-export-7UD7Hx/report.json`, aynı dizinde yalnız sentetik `active.csv` ve `including-cancelled.csv`; çalışma logu `/private/tmp/bps-block1-export.log`. Önceki kabul betiği hesap/iş kaydı bırakıyordu; yeni sürüm finally ile yalnız kendi kimliklerini temizler. Eski birikmiş kayıtlar bu tur silinmedi. İlk genel kabul denemesi fixture kurulumu kilidi nedeniyle başlamadı; kilit serbest kaldıktan sonraki koşum 5/5 geçti.
-
-Tarayıcı sentetik aday firmada 2/4/2/2 toplamlarını gösterdi. İptal filtresi üçüncü satırı ekledi; aktif toplamlar değişmedi. CSV düğmesine basıldı, yenileme tamamlandı ve ekran korundu. Sonraki boş haftada CSV/PDF düğmeleri devre dışıydı. Tarayıcının kaydettiği dosya Downloads erişimi olmadığı için ayrıca açılamadı; indirilebilir gerçek dosya içeriğinin kanıtı yukarıdaki aynı endpoint HTTP testidir. Native PDF sayfalaması hâlâ açık. Tarayıcıya ait geçici iş kayıtları da temizlendi.
-
-### Buradan sonraki iş
-
-Mevcut yerel paket yeni bir modüle genişletilmeden teslim edilecek. Yayın yetkili bir çalışmada önce `--check`, ardından yalnız listelenen üç SQL, uyumlu frontend, deployment/SQL doğrulaması ve canlı kabul uygulanır. Bu otomasyon production/push/deploy yapamaz; bu adımlar bitmiş gösterilmez. Aynı yerel kanıtlar gerekçe olmadan her heartbeat'te tekrar koşturulmaz. Yeni bulgu veya kullanıcı yönlendirmesi yoksa mevcut yayın bekleme durumu sessiz korunur.
+Claude Code/Chat için bu dosya tek inceleme paketidir. Kullanıcının her tur ajanlar arasında mesaj taşımasına gerek yok; rutin ilerleme dış yanıtı beklemez.

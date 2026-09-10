@@ -1,0 +1,237 @@
+{
+  "block": "01",
+  "date": "2026-09-10",
+  "state": "live_core_acceptance_passed",
+  "project": "dffdzbmnmnokbftbujsy",
+  "sourceCommit": "565059e3e18b5628bc7f0edcffbdfe22ef7203eb",
+  "branch": "codex/block-01-release",
+  "sourcePushed": true,
+  "mainMerged": false,
+  "deployment": "dpl_DZvtjhLdoishravp1YYwJnM9Uuoq",
+  "productionUrl": "https://www.bpsys.net",
+  "immutableUrl": "https://bps-lc1d7a50v-furkanyahsi-1537s-projects.vercel.app",
+  "baselineDeployment": "dpl_7dGwr1wHZc2REPBUYuJwjNnE6RZk",
+  "applicationFileCount": 249,
+  "applicationSnapshot": "block-01-local-release.json",
+  "snapshotIsHistorical": true,
+  "deploymentFilesMatchSnapshotAndSourceCommit": true,
+  "migrations": [
+    {
+      "name": "20260909000100_daily_operations_pilot",
+      "sha256": "02c4be2aa91a691f3fe3e0e3fefea359c64177f0f637fd3c97a3fce2ed2115ca",
+      "remoteVersion": "20260909000100",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909170734"
+    },
+    {
+      "name": "20260909000200_location_import",
+      "sha256": "4e1d113332811722829d150259f2b01f5db2e5a661355042e843546765cec68d",
+      "remoteVersion": "20260909000200",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172426"
+    },
+    {
+      "name": "20260909000300_scoped_operation_command",
+      "sha256": "b3c94f5c9664c8b18592b8086598311edee82fe32b8e52de8c308207abc93b1b",
+      "remoteVersion": "20260909000300",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172439"
+    },
+    {
+      "name": "20260909000400_command_reconciliation",
+      "sha256": "4322f4411fff38e761f77b191ca4229ee0682de575eb06513d66f2c4c7fb000c",
+      "remoteVersion": "20260909000400",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172452"
+    },
+    {
+      "name": "20260909000500_weekly_operations",
+      "sha256": "d852ae992702704c59a8ed00f3b9cc8e54a62ffa1168478c5ad45d0a2e76dbcd",
+      "remoteVersion": "20260909000500",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172559"
+    },
+    {
+      "name": "20260909000600_request_batch",
+      "sha256": "ef50fe9892b44d165e78415103fb56d849e0770f24502aa78f99b0ec7ad462a7",
+      "remoteVersion": "20260909000600",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172610"
+    },
+    {
+      "name": "20260909000700_resize_request",
+      "sha256": "b9d0c0386a96d7f3e1ddd5064e016dc72662c36bc8d33458001e0cc87b281002",
+      "remoteVersion": "20260909000700",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172623"
+    },
+    {
+      "name": "20260909000800_attendance",
+      "sha256": "d1fc7d93ecfd3bdf767776bad472968880f04d04cb2b739d5046d1b4c7c2492e",
+      "remoteVersion": "20260909000800",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172638"
+    },
+    {
+      "name": "20260909000900_replace_assignment",
+      "sha256": "9f18872b7bbc27a8b2e7efaad5defe216dd360b8579f6efb206f6d229a46f5b2",
+      "remoteVersion": "20260909000900",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172712"
+    },
+    {
+      "name": "20260909001000_attendance_week",
+      "sha256": "66b14e1acf37eaf3b1db26334802f67009f6f4e67bef49e2618fd7e6b427d407",
+      "remoteVersion": "20260909001000",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172723"
+    },
+    {
+      "name": "20260909001100_operations_directory",
+      "sha256": "5f7f9e83df6ecdf21aea6df91e2fe7ff2aaf9b72879764d6f24082a7b7595535",
+      "remoteVersion": "20260909001100",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172732"
+    },
+    {
+      "name": "20260909001200_directory_activation",
+      "sha256": "8654c0fcbe5bbc3cb5bfa95d8028b0ebdd6f917ac19dfc6998c48b4dea2ba7a4",
+      "remoteVersion": "20260909001200",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909172757"
+    },
+    {
+      "name": "20260909001300_task_assignment_history",
+      "sha256": "37cf48e4297e7cc0cfd21950f46d8f2b9b87e77051154bd30c548ec6c25277ad",
+      "remoteVersion": "20260909001300",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909174716"
+    },
+    {
+      "name": "20260909001400_appointment_completion",
+      "sha256": "34063798a26916e2abe954a26a33550aaf5ce7ec3a237261797cfc199e2b7017",
+      "remoteVersion": "20260909001400",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909174726"
+    },
+    {
+      "name": "20260909001500_task_transfer",
+      "sha256": "1ecfd2a648d3606121610ee6b8f9998b5f7853afb6c682162acf83661448298d",
+      "remoteVersion": "20260909001500",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909174735"
+    },
+    {
+      "name": "20260909001600_task_membership_guard",
+      "sha256": "8e10cb01c915a5214c91cab4d46cab292f4b1e7a94dd547792c1d9a0d8c9bb43",
+      "remoteVersion": "20260909001600",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909175629"
+    },
+    {
+      "name": "20260909001700_contract_renewal_task",
+      "sha256": "2e2d5c71741839a233be40db4900a91137cc097d2bc9ff817b50d90c584f1f42",
+      "remoteVersion": "20260909001700",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909174932"
+    },
+    {
+      "name": "20260909001800_contract_document_versions",
+      "sha256": "efe0abde41d3a277e3764ea5a7bd8750c1694a22dbd4a89fec8e8e9c773e5a68",
+      "remoteVersion": "20260909001800",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909174943"
+    },
+    {
+      "name": "20260909001900_contract_pdf_upload_commands",
+      "sha256": "3dad0c2bc5e066b6f0172e41ce9cf642c78feef84cd413c668c5110d890bd545",
+      "remoteVersion": "20260909001900",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909174953"
+    },
+    {
+      "name": "20260909002000_contract_appendices",
+      "sha256": "d2e3184f8d36b6183b96d233edb04f2daf10024e07618eb9f7ef967c200672b7",
+      "remoteVersion": "20260909002000",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909175025"
+    },
+    {
+      "name": "20260909002100_dashboard_activity",
+      "sha256": "efcef38a8168dafaf6dc03e291cb04fe49b6b424ac2e9c03ebc8e9249ce99f50",
+      "remoteVersion": "20260909002100",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909175054"
+    },
+    {
+      "name": "20260909002200_workspace_setup",
+      "sha256": "ca4194050e3c0401b68840dfb90914fc908d9bbff3a0ea5960cb3e111f58a11f",
+      "remoteVersion": "20260909002200",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909175102"
+    },
+    {
+      "name": "20260909002300_workspace_invitations",
+      "sha256": "bfa2d7ee12e69fae117e8d371a7c68ba657359bd6857601830aad0b8b7f39367",
+      "remoteVersion": "20260909002300",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909175640"
+    },
+    {
+      "name": "20260909002400_invited_account_registration",
+      "sha256": "b1f86aed99ef4b16dacd63cada20b56f56bbb9ba7270adbed8796bc7ae56227e",
+      "remoteVersion": "20260909002400",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909175653"
+    },
+    {
+      "name": "20260909002500_daily_dashboard",
+      "sha256": "19a67587ead7ba7585ee113767bb8fea8e03a80027f841eef9400047a8bb708b",
+      "remoteVersion": "20260909002500",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909175127"
+    },
+    {
+      "name": "20260909002600_atomic_mizan",
+      "sha256": "30f3d4081a57195fa3ccc5aba6eb76706834fdc396824a767e0e2a8dacbc58be",
+      "remoteVersion": "20260909002600",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909175138"
+    },
+    {
+      "name": "20260909002700_start_tracking",
+      "sha256": "4a754a06069655a982f246ef4bd6a05c46a49e704010ba5bb3d80ac51e732377",
+      "remoteVersion": "20260909002700",
+      "status": "applied_sha256_verified",
+      "mcpAppliedVersion": "20260909174002"
+    },
+    {
+      "name": "20260909002800_start_board_filters",
+      "sha256": "214e06b38428c300723011f7978d8aac248d31678acea7c3f77b8cb3c0e765a7",
+      "remoteVersion": "20260909002800",
+      "mcpAppliedVersion": "20260910125320",
+      "status": "applied_sha256_verified"
+    },
+    {
+      "name": "20260909002900_start_event_validation",
+      "sha256": "a715c39742c7c75b9bffc262b60d58e5bc44356e2e6ea964afe3dd7e2bd2cbdc",
+      "remoteVersion": "20260909002900",
+      "mcpAppliedVersion": "20260910125339",
+      "status": "applied_sha256_verified"
+    },
+    {
+      "name": "20260910000100_candidate_company_operations",
+      "sha256": "d4411edee123a137f84ee86c1cbe89a16498f1dc1230f16f8597d1f3863515ba",
+      "remoteVersion": "20260910000100",
+      "mcpAppliedVersion": "20260910125401",
+      "status": "applied_sha256_verified"
+    }
+  ],
+  "migrationCountInThisDelivery": 30,
+  "pendingMigrationsInThisDelivery": [],
+  "healthEvidence": "block-01-live-health.json",
+  "smokeEvidence": "block-01-live-smoke.json",
+  "notificationEmailsEnabled": false,
+  "productionCsvBytesMeasured": false,
+  "nativePdfPaginationMeasured": false
+}

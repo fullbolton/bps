@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-09-10T13:01:34.169Z",
+  "deployment": "dpl_DZvtjhLdoishravp1YYwJnM9Uuoq",
+  "productionUrl": "https://www.bpsys.net",
+  "healthStatus": "ok",
+  "checks": [
+    {
+      "name": "service_role_jwt",
+      "pass": true
+    },
+    {
+      "name": "anon_jwt",
+      "pass": true
+    },
+    {
+      "name": "service_role_query",
+      "pass": true
+    },
+    {
+      "name": "cron_secret_present",
+      "pass": true
+    },
+    {
+      "name": "resend_key_format",
+      "pass": true
+    }
+  ],
+  "unauthenticatedHealthStatus": 401,
+  "unauthenticatedTrackingRedirect": "/login?returnTo=/talepler/ise-baslama",
+  "loginStatus": 200,
+  "supabaseProject": "dffdzbmnmnokbftbujsy"
+}

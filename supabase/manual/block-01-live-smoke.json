@@ -1,0 +1,50 @@
+{
+  "date": "2026-09-10",
+  "deployment": "dpl_DZvtjhLdoishravp1YYwJnM9Uuoq",
+  "state": "passed_cleaned",
+  "environment": "production",
+  "syntheticOnly": true,
+  "companyName": "BPS_SMOKE_BLOCK1_20260910",
+  "companyId": "f940411a-ae03-42e7-bd77-a4a7a97c3ea5",
+  "tenantId": "afcdfc7d-257d-459d-b7c0-d15fa4ab36cd",
+  "actorId": "7150845f-04d2-4378-a062-62f0d2614aa7",
+  "workerCode": "BPS_BLOCK1_20260910",
+  "cleanup": {
+    "status": "committed_and_verified",
+    "scope": "only exact IDs from this turn",
+    "businessRowsRemaining": 0,
+    "startEventsRemaining": 0,
+    "activityRowsDeleted": 7,
+    "previousTestCompanyBeforeAfter": [
+      1,
+      1
+    ],
+    "previousTestWorkerBeforeAfter": [
+      1,
+      1
+    ],
+    "commandReceiptsAndClosedTombstones": "retained to prevent late replay",
+    "sql": "block-01-live-smoke-cleanup.sql"
+  },
+  "serverEvidence": "block-01-live-smoke-server.json",
+  "requestId": "4e039ea6-f22f-4563-9249-60b523aad632",
+  "assignmentId": "b2eb1fcd-8fd6-497c-8971-8fa761b481af",
+  "workerId": "a709473d-a486-47ac-9d3d-0a3062c2f8ce",
+  "locationId": "ed58e658-89a7-43c1-816d-8756b1dddbcb",
+  "checks": [
+    "candidate company -> location -> worker -> daily request -> assignment via production UI",
+    "invalid offsets rejected without pending warning; fields retained",
+    "manual call after assignment and before plan accepted",
+    "worker claim did not confirm attendance",
+    "separate branch confirmation persisted across full reload",
+    "server: present, attendance_revision=1, plan_revision=3, one plan/call/confirm",
+    "Dashboard: requests=1 required=2 assigned=1 missing=1 tracking=0/1",
+    "after cleanup Dashboard: operations=0/0/0/0 tracking=0/0; test activities absent"
+  ],
+  "limits": [
+    "Production CSV bytes not independently inspected this turn; local real HTTP CSV acceptance 9/9 stands",
+    "Native print/PDF pagination unmeasured",
+    "Synthetic acceptance is not a real customer pilot"
+  ],
+  "followup": "Start plan/call/confirm activities currently show generic İşlem kaydedildi; improve labels in the next scoped slice"
+}
