@@ -1,5 +1,7 @@
 "use client";
 
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
+
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
@@ -91,8 +93,15 @@ export default function SozlesmeDetayPage({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
-  // Contract hard-delete (yonetici-only). Errors surface on actionError.
-  const [contractDeleting, setContractDeleting] = useState(false);
+  const contractScope = JSON.stringify([id, user?.id, user?.app_metadata?.active_tenant, role]);
+  const contractScopeRef = useRef(contractScope);
+  contractScopeRef.current = contractScope;
+  const [deleteScope, setDeleteScope] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState<{ scope: string; name?: string } | null>(null);
+  const deletionResultHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (deleted?.scope === contractScope) deletionResultHeading.current?.focus({ preventScroll: true });
+  }, [deleted, contractScope]);
   // Faz 3: linked tasks and appointments for this contract
   const [linkedTasks, setLinkedTasks] = useState<TaskRow[]>([]);
   const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRow[]>([]);
@@ -192,6 +201,18 @@ export default function SozlesmeDetayPage({
     );
   }
 
+  if (deleted?.scope === contractScope) {
+    return <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div role="status">
+        <h1 ref={deletionResultHeading} tabIndex={-1} className="mb-2 text-xl font-semibold text-slate-900">{deleted.name !== undefined ? "Sözleşme silindi" : "Silinen kayıt doğrulanamadı"}</h1>
+        <p className="mb-5 break-words text-sm text-slate-600">{deleted.name !== undefined
+          ? `${deleted.name} kalıcı olarak silindi.`
+          : "Bu işlemde silinen bir kayıt doğrulanmadı. Sözleşme daha önce kaldırılmış veya silme erişiminiz değişmiş olabilir."}</p>
+      </div>
+      <button type="button" onClick={() => router.push("/sozlesmeler")} className="min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white">Sözleşmelere dön</button>
+    </section>;
+  }
+
   if (loading) {
     return (
       <div className="py-12">
@@ -231,27 +252,12 @@ export default function SozlesmeDetayPage({
   }
 
   async function handleContractDelete() {
-    if (!contract) return;
-    // Strong confirm — hard delete affects operational/commercial history.
-    if (!window.confirm("Bu sözleşmeyi kalıcı olarak silmek üzeresiniz. Bu işlem geri alınamaz ve operasyonel/ticari geçmiş görünürlüğünü etkileyebilir.")) {
-      return;
-    }
-    setActionError(null);
-    setContractDeleting(true);
-    try {
-      const result = await deleteContractAction(contract.id);
-      if (result.ok) {
-        // Row gone (or already absent) — leave the detail page.
-        router.push("/sozlesmeler");
-        router.refresh();
-      } else {
-        setActionError(result.error);
-        setContractDeleting(false);
-      }
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Sözleşme silinemedi.");
-      setContractDeleting(false);
-    }
+    if (!contract || contractScopeRef.current !== contractScope) throw new Error("Sözleşme bilgisi değişti. Sayfayı yenileyin.");
+    const result = await deleteContractAction(contract.id);
+    if (!result.ok) throw new Error(result.error);
+    if (contractScopeRef.current !== contractScope) return;
+    setDeleted({ scope: contractScope, name: result.deletedName });
+    router.refresh();
   }
 
   async function handleRenewalToggle(
@@ -517,16 +523,23 @@ export default function SozlesmeDetayPage({
             </p>
             <button
               type="button"
-              onClick={() => { void handleContractDelete(); }}
-              disabled={contractDeleting}
+              onClick={() => setDeleteScope(contractScope)}
               className={`${BUTTON_BASE} inline-flex items-center gap-1.5 text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               <Trash2 size={14} />
-              {contractDeleting ? "Siliniyor…" : "Sözleşmeyi Kalıcı Olarak Sil"}
+              Sözleşmeyi Kalıcı Olarak Sil
             </button>
           </section>
         )}
       </div>
+
+      {deleteScope === contractScope && role === "yonetici" && (
+        <ConfirmActionDialog key={contractScope} title="Sözleşmeyi kalıcı olarak sil" recordName={contract.name}
+          description="Bu işlem geri alınamaz. Sözleşme kaydı kalıcı olarak kaldırılır. PDF sürümü veya yenileme geçmişi gibi bağlı kayıtlar varsa sistem silmeyi engelleyebilir."
+          confirmLabel="Kalıcı olarak sil" destructive onConfirm={handleContractDelete}
+          onClose={() => { if (contractScopeRef.current === contractScope) setDeleteScope(null); }}
+        />
+      )}
 
       <NewContractModal
         open={editOpen}

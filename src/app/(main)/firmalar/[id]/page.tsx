@@ -1,6 +1,9 @@
 "use client";
 
-import { use, useState, useMemo, useEffect, useCallback } from "react";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+
+import { use, useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   StickyNote,
@@ -165,6 +168,10 @@ export default function FirmaDetayPage({
   const { user } = useAuth();
   // UI reset identity only; server/RLS remain the authorization authority.
   const companyScope = `${id}:${user?.id ?? ""}:${user?.app_metadata?.active_tenant ?? ""}:${role}`;
+  const companyScopeRef = useRef(companyScope);
+  companyScopeRef.current = companyScope;
+  const feedback = useActionNotice(companyScope);
+  const [statusAction, setStatusAction] = useState<{ scope: string; next: "aktif" | "pasif" } | null>(null);
   const [activeTab, setActiveTab] = useState("genel");
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteDefaultIcerik, setNoteDefaultIcerik] = useState("");
@@ -311,62 +318,16 @@ export default function FirmaDetayPage({
     return () => { current = false; };
   }, [supabase, id, companyScope]);
 
-  // Company passivate (yonetici-only). Error surfaces inline below the
-  // summary header; success re-fetches the shell so the Pasif badge shows.
-  const [passivating, setPassivating] = useState(false);
-  const [passivateError, setPassivateError] = useState<string | null>(null);
-
-  async function handlePassivate() {
-    if (!companyShell) return;
-    if (!window.confirm("Bu firmayı pasife almak üzeresiniz. Pasif firmalar aktif listede görünmez.")) {
-      return;
-    }
-    setPassivateError(null);
-    setPassivating(true);
-    try {
-      // Pass the REAL company UUID (companyShell.id), never the route
-      // param (which may be a legacy_mock_id).
-      const result = await passivateCompanyAction(companyShell.id);
-      if (result.ok) {
-        const updated = await resolveCompanyByIdOrLegacy(supabase, id).catch(() => null);
-        if (updated) setCompanyShell(updated);
-        router.refresh();
-      } else {
-        setPassivateError(result.error);
-      }
-    } catch (err) {
-      setPassivateError(err instanceof Error ? err.message : "Firma pasife alınamadı.");
-    } finally {
-      setPassivating(false);
-    }
-  }
-
-  // Reactivate (yonetici-only) — the mirror of passivate. Completes the
-  // aktif↔pasif lifecycle; success lifts the passive UI guard automatically.
-  const [reactivating, setReactivating] = useState(false);
-  const [reactivateError, setReactivateError] = useState<string | null>(null);
-
-  async function handleReactivate() {
-    if (!companyShell) return;
-    if (!window.confirm("Bu firmayı tekrar aktife almak üzeresiniz. Aktif firmalarda yeni işlemler yeniden oluşturulabilir.")) {
-      return;
-    }
-    setReactivateError(null);
-    setReactivating(true);
-    try {
-      const result = await reactivateCompanyAction(companyShell.id);
-      if (result.ok) {
-        const updated = await resolveCompanyByIdOrLegacy(supabase, id).catch(() => null);
-        if (updated) setCompanyShell(updated);
-        router.refresh();
-      } else {
-        setReactivateError(result.error);
-      }
-    } catch (err) {
-      setReactivateError(err instanceof Error ? err.message : "Firma aktife alınamadı.");
-    } finally {
-      setReactivating(false);
-    }
+  async function changeCompanyStatus(next: "aktif" | "pasif") {
+    if (!companyShell || companyScopeRef.current !== companyScope) throw new Error("Firma bilgisi değişti. Sayfayı yenileyin.");
+    const result = await (next === "pasif" ? passivateCompanyAction(companyShell.id) : reactivateCompanyAction(companyShell.id));
+    if (!result.ok) throw new Error(result.error);
+    // These actions return a name only when UPDATE RETURNING affected a row.
+    if (result.name === undefined) throw new Error("Firma durumu değiştirilemedi veya kayda erişim değişti. Sayfayı yenileyin.");
+    if (companyScopeRef.current !== companyScope) return;
+    setCompanyShell({ ...companyShell, status: next });
+    feedback.show(`${result.name} ${next === "pasif" ? "pasife" : "aktife"} alındı.`);
+    router.refresh();
   }
 
   // Build firma-compatible object from real company shell for downstream consumers
@@ -543,10 +504,9 @@ export default function FirmaDetayPage({
     // Passivate — yonetici-only, only on an aktif/aday firma.
     ...(role === "yonetici" && firma && firma.durum !== "pasif" ? [
       {
-        label: passivating ? "Pasife alınıyor…" : "Pasife Al",
-        onClick: () => { void handlePassivate(); },
+        label: "Pasife Al",
+        onClick: () => { feedback.clear(); setStatusAction({ scope: companyScope, next: "pasif" }); },
         icon: <Archive size={16} />,
-        disabled: passivating,
       },
     ] : []),
     // Reactivate — yonetici-only, on any firma that is not already aktif.
@@ -568,10 +528,9 @@ export default function FirmaDetayPage({
     // ön koşulu hiç yoktu, yalnız düğmenin görünürlük koşulu dardı.
     ...(role === "yonetici" && firma && firma.durum !== "aktif" ? [
       {
-        label: reactivating ? "Aktife alınıyor…" : "Aktife Al",
-        onClick: () => { void handleReactivate(); },
+        label: "Aktife Al",
+        onClick: () => { feedback.clear(); setStatusAction({ scope: companyScope, next: "aktif" }); },
         icon: <ArchiveRestore size={16} />,
-        disabled: reactivating,
       },
     ] : []),
   ];
@@ -603,16 +562,18 @@ export default function FirmaDetayPage({
         </button>
       )}
 
-      {passivateError && (
-        <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-          {passivateError}
-        </p>
-      )}
-
-      {reactivateError && (
-        <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-          {reactivateError}
-        </p>
+      <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+      {statusAction?.scope === companyScope && role === "yonetici" && (
+        <ConfirmActionDialog key={`${companyScope}:${statusAction.next}`}
+          title={statusAction.next === "pasif" ? "Firmayı pasife al" : "Firmayı aktife al"}
+          recordName={firma.firmaAdi}
+          description={statusAction.next === "pasif"
+            ? "Firma kaydı ve geçmişi korunur. Pasif firmaya yeni operasyonel kayıt eklenemez. Daha sonra yeniden aktife alabilirsiniz."
+            : "Firma aktif duruma geçer. Yetkili kullanıcılar firma için yeniden işlem oluşturabilir."}
+          confirmLabel={statusAction.next === "pasif" ? "Pasife al" : "Aktife al"}
+          onConfirm={() => changeCompanyStatus(statusAction.next)}
+          onClose={() => { if (companyScopeRef.current === companyScope) setStatusAction(null); }}
+        />
       )}
 
       <TabNavigation

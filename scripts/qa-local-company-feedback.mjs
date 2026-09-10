@@ -187,6 +187,44 @@ try {
   await page.setViewportSize({width:1280,height:900});
   console.log('PASS company/contract detail desktop/mobile, tabs, renewal anchor and UUID company return');
  }
+ if(process.env.BPS_CONFIRMATION_CHECK==='1'){
+  const company=sql(`SELECT id FROM companies WHERE tenant_id='${id(1)}' AND name='${first}' AND created_by='${user}'`);assert.match(company,/^[a-f0-9-]{36}$/);
+  let nativeDialogs=0;page.on('dialog',async d=>{nativeDialogs++;await d.dismiss();});
+  const delayedConfirm=async(dialog,label,token)=>{
+   let reached,posts=0;const incoming=new Promise(r=>reached=r),gate=new Promise(r=>releaseRequest=r);
+   const handler=async route=>{if(route.request().method()==='POST'&&(route.request().postData()??'').includes(token)){posts++;reached();await gate;await route.continue();}else await route.fallback();};
+   await page.route('**/*',handler);await dialog.getByRole('button',{name:label,exact:true}).click();let timer;
+   try{await Promise.race([incoming,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Confirmation POST missing')),20000);})]);}finally{clearTimeout(timer);}
+   await dialog.getByRole('status').filter({hasText:'İşlem sürüyor, lütfen bekleyin.'}).waitFor();assert.ok(await dialog.getByRole('button',{name:'İşlem sürüyor…',exact:true}).isDisabled());assert.ok(await dialog.getByRole('button',{name:'Vazgeç',exact:true}).isDisabled());
+   await page.keyboard.press('Escape');await dialog.getByRole('button',{name:/penceresini kapat$/}).click();assert.ok(await dialog.isVisible());
+   releaseRequest();await dialog.waitFor({state:'hidden'});await page.unroute('**/*',handler);assert.equal(posts,1);
+  };
+  await page.goto(origin+'/firmalar/'+company);const passivate=page.getByRole('button',{name:'Pasife Al',exact:true});await passivate.click();let confirmation=page.getByRole('dialog',{name:'Firmayı pasife al',exact:true});await confirmation.waitFor();
+  await confirmation.getByText(first,{exact:true}).waitFor();assert.ok(await confirmation.getByRole('button',{name:'Vazgeç',exact:true}).evaluate(e=>e===document.activeElement));
+  await page.keyboard.press('Escape');await confirmation.waitFor({state:'hidden'});assert.equal(sql(`SELECT status FROM companies WHERE id='${company}'`),'aday');assert.ok(await passivate.evaluate(e=>e===document.activeElement));
+  await passivate.click();sql(`UPDATE profiles SET role='operasyon' WHERE id='${user}'`);await confirmation.getByRole('button',{name:'Pasife al',exact:true}).click();await confirmation.getByRole('alert').filter({hasText:'Yetkisiz:'}).waitFor();assert.equal(sql(`SELECT status FROM companies WHERE id='${company}'`),'aday');sql(`UPDATE profiles SET role='yonetici' WHERE id='${user}'`);
+  await confirmation.getByRole('button',{name:'Vazgeç',exact:true}).click();await passivate.click();assert.equal(await confirmation.getByRole('alert').count(),0);
+  sql(`UPDATE companies SET created_by=NULL WHERE id='${company}' AND created_by='${user}'`);
+  try{await confirmation.getByRole('button',{name:'Pasife al',exact:true}).click();await confirmation.getByRole('alert').filter({hasText:'Firma durumu değiştirilemedi'}).waitFor();assert.equal(sql(`SELECT status FROM companies WHERE id='${company}'`),'aday');assert.equal(await page.getByText(first+' pasife alındı.',{exact:true}).count(),0);}
+  finally{sql(`UPDATE companies SET created_by='${user}' WHERE id='${company}' AND tenant_id='${id(1)}' AND name='${first}'`);}
+  await confirmation.getByRole('button',{name:'Vazgeç',exact:true}).click();await passivate.click();
+  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:output+'/confirm-company-mobile.png'});
+  await delayedConfirm(confirmation,'Pasife al',company);await page.getByRole('status').filter({hasText:first+' pasife alındı.'}).waitFor();assert.equal(sql(`SELECT status FROM companies WHERE id='${company}'`),'pasif');
+  await page.getByRole('button',{name:'Aktife Al',exact:true}).click();confirmation=page.getByRole('dialog',{name:'Firmayı aktife al',exact:true});await confirmation.getByRole('button',{name:'Aktife al',exact:true}).click();await confirmation.waitFor({state:'hidden'});await page.getByRole('status').filter({hasText:first+' aktife alındı.'}).waitFor();assert.equal(sql(`SELECT status FROM companies WHERE id='${company}'`),'aktif');
+  await page.setViewportSize({width:1280,height:900});assert.equal(sql("SELECT obj_description('public.contracts'::regclass)"),'BPS synthetic contracts fixture v1');
+  for(const absent of [false,true]){
+   const contractId=randomUUID(),name=prefix+(absent?'-already-absent':'-delete');sql(`INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contractId}','${id(1)}','${company}','${name}','taslak','${user}')`);
+   await page.goto(origin+'/sozlesmeler/'+contractId);const trigger=page.getByRole('button',{name:'Sözleşmeyi Kalıcı Olarak Sil',exact:true});await trigger.click();const dialog=page.getByRole('dialog',{name:'Sözleşmeyi kalıcı olarak sil',exact:true});await dialog.waitFor();await dialog.getByText(name,{exact:true}).waitFor();
+   assert.ok(await dialog.getByRole('button',{name:'Vazgeç',exact:true}).evaluate(e=>e===document.activeElement));await dialog.getByRole('button',{name:'Vazgeç',exact:true}).click();assert.equal(sql(`SELECT count(*) FROM contracts WHERE id='${contractId}'`),'1');await trigger.click();
+   if(absent){sql(`DELETE FROM contracts WHERE id='${contractId}' AND created_by='${user}'`);await dialog.getByRole('button',{name:'Kalıcı olarak sil',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.getByRole('heading',{name:'Silinen kayıt doğrulanamadı',exact:true}).waitFor();assert.equal(await page.getByRole('heading',{name:'Sözleşme silindi',exact:true}).count(),0);}
+   else{
+    sql(`UPDATE profiles SET role='operasyon' WHERE id='${user}'`);await dialog.getByRole('button',{name:'Kalıcı olarak sil',exact:true}).click();await dialog.getByRole('alert').filter({hasText:'Yetkisiz:'}).waitFor();assert.equal(sql(`SELECT count(*) FROM contracts WHERE id='${contractId}'`),'1');sql(`UPDATE profiles SET role='yonetici' WHERE id='${user}'`);
+    await page.screenshot({path:output+'/confirm-delete-error.png'});await delayedConfirm(dialog,'Kalıcı olarak sil',contractId);await page.getByRole('heading',{name:'Sözleşme silindi',exact:true}).waitFor();assert.ok(await page.getByRole('heading',{name:'Sözleşme silindi',exact:true}).evaluate(e=>e===document.activeElement));assert.equal(sql(`SELECT count(*) FROM contracts WHERE id='${contractId}'`),'0');await page.screenshot({path:output+'/contract-deleted.png'});
+   }
+   await page.getByRole('button',{name:'Sözleşmelere dön',exact:true}).click();await page.waitForURL('**/sozlesmeler');
+  }
+  assert.equal(nativeDialogs,0);console.log('PASS named confirmations, cancel/focus/no write, server denial/retry, pending guard, company status, verified delete vs zero rows, return to list and no native confirm');
+ }
  if(process.env.BPS_WORKSPACE_DESIGN_CHECK==='1'){
   for(const [path,title] of [['/dashboard','Genel Bakış'],['/firmalar','Firmalar'],['/gorevler','Görevler'],['/randevular','Randevular'],['/sozlesmeler','Sözleşmeler'],['/finansal-ozet','Finansal Özet']]){
    await page.goto(origin+path);await page.getByRole('heading',{name:title,exact:true,level:1}).waitFor();

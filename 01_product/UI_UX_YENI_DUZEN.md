@@ -92,3 +92,18 @@ Native dialog açılmadan çalışan React autoFocus tarayıcı kabulünde ilk a
 Kabul: gerçek sentetik Auth/Chromium ile her formda etiket-alan eşleşmesi, ilk odak, eksik zorunlu alanda disabled submit, 390 px görünüm, Escape ile iptalde odağın tetikleyiciye dönüşü, Enter ile gönderme; geciktirilen POST sırasında bütün alanların kilitlenmesi, Escape/kapatmanın engellenmesi ve requestSubmit tekrarlarına rağmen tek POST + DB kaydı geçti. Sözleşmede yanlış tarih aralığı; sunucunun pasif firma reddinde değerlerin korunması ve hata giderilince kayıt; düzenlemede firma kilidi ve Enter sonrası DB kalıcılığı geçti. 060 görev yazma + liste 503 + yalnız okuma yeniden deneme regresyonu, firma inline oluşturma/mevcut seçim, iç içe dialog Tab/Escape/odak/scroll kilidi, yan panel ve finans 1280/390 px kontrolleri geçti. Kanıt `/private/tmp/bps-company-feedback-1HpKOk`. Mobil görev/sözleşme form görselleri incelendi. Sentetik test verileri ve Auth hesabı temizlendi. Fiziksel iOS/Android klavye veya tüm formlar için kabul iddiası yok. Ürün SQL/push/deploy yapılmadı.
 
 Son kaynak ile TypeScript/lint ve izole production build geçti.
+
+
+## 062 — Firma durumu ve sözleşme silme onayları
+
+Firmayı aktife/pasife alma ve sözleşmeyi kalıcı silme işlemlerinde window.confirm yerine ConfirmActionDialog kullanılır. Kayıt adı, etki açıklaması, belirgin işlem düğmesi; ilk odak Vazgeç üzerindedir. Senkron ref kilidi ve disabled düğmeler, pending sırasında Escape/kapatma engeli ve role=alert sunucu hatası vardır. Hata sonrasında yeniden deneme mümkündür; kapanıp tekrar açıldığında eski hata temizlenir. Ürün yetki ve sunucu aksiyonları değişmedi.
+
+Firma aksiyonu UPDATE RETURNING ile name döndürdüğünde durum ve başarı bildirimi güncellenir. Sıfır satır artık pasife/aktife alındı şeklinde sunulmaz. Bildirim ve onay kayıt/kimlik/tenant/rol kapsamına bağlıdır; geciken eski kapsam yanıtı yeni kapsamın durumunu yazmaz. Bu, bütün detay okuyucularının yarış koşulları için kabul iddiası değildir.
+
+Sözleşme silme sonucu artık kullanıcı okumadan listeye kaybolmaz: sonuç ekranı ve listeye dön düğmesi vardır, başlık odağı alır. deletedName döndüyse doğrulanan silme; yoksa “Silinen kayıt doğrulanamadı” gösterilir. Sıfır DELETE satırı, SELECT görünürlüğünün kaybolduğunu kanıtlamaz; bu yüzden “artık görünmüyor” denmez. Kayıt önceden kaldırılmış veya silme erişimi değişmiş olabilir. PDF/yenileme geçmişinin silmeyi engelleyebileceği açıklanır; mevcut sunucu korumaları aynıdır.
+
+Kabul: gerçek sentetik Auth/Chromium ile kayıt adı, başlangıç/iptal odağı, iptalde değişmeyen DB, sunucu rol reddi sonrası pencerenin açık kalması, hata temizleme/yeniden deneme, geciktirilmiş tek POST ve pending kapanma engeli, gerçek pasif/aktif durumları ve bildirim, UPDATE RLS sıfır satırında sahte başarı olmaması geçti. Kendi sentetik sözleşmesinin DELETE sonucu ve kalıcılığı, rol reddi, önceden silinmiş kaydın farklı sonucu, sonuç odağı, listeye dönüş, native confirm açılmaması ve 390 px taşma kontrolü geçti. Firma oluşturma/inline seçim/yavaş yanıt/yetki reddi regresyonu da geçti. Kanıt `/private/tmp/bps-company-feedback-BL3bHW`; mobil firma onayı, sözleşme hata ve silme sonucu görselleri incelendi. Kendi test kayıtları ve Auth hesabı temizlendi.
+
+İlk koşuda dedicated fixture UPDATE politikası olmadığı için firma değişikliği sıfır satır döndü. local-company-feedback.sql yalnız sentetik aktörün kendi şirketlerine yönelik status UPDATE politikasıyla genişletildi. Bu üretim RLS/migration kabulü değildir. Ürün SQL/push/deploy yok. Yetkili kişi ve belge silmedeki iki mevcut window.confirm bu bloğun dışında; ilgili DB/Storage sonuçlarıyla birlikte sonraki onay bloğuna kalır.
+
+Son kaynakla TypeScript/lint ve izole production build geçti.

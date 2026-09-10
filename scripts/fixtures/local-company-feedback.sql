@@ -15,5 +15,11 @@ GRANT INSERT ON public.companies TO authenticated;
 DROP POLICY IF EXISTS companies_fixture_insert ON public.companies;
 CREATE POLICY companies_fixture_insert ON public.companies FOR INSERT TO authenticated
  WITH CHECK(tenant_id=public.current_user_verified_tenant() AND public.current_user_role()='yonetici' AND created_by=auth.uid());
+-- Only the synthetic actor's own companies may change status in UX acceptance.
+GRANT UPDATE(status) ON public.companies TO authenticated;
+DROP POLICY IF EXISTS companies_fixture_update ON public.companies;
+CREATE POLICY companies_fixture_update ON public.companies FOR UPDATE TO authenticated
+ USING(tenant_id=public.current_user_verified_tenant() AND public.current_user_role()='yonetici' AND created_by=auth.uid())
+ WITH CHECK(tenant_id=public.current_user_verified_tenant() AND public.current_user_role()='yonetici' AND created_by=auth.uid());
 NOTIFY pgrst, 'reload schema';
 COMMIT;
