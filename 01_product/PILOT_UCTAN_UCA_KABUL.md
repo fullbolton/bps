@@ -1,5 +1,17 @@
 # Banka şubesi ve dönemsel otel — yerel uçtan uca kabul
 
+## 047 — 2026-09-10: Sektör tarayıcı yazma kabulü tamamlandı
+
+046'nın 11 kontrolüne 3 grup eklendi; **14 grup geçti**. Aynı `BPS_PILOT_BROWSER=1` komutu artık yazmaları da çalıştırır. Yerel izole Chromium, geçici hesabın gerçek server action ve Supabase yollarını kullanır; route/RPC mock yok.
+
+- Bankada tarayıcıdan yeni günlük talep açıldı, boşta olan personel atandı, Gelmedi seçildi, Personeli değiştir formuyla yeni yedek atandı. Reload sonrası tek yeni talep, yedek atama ve eski gelmedi geçmişi korundu.
+- Otelde tarayıcıdan ayrı talep açıldı; mevcut talebin ikinci personeline Gelmedi bildirildi ve yeni yedek atandı. İlk bağımsız teyit edilmiş yedek yerinde kaldı. Reload sonrası iki gelmedi geçmişi ve mevcut geldi kaydı görüldü. Yeni talep açık bırakıldı; bu kayıt için atama yapıldığı iddia edilmez.
+- Ayrı authenticated istemci banka/otel yeni taleplerini, yeni yedek kimliklerini ve kaldırılan atamaların absent geçmişini doğruladı. Tarayıcı runtime error listesi boş; iki yazma ekranı incelendi.
+- Testin önceki haftalık/CSV rakamları yazmalardan **önceki** fikstüre aittir. Sonraki faza yanlışlıkla aynı toplamlar uygulanmadı.
+- Yalnız bu koşumun şirketleri, çalışanları, operasyon kayıtları ve hesabı finally ile temizlendi.
+
+Kanıt `supabase/manual/local-20260910-047.json`; sentetik ekranlar ve dosyalar `/private/tmp/bps-sector-pilot-zIGgRj`. SQL ve uygulama değişmedi. Gerçek müşteri pilotu, native yazdırma ve canlı CSV kontrolü ayrı açık; sektör tarayıcı yazma kabulü artık iletişim bloğunun önünde beklemiyor.
+
 ## 046 — 2026-09-10: Tarayıcı okuma, gezinme ve indirme kabulü geçti
 
 045 fikstürü temizlenmeden önce `BPS_PILOT_BROWSER=1` ile `scripts/qa-local-sector-browser.mjs` çalışır. Ayrı Chromium profiline yalnız geçici yerel test hesabının oturum çerezleri bellekte aktarılır. Gerçek hesap/profil/Downloads erişimi kullanılmaz. Browser yalnız izole 3010 adresini kabul eder; parent test finally ile kayıtları temizler.

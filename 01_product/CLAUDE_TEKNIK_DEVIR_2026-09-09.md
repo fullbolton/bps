@@ -1,5 +1,7 @@
 # Claude Code / Claude Chat — BPS teknik devir
 
+> **047 — Banka/otel tarayıcı yazma kabulü tamamlandı; iletişim bloğuna geçildi.** 14 grup geçti: günlük talep oluşturma, personel atama/gelmedi/değiştirme ve reload; bağımsız oturumdan kayıt doğrulama dahil. Sentetik veriler temizlendi. Uygulama/SQL değişmedi. İletişim için mevcut notlar, duyurular, e-posta defteri ve görev önseçimi incelendi; kalıcı konuşma/bildirim/görev bağı tasarımı hazır. İletişim SQL/UI henüz uygulanmadı.
+
 > **046 — Banka/otel yerel tarayıcı kabulü geçti.** 11 kontrol grubu: 045 Auth/RPC/HTTP senaryolarına günlük–haftalık firma/gün geçişi, özetlerin ekranda doğrulanması, gerçek tarayıcı CSV indirmesi, otelin 1 geldi / 1 tarihsel gelmedi / 3 bildirilmemiş toplamı ve reload sonrası yedek personel geçmişi eklendi. Masaüstü ve 390 px mobil ekran incelendi. Veriyi API oluşturdu; tarayıcı yazma kabulü veya gerçek müşteri pilotu değildir. Sentetik kayıtlar temizlendi. Uygulama canlı 044 ile aynı; SQL/deploy yok. [Kanıt](PILOT_UCTAN_UCA_KABUL.md).
 
 > **045 — Banka/otel birleşik yerel kabulü tamamlandı.** Gerçek yerel Auth/RPC/HTTP üzerinden 8 kontrol grubu: şube CSV tekrarları, çift atama engeli, beyan/teyit ayrımı, yedek atama ve korunmuş gelmedi geçmişi, günlük/haftalık/CSV toplamları, tenant/rol retleri ve kendi test verilerinin temizliği. Banka 9/3/6, otel 5/4/1 ihtiyaç/atama/açık; bağımsız CSV okuyucusu doğruladı. Ürün kaynakları canlı 044 ile aynı; SQL/deploy yok. Bu sonuç gerçek müşteri veya tarayıcı pilotu değildir. [Kanıt](PILOT_UCTAN_UCA_KABUL.md).

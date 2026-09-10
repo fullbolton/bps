@@ -1,0 +1,85 @@
+{
+  "status": "passed",
+  "environment": "dedicated_local",
+  "checks": [
+    {
+      "label": "bank: CSV three branches, receipt replay and fresh-command import without duplicates"
+    },
+    {
+      "label": "bank: nine person-days, three placements, six open; same-day double booking rejected",
+      "requests": 9,
+      "required": 9,
+      "assigned": 3,
+      "open": 6
+    },
+    {
+      "label": "bank: claim is not confirmation; independent confirmation replay and fresh-session persistence"
+    },
+    {
+      "label": "hotel: capacities 2/3, replacement replay, preserved absence timestamp and inherited start plan confirmation",
+      "required": 5,
+      "assigned": 4,
+      "open": 1,
+      "present": 1,
+      "absent": 1,
+      "unreported": 3
+    },
+    {
+      "label": "bank: real loopback CSV attachment and independent decoded totals",
+      "expected": [
+        9,
+        9,
+        3,
+        6
+      ]
+    },
+    {
+      "label": "hotel: real loopback CSV attachment and independent decoded totals",
+      "expected": [
+        2,
+        5,
+        4,
+        1
+      ]
+    },
+    {
+      "label": "bank: browser daily/weekly context, totals and real CSV button download"
+    },
+    {
+      "label": "hotel: browser daily/weekly context, totals and real CSV button download"
+    },
+    {
+      "label": "hotel: browser reload preserves absent history and confirmed replacement; mobile rendering",
+      "browserWrites": false
+    },
+    {
+      "label": "bank: browser creates request, records absence, replaces worker and reloads",
+      "browserWrites": true
+    },
+    {
+      "label": "hotel: browser creates request, records absence, replaces worker and reloads",
+      "browserWrites": true
+    },
+    {
+      "label": "browser writes: independent authenticated reads verify both requests and replacement histories"
+    },
+    {
+      "label": "foreign tenant and current role loss rejected with existing session"
+    },
+    {
+      "label": "owned synthetic records and account cleaned"
+    }
+  ],
+  "production": false,
+  "browserAcceptance": true,
+  "slice": "047",
+  "browserWrites": true,
+  "applicationChanges": false,
+  "sqlChanges": false,
+  "evidenceDirectory": "/private/tmp/bps-sector-pilot-zIGgRj",
+  "liveBaseline": "dpl_1QvsYYMzeemMuz9ZDtxdUaSdQDhw",
+  "scriptSha256": {
+    "scripts/qa-local-sector-pilot.mjs": "818aa517518369a192d23c0a08b870198760fe380c61f70ff78e6b9f7d8e7b30",
+    "scripts/qa-local-sector-browser.mjs": "2bc4396e77725c29d101d5dd0c4cc0dcc7451c7321792562af13f106e9b53c8f"
+  }
+}

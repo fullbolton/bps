@@ -101,7 +101,19 @@ try{
   }
   if(process.env.BPS_PILOT_BROWSER==='1'){
    const {acceptSectorBrowser}=await import('./qa-local-sector-browser.mjs');
-   await acceptSectorBrowser({origin:httpOrigin,jar,bank,hotel,day,requestId:todayRequest.id,output,pass});
+   const bankReplacement=await makeWorker('Sentetik tarayıcı banka yedeği');
+   const hotelReplacement=await makeWorker('Sentetik tarayıcı otel yedeği');
+   await acceptSectorBrowser({origin:httpOrigin,jar,bank,hotel,day,requestId:todayRequest.id,output,pass,
+    writeFixture:{bankLocation:branch,hotelLocation:hl,first,secondWorker,bankReplacement,hotelReplacement}});
+   const bankRead=await service.loadPilotBoard(fresh,bank,day),hotelRead=await service.loadPilotBoard(fresh,hotel,day);
+   const newBank=bankRead.requests.filter(r=>r.position==='Tarayıcı kabul görevi');assert.equal(newBank.length,1);
+   assert.equal(newBank[0].assignments.length,1);assert.equal(newBank[0].assignments[0].workerId,bankReplacement);
+   assert.ok(newBank[0].attendance.some(a=>a.workerId===first&&a.removed&&a.status==='absent'));
+   assert.equal(hotelRead.requests.filter(r=>r.position==='Tarayıcı kabul görevi').length,1);
+   const changedHotel=hotelRead.requests.find(r=>r.id===todayRequest.id);
+   assert.ok(changedHotel.assignments.some(a=>a.workerId===hotelReplacement));
+   assert.ok(changedHotel.attendance.some(a=>a.workerId===secondWorker&&a.removed&&a.status==='absent'));
+   pass('browser writes: independent authenticated reads verify both requests and replacement histories');
   }
   const denied=await c.rpc('ops_execute_scoped',{...args,p_tenant_id:id(2),p_command_id:randomUUID(),p_kind:'location',p_payload:{companyId:bank,name:'Denied',city:'Istanbul'}});assert.ok(denied.error);
   sql(`UPDATE profiles SET role='ik' WHERE id='${uid}'`);await assert.rejects(service.loadPilotWeek(c,bank,day));

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 
-export async function acceptSectorBrowser({origin,jar,bank,hotel,day,requestId,output,pass}){
+export async function acceptSectorBrowser({origin,jar,bank,hotel,day,requestId,output,pass,writeFixture}){
  assert.equal(origin,'http://127.0.0.1:3010','Browser pilot requires the isolated web server');
  const require=createRequire(import.meta.url);
  const {chromium}=require(process.env.BPS_PLAYWRIGHT_MODULE??'playwright');
@@ -62,5 +62,47 @@ assert load(sys.argv[1])==load(sys.argv[2]), 'Browser CSV business rows differ f
   assert.ok(await request.getByText('Sentetik yedek personel',{exact:true}).first().isVisible());
   assert.deepEqual(errors,[],'No browser runtime errors');
   pass('hotel: browser reload preserves absent history and confirmed replacement; mobile rendering',{browserWrites:false});
+  if(writeFixture){
+   await page.setViewportSize({width:1440,height:1000});
+   const f=writeFixture;
+   for(const [company,location,name,oldWorker,replacement] of [
+    [bank,f.bankLocation,'Sentetik gelmeyen personel',f.first,f.bankReplacement],
+    [hotel,f.hotelLocation,'Sentetik ikinci personel',f.secondWorker,f.hotelReplacement],
+   ]){
+    await page.goto(daily(company));await checkContext(company,company);
+    const form=page.locator('form').filter({has:page.getByRole('button',{name:'Talebi kaydet',exact:true})});
+    await form.locator('select[name="locationId"]').selectOption(location);
+    await form.getByLabel('Pozisyon',{exact:true}).fill('Tarayıcı kabul görevi');
+    await form.getByRole('button',{name:'Talebi kaydet',exact:true}).click();
+    const created=page.locator('article').filter({has:page.getByRole('heading',{name:/Tarayıcı kabul görevi$/})});
+    await created.waitFor();
+    let target;
+    if(company===bank){
+     const assign=created.locator('form').filter({has:page.getByRole('button',{name:'Ata',exact:true})});
+     await assign.locator('select').selectOption(oldWorker);
+     await assign.getByRole('button',{name:'Ata',exact:true}).click();
+     target=created;
+    }else target=page.locator(`#talep-${requestId}`);
+    const group=target.getByRole('group',{name:name+' gerçekleşme',exact:true});
+    await group.getByRole('button',{name:'Gelmedi',exact:true}).click();
+    await page.waitForFunction(({id,name})=>{
+     const root=id?document.getElementById('talep-'+id):[...document.querySelectorAll('article')].find(a=>a.querySelector('h3')?.textContent?.endsWith('Tarayıcı kabul görevi'));
+     return [...(root?.querySelectorAll('[role="group"]')??[])].find(g=>g.getAttribute('aria-label')===name+' gerçekleşme')?.querySelectorAll('[aria-pressed="true"]')[0]?.textContent==='Gelmedi';
+    },{id:company===hotel?requestId:null,name});
+    const active=target.locator('li').filter({has:page.getByText(name,{exact:true})}).filter({has:page.getByRole('button',{name:'Atamayı kaldır',exact:true})});
+    await active.locator('summary').click();
+    await active.locator('select[name="workerId"]').selectOption(replacement);
+    await active.getByRole('button',{name:'Değişimi kaydet',exact:true}).click();
+    const replacementName=company===bank?'Sentetik tarayıcı banka yedeği':'Sentetik tarayıcı otel yedeği';
+    await target.getByText(replacementName,{exact:true}).waitFor();
+    await page.reload();
+    await target.getByText(replacementName,{exact:true}).waitFor();
+    assert.equal(await created.count(),1);
+    assert.match(await target.getByRole('region',{name:'Gerçekleşme bildirimleri'}).innerText(),new RegExp(name+' · atama kaldırıldı · Gelmedi'));
+    await page.screenshot({path:output+(company===bank?'/bank-browser-write.png':'/hotel-browser-write.png'),fullPage:true});
+    pass((company===bank?'bank':'hotel')+': browser creates request, records absence, replaces worker and reloads',{browserWrites:true});
+   }
+   assert.deepEqual(errors,[],'No runtime errors during browser writes');
+  }
  }finally{await browser.close();}
 }
