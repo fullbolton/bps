@@ -8,6 +8,7 @@ import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 
 import { Suspense, useState, useRef, useId, useMemo, useCallback, useEffect } from "react";
+import TaskLinkOpener from "./TaskLinkOpener";
 import TaskPrefillBanner from "./TaskPrefillBanner";
 import TaskAssignmentHistory from "./TaskAssignmentHistory";
 import type { TaskPrefill } from "@/lib/operations/task-prefill";
@@ -216,7 +217,9 @@ export default function GorevlerPage() {
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
-  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [taskRows, setTasks] = useState<TaskRow[]>([]);
+  const [taskDataScope, setTaskDataScope] = useState<string | null>(null);
+  const taskGeneration = useRef(0);
   const [companyNameById, setCompanyNameById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -231,6 +234,9 @@ export default function GorevlerPage() {
   const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("gorevler", listScope, LIST_FILTER_DEFAULTS);
+  const tasks = useMemo(() => taskDataScope === listScope ? taskRows : [], [taskDataScope, listScope, taskRows]);
+  const taskLiveScope = useRef(listScope);
+  taskLiveScope.current = listScope;
   const allProfiles = useMemo(() => profileSnapshot?.scope === listScope ? profileSnapshot?.rows ?? [] : [], [profileSnapshot, listScope]);
   const profilesDurum = profileSnapshot?.scope === listScope ? profileSnapshot?.status ?? "loading" : "loading";
   const profileNames = useMemo(() => new Map(allProfiles.map(profile => [profile.id, profile.display_name])), [allProfiles]);
@@ -251,30 +257,29 @@ export default function GorevlerPage() {
   // Data loader — mirrors the Faz 2 Sözleşmeler pattern
   // ------------------------------------------------------------------
   const reload = useCallback(async () => {
-    setLoadError(null);
+    if (!listScope || taskLiveScope.current !== listScope) return;
+    const generation = ++taskGeneration.current;
+    setLoading(true); setLoadError(null);
     try {
       const rows = await listAllTasks(supabase);
-      setTasks(rows);
-      // Resolve firma display names in a single batched
-      // round trip — getCompanyDisplayMapByIds deduplicates internally.
-      const uniqueCompanyIds = Array.from(new Set(rows.map((r) => r.company_id)));
-      const display = await getCompanyDisplayMapByIds(supabase, uniqueCompanyIds);
-      setCompanyNameById(display.nameById);
+      const display = await getCompanyDisplayMapByIds(supabase, Array.from(new Set(rows.map(row => row.company_id))));
+      if (generation !== taskGeneration.current) return;
+      setTasks(rows); setCompanyNameById(display.nameById); setTaskDataScope(listScope);
     } catch (err) {
-      setTasks([]);
-      setCompanyNameById({});
-      setLoadError(
-        err instanceof Error ? err.message : "Görevler yüklenirken bir hata oluştu.",
-      );
+      if (generation !== taskGeneration.current) return;
+      setTasks([]); setCompanyNameById({}); setTaskDataScope(null);
+      setLoadError(err instanceof Error ? err.message : "Görevler yüklenirken bir hata oluştu.");
     } finally {
-      setLoading(false);
+      if (generation === taskGeneration.current) setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, listScope]);
 
   useEffect(() => {
-    setLoading(true);
+    setSelectedId(null); setTasks([]); setTaskDataScope(null);
     void reload();
+    return () => { taskGeneration.current++; };
   }, [reload]);
+  const openLinkedTask = useCallback((id: string) => { setPanelError(null); setSelectedId(id); }, []);
 
   // Companies for the firma filter + New Task modal. Errors fall to
   // an empty list so both surfaces show an honest empty state.
@@ -451,6 +456,10 @@ export default function GorevlerPage() {
         }} />
       </Suspense>}
 
+      <Suspense fallback={null}>
+        <TaskLinkOpener key={listScope} ready={!loading && !loadError && taskDataScope === listScope}
+          taskIds={tasks.map(task => task.id)} onOpen={openLinkedTask} />
+      </Suspense>
       <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
       {profilesDurum === "error" && <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         <p>Kişi listesi alınamadı. Görevler gösteriliyor; atanan kişi adları doğrulanamadı.</p>

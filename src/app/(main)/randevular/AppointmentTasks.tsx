@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { taskLinkHref } from "@/lib/task-link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TaskRow } from "@/types/database.types";
 import type { GorevDurumu } from "@/types/ui";
@@ -29,7 +31,7 @@ export default function AppointmentTasks({ client, appointmentId }: { client: Su
       onRetry={() => setRetry(value => value + 1)}>
       <ul className="space-y-2">
         {state.rows.map(task => <li key={task.id} className="rounded-xl border border-slate-200 p-3">
-          <p className="mb-2 break-words text-sm text-slate-700">{task.title}</p>
+          <Link href={taskLinkHref(task.id)} className="mb-2 block min-h-11 break-words py-2 text-sm text-blue-700 underline underline-offset-4">{task.title}</Link>
           <StatusBadge status={task.status as GorevDurumu} />
         </li>)}
       </ul>
