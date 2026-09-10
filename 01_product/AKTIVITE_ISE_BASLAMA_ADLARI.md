@@ -6,4 +6,4 @@ Plan kaydı, arama sonucu, bağımsız teyit, yeniden açma, geçici arama üstl
 
 Yalnız iki UI kaynak dosyası değişti; SQL, yetki, veri ve aktivite bağlantıları değişmedi. Mevcut iki aktivite testi ve TypeScript geçti. Kaynak envanteri `supabase/manual/release-20260910-042.json`; 041 manifesti tarihsel olarak korunur ve yeni kod üzerinde eski snapshot kontrolünün fark vermesi beklenir.
 
-Yayın durumu aşağıda ölçümle güncellenecek. Bu tur gerçek iş verisi oluşturulmayacak. Önceki canlı test temizliği nedeniyle yeni olay başlıkları canlı listede ayrıca henüz gözlenmedi.
+Vercel production yayını tamam: `dpl_5wGgUBaofM2qMH3nCK9gMnpMzUwU`, kaynak `0446684`, dal `codex/block-01-release`. 249 yüklenen dosya kaynak commit ve manifestle eşleşti. Build, sağlık 5/5 ve kimlikli Dashboard yenilemesi geçti; yeni açıklama ve eski dört aktivite görüldü. Bu tur iş verisi oluşturulmadı. Önceki canlı test temizliği nedeniyle yeni olay başlıkları canlı listede ayrıca henüz gözlenmedi.

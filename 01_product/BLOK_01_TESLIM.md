@@ -1,5 +1,7 @@
 # Blok 1 — Günlük operasyon ve işe başlama teslimi
 
+> **042 — 2026-09-10: Aktivite olay adları yayında.** İşe başlama planı, arama sonucu, bağımsız teyit, yeniden açma ve geçici arama üstlenme/bırakma ayrı başlıklara sahip. Yeni SQL yok. `0446684` push edildi; canlı `dpl_5wGgUBaofM2qMH3nCK9gMnpMzUwU`. İki mevcut test, TypeScript, production build, sağlık 5/5 ve kimlikli Dashboard okuma geçti. Mevcut canlı listede takip olayı olmadığından altı yeni başlık o listede ayrıca gözlenmedi; yeni test verisi oluşturulmadı. [Kanıt](AKTIVITE_ISE_BASLAMA_ADLARI.md).
+
 2026-09-10 · **041: Yayında; çekirdek canlı kabul tamamlandı.**
 
 [Canlı uygulama](https://www.bpsys.net/talepler/ise-baslama) · Kaynak commit: `565059e3e18b5628bc7f0edcffbdfe22ef7203eb` · Push edilen dal: `codex/block-01-release`. Main'e birleştirme yapılmadı.

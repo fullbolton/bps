@@ -1,6 +1,6 @@
 {
   "slice": "042",
-  "state": "local_checked_frontend_pending",
+  "state": "frontend_live_health_verified",
   "baselineDeployment": "dpl_DZvtjhLdoishravp1YYwJnM9Uuoq",
   "application": {
     "next-env.d.ts": "85ae5aee75f011967cf2d25cbc342f62d69314e9d925f7f4aa3456fc2cffcca6",
@@ -267,10 +267,52 @@
   "checks": [
     "existing dashboard activity unit tests 2/2",
     "TypeScript noEmit passed",
-    "git diff --check passed"
+    "git diff --check passed",
+    "Vercel production build passed",
+    "249 staged files matched manifest and source commit",
+    "production health 5/5; anonymous health 401; login 200",
+    "authenticated Dashboard description and existing feed verified"
   ],
   "limits": [
     "UI label change only; no live start events currently available after prior smoke cleanup",
     "Does not change activity destinations or add worker context"
-  ]
+  ],
+  "sourceCommit": "0446684776dd187d1f5bc251be5cf9ab4227834c",
+  "sourcePushed": true,
+  "branch": "codex/block-01-release",
+  "deployment": "dpl_5wGgUBaofM2qMH3nCK9gMnpMzUwU",
+  "url": "https://www.bpsys.net",
+  "health": {
+    "checkedAt": "2026-09-10T13:26:49.630Z",
+    "deployment": "dpl_5wGgUBaofM2qMH3nCK9gMnpMzUwU",
+    "productionUrl": "https://www.bpsys.net",
+    "healthStatus": "ok",
+    "checks": [
+      {
+        "name": "service_role_jwt",
+        "pass": true
+      },
+      {
+        "name": "anon_jwt",
+        "pass": true
+      },
+      {
+        "name": "service_role_query",
+        "pass": true
+      },
+      {
+        "name": "cron_secret_present",
+        "pass": true
+      },
+      {
+        "name": "resend_key_format",
+        "pass": true
+      }
+    ],
+    "unauthenticatedHealthStatus": 401,
+    "unauthenticatedTrackingRedirect": "/login?returnTo=/talepler/ise-baslama",
+    "loginStatus": 200,
+    "supabaseProject": "dffdzbmnmnokbftbujsy"
+  },
+  "browserEvidence": "Authenticated Dashboard reload shows new activity description, existing four activities and correct zero daily counts; no start event rows available to visually check their labels"
 }
