@@ -1,5 +1,7 @@
 "use client";
 
+import { useListViewState } from "@/components/ui/useListViewState";
+import { appointmentLinkHref } from "@/lib/appointment-link";
 import AsyncSection from "@/components/ui/AsyncSection";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
@@ -155,6 +157,8 @@ const TABS: TabItem[] = [
   { key: "notlar", label: "Notlar" },
 ];
 
+const COMPANY_TAB_DEFAULTS = { tab: "genel" };
+
 const DISABLED_TAB_MESSAGES: Record<string, { title: string; description: string }> = {};
 
 export default function FirmaDetayPage({
@@ -166,7 +170,7 @@ export default function FirmaDetayPage({
   const router = useRouter();
   const { role } = useRole();
   const documentsAccessRestricted = role === "muhasebe" || role === "goruntuleyici";
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   // UI reset identity only; server/RLS remain the authorization authority.
   const companyScope = `${id}:${user?.id ?? ""}:${user?.app_metadata?.active_tenant ?? ""}:${role}`;
   const companyScopeRef = useRef(companyScope);
@@ -180,7 +184,17 @@ export default function FirmaDetayPage({
     setDeletionNotice(null);
     setDeleteTarget({ scope: companyScope, kind, id: recordId, name });
   }
-  const [activeTab, setActiveTab] = useState("genel");
+  const visibleTabs = useMemo(() => role === "goruntuleyici"
+    ? TABS.filter(tab => tab.key === "genel")
+    : role === "ik" ? TABS.filter(tab => ["genel", "evraklar", "talepler", "aktif-isgucu", "notlar"].includes(tab.key))
+    : role === "muhasebe" ? TABS.filter(tab => ["genel", "sozlesmeler"].includes(tab.key)) : TABS, [role]);
+  const tabView = useListViewState("firma-sekme", !authLoading && user ? companyScope : null, COMPANY_TAB_DEFAULTS);
+  // Stored preferences cannot reveal a tab outside this role's visible set.
+  const activeTab = visibleTabs.some(tab => tab.key === tabView.filters.tab) ? tabView.filters.tab : "genel";
+  const setTabFilters = tabView.setFilters;
+  const setActiveTab = useCallback((key: string) => {
+    if (visibleTabs.some(tab => tab.key === key)) setTabFilters({ tab: key });
+  }, [visibleTabs, setTabFilters]);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteDefaultIcerik, setNoteDefaultIcerik] = useState("");
   // Note suggestion flow state
@@ -595,15 +609,7 @@ export default function FirmaDetayPage({
       )}
 
       <TabNavigation
-        tabs={
-          role === "goruntuleyici"
-            ? TABS.filter((t) => t.key === "genel")
-            : role === "ik"
-              ? TABS.filter((t) => ["genel", "evraklar", "talepler", "aktif-isgucu", "notlar"].includes(t.key))
-              : role === "muhasebe"
-                ? TABS.filter((t) => ["genel", "sozlesmeler"].includes(t.key))
-                : TABS
-        }
+        tabs={visibleTabs.map(tab => ({ ...tab, disabled: tab.disabled || !tabView.ready }))}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
@@ -1228,11 +1234,9 @@ export default function FirmaDetayPage({
               ) : (
                 <div className="space-y-2">
                   {firmaRandevular.map((r) => (
-                    <div
-                      key={r.id}
-                      className={`flex items-center justify-between py-2.5 ${LIST_DIVIDER}`}
-                    >
-                      <div className="min-w-0">
+                    <a key={r.id} href={appointmentLinkHref(r.id)} aria-label={`${formatDateTR(r.meeting_date)} ${r.attendee || APPOINTMENT_TYPE_LABELS[r.meeting_type]} randevusunu aç`}
+                      className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                      <div className="min-w-0 flex-1 break-words">
                         <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>
                           {formatDateTR(r.meeting_date)} {r.meeting_time ?? ""} — {APPOINTMENT_TYPE_LABELS[r.meeting_type as AppointmentMeetingType] ?? r.meeting_type}
                         </p>
@@ -1240,9 +1244,10 @@ export default function FirmaDetayPage({
                         {r.result && (
                           <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5 truncate max-w-md`}>{r.result}</p>
                         )}
+                        <span className="mt-1 block text-xs text-blue-700">Randevuyu aç →</span>
                       </div>
-                      <StatusBadge status={r.status} />
-                    </div>
+                      <span className="shrink-0"><StatusBadge status={r.status} /></span>
+                    </a>
                   ))}
                 </div>
               )}

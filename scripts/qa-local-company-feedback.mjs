@@ -8,6 +8,7 @@ import {createClient} from '@supabase/supabase-js';
 import {createServerClient} from '@supabase/ssr';
 import {validateLocalStatus,acquireLock} from './helpers/acceptance-runner.mjs';
 import {id} from './fixtures/daily-operations.mjs';
+import {checkCompanyAppointmentLink} from './helpers/company-appointment-link-acceptance.mjs';
 import {checkAppointmentLink} from './helpers/appointment-link-acceptance.mjs';
 import {checkContractTaskLink} from './helpers/contract-task-link-acceptance.mjs';
 import {checkContractDetail} from './helpers/contract-detail-acceptance.mjs';
@@ -723,6 +724,7 @@ try {
   }
   console.log('PASS workspace desktop/mobile six routes, no page overflow, mobile dialog/Escape');
  }
+ if(process.env.BPS_COMPANY_APPOINTMENT_LINK_CHECK==='1') await checkCompanyAppointmentLink({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_APPOINTMENT_LINK_CHECK==='1') await checkAppointmentLink({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_CONTRACT_TASK_LINK_CHECK==='1') await checkContractTaskLink({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_CONTRACT_DETAIL_CHECK==='1') await checkContractDetail({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
