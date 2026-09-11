@@ -96,7 +96,8 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   const requestSequence=useRef(0); const submitting=useRef(false);
   const forms=useRef<HTMLDivElement>(null);
   const requestForm=useRef<HTMLFormElement>(null);
-  const [pendingSelection,setPendingSelection]=useState<SelectionChange|null>(null);
+  const locationForm=useRef<HTMLFormElement>(null),workerForm=useRef<HTMLFormElement>(null);
+  const [pendingSelection,setPendingSelection]=useState<{change:SelectionChange;labels:string[]}|null>(null);
   const [formEpoch,setFormEpoch]=useState(0);
   const [scope,setScope]=useState<CommandScope|null>(null);
   const [pending,setPending]=useState(0);
@@ -166,15 +167,20 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
     if(busy||submitting.current)return;
     if(change.companyId===companyId||change.date===date)return;
     if(change.date!==undefined&&(!isWorkDate(change.date)||change.date<"2000-01-01"||change.date>"2100-12-31"))return;
-    // Read live fields, including disabled ones. form.reset() restores these baselines.
-    const dirty=Object.entries({locationId:"",serviceLine:"Temizlik",position:"Temizlik görevlisi",requiredCount:"1"})
-      .some(([name,initial])=>{
-        const field=requestForm.current?.querySelector<HTMLInputElement|HTMLSelectElement>(`[name="${name}"]`);
-        return !!field&&field.value!==initial;
-      });
-    if(!dirty){onSelect(change);return;}
+    // Inspect each mounted form independently, including closed details and disabled fields.
+    // A successful form.reset() cleans only that form; other drafts remain protected.
+    const drafts:{form:HTMLFormElement|null;label:string;initial:Record<string,string>}[]=[
+      {form:requestForm.current,label:"Günlük talep",initial:{locationId:"",serviceLine:"Temizlik",position:"Temizlik görevlisi",requiredCount:"1"}},
+      {form:locationForm.current,label:"Lokasyon",initial:{name:"",city:""}},
+      {form:workerForm.current,label:"Personel",initial:{name:"",code:"",kind:"idp"}},
+    ];
+    const labels=drafts.filter(({form,initial})=>Object.entries(initial).some(([name,value])=>{
+      const field=form?.querySelector<HTMLInputElement|HTMLSelectElement>(`[name="${name}"]`);
+      return !!field&&field.value!==value;
+    })).map(draft=>draft.label);
+    if(!labels.length){onSelect(change);return;}
     (change.companyId!==undefined?companyInput.current:dateInput.current)?.focus();
-    setPendingSelection(change);
+    setPendingSelection({change,labels});
   }
 
   const company=companies.find(c=>c.id===companyId);
@@ -183,9 +189,9 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   return <>
     {pendingSelection&&<ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
       recordName={`${company?.name??"Firma"} · ${date}`}
-      description="Günlük talep formundaki kaydedilmemiş bilgiler bırakılacak. Seçtiğiniz firma ve gün için plan açılacak."
+      description={`${pendingSelection.labels.join(", ")} formundaki kaydedilmemiş bilgiler bırakılacak. Seçtiğiniz firma ve gün için plan açılacak.`}
       confirmLabel="Değişiklikleri bırak" destructive onClose={()=>setPendingSelection(null)}
-      onConfirm={async()=>{if(!busy&&!submitting.current)onSelect(pendingSelection);}} />}
+      onConfirm={async()=>{if(!busy&&!submitting.current)onSelect(pendingSelection.change);}} />}
     <CancelRequestDialog target={cancelTarget} busy={busy} error={error} onClose={()=>{if(!busy)setCancelTarget(null);}} onConfirm={()=>{if(cancelTarget)void submit("cancel",{requestId:cancelTarget.id});}} />
     <PageHeader title="Günlük personel planı" subtitle="Şube ihtiyacını kaydedin, personeli atayın ve açıkları takip edin." />
     <nav aria-label="Operasyon ekranları" className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
@@ -222,8 +228,8 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       {manager&&<details className="mb-5 rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer text-sm font-semibold text-slate-700">Şube ve personel hazırlığı</summary><div className="mt-4">
       {manager&&<LocationImport key={`${scope?.actorId}:${scope?.tenantId}:${companyId}:${formEpoch}`} scope={scope} companyId={companyId} disabled={busy||!writeReady||!company?.active} onBusy={setBusy} onComplete={refresh} onPendingChange={syncPending} />}
       {manager&&<div className="mb-5 grid gap-4 lg:grid-cols-2">
-        <details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-medium">Lokasyon ekle</summary><form className="mt-3 space-y-3" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("location",{companyId,name:String(d.get("name")),city:String(d.get("city"))},f);}}><fieldset disabled={busy||!writeReady||!company?.active} className="space-y-3"><label className="block text-sm">Şube / bina adı<input name="name" className={inputClass} maxLength={160} required /></label><label className="block text-sm">İl<input name="city" className={inputClass} maxLength={80} required /></label><button className={buttonClass}>Lokasyonu kaydet</button></fieldset></form></details>
-        <details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-medium">Personel ekle</summary><form className="mt-3 space-y-3" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("worker",{name:String(d.get("name")),code:String(d.get("code")),kind:String(d.get("kind"))},f);}}><fieldset disabled={busy||!writeReady} className="space-y-3"><label className="block text-sm">Ad soyad<input name="name" className={inputClass} maxLength={160} required /></label><label className="block text-sm">Personel kodu<input name="code" className={inputClass} maxLength={40} required /></label><label className="block text-sm">Tür<select name="kind" className={inputClass}><option value="idp">İDP</option><option value="sabit">Sabit</option></select></label><button className={buttonClass}>Personeli kaydet</button></fieldset></form></details>
+        <details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-medium">Lokasyon ekle</summary><form ref={locationForm} aria-label="Lokasyon hazırlık formu" className="mt-3 space-y-3" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("location",{companyId,name:String(d.get("name")),city:String(d.get("city"))},f);}}><fieldset disabled={busy||!writeReady||!company?.active} className="space-y-3"><label className="block text-sm">Şube / bina adı<input name="name" className={inputClass} maxLength={160} required /></label><label className="block text-sm">İl<input name="city" className={inputClass} maxLength={80} required /></label><button className={buttonClass}>Lokasyonu kaydet</button></fieldset></form></details>
+        <details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-medium">Personel ekle</summary><form ref={workerForm} aria-label="Personel hazırlık formu" className="mt-3 space-y-3" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("worker",{name:String(d.get("name")),code:String(d.get("code")),kind:String(d.get("kind"))},f);}}><fieldset disabled={busy||!writeReady} className="space-y-3"><label className="block text-sm">Ad soyad<input name="name" className={inputClass} maxLength={160} required /></label><label className="block text-sm">Personel kodu<input name="code" className={inputClass} maxLength={40} required /></label><label className="block text-sm">Tür<select name="kind" className={inputClass}><option value="idp">İDP</option><option value="sabit">Sabit</option></select></label><button className={buttonClass}>Personeli kaydet</button></fieldset></form></details>
       </div>}
       </div></details>}
       <RequestBatch key={`${scope?.actorId}:${scope?.tenantId}:${companyId}:${date}:${formEpoch}`} companyId={companyId} date={date} locations={board.locations} scope={scope} disabled={busy||!writeReady||loading||!boardReady||!company?.active} onBusy={setBusy} onComplete={refresh} onPendingChange={syncPending} />
