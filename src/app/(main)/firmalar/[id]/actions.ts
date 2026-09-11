@@ -11,10 +11,10 @@
  * `current_user_active_tenant()` resolving the tenant where needed.
  *
  *   1. `uploadCompanyDocumentAction(formData)` — upload a PDF for a firma.
- *      Client allow-list `{file, name, category, contract_id?,
- *      validity_date?}`; server sets tenant_id / company_id / created_by
- *      / uploaded_by / storage_path. Verifies contract↔company binding
- *      before upload. Storage first → DB row second; a DB failure after
+ *      Client inputs `{company_id, file, name, category, validity_date?}`;
+ *      server resolves tenant / author and checks company scope. A supplied
+ *      contract_id is rejected before upload: contract PDFs use the dedicated
+ *      versioned workflow. Storage first → DB row second; a DB failure after
  *      a successful upload returns a clear orphan-warning error (orphan
  *      cleanup is out of scope).
  *
@@ -238,27 +238,11 @@ export async function uploadCompanyDocumentAction(
     }
   }
 
-  // 5. Contract↔company binding check. If a contract_id is supplied,
-  //    verify it actually belongs to this company — never trust the
-  //    client-submitted relationship. Done BEFORE the storage upload so
-  //    a mismatched payload cannot orphan an object. RLS also scopes
-  //    this read, so an out-of-scope contract returns no row.
+  // 5. Contract PDFs use the versioned/reserved upload workflow on the
+  // contract page. This legacy company action creates unlinked documents only;
+  // reject before Storage rather than orphaning a file on schema/RLS failure.
   if (contractId) {
-    const { data: contractRow, error: contractError } = await supabase
-      .from("contracts")
-      .select("id")
-      .eq("id", contractId)
-      .eq("company_id", companyId)
-      .maybeSingle();
-    if (contractError) {
-      return { ok: false, error: "Sözleşme doğrulanamadı." };
-    }
-    if (!contractRow) {
-      return {
-        ok: false,
-        error: "Seçilen sözleşme bu firmaya ait değil.",
-      };
-    }
+    return { ok: false, error: "Sözleşmeye bağlı belgeleri sözleşme sayfasındaki Dosyalar bölümünden yükleyin." };
   }
 
   // 6. Passive-company guard. A pasif firma cannot receive new

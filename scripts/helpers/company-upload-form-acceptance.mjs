@@ -6,11 +6,14 @@ export async function checkCompanyUploadForm({page,sql,user,tenant,first,prefix,
  assert.equal(sql("SELECT obj_description(to_regclass('public.contracts'))"),'BPS synthetic contracts fixture v1');
  const company=sql(`SELECT id FROM companies WHERE name='${first}' AND created_by='${user}'`),contract=randomUUID(),title=prefix+'-contract';
  sql(`UPDATE companies SET status='aktif' WHERE id='${company}';INSERT INTO contracts(id,tenant_id,company_id,name,status,created_by) VALUES('${contract}','${tenant}','${company}','${title}','taslak','${user}')`);
+ const documentCount=()=>sql(`SELECT count(*) FROM documents WHERE company_id='${company}' AND created_by='${user}'`);
+ const objectCount=()=>sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name LIKE '${company}/%'`);
+ const initialDocuments=documentCount(),initialObjects=objectCount();
  const path=origin+'/qa-company-scope/'+company;
  const tab=page.getByRole('navigation',{name:'Sayfa bölümleri',exact:true}).getByRole('button',{name:'Evraklar',exact:true});
  const dialog=page.getByRole('dialog',{name:'Belge Yükle',exact:true}),discard=page.getByRole('dialog',{name:'Kaydedilmemiş değişiklikler',exact:true});
  const name=dialog.getByRole('textbox',{name:'Belge Adı *',exact:true}),file=dialog.getByLabel('Dosya (PDF) *',{exact:true});
- const picker=dialog.getByRole('combobox',{name:'Bağlı Sözleşme (opsiyonel)',exact:true}),submit=dialog.getByRole('button',{name:'Yükle',exact:true});
+ const picker=dialog.getByRole('combobox',{name:'Sözleşme dosyaları',exact:true}),submit=dialog.getByRole('button',{name:'Yükle',exact:true});
  const signal=async p=>{let timer;try{await Promise.race([p,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Upload signal timed out')),20000);})]);}finally{clearTimeout(timer);}};
  const role=async value=>{sql(`UPDATE profiles SET role='${value}' WHERE id='${user}'`);await page.evaluate(()=>window.dispatchEvent(new Event('bps-qa-refresh-auth')));await page.getByTestId('acceptance-role').filter({hasText:value}).waitFor();};
  const open=async()=>{await tab.click();await page.getByRole('button',{name:'Belge Yükle',exact:true}).click();await dialog.waitFor();};
@@ -36,7 +39,7 @@ export async function checkCompanyUploadForm({page,sql,user,tenant,first,prefix,
   [{name:'empty.pdf',mimeType:'application/pdf',buffer:Buffer.alloc(0)},'Boş dosya yüklenemez.'],
   [{name:'large.pdf',mimeType:'application/pdf',buffer:Buffer.alloc(10*1024*1024+1)},"Dosya boyutu 10 MB'dan büyük olamaz."]
  ]){await file.setInputFiles(picked);await dialog.getByText(message,{exact:true}).waitFor();assert.ok(await submit.isDisabled());assert.equal(await file.evaluate(e=>e.files.length),0);}
- await file.setInputFiles(invalidPdf);await picker.selectOption(contract);
+ await file.setInputFiles(invalidPdf);await picker.selectOption('');
  const pendingName=prefix+'-pending';await name.fill(pendingName);
  let arrived,unlock,posts=0;
  const incoming=new Promise(r=>arrived=r),blocked=new Promise(r=>unlock=r);setRelease(unlock);
@@ -44,7 +47,7 @@ export async function checkCompanyUploadForm({page,sql,user,tenant,first,prefix,
  await page.route('**/*',held);await name.press('Enter');await signal(incoming);
  await dialog.getByText('Belge yükleniyor, lütfen bekleyin…',{exact:true}).waitFor();assert.ok(await name.isDisabled());assert.ok(await file.isDisabled());assert.ok(await picker.isDisabled());assert.ok(await dialog.getByRole('button',{name:'Belge Yükle penceresini kapat',exact:true}).isDisabled());
  await page.keyboard.press('Enter');await page.keyboard.press('Escape');assert.ok(await dialog.isVisible());assert.equal(await discard.count(),0);
- unlock();await dialog.getByText('Sadece PDF dosyası yüklenebilir.',{exact:true}).waitFor();assert.equal(posts,1);assert.equal(await name.inputValue(),pendingName);assert.equal(await picker.inputValue(),contract);await dialog.getByText('Seçilen: synthetic.pdf',{exact:true}).waitFor();await page.unroute('**/*',held);
+ unlock();await dialog.getByText('Sadece PDF dosyası yüklenebilir.',{exact:true}).waitFor();assert.equal(posts,1);assert.equal(await name.inputValue(),pendingName);assert.equal(await picker.inputValue(),'');await dialog.getByText('Seçilen: synthetic.pdf',{exact:true}).waitFor();await page.unroute('**/*',held);
  // A transport failure preserves the draft and does not expose an internal exception.
  const transport=async route=>{if(route.request().method()==='POST'&&(route.request().postData()??'').includes(pendingName))await route.fulfill({status:503,contentType:'text/plain',body:'Synthetic transport internals'});else await route.fallback();};
  await page.route('**/*',transport);await submit.click();await dialog.getByText('Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin.',{exact:true}).waitFor();assert.equal(await name.inputValue(),pendingName);assert.equal(await dialog.getByText('Synthetic transport internals',{exact:true}).count(),0);await page.unroute('**/*',transport);await closeDirty();
@@ -56,8 +59,8 @@ export async function checkCompanyUploadForm({page,sql,user,tenant,first,prefix,
  await role('ik');await open();await dialog.getByText('Bu rolde sözleşme seçilemez. Belge firmaya yüklenir.',{exact:true}).waitFor();assert.ok(await picker.isDisabled());await name.fill('IK taslağı');await file.setInputFiles(invalidPdf);assert.ok(await submit.isEnabled());
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:output+'/company-upload-form-390.png'});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await closeDirty();await role('yonetici');sql(`DELETE FROM contracts WHERE id='${contract}' AND created_by='${user}'`);await page.reload();await open();await dialog.getByText('Bu firmaya ait sözleşme kaydı yok. Belge firmaya yüklenir.',{exact:true}).waitFor();await page.keyboard.press('Escape');
- assert.equal(sql(`SELECT count(*) FROM documents WHERE company_id='${company}' AND created_by='${user}'`),'0');
- assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name LIKE '${company}/%'`),'0');
+ assert.equal(documentCount(),initialDocuments);
+ assert.equal(objectCount(),initialObjects);
  await page.setViewportSize({width:1280,height:900});
  console.log('PASS upload form contract loading/error/retry/empty/restricted, draft/focus/discard, file size/type/empty, Enter/pending single rejected action, transport retention, late error through role A→B→A, mobile; no document/storage writes. Successful upload not covered.');
 }

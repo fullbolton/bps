@@ -1952,7 +1952,7 @@ export default function FirmaDetayPage({
           companyId={companyShell.id}
           companyName={companyShell.name}
           contracts={firmaSozlesmeler.map((c) => ({ id: c.id, name: c.name }))}
-          contractsState={!contractsAllowed ? "restricted" : contractsResource.loading ? "loading" : contractsResource.error ? "error" : "ready"}
+          contractsState={role !== "yonetici" ? "restricted" : contractsResource.loading ? "loading" : contractsResource.error ? "error" : "ready"}
           onRetryContracts={() => { void reloadSozlesmeler(); }}
           submitError={evrakUploadError}
           onClose={() => {
@@ -2012,7 +2012,7 @@ function EvrakUploadModal({companyId, companyName, contracts, contractsState, on
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const contractVerified = contractsState === "ready" && contracts.some(c => c.id === contractId);
-  const canSubmit = !!file && name.trim().length > 0 && !submitting && (!contractId || contractVerified);
+  const canSubmit = !!file && name.trim().length > 0 && !submitting && !contractId;
   const dirty = !!file || !!fileError || name !== "" || category !== "diger" || contractId !== "" || validityDate !== "";
   function requestClose() {
     if (saving.current) return;
@@ -2081,9 +2081,9 @@ function EvrakUploadModal({companyId, companyName, contracts, contractsState, on
             </div>
           </div>
           <div>
-            <label htmlFor={`${formId}-contract`} className={labelClass}>Bağlı Sözleşme (opsiyonel)</label>
+            <label htmlFor={`${formId}-contract`} className={labelClass}>Sözleşme dosyaları</label>
             <select id={`${formId}-contract`} value={contractId} onChange={e => setContractId(e.target.value)} disabled={contractsState !== "ready"} className={fieldClass}>
-              <option value="">Sözleşmeye bağlamadan yükle</option>
+              <option value="">Firma belgesi yükle</option>
               {contractId && !contractVerified && <option value={contractId}>Önceki seçim doğrulanamadı</option>}
               {contractsState === "ready" && contracts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -2091,6 +2091,11 @@ function EvrakUploadModal({companyId, companyName, contracts, contractsState, on
             {contractsState === "error" && <div className="mt-2 text-sm"><p role="status">Sözleşmeler yüklenemedi. Sözleşmeye bağlamadan yükleyebilir veya yeniden deneyebilirsiniz.</p><button type="button" onClick={onRetryContracts} className="min-h-11 text-blue-700 underline">Sözleşmeleri yeniden dene</button></div>}
             {contractsState === "restricted" && <p className="mt-2 text-sm text-slate-500">Bu rolde sözleşme seçilemez. Belge firmaya yüklenir.</p>}
             {contractsState === "ready" && contracts.length === 0 && <p className="mt-2 text-sm text-slate-500">Bu firmaya ait sözleşme kaydı yok. Belge firmaya yüklenir.</p>}
+            {contractId && contractVerified && <div className="mt-2 space-y-2 text-sm">
+              <p>Sözleşmenin ana PDF ve eklerini sözleşme sayfasından yönetin. Seçilen dosya bu formda korunur; dosyayı açılan sayfada yeniden seçmeniz gerekir.</p>
+              <a href={`/sozlesmeler/${contractId}#belgeler`} target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center text-blue-700 underline">Sözleşme dosyalarını aç (yeni sekme)</a>
+              <button type="button" onClick={() => setContractId("")} className="min-h-11 block text-blue-700 underline">Firma belgesi olarak devam et</button>
+            </div>}
             {contractId && !contractVerified && <div className="mt-2 text-sm"><p role="status">Seçilen sözleşme doğrulanmadan yükleme yapılamaz.</p><button type="button" onClick={() => setContractId("")} className="min-h-11 text-blue-700 underline">Sözleşme seçimini kaldır</button></div>}
           </div>
         </fieldset>

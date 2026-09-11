@@ -14,6 +14,7 @@ import {checkCompanyContactRead} from './helpers/company-contact-read-acceptance
 import {checkCompanyNotePin} from './helpers/company-note-pin-acceptance.mjs';
 import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
+import {checkCompanyUploadSuccess} from './helpers/company-upload-success-acceptance.mjs';
 import {checkCompanyUploadForm} from './helpers/company-upload-form-acceptance.mjs';
 import {checkCompanyContractRead} from './helpers/company-contract-read-acceptance.mjs';
 import {checkCompanyDocuments} from './helpers/company-document-acceptance.mjs';
@@ -32,10 +33,10 @@ try {
  const s=JSON.parse(run('supabase',['status','--workdir','/private/tmp/bps-supabase-acceptance','-o','json']));
  const [db,gateway]=JSON.parse(run('docker',['inspect',container,'supabase_kong_bps-supabase-acceptance']));
  validateLocalStatus(s,readFileSync('/private/tmp/bps-supabase-acceptance/supabase/config.toml','utf8'),db,gateway);
- if(process.env.BPS_RECORD_DELETE_CHECK==='1') {
+ if(process.env.BPS_RECORD_DELETE_CHECK==='1'||process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1') {
   let storage;
   try { [storage]=JSON.parse(run('docker',['inspect','supabase_storage_bps-supabase-acceptance'])); } catch { /* Report before creating fixtures/accounts. */ }
-  assert.ok(storage?.Name==='/supabase_storage_bps-supabase-acceptance'&&storage?.State?.Running===true,'Dedicated local Storage is not running. Start scripts/start-local-document-storage.mjs before BPS_RECORD_DELETE_CHECK.');
+  assert.ok(storage?.Name==='/supabase_storage_bps-supabase-acceptance'&&storage?.State?.Running===true,'Dedicated local Storage is not running. Start scripts/start-local-document-storage.mjs before document Storage acceptance.');
  }
  release=acquireLock();
  sql=q=>run('docker',['exec','-i',container,'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],q).trim();
@@ -49,6 +50,7 @@ try {
  if((process.env.BPS_CONTACT_PRIMARY_CHECK==='1'||process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1')&&process.env.BPS_CONTACT_PRIMARY_REPRO!=='1')sql(readFileSync(new URL('../supabase/migrations/20260911000100_contact_atomic_write.sql',import.meta.url),'utf8'));
  if(process.env.BPS_RECORD_DELETE_CHECK==='1'){sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));}
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-workforce-summary.sql',import.meta.url),'utf8'));
+ if(process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1'){sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-company-upload-write.sql',import.meta.url),'utf8'));}
  admin=createClient(s.API_URL,s.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
  const email=`ux-${randomUUID()}@example.test`,password=randomUUID()+'Aa1!';
  const a=await admin.auth.admin.createUser({email,password,email_confirm:true,app_metadata:{active_tenant:id(1)}});assert.ifError(a.error);user=a.data.user.id;
@@ -752,6 +754,7 @@ try {
  if(process.env.BPS_COMPANY_NOTE_PIN_CHECK==='1') await checkCompanyNotePin({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTE_FORM_CHECK==='1') await checkCompanyNoteForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTES_CHECK==='1') await checkCompanyNotes({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
+ if(process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1') await checkCompanyUploadSuccess({page,sql,user,tenant:id(1),first,prefix,origin,output,client,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_UPLOAD_FORM_CHECK==='1') await checkCompanyUploadForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_CONTRACT_READ_CHECK==='1') await checkCompanyContractRead({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_DOCUMENT_CHECK==='1') await checkCompanyDocuments({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
@@ -832,7 +835,11 @@ try {
 finally {
  releaseRequest?.();await browser?.close();
  if(sql&&user)try{
-  if(ownedStoragePaths.length)assert.ifError((await admin.storage.from('documents').remove(ownedStoragePaths)).error);
+  if(ownedStoragePaths.length){
+   assert.ifError((await admin.storage.from('documents').remove(ownedStoragePaths)).error);
+   const paths=ownedStoragePaths.map(path=>"'"+path.replaceAll("'","''")+"'").join(',');
+   assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name IN (${paths})`),'0','Owned Storage objects remain after cleanup');
+  }
   sql(`BEGIN;DELETE FROM tasks WHERE company_id IN (SELECT id FROM companies WHERE name LIKE '${prefix}%' AND tenant_id='${id(1)}' AND created_by='${user}');DELETE FROM appointments WHERE created_by='${user}' AND company_id IN (SELECT id FROM companies WHERE name LIKE '${prefix}%' AND tenant_id='${id(1)}');DELETE FROM companies WHERE tenant_id='${id(1)}' AND created_by='${user}' AND name LIKE '${prefix}%';DELETE FROM tenant_memberships WHERE user_id='${user}';DELETE FROM profiles WHERE id='${user}';COMMIT;`);
   assert.ifError((await admin.auth.admin.deleteUser(user)).error);console.log('Owned synthetic companies and Auth account removed');
  }catch(e){console.error('Cleanup failed: '+e.message);process.exitCode=1;}
