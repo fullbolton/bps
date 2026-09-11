@@ -215,28 +215,12 @@ export default function FirmaDetayPage({
   // (RLS-checked) → contacts query. Out-of-scope/missing firmas surface as
   // a CompanyNotFoundOrOutOfScopeError, which we map to an inline message.
   const supabase = useMemo(() => createClient(), []);
-  const [yetkililer, setYetkililer] = useState<ContactRow[]>([]);
-  const [yetkililerLoading, setYetkililerLoading] = useState(true);
-  const [yetkililerError, setYetkililerError] = useState<string | null>(null);
-  const contactsGeneration = useRef(0);
-  const reloadYetkililer = useCallback(async () => {
-    const generation = ++contactsGeneration.current;
-    const current = () => generation === contactsGeneration.current && companyScopeRef.current === companyScope;
-    setYetkililerLoading(true);
-    setYetkililerError(null);
-    try {
-      const rows = await listContactsByLegacyCompanyId(supabase, id);
-      if (current()) setYetkililer(rows);
-    } catch {
-      if (current()) { setYetkililer([]); setYetkililerError("Yetkili kişiler yüklenemedi."); }
-    } finally {
-      if (current()) setYetkililerLoading(false);
-    }
-  }, [supabase, id, companyScope]);
-  useEffect(() => {
-    setYetkililerLoading(true);
-    void reloadYetkililer();
-  }, [reloadYetkililer]);
+  const contactScope = !authLoading && user && ["yonetici", "operasyon"].includes(role) ? companyScope : null;
+  const readContacts = useCallback(() => listContactsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const contactsResource = useScopedResource(contactScope, readContacts);
+  const yetkililer = contactsResource.data ?? [];
+  const contactsReady = !!contactScope && !contactsResource.loading && !contactsResource.error;
+  const reloadYetkililer = contactsResource.reload;
   const notesScope = !authLoading && user && !["goruntuleyici", "muhasebe"].includes(role) ? companyScope : null;
   const readNotes = useCallback(() => listNotesByLegacyCompanyId(supabase, id), [supabase, id]);
   const notesResource = useScopedResource(notesScope, readNotes);
@@ -1074,29 +1058,25 @@ export default function FirmaDetayPage({
                 {/* Yetkili Ekle (create) — yonetici-only by app-level
                     product decision; partner is HOLD / pending follow-up.
                     Passive-company guard (disabled + tooltip) preserved. */}
-                {role === "yonetici" && yetkililer.length < 5 && (
+                {role === "yonetici" && (!contactsReady || yetkililer.length < 5) && (
                   <button
                     type="button"
                     onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setContactModalOpen(true); }}
-                    disabled={isPassiveCompany}
+                    disabled={isPassiveCompany || !contactsReady}
                     title={isPassiveCompany ? PASSIVE_BLOCK_TITLE : undefined}
-                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 ${TYPE_CAPTION} font-medium ${TEXT_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
+                    className={`min-h-11 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 ${TYPE_CAPTION} font-medium ${TEXT_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
                   >
                     <UserPlus size={14} strokeWidth={1.8} />
                     Yetkili Ekle
                   </button>
                 )}
-                {yetkililer.length >= 5 && (
+                {contactsReady && yetkililer.length >= 5 && (
                   <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Maksimum 5 yetkili</span>
                 )}
               </div>
             </div>
-            {yetkililerError && <AsyncSection isLoading={false} hasError onRetry={() => void reloadYetkililer()}>{null}</AsyncSection>}
-            {yetkililerLoading ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>
-                Yetkili kişiler yükleniyor…
-              </p>
-            ) : yetkililerError ? null : yetkililer.length === 0 ? (
+            <AsyncSection isLoading={contactsResource.loading} hasError={contactsResource.error} onRetry={() => { void reloadYetkililer(); }}>
+            {yetkililer.length === 0 ? (
               <div className="py-2 -mx-1">
                 <EmptyState
                   title="Yetkili kişi yok"
@@ -1110,8 +1090,8 @@ export default function FirmaDetayPage({
                   <div key={ytk.id} className={`py-3 ${idx < yetkililer.length - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{ytk.full_name}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY} break-words min-w-0`}>{ytk.full_name}</p>
                           {ytk.is_primary && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
                               <Star size={8} />
@@ -1120,7 +1100,7 @@ export default function FirmaDetayPage({
                           )}
                         </div>
                         {ytk.title && (
-                          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5`}>{ytk.title}</p>
+                          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5 break-words`}>{ytk.title}</p>
                         )}
                         <div className="flex flex-col gap-1.5 mt-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
                           {ytk.phone && (
@@ -1137,13 +1117,13 @@ export default function FirmaDetayPage({
                           )}
                         </div>
                         {ytk.context_note && (
-                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>{ytk.context_note}</p>
+                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1 whitespace-pre-wrap break-words`}>{ytk.context_note}</p>
                         )}
                       </div>
                       {/* Edit + delete actions — role-gated. Edit:
                           yonetici/partner/operasyon. Delete: yonetici-only
                           (hard delete; mirrors the contacts DELETE app guard). */}
-                      <div className="flex-shrink-0 ml-3 flex items-center">
+                      <div className="flex-shrink-0 ml-2 flex flex-col sm:flex-row items-center">
                         {(role === "yonetici" || role === "partner" || role === "operasyon") && (
                           <button
                             type="button"
@@ -1175,6 +1155,7 @@ export default function FirmaDetayPage({
                 ))}
               </div>
             )}
+            </AsyncSection>
           </div>
         )}
 
