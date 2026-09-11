@@ -7,7 +7,7 @@ import AsyncSection from "@/components/ui/AsyncSection";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 
-import { use, useRef, useState, useMemo, useEffect, useCallback } from "react";
+import { use, useId, useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   StickyNote,
@@ -40,6 +40,7 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  ModalShell,
   TabNavigation,
   EmptyState,
   FirmaSummaryHeader,
@@ -464,7 +465,16 @@ export default function FirmaDetayPage({
 
   // Document upload modal + per-row download error (item-level — never
   // collapses the tab; matches the Evraklar page resilience pattern).
-  const [evrakUploadOpen, setEvrakUploadOpen] = useState(false);
+  const uploadAllowed = !authLoading && !!user && ["yonetici", "operasyon", "ik"].includes(role);
+  const uploadContext = useMemo(() => ({ scope: uploadAllowed ? companyScope : null }), [uploadAllowed, companyScope]);
+  const liveUploadContext = useRef<typeof uploadContext | null>(uploadContext);
+  liveUploadContext.current = uploadContext;
+  const [openUploadContext, setOpenUploadContext] = useState<typeof uploadContext | null>(null);
+  useEffect(() => {
+    liveUploadContext.current = uploadContext;
+    setOpenUploadContext(null); setEvrakUploadError(null);
+    return () => { liveUploadContext.current = null; };
+  }, [uploadContext]);
   const [evrakUploadError, setEvrakUploadError] = useState<string | null>(null);
   const [evrakDownloadError, setEvrakDownloadError] = useState<string | null>(null);
   if (companyLoading || loadedCompanyScope !== companyScope) {
@@ -1345,10 +1355,10 @@ export default function FirmaDetayPage({
                 {canMutateDocs && firma && (
                   <button
                     type="button"
-                    onClick={() => { setEvrakUploadError(null); setEvrakUploadOpen(true); }}
+                    onClick={() => { setEvrakUploadError(null); setOpenUploadContext(uploadContext); }}
                     disabled={isPassiveCompany}
                     title={isPassiveCompany ? PASSIVE_BLOCK_TITLE : undefined}
-                    className={`flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline`}
+                    className={`flex min-h-11 items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline`}
                   >
                     <Upload size={13} />
                     Belge Yükle
@@ -1937,19 +1947,27 @@ export default function FirmaDetayPage({
           companyId here is the REAL DB UUID from `companyShell`, never
           the route param (which may be a legacy_mock_id). The storage
           policy parses the first path segment as a company UUID. */}
-      {evrakUploadOpen && companyShell && (
+      {openUploadContext === uploadContext && uploadContext.scope && companyShell && (
         <EvrakUploadModal
           companyId={companyShell.id}
           companyName={companyShell.name}
           contracts={firmaSozlesmeler.map((c) => ({ id: c.id, name: c.name }))}
+          contractsState={!contractsAllowed ? "restricted" : contractsResource.loading ? "loading" : contractsResource.error ? "error" : "ready"}
+          onRetryContracts={() => { void reloadSozlesmeler(); }}
           submitError={evrakUploadError}
-          onClose={() => { setEvrakUploadOpen(false); setEvrakUploadError(null); }}
-          onSubmitError={setEvrakUploadError}
-          onSuccess={async () => {
-            setEvrakUploadOpen(false);
-            setEvrakUploadError(null);
-            await reloadDocs();
-            router.refresh();
+          onClose={() => {
+            if (liveUploadContext.current !== uploadContext) return;
+            setOpenUploadContext(null); setEvrakUploadError(null);
+          }}
+          onSubmitError={error => {
+            if (liveUploadContext.current === uploadContext) setEvrakUploadError(error);
+          }}
+          onSuccess={documentName => {
+            if (liveUploadContext.current !== uploadContext) return;
+            setOpenUploadContext(null); setEvrakUploadError(null);
+            setActiveTab("evraklar");
+            feedback.show(`${documentName} firmaya yüklendi.`);
+            void reloadDocs();
           }}
         />
       )}
@@ -1972,21 +1990,16 @@ interface EvrakUploadModalProps {
   companyId: string;
   companyName: string;
   contracts: { id: string; name: string }[];
+  contractsState: "loading" | "error" | "restricted" | "ready";
+  onRetryContracts: () => void;
   submitError: string | null;
   onClose: () => void;
   onSubmitError: (err: string) => void;
-  onSuccess: () => Promise<void> | void;
+  onSuccess: (name: string) => void;
 }
 
-function EvrakUploadModal({
-  companyId,
-  companyName,
-  contracts,
-  submitError,
-  onClose,
-  onSubmitError,
-  onSuccess,
-}: EvrakUploadModalProps) {
+function EvrakUploadModal({companyId, companyName, contracts, contractsState, onRetryContracts, submitError, onClose, onSubmitError, onSuccess}: EvrakUploadModalProps) {
+  const formId = useId();
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -1994,116 +2007,97 @@ function EvrakUploadModal({
   const [contractId, setContractId] = useState("");
   const [validityDate, setValidityDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const MAX_BYTES = 10 * 1024 * 1024;
-  const canSubmit = !!file && name.trim().length > 0 && !submitting;
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = e.target.files?.[0] ?? null;
-    if (!picked) { setFile(null); setFileError(null); return; }
-    if (picked.type !== "application/pdf") {
-      setFile(null); setFileError("Sadece PDF dosyası yüklenebilir."); return;
-    }
-    if (picked.size > MAX_BYTES) {
-      setFile(null); setFileError("Dosya boyutu 10 MB'dan büyük olamaz."); return;
-    }
-    setFile(picked); setFileError(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const saving = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const contractVerified = contractsState === "ready" && contracts.some(c => c.id === contractId);
+  const canSubmit = !!file && name.trim().length > 0 && !submitting && (!contractId || contractVerified);
+  const dirty = !!file || !!fileError || name !== "" || category !== "diger" || contractId !== "" || validityDate !== "";
+  function requestClose() {
+    if (saving.current) return;
+    if (dirty) setDiscardOpen(true);
+    else onClose();
   }
-
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const picked = event.target.files?.[0] ?? null;
+    setFile(null); setFileError(null);
+    if (!picked) return;
+    const error = picked.type !== "application/pdf" ? "Sadece PDF dosyası yüklenebilir."
+      : picked.size === 0 ? "Boş dosya yüklenemez."
+      : picked.size > 10 * 1024 * 1024 ? "Dosya boyutu 10 MB'dan büyük olamaz." : null;
+    if (error) { setFileError(error); event.target.value = ""; return; }
+    setFile(picked);
+  }
   async function handleSubmit() {
-    if (!canSubmit || !file) return;
-    setSubmitting(true);
+    if (!canSubmit || !file || saving.current) return;
+    saving.current = true; setSubmitting(true); onSubmitError("");
     const fd = new FormData();
-    fd.set("company_id", companyId);
-    fd.set("name", name.trim());
-    fd.set("category", category);
+    fd.set("company_id", companyId); fd.set("name", name.trim()); fd.set("category", category);
     if (contractId) fd.set("contract_id", contractId);
     if (validityDate) fd.set("validity_date", validityDate);
     fd.set("file", file);
-
     try {
       const result = await uploadCompanyDocumentAction(fd);
-      if (result.ok) {
-        await onSuccess();
-      } else {
-        onSubmitError(result.error);
-      }
-    } catch (err) {
-      onSubmitError(err instanceof Error ? err.message : "Belge yüklenemedi.");
+      if (!mounted.current) return;
+      if (result.ok) onSuccess(name.trim());
+      else onSubmitError(result.error);
+    } catch {
+      if (mounted.current) onSubmitError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin.");
     } finally {
-      setSubmitting(false);
+      saving.current = false;
+      if (mounted.current) setSubmitting(false);
     }
   }
-
-  return (
-    <div className={`fixed inset-0 ${Z_OVERLAY} flex items-center justify-center p-4 ${SURFACE_OVERLAY_DARK}`} role="dialog" aria-modal="true">
-      <div className={`${SURFACE_PRIMARY} ${RADIUS_DEFAULT} shadow-xl w-full max-w-md p-5 space-y-4`}>
-        <div>
-          <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>Belge Yükle</h3>
-          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{companyName}</p>
-        </div>
-
-        <div className="space-y-3">
+  const fieldClass = "min-h-11 w-full min-w-0 px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50";
+  const labelClass = "block text-sm font-medium text-slate-700 mb-1";
+  return <>
+    <ModalShell open onClose={requestClose} closeDisabled={submitting} title="Belge Yükle" footer={<>
+      <button type="button" onClick={requestClose} disabled={submitting} className="min-h-11 px-4 py-2 text-sm border border-slate-200 rounded-md disabled:opacity-40">İptal</button>
+      <button type="submit" form={formId} disabled={!canSubmit} className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40">{submitting ? "Yükleniyor…" : "Yükle"}</button>
+    </>}>
+      <p className="mb-4 break-words text-sm text-slate-500">{companyName}</p>
+      <form id={formId} onSubmit={event => { event.preventDefault(); void handleSubmit(); }} aria-busy={submitting}>
+        <fieldset disabled={submitting} className="space-y-4 min-w-0">
           <div>
-            <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Dosya (PDF) <span className="text-red-500">*</span></label>
-            <input type="file" accept="application/pdf" onChange={handleFileChange} disabled={submitting}
-              className={`w-full ${TYPE_CAPTION} file:mr-3 file:px-3 file:py-1.5 file:text-sm file:font-medium file:bg-slate-50 file:border file:border-slate-200 file:rounded-md file:text-slate-700 hover:file:bg-slate-100 disabled:opacity-40`} />
-            {file && !fileError && (
-              <p className={`mt-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</p>
-            )}
-            {fileError && (<p className={`mt-1 ${TYPE_CAPTION} text-red-600`}>{fileError}</p>)}
-            <p className={`mt-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>Maksimum 10 MB, sadece PDF.</p>
+            <label htmlFor={`${formId}-name`} className={labelClass}>Belge Adı *</label>
+            <input id={`${formId}-name`} data-dialog-initial-focus required value={name} onChange={e => setName(e.target.value)} placeholder="Belge adını girin" className={fieldClass} />
           </div>
-
           <div>
-            <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Belge Adı <span className="text-red-500">*</span></label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={submitting}
-              placeholder="Belge adını girin"
-              className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+            <label htmlFor={`${formId}-file`} className={labelClass}>Dosya (PDF) *</label>
+            <input id={`${formId}-file`} type="file" accept="application/pdf" required onChange={handleFileChange} aria-describedby={`${formId}-file-hint`} className="min-h-11 w-full min-w-0 text-sm file:mr-2 file:min-h-11 file:rounded-md file:border file:border-slate-200 file:bg-slate-50" />
+            <p id={`${formId}-file-hint`} className="mt-1 text-xs text-slate-500">Maksimum 10 MB, sadece PDF.</p>
+            {file && <p className="mt-1 break-words text-xs text-slate-500">Seçilen: {file.name}</p>}
+            {fileError && <p role="alert" className="mt-1 text-sm text-red-600">{fileError}</p>}
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Kategori</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value as DocumentCategory)} disabled={submitting}
-                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} bg-white focus:outline-none focus:ring-2 focus:ring-blue-500`}>
-                {(Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map((k) => (
-                  <option key={k} value={k}>{DOCUMENT_CATEGORY_LABELS[k]}</option>
-                ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label htmlFor={`${formId}-category`} className={labelClass}>Kategori</label>
+              <select id={`${formId}-category`} value={category} onChange={e => setCategory(e.target.value as DocumentCategory)} className={fieldClass}>
+                {(Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map(k => <option key={k} value={k}>{DOCUMENT_CATEGORY_LABELS[k]}</option>)}
               </select>
             </div>
-            <div>
-              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Geçerlilik (ops.)</label>
-              <input type="date" value={validityDate} onChange={(e) => setValidityDate(e.target.value)} disabled={submitting}
-                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+            <div><label htmlFor={`${formId}-date`} className={labelClass}>Geçerlilik (opsiyonel)</label>
+              <input id={`${formId}-date`} type="date" value={validityDate} onChange={e => setValidityDate(e.target.value)} className={fieldClass} />
             </div>
           </div>
-
-          {contracts.length > 0 && (
-            <div>
-              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Bağlı Sözleşme (ops.)</label>
-              <select value={contractId} onChange={(e) => setContractId(e.target.value)} disabled={submitting}
-                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} bg-white focus:outline-none focus:ring-2 focus:ring-blue-500`}>
-                <option value="">— bağlama —</option>
-                {contracts.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-              </select>
-            </div>
-          )}
-        </div>
-
-        {submitError && (<p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">{submitError}</p>)}
-
-        <div className="flex items-center justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} disabled={submitting}
-            className={`px-4 py-2 ${TYPE_CAPTION} font-medium ${TEXT_BODY} bg-white border ${BORDER_DEFAULT} ${RADIUS_SM} hover:bg-slate-50 disabled:opacity-40`}>
-            İptal
-          </button>
-          <button type="button" onClick={handleSubmit} disabled={!canSubmit}
-            className={`px-4 py-2 ${TYPE_CAPTION} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}>
-            {submitting ? "Yükleniyor..." : "Yükle"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+          <div>
+            <label htmlFor={`${formId}-contract`} className={labelClass}>Bağlı Sözleşme (opsiyonel)</label>
+            <select id={`${formId}-contract`} value={contractId} onChange={e => setContractId(e.target.value)} disabled={contractsState !== "ready"} className={fieldClass}>
+              <option value="">Sözleşmeye bağlamadan yükle</option>
+              {contractId && !contractVerified && <option value={contractId}>Önceki seçim doğrulanamadı</option>}
+              {contractsState === "ready" && contracts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            {contractsState === "loading" && <p role="status" className="mt-2 text-sm text-slate-500">Sözleşmeler yükleniyor. Sözleşmeye bağlamadan yükleyebilirsiniz.</p>}
+            {contractsState === "error" && <div className="mt-2 text-sm"><p role="status">Sözleşmeler yüklenemedi. Sözleşmeye bağlamadan yükleyebilir veya yeniden deneyebilirsiniz.</p><button type="button" onClick={onRetryContracts} className="min-h-11 text-blue-700 underline">Sözleşmeleri yeniden dene</button></div>}
+            {contractsState === "restricted" && <p className="mt-2 text-sm text-slate-500">Bu rolde sözleşme seçilemez. Belge firmaya yüklenir.</p>}
+            {contractsState === "ready" && contracts.length === 0 && <p className="mt-2 text-sm text-slate-500">Bu firmaya ait sözleşme kaydı yok. Belge firmaya yüklenir.</p>}
+            {contractId && !contractVerified && <div className="mt-2 text-sm"><p role="status">Seçilen sözleşme doğrulanmadan yükleme yapılamaz.</p><button type="button" onClick={() => setContractId("")} className="min-h-11 text-blue-700 underline">Sözleşme seçimini kaldır</button></div>}
+          </div>
+        </fieldset>
+        {submitting && <p role="status" className="mt-4 text-sm text-blue-700">Belge yükleniyor, lütfen bekleyin…</p>}
+        {submitError && <p role="alert" className="mt-4 break-words text-sm text-red-600">{submitError}</p>}
+      </form>
+    </ModalShell>
+    {discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler" recordName="Belge yükleme taslağı" description="Seçilen dosya ve form bilgileri bırakılacak." confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)} onConfirm={async () => { if (!saving.current) onClose(); }} />}
+  </>;
 }
