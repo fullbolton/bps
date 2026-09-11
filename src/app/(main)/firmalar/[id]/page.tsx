@@ -1,5 +1,6 @@
 "use client";
 
+import { useScopedResource } from "@/components/ui/useScopedResource";
 import { useListViewState } from "@/components/ui/useListViewState";
 import { appointmentLinkHref } from "@/lib/appointment-link";
 import AsyncSection from "@/components/ui/AsyncSection";
@@ -110,9 +111,7 @@ import type {
   ContactRow,
   ContractRow,
   NoteRow,
-  StaffingDemandRow,
   AppointmentRow,
-  WorkforceSummaryRow,
   DocumentRow,
 } from "@/types/database.types";
 import type { TabItem } from "@/types/ui";
@@ -263,7 +262,13 @@ export default function FirmaDetayPage({
     void reloadNotlar();
   }, [reloadNotlar]);
   // Phase 3 state: Talepler, Randevular, İş Gücü — real Supabase truth.
-  const [firmaTalepler, setFirmaTalepler] = useState<StaffingDemandRow[]>([]);
+  const staffingScope = !authLoading && user ? companyScope : null;
+  const readDemands = useCallback(() => listDemandsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const readWorkforce = useCallback(() => getWorkforceSummaryByLegacyCompanyId(supabase, id), [supabase, id]);
+  const demandResource = useScopedResource(staffingScope, readDemands);
+  const workforceResource = useScopedResource(staffingScope, readWorkforce);
+  const firmaTalepler = demandResource.data ?? [];
+  const firmaIsGucu = workforceResource.data;
   const [appointmentOpen, setAppointmentOpen] = useState(false);
   const appointmentsEnabled = !authLoading && !!user;
   const appointmentContext = useMemo(() => ({ scope: companyScope, enabled: appointmentsEnabled }), [companyScope, appointmentsEnabled]);
@@ -295,13 +300,6 @@ export default function FirmaDetayPage({
     // Clear only on context changes; notice helpers are recreated each render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentContext, reloadAppointments]);
-  const [firmaIsGucu, setFirmaIsGucu] = useState<WorkforceSummaryRow | null>(null);
-  useEffect(() => {
-    void listDemandsByLegacyCompanyId(supabase, id)
-      .then(setFirmaTalepler).catch(() => setFirmaTalepler([]));
-    void getWorkforceSummaryByLegacyCompanyId(supabase, id)
-      .then(setFirmaIsGucu).catch(() => setFirmaIsGucu(null));
-  }, [supabase, id]);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [editPhoneEmailOnly, setEditPhoneEmailOnly] = useState(false);
@@ -704,12 +702,13 @@ export default function FirmaDetayPage({
                     <Users size={14} className={TEXT_MUTED} />
                     Açık Talepler
                   </h3>
+                  <AsyncSection isLoading={demandResource.loading} hasError={demandResource.error} onRetry={() => { void demandResource.reload(); }}>
                   <div className="flex items-baseline gap-2 py-2">
                     <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{acikKalanToplam}</span>
                     <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>açık pozisyon</span>
                   </div>
                   {firmaTalepler.filter((t) => computeOpenCount(t) > 0).length === 0 ? (
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Tüm talepler karşılanmış.</p>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{firmaTalepler.length === 0 ? "Bu firmaya ait talep kaydı yok." : "Açık personel ihtiyacı görünmüyor."}</p>
                   ) : (
                     <div className="space-y-1.5 mt-2">
                       {firmaTalepler.filter((t) => computeOpenCount(t) > 0).map((t) => (
@@ -720,6 +719,7 @@ export default function FirmaDetayPage({
                       ))}
                     </div>
                   )}
+                  </AsyncSection>
                 </div>
               );
             })()}
@@ -732,6 +732,7 @@ export default function FirmaDetayPage({
                     <Briefcase size={14} className={TEXT_MUTED} />
                     Aktif İş Gücü Özeti
                   </h3>
+                  <AsyncSection isLoading={workforceResource.loading} hasError={workforceResource.error} onRetry={() => { void workforceResource.reload(); }}>
                   {firmaIsGucu ? (
                     <div className="space-y-2">
                       <div className="flex items-baseline gap-2">
@@ -747,11 +748,9 @@ export default function FirmaDetayPage({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-baseline gap-2 py-3">
-                      <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{firma.aktifIsGucu}</span>
-                      <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>aktif personel</span>
-                    </div>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Bu firma için iş gücü kaydı yok.</p>
                   )}
+                  </AsyncSection>
                 </div>
               );
             })()}
@@ -1282,9 +1281,10 @@ export default function FirmaDetayPage({
         {activeTab === "talepler" && (() => {
           return (
             <>
-            <DemandTrendChart talepler={firmaTalepler} />
+            {!demandResource.loading && !demandResource.error && <DemandTrendChart talepler={firmaTalepler} />}
             <div className={CARD_LG}>
               <h3 className={CARD_TITLE_PLAIN}>Firma Talepleri</h3>
+              <AsyncSection isLoading={demandResource.loading} hasError={demandResource.error} onRetry={() => { void demandResource.reload(); }}>
               {firmaTalepler.length === 0 ? (
                 <EmptyState title="Talep yok" description="Bu firmaya ait personel talebi bulunamadı." size="tab" />
               ) : (
@@ -1300,6 +1300,7 @@ export default function FirmaDetayPage({
                   ))}
                 </div>
               )}
+              </AsyncSection>
             </div>
             </>
           );
@@ -1310,6 +1311,7 @@ export default function FirmaDetayPage({
           return (
             <div className={CARD_LG}>
               <h3 className={CARD_TITLE_PLAIN}>Aktif İş Gücü</h3>
+              <AsyncSection isLoading={workforceResource.loading} hasError={workforceResource.error} onRetry={() => { void workforceResource.reload(); }}>
               {firmaIsGucu ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className={`text-center p-3 ${SURFACE_HEADER} rounded`}>
@@ -1336,6 +1338,7 @@ export default function FirmaDetayPage({
               ) : (
                 <EmptyState title="İş gücü verisi yok" description="Bu firma için iş gücü kaydı bulunamadı." size="tab" />
               )}
+              </AsyncSection>
             </div>
           );
         })()}
