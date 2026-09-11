@@ -1376,6 +1376,38 @@ export default function FirmaDetayPage({
           const canDeleteDocs = role === "yonetici";
           const contractLabelById = new Map(firmaSozlesmeler.map((c) => [c.id, c.name]));
 
+          const renderDocumentActions = (d: (typeof firmaDocs)[number]) => (
+            <div className="inline-flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => { void handleEvrakDownload(d); }}
+                disabled={!d.storage_path || currentDownload?.phase === "loading"}
+                className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
+              >
+                <Download size={12} />
+                İndir
+              </button>
+              {canDeleteDocs && !d.contract_id && (
+                <button
+                  type="button"
+                  onClick={() => requestDelete("document", d.id, d.name)}
+                  aria-label={`${d.name} — kalıcı olarak sil`}
+                  className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                  title="Belgeyi kalıcı olarak sil"
+                >
+                  <Trash2 size={12} />
+                  Sil
+                </button>
+              )}
+            </div>
+          );
+          const renderContractLink = (d: (typeof firmaDocs)[number]) => d.contract_id
+            ? (["yonetici", "operasyon"].includes(role)
+              ? <a href={`/sozlesmeler/${d.contract_id}`} className="inline-flex min-h-11 max-w-full items-center break-words py-2 text-blue-700 underline">{contractLabelById.get(d.contract_id) ?? "Sözleşme dosyaları"}</a>
+              : contractLabelById.get(d.contract_id) ?? "Sözleşmeye bağlı belge")
+            : "—";
+
           return (
             <div className={CARD_LG}>
               <div className="flex items-center justify-between mb-4">
@@ -1418,55 +1450,41 @@ export default function FirmaDetayPage({
               {firmaDocs.length === 0 ? (
                 <EmptyState title="Belge yok" description="Bu firmaya ait belge bulunmuyor." size="tab" />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                <div role="region" aria-label="Firma evrak listesi" tabIndex={0} className="overflow-x-auto">
+                  <table className="w-full table-fixed text-sm sm:table-auto">
                     <thead className={`bg-slate-50 ${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium">Belge</th>
-                        <th className="px-3 py-2 text-left font-medium">Kategori</th>
-                        <th className="px-3 py-2 text-left font-medium">Durum</th>
-                        <th className="px-3 py-2 text-left font-medium">Geçerlilik</th>
-                        <th className="px-3 py-2 text-left font-medium">Sözleşme</th>
-                        <th className="px-3 py-2 text-left font-medium">Yükleyen</th>
-                        <th className="px-3 py-2 text-left font-medium">Güncellenme</th>
-                        <th className="px-3 py-2 text-right font-medium" aria-label="aksiyon"></th>
+                        <th scope="col" className="px-3 py-2 text-left font-medium">Belge</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Kategori</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Durum</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Geçerlilik</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Sözleşme</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Yükleyen</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Güncellenme</th>
+                        <th scope="col" className="hidden px-3 py-2 text-right font-medium sm:table-cell" aria-label="aksiyon"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {firmaDocs.map((d) => (
                         <tr key={d.id} className={`border-t ${BORDER_SUBTLE}`}>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[220px]`}>{d.contract_document_title && <p className="font-medium">{d.contract_document_title}</p>}<p className="truncate">{d.name}</p></td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{DOCUMENT_CATEGORY_LABELS[d.category]}</td>
-                          <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{d.validity_date ? formatDateTR(d.validity_date) : "—"}</td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[180px]`}>{d.contract_id ? (["yonetici","operasyon"].includes(role) ? <a href={`/sozlesmeler/${d.contract_id}`} className="text-blue-700 hover:underline">{contractLabelById.get(d.contract_id) ?? "Sözleşme dosyaları"}</a> : contractLabelById.get(d.contract_id) ?? "—") : "—"}</td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[160px] truncate`}>{d.uploaded_by ?? "—"}</td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(d.updated_at.slice(0, 10))}</td>
-                          <td className="px-3 py-2 text-right">
-                            <div className="inline-flex items-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() => { void handleEvrakDownload(d); }}
-                                disabled={!d.storage_path || currentDownload?.phase === "loading"}
-                                className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
-                                title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
-                              >
-                                <Download size={12} />
-                                İndir
-                              </button>
-                              {canDeleteDocs && !d.contract_id && (
-                                <button
-                                  type="button"
-                                  onClick={() => requestDelete("document", d.id, d.name)}
-                                  aria-label={`${d.name} — kalıcı olarak sil`}
-                                  className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
-                                  title="Belgeyi kalıcı olarak sil"
-                                >
-                                  <Trash2 size={12} />
-                                  Sil
-                                </button>
-                              )}
+                          <td className={`px-3 py-3 ${TYPE_BODY} ${TEXT_BODY} align-top sm:max-w-[260px]`}>
+                            {d.contract_document_title && <p className="break-words font-medium">{d.contract_document_title}</p>}
+                            <p className="break-words sm:max-w-[260px]">{d.name}</p>
+                            <div className="mt-3 space-y-2 sm:hidden">
+                              <StatusBadge status={d.status} />
+                              <p className="break-words text-xs text-slate-500">{DOCUMENT_CATEGORY_LABELS[d.category]} · {d.validity_date ? `Geçerlilik: ${formatDateTR(d.validity_date)}` : "Geçerlilik tarihi belirtilmemiş"}</p>
+                              {d.contract_id && <div className="text-sm">{renderContractLink(d)}</div>}
+                              {renderDocumentActions(d)}
                             </div>
+                          </td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} sm:table-cell`}>{DOCUMENT_CATEGORY_LABELS[d.category]}</td>
+                          <td className="hidden px-3 py-2 sm:table-cell"><StatusBadge status={d.status} /></td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} sm:table-cell`}>{d.validity_date ? formatDateTR(d.validity_date) : "—"}</td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[180px] sm:table-cell`}>{renderContractLink(d)}</td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[160px] truncate sm:table-cell`}>{d.uploaded_by ?? "—"}</td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} sm:table-cell`}>{formatDateTR(d.updated_at.slice(0, 10))}</td>
+                          <td className="hidden px-3 py-2 text-right sm:table-cell">
+                            {renderDocumentActions(d)}
                           </td>
                         </tr>
                       ))}
