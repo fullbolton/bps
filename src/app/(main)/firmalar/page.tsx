@@ -48,6 +48,7 @@ import { useListViewState } from "@/components/ui/useListViewState";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
 import {
@@ -79,6 +80,7 @@ interface FirmaListRow {
   id: string;
   firmaAdi: string;
   sektor: string;
+  sektorKodu: string | null;
   sehir: string;
   anaYetkili: string;
   aktifSozlesme: number | null;
@@ -100,14 +102,33 @@ function sectorLabel(code: string | null): string {
 // ---------------------------------------------------------------------------
 
 const COLUMNS: ColumnDef<FirmaListRow>[] = [
-  { key: "firmaAdi", header: "Firma Adi", sortable: true },
+  {
+    key: "firmaAdi", header: "Firma Adı", sortable: true,
+    render: (_value, row) => <div className="whitespace-normal break-words sm:w-64">
+      <Link href={`/firmalar/${row.id}`} onClick={event => event.stopPropagation()}
+        className="flex min-h-11 items-center rounded-lg py-2 font-medium text-blue-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [overflow-wrap:anywhere]">
+        {row.firmaAdi}
+      </Link>
+      <div className="mt-2 space-y-3 sm:hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={row.durum} />
+          <span className="text-xs text-slate-500">Risk etiketi:</span><RiskBadge risk={row.risk} />
+        </div>
+        <dl className="space-y-2 text-sm">
+          <div><dt className="text-xs text-slate-500">Şehir · Sektör</dt><dd className="[overflow-wrap:anywhere]">{row.sehir} · {row.sektor}</dd></div>
+          <div><dt className="text-xs text-slate-500">Ana yetkili</dt><dd className="[overflow-wrap:anywhere]">{row.anaYetkili}</dd></div>
+          <div><dt className="text-xs text-slate-500">Aktif sözleşme</dt><dd>{row.aktifSozlesme === null ? "Okunamadı" : row.aktifSozlesme}</dd></div>
+        </dl>
+      </div>
+    </div>,
+  },
   {
     key: "sektor",
     header: "Sektor",
     sortable: true,
   },
   { key: "sehir", header: "Sehir", sortable: true },
-  { key: "anaYetkili", header: "Ana Yetkili" },
+  { key: "anaYetkili", header: "Ana Yetkili", render: value => <span className="inline-block w-48 whitespace-normal [overflow-wrap:anywhere]">{String(value)}</span> },
   { key: "aktifSozlesme", header: "Aktif Sozlesme", sortable: true, render: value => value === null ? "Okunamadı" : String(value) },
   {
     key: "risk",
@@ -206,11 +227,11 @@ export default function FirmalarPage() {
   // ---------------------------------------------------------------------------
   const filteredData = useMemo(() => {
     const enriched: FirmaListRow[] = companies.map((c) => {
-      const rowId = c.legacy_mock_id ?? c.id;
       return {
-        id: rowId,
+        id: c.id,
         firmaAdi: c.name,
         sektor: sectorLabel(c.sector),
+        sektorKodu: c.sector,
         sehir: c.city ?? "—",
         anaYetkili: contactsError ? "Okunamadı" : primaryNameById[c.id] ?? "—",
         aktifSozlesme: contractsError ? null : activeContractById[c.id] ?? 0,
@@ -231,7 +252,7 @@ export default function FirmalarPage() {
       }
       if (filters.durum && f.durum !== filters.durum) return false;
       if (filters.risk && f.risk !== filters.risk) return false;
-      if (filters.sektor && f.sektor !== filters.sektor) return false;
+      if (filters.sektor && f.sektorKodu !== filters.sektor) return false;
       if (filters.sehir && f.sehir !== filters.sehir) return false;
       return true;
     });
@@ -309,6 +330,7 @@ export default function FirmalarPage() {
           </div>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>
+        <div aria-label="Firma listesi" role="region" className="max-sm:[&_table]:w-full max-sm:[&_table]:table-fixed max-sm:[&_th:not(:first-child)]:hidden max-sm:[&_td:not(:first-child)]:hidden">
         <DataTable<FirmaListRow>
           columns={COLUMNS}
           data={filteredData}
@@ -333,6 +355,7 @@ export default function FirmalarPage() {
               : "Arama veya filtre kriterlerinizi degistirin."
           }
         />
+        </div>
         </AsyncSection>
       </div>
 
