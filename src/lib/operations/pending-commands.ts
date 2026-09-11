@@ -1,5 +1,6 @@
 import { parseCommandResolutions } from './command-reconciliation';
 import { isUuid } from './pilot-validation';
+export type DraftCheck = ()=>boolean;
 export type DraftRecovery = (settledDigests:readonly string[])=>Promise<void>;
 export type CommandScope = { actorId:string; tenantId:string };
 type Entry = { digest:string; id:string };

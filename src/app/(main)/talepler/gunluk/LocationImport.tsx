@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { IMPORT_MAX_BYTES, parseLocationCsv, type LocationRow } from "@/lib/operations/location-import";
-import { reserveCommand,acknowledgeCommand,commandDigest,type DraftRecovery,type CommandScope } from "@/lib/operations/pending-commands";
+import { reserveCommand,acknowledgeCommand,commandDigest,type DraftRecovery,type DraftCheck,type CommandScope } from "@/lib/operations/pending-commands";
 import { pilotImportAction } from "./actions";
 
-export default function LocationImport({companyId,scope,disabled,onBusy,onComplete,onPendingChange,reconcileRef}:{reconcileRef:RefObject<DraftRecovery|null>;companyId:string;scope:CommandScope|null;disabled:boolean;onBusy:(busy:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void}) {
+export default function LocationImport({companyId,scope,disabled,onBusy,onComplete,onPendingChange,reconcileRef,dirtyRef}:{dirtyRef:RefObject<DraftCheck|null>;reconcileRef:RefObject<DraftRecovery|null>;companyId:string;scope:CommandScope|null;disabled:boolean;onBusy:(busy:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void}) {
   const [rows,setRows]=useState<LocationRow[]>([]);
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState(false);
@@ -24,6 +24,11 @@ export default function LocationImport({companyId,scope,disabled,onBusy,onComple
     };
     return()=>{current=false;reconcileRef.current=null;};
   },[rows,companyId,reconcileRef]);
+  useEffect(()=>{
+    dirtyRef.current=()=>reading||rows.length>0||!!fileInput.current?.files?.length;
+    return()=>{dirtyRef.current=null;};
+  },[rows,reading,dirtyRef]);
+  useEffect(()=>()=>{sequence.current++;},[]);
   async function preview(file?:File) {
     const ticket=++sequence.current;
     setRows([]);setMessage("");

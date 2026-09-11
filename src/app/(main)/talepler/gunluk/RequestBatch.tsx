@@ -3,12 +3,12 @@ import {useEffect,useRef,useState,type RefObject} from 'react';
 import Link from 'next/link';
 import {addDays} from '@/lib/operations/weekly-plan';
 import {buildRequestDates,validateRequestBatch,type RequestBatch as Batch} from '@/lib/operations/request-batch';
-import {reserveCommand,acknowledgeCommand,commandDigest,type DraftRecovery,type CommandScope} from '@/lib/operations/pending-commands';
+import {reserveCommand,acknowledgeCommand,commandDigest,type DraftRecovery,type DraftCheck,type CommandScope} from '@/lib/operations/pending-commands';
 import type {PilotBoard} from '@/lib/operations/pilot-types';
 import {pilotRequestBatchAction} from './actions';
 const field='mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
-export default function RequestBatch({companyId,date,locations,scope,disabled,onBusy,onComplete,onPendingChange,reconcileRef}:{
-  reconcileRef:RefObject<DraftRecovery|null>;companyId:string;date:string;locations:PilotBoard['locations'];scope:CommandScope|null;disabled:boolean;onBusy:(v:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void;
+export default function RequestBatch({companyId,date,locations,scope,disabled,onBusy,onComplete,onPendingChange,reconcileRef,dirtyRef}:{
+  dirtyRef:RefObject<DraftCheck|null>;reconcileRef:RefObject<DraftRecovery|null>;companyId:string;date:string;locations:PilotBoard['locations'];scope:CommandScope|null;disabled:boolean;onBusy:(v:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void;
 }){
   const [batch,setBatch]=useState<Batch|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[resultDay,setResultDay]=useState('');
   const form=useRef<HTMLFormElement>(null),sending=useRef(false),revision=useRef(0);
@@ -25,6 +25,13 @@ export default function RequestBatch({companyId,date,locations,scope,disabled,on
     };
     return()=>{current=false;reconcileRef.current=null;};
   },[batch,reconcileRef]);
+  useEffect(()=>{
+    dirtyRef.current=()=>!!batch||Array.from(form.current?.querySelectorAll<HTMLInputElement|HTMLSelectElement>('input,select')??[]).some(input=>{
+      if(input instanceof HTMLSelectElement)return input.value!=='';
+      return input.type==='checkbox'?input.checked!==input.defaultChecked:input.value!==input.defaultValue;
+    });
+    return()=>{dirtyRef.current=null;};
+  },[batch,dirtyRef]);
   function preview(node:HTMLFormElement){
     revision.current++;
     setError('');setMessage('');setResultDay('');
