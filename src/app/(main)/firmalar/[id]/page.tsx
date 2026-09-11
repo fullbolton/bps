@@ -247,6 +247,10 @@ export default function FirmaDetayPage({
   const liveNoteContext = useRef<typeof noteContext | null>(noteContext);
   liveNoteContext.current = noteContext;
   const [notePinError, setNotePinError] = useState<typeof noteContext | null>(null);
+  type NotePinOperation = { context: typeof noteContext; id: string; next: boolean };
+  const notePinFlight = useRef<NotePinOperation | null>(null);
+  const [notePinPending, setNotePinPending] = useState<NotePinOperation | null>(null);
+  const pinBusy = notePinPending?.context === noteContext;
   useEffect(() => {
     liveNoteContext.current = noteContext;
     setOpenNoteContext(null);
@@ -1477,16 +1481,25 @@ export default function FirmaDetayPage({
           ] as NoteTagKey[];
 
           async function handlePinToggle(n: NoteRow, next: boolean) {
-            if (liveNoteContext.current !== noteContext || !noteContext.scope) return;
+            if (liveNoteContext.current !== noteContext || !noteContext.scope || notePinFlight.current?.context === noteContext) return;
+            const operation: NotePinOperation = { context: noteContext, id: n.id, next };
+            notePinFlight.current = operation;
+            setNotePinPending(operation);
             setNotePinError(null);
+            const current = () => liveNoteContext.current === noteContext && notePinFlight.current === operation;
             try {
               if (next) await pinNote(supabase, id, n.id);
               else await unpinNote(supabase, id, n.id);
-              if (liveNoteContext.current !== noteContext) return;
+              if (!current()) return;
+              feedback.show(next ? "Not sabitlendi." : "Notun sabitlemesi kaldırıldı.");
               await reloadNotlar();
-              if (liveNoteContext.current === noteContext) router.refresh();
+              if (current()) router.refresh();
             } catch {
-              if (liveNoteContext.current === noteContext) setNotePinError(noteContext);
+              if (current()) setNotePinError(noteContext);
+            } finally {
+              // A late operation must never unlock a newer context's pending write.
+              if (notePinFlight.current === operation) notePinFlight.current = null;
+              if (liveNoteContext.current === noteContext) setNotePinPending(value => value === operation ? null : value);
             }
           }
 
@@ -1520,6 +1533,7 @@ export default function FirmaDetayPage({
                 </div>
               </div>
 
+              {pinBusy && <p role="status" className={`${TYPE_BODY} text-blue-700 mb-3`}>Notun sabitleme durumu kaydediliyor…</p>}
               {notePinError === noteContext && (
                 <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
                   Notun sabitleme durumu değiştirilemedi. Tekrar deneyin.
@@ -1559,9 +1573,11 @@ export default function FirmaDetayPage({
                             <div className="flex flex-col sm:flex-row items-center gap-1 flex-shrink-0 ml-2">
                               {canPin(n) && (
                                 <button
+                                  disabled={pinBusy}
                                   onClick={() => { void handlePinToggle(n, false); }}
-                                  className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                                  className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed`}
                                   title="Sabitlemeyi kaldır"
+                                  aria-busy={pinBusy && notePinPending?.id === n.id}
                                 >
                                   <Pin size={12} />
                                 </button>
@@ -1570,7 +1586,7 @@ export default function FirmaDetayPage({
                                 <button
                                   aria-label="Notu düzenle"
                                   onClick={() => { setNotEditTarget(n); setOpenNoteContext(noteContext); }}
-                                  className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                                  className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed`}
                                 >
                                   <Pencil size={12} />
                                 </button>
@@ -1606,9 +1622,11 @@ export default function FirmaDetayPage({
                         <div className="flex flex-col sm:flex-row items-center gap-1 flex-shrink-0 ml-2">
                           {canPin(n) && (
                             <button
+                              disabled={pinBusy}
                               onClick={() => { void handlePinToggle(n, true); }}
-                              className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-blue-500 ${RADIUS_SM} hover:bg-slate-100`}
+                              className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-blue-500 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed`}
                               title="Sabitle"
+                              aria-busy={pinBusy && notePinPending?.id === n.id}
                             >
                               <Pin size={12} />
                             </button>
@@ -1617,7 +1635,7 @@ export default function FirmaDetayPage({
                             <button
                               aria-label="Notu düzenle"
                                   onClick={() => { setNotEditTarget(n); setOpenNoteContext(noteContext); }}
-                              className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                              className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed`}
                             >
                               <Pencil size={12} />
                             </button>
