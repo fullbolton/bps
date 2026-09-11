@@ -1,7 +1,10 @@
 "use client";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import AsyncSection from "@/components/ui/AsyncSection";
+import { useScopedResource } from "@/components/ui/useScopedResource";
 import { DocumentUploadReviewRequiredError } from "@/lib/company-document-upload";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Upload, AlertTriangle } from "lucide-react";
@@ -26,7 +29,6 @@ import {
 import { uploadCompanyDocumentAction } from "../firmalar/[id]/actions";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
 import { selectAllCompanies } from "@/lib/supabase/companies";
-import type { CompanyRow } from "@/types/database.types";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
 import type { DocumentCategory } from "@/lib/document-categories";
 import type { DocumentRow } from "@/types/database.types";
@@ -123,74 +125,40 @@ const COLUMNS: ColumnDef<DocumentListRow>[] = [
 
 export default function EvraklarPage() {
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const supabase = createClient();
 
   // ---------------------------------------------------------------------------
   // Data loading
   // ---------------------------------------------------------------------------
-  const [documents, setDocuments] = useState<DocumentListRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // Real companies for the Upload modal's firma dropdown. RLS-scoped;
-  // the modal emits `firmaId` (option id prefers legacy_mock_id, falls
-  // back to the UUID). The submit handler resolves it to the real
-  // company UUID and routes the write through uploadCompanyDocumentAction.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
-
-  const reload = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const allDocs = await listAllDocuments(supabase);
-
-      // Resolve company names
-      const companyIds = [...new Set(allDocs.map((d) => d.company_id))];
-      const { nameById, legacyById } = companyIds.length > 0
-        ? await getCompanyDisplayMapByIds(supabase, companyIds)
-        : { nameById: {} as Record<string, string>, legacyById: {} as Record<string, string> };
-
-      const enriched: DocumentListRow[] = allDocs.map((d) => ({
-        ...d,
-        firma_name: nameById[d.company_id] ?? "Bilinmeyen Firma",
-        firma_legacy_id: legacyById[d.company_id] ?? null,
-      }));
-
-      setDocuments(enriched);
-    } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Evraklar yuklenemedi.");
-    } finally {
-      setLoading(false);
-    }
+  const scope = `${user?.id ?? ""}:${user?.app_metadata?.active_tenant ?? ""}:${role}`;
+  const allowed = !authLoading && !!user && ["yonetici", "operasyon", "ik"].includes(role);
+  const context = useMemo(() => ({ scope: allowed ? scope : null }), [allowed, scope]);
+  const liveContext = useRef<typeof context | null>(context);
+  liveContext.current = context;
+  const notice = useActionNotice(scope);
+  const readDocuments = useCallback(async () => {
+    const allDocs = await listAllDocuments(supabase);
+    const companyIds = [...new Set(allDocs.map(d => d.company_id))];
+    const { nameById, legacyById } = companyIds.length > 0
+      ? await getCompanyDisplayMapByIds(supabase, companyIds)
+      : { nameById: {} as Record<string, string>, legacyById: {} as Record<string, string> };
+    return allDocs.map(d => ({ ...d, firma_name: nameById[d.company_id] ?? "Bilinmeyen Firma", firma_legacy_id: legacyById[d.company_id] ?? null }));
   }, [supabase]);
-
-  useEffect(() => {
-    let active = true;
-    reload().then(() => { if (!active) return; });
-    return () => { active = false; };
-  }, [reload]);
-
-  // Companies for the firma dropdown — loaded once on mount. Errors
-  // degrade to an empty list so the dropdown is honestly empty.
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
-    return () => { active = false; };
-  }, [supabase]);
+  const documentResource = useScopedResource(context.scope, readDocuments);
+  const documents: DocumentListRow[] = documentResource.data ?? [];
+  const reload = documentResource.reload;
+  const readCompanies = useCallback(() => selectAllCompanies(supabase), [supabase]);
+  const companyResource = useScopedResource(context.scope, readCompanies);
+  const allCompanies = companyResource.data ?? [];
 
   // ---------------------------------------------------------------------------
   // UI state
   // ---------------------------------------------------------------------------
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({ durum: "", kategori: "", firma: "" });
-  const [uploadOpen, setUploadOpen] = useState(false);
+  const [openUploadContext, setOpenUploadContext] = useState<typeof context | null>(null);
   const [validityTarget, setValidityTarget] = useState<{ open: boolean; evrakAdi?: string; evrakId?: string; currentDate?: string }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Per-row signed-URL failures. A failure here used to flow into the
@@ -200,6 +168,15 @@ export default function EvraklarPage() {
   const [signedUrlErrorIds, setSignedUrlErrorIds] = useState<Set<string>>(
     () => new Set(),
   );
+
+  useEffect(() => {
+    liveContext.current = context;
+    setOpenUploadContext(null); setSelectedId(null); setValidityTarget({ open: false }); setSignedUrlErrorIds(new Set());
+    notice.clear();
+    return () => { liveContext.current = null; };
+    // Notice functions change on render; reset only on authorization context changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context]);
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
   const statusCounts = useMemo(() => {
@@ -269,7 +246,7 @@ export default function EvraklarPage() {
   // UI bu hakkı gizliyordu — bu batch'te UI kaynağa hizalandı (raporda
   // "Partner UI drift correction" olarak belirtildi). Partner scope
   // zaten RLS + storage.objects INSERT policy'sinde enforce edilir.
-  const canMutateEvrak = ["yonetici", "partner", "operasyon", "ik"].includes(role);
+  const canMutateEvrak = allowed;
 
   async function handleDownload(row: DocumentListRow) {
     if (!row.storage_path) return;
@@ -322,39 +299,24 @@ export default function EvraklarPage() {
     );
   }
 
-  if (["goruntuleyici", "muhasebe"].includes(role)) {
+  if (!allowed) {
     return (
       <>
         <PageHeader title="Evraklar" subtitle="Belge takibi" />
-        <EmptyState title="Erisim kisitli" description="Bu ekran goruntleyici erisiminin disindadir." size="page" />
+        <EmptyState title="Erisim kisitli" description="Bu rolde evrak görüntülenemez." size="page" />
       </>
     );
   }
 
-  if (loading) {
-    return (
-      <>
-        <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" />
-        <p className={`${TYPE_BODY} ${TEXT_SECONDARY} py-8 text-center`}>Yukleniyor...</p>
-      </>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <>
-        <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" />
-        <div className={`${RADIUS_DEFAULT} border border-red-200 bg-red-50 p-4 text-sm text-red-700`}>{loadError}</div>
-      </>
-    );
-  }
 
   return (
     <>
       <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" actions={canMutateEvrak ? [
-        { label: "Evrak Yukle", onClick: () => setUploadOpen(true), icon: <Upload size={16} /> },
+        { label: "Evrak Yukle", onClick: () => setOpenUploadContext(context), icon: <Upload size={16} /> },
       ] : []} />
 
+      <ActionNotice message={notice.message} onDismiss={notice.clear} />
+      <AsyncSection isLoading={documentResource.loading} hasError={documentResource.error} onRetry={() => { void reload(); }}>
       <div className="space-y-4">
         <DocumentsChecklistCard
           tam={statusCounts["tam"] ?? 0}
@@ -432,6 +394,7 @@ export default function EvraklarPage() {
         <DataTable<DocumentListRow> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle="Evrak bulunamadi" emptyDescription="Arama veya filtre kriterlerinizi degistirin." />
       </div>
 
+      </AsyncSection>
       {/* FirmDocumentChecklistPanel */}
       <RightSidePanel open={!!selectedEvrak} onClose={() => setSelectedId(null)} title={selectedEvrak ? `${selectedEvrak.firma_name} -- Evrak Durumu` : undefined}>
         {selectedEvrak && (
@@ -452,15 +415,18 @@ export default function EvraklarPage() {
         )}
       </RightSidePanel>
 
-      <UploadDocumentModal open={uploadOpen} onClose={() => setUploadOpen(false)} firmalar={firmaOptions}
+      {openUploadContext === context && context.scope && <UploadDocumentModal open onClose={() => { if (liveContext.current === context) setOpenUploadContext(null); }} firmalar={firmaOptions}
+        companiesState={companyResource.loading ? "loading" : companyResource.error ? "error" : "ready"}
+        onRetryCompanies={() => { void companyResource.reload(); }}
         onSubmit={async (p) => {
+          if (liveContext.current !== context) return;
           // Resolve real company UUID from the dropdown id (legacy_mock_id
           // when present, else the real UUID). The tenant-aware server
           // action needs the real company UUID.
           const company = allCompanies.find(
             (c) => (c.legacy_mock_id ?? c.id) === p.firmaId,
           );
-          if (!company) {
+          if (companyResource.loading || companyResource.error || !company) {
             throw new Error("Firma bulunamadi veya erisim yetkiniz yok.");
           }
 
@@ -478,15 +444,20 @@ export default function EvraklarPage() {
 
           let result;
           try { result = await uploadCompanyDocumentAction(fd); }
-          catch { throw new DocumentUploadReviewRequiredError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin."); }
+          catch {
+            if (liveContext.current !== context) return;
+            throw new DocumentUploadReviewRequiredError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin.");
+          }
+          if (liveContext.current !== context) return;
           if (!result.ok) {
             if (result.reviewRequired) throw new DocumentUploadReviewRequiredError(result.error);
             throw new Error(result.error);
           }
-          await reload();
-          router.refresh();
+          setOpenUploadContext(null);
+          notice.show(`${p.evrakAdi} evraklara yüklendi.`);
+          void reload();
         }}
-      />
+      />}
       <UpdateValidityModal open={validityTarget.open} onClose={() => setValidityTarget({ open: false })} evrakAdi={validityTarget.evrakAdi} evrakId={validityTarget.evrakId} currentDate={validityTarget.currentDate}
         onSubmit={async ({ evrakId, yeniTarih }) => {
           await updateDocumentValidity(supabase, evrakId, { validityDate: yeniTarih });
