@@ -28,16 +28,8 @@ export async function selectDocumentsByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<DocumentRow[]> {
-  const { data, error } = await client
-    .from("documents")
-    .select("*")
-    .eq("company_id", companyId)
-    .order("updated_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`documents select-by-company failed: ${error.message}`);
-  }
-  return data ?? [];
+  if (typeof companyId !== "string" || !companyId) throw new Error("documents scope invalid");
+  return readDocumentPages(client, [companyId]);
 }
 
 /**
@@ -47,6 +39,14 @@ export async function selectDocumentsByCompanyId(
 export async function selectAllDocuments(
   client: Client,
 ): Promise<DocumentRow[]> {
+  return readDocumentPages(client);
+}
+
+/** A fixed company scope is reapplied on every page; undefined alone means all visible. */
+async function readDocumentPages(client: Client, companyIds?: string[]): Promise<DocumentRow[]> {
+  const ids = companyIds === undefined ? undefined : [...new Set(companyIds)];
+  if (ids?.length === 0) return [];
+  const allowedCompanies = ids ? new Set(ids) : null;
   const rows: DocumentRow[] = [];
   let cursor: string | null = null;
   // Follow immutable IDs, not updated_at (edits can move rows across offset pages).
@@ -54,23 +54,26 @@ export async function selectAllDocuments(
   // Bound a continuously growing/broken scan; never expose a partial success.
   for (let page = 0; page <= 200; page++) {
     let query = client.from("documents").select("*").order("id", { ascending: true }).limit(500);
+    if (ids?.length === 1) query = query.eq("company_id", ids[0]);
+    else if (ids) query = query.in("company_id", ids);
     if (cursor) query = query.gt("id", cursor);
     const { data, error } = await query;
-    if (error) throw new Error("documents select-all page failed");
-    if (!Array.isArray(data)) throw new Error("documents select-all invalid page");
+    if (error) throw new Error("documents scan page failed");
+    if (!Array.isArray(data)) throw new Error("documents scan invalid page");
     if (data.length === 0) {
       return rows.sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at) || a.id.localeCompare(b.id));
     }
-    if (page === 200) throw new Error("documents select-all scan limit exceeded");
+    if (page === 200) throw new Error("documents scan limit exceeded");
     for (const row of data) {
       if (!row || typeof row.id !== "string" || !row.id || (cursor !== null && row.id <= cursor)) {
-        throw new Error("documents select-all page did not advance");
+        throw new Error("documents scan page did not advance");
       }
+      if (allowedCompanies && !allowedCompanies.has(row.company_id)) throw new Error("documents scan scope mismatch");
       cursor = row.id;
       rows.push(row);
     }
   }
-  throw new Error("documents select-all incomplete scan");
+  throw new Error("documents incomplete scan");
 }
 
 /**
@@ -93,25 +96,15 @@ export async function selectDocumentById(
 }
 
 /**
- * Read every document for a set of company ids in one round trip.
+ * Read every document for a fixed set of company ids, following all pages.
  * Used by the Firmalar list batched compliance reader.
  */
 export async function selectDocumentsByCompanyIds(
   client: Client,
   companyIds: string[],
 ): Promise<DocumentRow[]> {
-  if (companyIds.length === 0) return [];
-
-  const { data, error } = await client
-    .from("documents")
-    .select("*")
-    .in("company_id", companyIds)
-    .order("updated_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`documents select-by-companies failed: ${error.message}`);
-  }
-  return data ?? [];
+  if (!Array.isArray(companyIds) || companyIds.some(id => typeof id !== "string" || !id)) throw new Error("documents scope invalid");
+  return readDocumentPages(client, companyIds);
 }
 
 // ---------------------------------------------------------------------------
