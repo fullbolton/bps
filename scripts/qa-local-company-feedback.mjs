@@ -16,6 +16,7 @@ import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
 import {checkCompanyDocumentMobile} from './helpers/company-document-mobile-acceptance.mjs';
 import {checkCompanyDownload} from './helpers/company-download-acceptance.mjs';
+import {checkCompanySearch} from './helpers/company-search-acceptance.mjs';
 import {checkCompanyListMobile} from './helpers/company-list-mobile-acceptance.mjs';
 import {checkCompanySummaries} from './helpers/company-summary-acceptance.mjs';
 import {checkCompanyDirectory} from './helpers/company-directory-acceptance.mjs';
@@ -61,7 +62,7 @@ try {
  sql(readFileSync(new URL('./fixtures/local-company-feedback.sql',import.meta.url),'utf8'));
  if(process.env.BPS_APPOINTMENT_LINK_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contract-appointments.sql',import.meta.url),'utf8'));
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1'||process.env.BPS_REQUEST_FORM_CHECK==='1'||process.env.BPS_REQUEST_RECOVERY_CHECK==='1'||process.env.BPS_OWNER_FORM_CHECK==='1'||process.env.BPS_REQUEST_LIST_CHECK==='1'||process.env.BPS_REQUEST_MOBILE_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-request-feedback.sql',import.meta.url),'utf8'));
- if(process.env.BPS_COMPANY_LIST_MOBILE_CHECK==='1'||process.env.BPS_COMPANY_SUMMARY_CHECK==='1'||process.env.BPS_COMPANY_CONTACT_READ_CHECK==='1'||process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1'||process.env.BPS_CONTACT_PRIMARY_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));
+ if(process.env.BPS_COMPANY_SEARCH_CHECK==='1'||process.env.BPS_COMPANY_LIST_MOBILE_CHECK==='1'||process.env.BPS_COMPANY_SUMMARY_CHECK==='1'||process.env.BPS_COMPANY_CONTACT_READ_CHECK==='1'||process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1'||process.env.BPS_CONTACT_PRIMARY_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));
  if(process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1'||process.env.BPS_CONTACT_PRIMARY_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contact-write.sql',import.meta.url),'utf8'));
  if((process.env.BPS_CONTACT_PRIMARY_CHECK==='1'||process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1')&&process.env.BPS_CONTACT_PRIMARY_REPRO!=='1')sql(readFileSync(new URL('../supabase/migrations/20260911000100_contact_atomic_write.sql',import.meta.url),'utf8'));
  if(process.env.BPS_RECORD_DELETE_CHECK==='1'){sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));}
@@ -774,6 +775,7 @@ try {
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_BATCH_CHECK==='1') await checkDocumentBatch({page,sql,user,tenant:id(1),prefix,origin});
+ if(process.env.BPS_COMPANY_SEARCH_CHECK==='1') await checkCompanySearch({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_COMPANY_LIST_MOBILE_CHECK==='1') await checkCompanyListMobile({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_COMPANY_SUMMARY_CHECK==='1') await checkCompanySummaries({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_COMPANY_DIRECTORY_CHECK==='1') await checkCompanyDirectory({page,sql,user,tenant:id(1),prefix,origin,setRelease:fn=>releaseRequest=fn});

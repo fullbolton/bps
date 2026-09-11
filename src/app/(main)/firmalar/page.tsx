@@ -145,6 +145,7 @@ const COLUMNS: ColumnDef<FirmaListRow>[] = [
 ];
 
 const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", risk: "", sektor: "", sehir: "" };
+const normalizeCompanySearch = (value: string) => value.normalize("NFC").trim().toLocaleLowerCase("tr");
 
 export default function FirmalarPage() {
   const router = useRouter();
@@ -226,6 +227,7 @@ export default function FirmalarPage() {
   // Enriched + filtered rows
   // ---------------------------------------------------------------------------
   const filteredData = useMemo(() => {
+    const query = normalizeCompanySearch(search);
     const enriched: FirmaListRow[] = companies.map((c) => {
       return {
         id: c.id,
@@ -241,15 +243,8 @@ export default function FirmalarPage() {
     });
 
     return enriched.filter((f) => {
-      if (search) {
-        const q = search.toLowerCase();
-        if (
-          !f.firmaAdi.toLowerCase().includes(q) &&
-          !f.anaYetkili.toLowerCase().includes(q) &&
-          !f.sektor.toLowerCase().includes(q) &&
-          !f.sehir.toLowerCase().includes(q)
-        ) return false;
-      }
+      const searchable = [f.firmaAdi, f.sektor, f.sehir, contactsError ? "" : f.anaYetkili];
+      if (query && !searchable.some(value => normalizeCompanySearch(value).includes(query))) return false;
       if (filters.durum && f.durum !== filters.durum) return false;
       if (filters.risk && f.risk !== filters.risk) return false;
       if (filters.sektor && f.sektorKodu !== filters.sektor) return false;
@@ -337,22 +332,22 @@ export default function FirmalarPage() {
           rowKey="id"
           rowActions={rowActions}
           onRowClick={(row) => router.push(`/firmalar/${row.id}`)}
-          emptyAction={(companies.length > 0 && (search !== "" || Object.values(filters).some(Boolean))) ? {
+          emptyAction={companies.length === 0 && isYonetici ? {
+            label: "İlk firmayı ekle",
+            onClick: () => { setNotice(null); setNewOpen(true); },
+          } : (companies.length > 0 && (normalizeCompanySearch(search) !== "" || Object.values(filters).some(Boolean))) ? {
             label: "Arama ve filtreleri temizle",
             onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
           } : undefined}
           emptyTitle={
-            companies.length === 0 ? "Portfoyde firma yok" : "Firma bulunamadi"
+            companies.length === 0 ? "Firma listeniz boş" : "Bu arama ve filtrelerle eşleşen firma yok"
           }
           emptyDescription={
-            // İKİ AYRI DURUM, İKİ AYRI CÜMLE. Kiracıda hiç firma yokken
-            // "filtrelerinizi degistirin" demek, kullanıcıyı olmayan bir
-            // filtreyi aramaya gönderir — Mek Group'ta görülen tam olarak buydu.
             companies.length === 0
               ? isYonetici
-                ? "Bu kiracida henuz firma yok. Yukaridaki \u201cYeni Firma\u201d ile ekleyebilirsiniz."
-                : "Bu kiracida henuz firma yok."
-              : "Arama veya filtre kriterlerinizi degistirin."
+                ? "İlk firmanızı ekleyerek müşteri ve operasyon kayıtlarını takip etmeye başlayın."
+                : "Erişebildiğiniz firmalar burada listelenir."
+              : "Farklı bir arama deneyin veya filtreleri temizleyin."
           }
         />
         </div>
