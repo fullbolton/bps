@@ -14,6 +14,7 @@ import {checkCompanyContactRead} from './helpers/company-contact-read-acceptance
 import {checkCompanyNotePin} from './helpers/company-note-pin-acceptance.mjs';
 import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
+import {checkDocumentList} from './helpers/document-list-acceptance.mjs';
 import {checkDocumentDownload} from './helpers/document-download-acceptance.mjs';
 import {checkDocumentValidity} from './helpers/document-validity-acceptance.mjs';
 import {checkGeneralDocumentForm} from './helpers/general-document-form-acceptance.mjs';
@@ -759,6 +760,7 @@ try {
  if(process.env.BPS_COMPANY_NOTE_PIN_CHECK==='1') await checkCompanyNotePin({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTE_FORM_CHECK==='1') await checkCompanyNoteForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTES_CHECK==='1') await checkCompanyNotes({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
+ if(process.env.BPS_DOCUMENT_LIST_CHECK==='1') await checkDocumentList({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_DOCUMENT_DOWNLOAD_CHECK==='1') await checkDocumentDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_VALIDITY_CHECK==='1') await checkDocumentValidity({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_GENERAL_DOCUMENT_FORM_CHECK==='1') await checkGeneralDocumentForm({page,sql,user,tenant:id(1),first,prefix,origin,output,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});

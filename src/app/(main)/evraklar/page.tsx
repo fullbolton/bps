@@ -1,5 +1,7 @@
 "use client";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import { useListViewState } from "@/components/ui/useListViewState";
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import AsyncSection from "@/components/ui/AsyncSection";
 import { useScopedResource } from "@/components/ui/useScopedResource";
 import { DocumentUploadReviewRequiredError } from "@/lib/company-document-upload";
@@ -32,7 +34,7 @@ import { selectAllCompanies } from "@/lib/supabase/companies";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
 import type { DocumentCategory } from "@/lib/document-categories";
 import type { DocumentRow } from "@/types/database.types";
-import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
+import type { ColumnDef, FilterConfig, RowAction } from "@/types/ui";
 import { clsx } from "clsx";
 import {
   TYPE_BODY,
@@ -57,7 +59,8 @@ interface DocumentListRow extends DocumentRow {
 }
 
 // Page-local helpers
-const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
+const LIST_FILTER_DEFAULTS = { durum: "", kategori: "", firma: "" };
+const CHIP_BASE = `min-h-11 px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
 const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
 const CHIP_INACTIVE = "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
 const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
@@ -65,8 +68,8 @@ const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
 const STATUS_LABELS: Record<string, string> = {
   tam: "Tam",
   eksik: "Eksik",
-  suresi_yaklsiyor: "Suresi Yaklaiyor",
-  suresi_doldu: "Suresi Doldu",
+  suresi_yaklsiyor: "Süresi Yaklaşıyor",
+  suresi_doldu: "Süresi Doldu",
 };
 
 const FILTER_CONFIG: FilterConfig[] = [
@@ -74,14 +77,14 @@ const FILTER_CONFIG: FilterConfig[] = [
     key: "durum",
     label: "Durum",
     type: "select",
-    placeholder: "Tum durumlar",
+    placeholder: "Tüm durumlar",
     options: Object.entries(STATUS_LABELS).map(([v, l]) => ({ value: v, label: l })),
   },
   {
     key: "kategori",
     label: "Kategori",
     type: "select",
-    placeholder: "Tum kategoriler",
+    placeholder: "Tüm kategoriler",
     options: (Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map((k) => ({ value: k, label: DOCUMENT_CATEGORY_LABELS[k] })),
   },
 ];
@@ -155,8 +158,8 @@ export default function EvraklarPage() {
   // ---------------------------------------------------------------------------
   // UI state
   // ---------------------------------------------------------------------------
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({ durum: "", kategori: "", firma: "" });
+  const searchControl = useRef<SearchInputHandle>(null);
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("evraklar", context.scope, LIST_FILTER_DEFAULTS);
   const [openUploadContext, setOpenUploadContext] = useState<typeof context | null>(null);
   const [validityTarget, setValidityTarget] = useState<{ context: typeof context; row: DocumentListRow } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -181,7 +184,6 @@ export default function EvraklarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context]);
 
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = { tam: 0, eksik: 0, suresi_yaklsiyor: 0, suresi_doldu: 0 };
     for (const e of documents) c[e.status] = (c[e.status] || 0) + 1;
@@ -190,28 +192,28 @@ export default function EvraklarPage() {
 
   // Build firma filter options dynamically from loaded data
   const firmaFilterConfig = useMemo((): FilterConfig[] => {
-    const firmaNames = [...new Set(documents.map((d) => d.firma_name))].sort();
+    const firms = [...new Map(documents.map(d => [d.company_id, d.firma_name])).entries()].sort((a, b) => a[1].localeCompare(b[1], "tr"));
     return [
       ...FILTER_CONFIG,
       {
         key: "firma",
         label: "Firma",
         type: "select" as const,
-        placeholder: "Tum firmalar",
-        options: firmaNames.map((n) => ({ label: n, value: n })),
+        placeholder: "Tüm firmalar",
+        options: firms.map(([id, name]) => ({ label: name, value: id })),
       },
     ];
   }, [documents]);
 
   const filteredData = useMemo(() => {
     return documents.filter((e) => {
-      if (search) {
-        const q = search.toLowerCase();
-        if (!e.name.toLowerCase().includes(q) && !e.firma_name.toLowerCase().includes(q)) return false;
+      if (search.trim()) {
+        const q = search.trim().toLocaleLowerCase("tr-TR");
+        if (!e.name.toLocaleLowerCase("tr-TR").includes(q) && !e.firma_name.toLocaleLowerCase("tr-TR").includes(q)) return false;
       }
       if (filters.durum && e.status !== filters.durum) return false;
       if (filters.kategori && e.category !== filters.kategori) return false;
-      if (filters.firma && e.firma_name !== filters.firma) return false;
+      if (filters.firma && e.company_id !== filters.firma) return false;
       return true;
     });
   }, [documents, search, filters]);
@@ -330,7 +332,7 @@ export default function EvraklarPage() {
           }} className="min-h-11 mt-2 inline-flex items-center text-sm font-medium text-blue-700 underline">Dosyayı aç</a>
         </>}
       </section>}
-      <AsyncSection isLoading={documentResource.loading} hasError={documentResource.error} onRetry={() => { void reload(); }}>
+      <AsyncSection isLoading={documentResource.loading || !viewReady} hasError={documentResource.error} onRetry={() => { void reload(); }}>
       <div className="space-y-4">
         <DocumentsChecklistCard
           tam={statusCounts["tam"] ?? 0}
@@ -374,7 +376,7 @@ export default function EvraklarPage() {
 
         <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(statusCounts).filter(([, c]) => c > 0).map(([status, count]) => (
-            <button key={status} onClick={() => setFilters((p) => ({ ...p, durum: p.durum === status ? "" : status }))} className={clsx(
+            <button type="button" aria-pressed={filters.durum === status} key={status} onClick={() => setFilters((p) => ({ ...p, durum: p.durum === status ? "" : status }))} className={clsx(
               CHIP_BASE,
               filters.durum === status ? CHIP_ACTIVE : CHIP_INACTIVE
             )}>{STATUS_LABELS[status] ?? status} ({count})</button>
@@ -382,11 +384,14 @@ export default function EvraklarPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="w-full sm:max-w-xs"><SearchInput placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
+          <div className="w-full sm:max-w-xs"><SearchInput key={context.scope} ref={searchControl} value={search} maxLength={512} placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
           <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
         </div>
 
-        <DataTable<DocumentListRow> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle="Evrak bulunamadi" emptyDescription="Arama veya filtre kriterlerinizi degistirin." />
+        <DataTable<DocumentListRow> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle={documents.length === 0 ? "Henüz evrak yok" : "Bu filtrelerle eşleşen evrak yok"}
+          emptyDescription={documents.length === 0 ? "Evrak Yükle ile ilk firma belgenizi ekleyebilirsiniz." : "Aramayı veya filtreleri değiştirerek yeniden deneyin."}
+          emptyAction={documents.length === 0 ? { label: "İlk evrakı yükle", onClick: () => setOpenUploadContext(context) }
+            : (search !== "" || Object.values(filters).some(Boolean)) ? { label: "Arama ve filtreleri temizle", onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); } } : undefined} />
       </div>
 
       </AsyncSection>
