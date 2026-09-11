@@ -16,6 +16,7 @@ import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
 import {checkCompanyDocumentMobile} from './helpers/company-document-mobile-acceptance.mjs';
 import {checkCompanyDownload} from './helpers/company-download-acceptance.mjs';
+import {checkDocumentPagination} from './helpers/document-pagination-acceptance.mjs';
 import {checkDocumentFollowUp} from './helpers/document-follow-up-acceptance.mjs';
 import {checkDocumentDetail} from './helpers/document-detail-acceptance.mjs';
 import {checkDocumentList} from './helpers/document-list-acceptance.mjs';
@@ -766,6 +767,7 @@ try {
  if(process.env.BPS_COMPANY_NOTES_CHECK==='1') await checkCompanyNotes({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
+ if(process.env.BPS_DOCUMENT_PAGINATION_CHECK==='1') await checkDocumentPagination({page,sql,user,tenant:id(1),first,prefix,origin});
  if(process.env.BPS_DOCUMENT_FOLLOW_UP_CHECK==='1') await checkDocumentFollowUp({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_DOCUMENT_DETAIL_CHECK==='1') await checkDocumentDetail({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_DOCUMENT_LIST_CHECK==='1') await checkDocumentList({page,sql,user,tenant:id(1),first,prefix,origin,output});

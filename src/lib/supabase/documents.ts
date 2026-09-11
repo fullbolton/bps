@@ -47,15 +47,30 @@ export async function selectDocumentsByCompanyId(
 export async function selectAllDocuments(
   client: Client,
 ): Promise<DocumentRow[]> {
-  const { data, error } = await client
-    .from("documents")
-    .select("*")
-    .order("updated_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`documents select-all failed: ${error.message}`);
+  const rows: DocumentRow[] = [];
+  let cursor: string | null = null;
+  // Follow immutable IDs, not updated_at (edits can move rows across offset pages).
+  // Only an empty page ends the scan: the server may cap responses below 500.
+  // Bound a continuously growing/broken scan; never expose a partial success.
+  for (let page = 0; page <= 200; page++) {
+    let query = client.from("documents").select("*").order("id", { ascending: true }).limit(500);
+    if (cursor) query = query.gt("id", cursor);
+    const { data, error } = await query;
+    if (error) throw new Error("documents select-all page failed");
+    if (!Array.isArray(data)) throw new Error("documents select-all invalid page");
+    if (data.length === 0) {
+      return rows.sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at) || a.id.localeCompare(b.id));
+    }
+    if (page === 200) throw new Error("documents select-all scan limit exceeded");
+    for (const row of data) {
+      if (!row || typeof row.id !== "string" || !row.id || (cursor !== null && row.id <= cursor)) {
+        throw new Error("documents select-all page did not advance");
+      }
+      cursor = row.id;
+      rows.push(row);
+    }
   }
-  return data ?? [];
+  throw new Error("documents select-all incomplete scan");
 }
 
 /**
