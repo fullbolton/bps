@@ -208,9 +208,6 @@ export default function FirmaDetayPage({
   // chronological) and the Genel Bakış > Son Notlar card (top 3 slice).
   // The service resolves legacy id → companies row → RLS-scoped note
   // rows, so partner scope is re-verified at every read.
-  const [notlar, setNotlar] = useState<NoteRow[]>([]);
-  const [notlarLoading, setNotlarLoading] = useState(true);
-  const [notlarError, setNotlarError] = useState<string | null>(null);
   const [notEditTarget, setNotEditTarget] = useState<NoteRow | null>(null);
   const [notTagFilter, setNotTagFilter] = useState<NoteTagKey | "">("");
   // Yetkili kişiler — Faz 1A: real Supabase truth via service layer.
@@ -240,26 +237,20 @@ export default function FirmaDetayPage({
     setYetkililerLoading(true);
     void reloadYetkililer();
   }, [reloadYetkililer]);
-  const reloadNotlar = useCallback(async () => {
-    setNotlarError(null);
-    try {
-      const rows = await listNotesByLegacyCompanyId(supabase, id);
-      setNotlar(rows);
-    } catch (err) {
-      setNotlar([]);
-      setNotlarError(
-        err instanceof Error
-          ? err.message
-          : "Notlar yüklenirken bir hata oluştu.",
-      );
-    } finally {
-      setNotlarLoading(false);
-    }
-  }, [supabase, id]);
+  const notesScope = !authLoading && user && !["goruntuleyici", "muhasebe"].includes(role) ? companyScope : null;
+  const readNotes = useCallback(() => listNotesByLegacyCompanyId(supabase, id), [supabase, id]);
+  const notesResource = useScopedResource(notesScope, readNotes);
+  const notlar = notesResource.data ?? [];
+  const reloadNotlar = notesResource.reload;
+  // Pin failures are action failures; they must not replace a readable note list.
+  const noteContext = useMemo(() => ({ scope: notesScope }), [notesScope]);
+  const liveNoteContext = useRef<typeof noteContext | null>(noteContext);
+  liveNoteContext.current = noteContext;
+  const [notePinError, setNotePinError] = useState<typeof noteContext | null>(null);
   useEffect(() => {
-    setNotlarLoading(true);
-    void reloadNotlar();
-  }, [reloadNotlar]);
+    liveNoteContext.current = noteContext;
+    return () => { liveNoteContext.current = null; };
+  }, [noteContext]);
   // Phase 3 state: Talepler, Randevular, İş Gücü — real Supabase truth.
   const staffingScope = !authLoading && user ? companyScope : null;
   const readDemands = useCallback(() => listDemandsByLegacyCompanyId(supabase, id), [supabase, id]);
@@ -839,11 +830,8 @@ export default function FirmaDetayPage({
                 <StickyNote size={14} className={TEXT_MUTED} />
                 Son Notlar
               </h3>
-              {notlarError ? (
-                <p className={`${TYPE_CAPTION} text-red-600 py-2`} role="alert">{notlarError}</p>
-              ) : notlarLoading ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>Yükleniyor…</p>
-              ) : notlar.length === 0 ? (
+              <AsyncSection isLoading={notesResource.loading} hasError={notesResource.error} onRetry={() => { void reloadNotlar(); }}>
+              {notlar.length === 0 ? (
                 <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
                   Henüz not yok.
                 </p>
@@ -851,12 +839,13 @@ export default function FirmaDetayPage({
                 <div className="space-y-2">
                   {notlar.slice(0, 3).map((n) => (
                     <div key={n.id} className={`py-1.5 ${LIST_DIVIDER}`}>
-                      <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
+                      <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>{n.content}</p>
                       <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{n.author_name} · {formatDateTR(n.created_at.slice(0, 10))}</p>
                     </div>
                   ))}
                 </div>
               )}
+              </AsyncSection>
             </div>}
 
             {/* 8. Risk Sinyalleri — hidden for görüntüleyici + ik + muhasebe */}
@@ -1481,15 +1470,16 @@ export default function FirmaDetayPage({
           ] as NoteTagKey[];
 
           async function handlePinToggle(n: NoteRow, next: boolean) {
+            if (liveNoteContext.current !== noteContext || !noteContext.scope) return;
+            setNotePinError(null);
             try {
               if (next) await pinNote(supabase, id, n.id);
               else await unpinNote(supabase, id, n.id);
+              if (liveNoteContext.current !== noteContext) return;
               await reloadNotlar();
-              router.refresh();
-            } catch (err) {
-              setNotlarError(
-                err instanceof Error ? err.message : "Sabitleme işlemi başarısız.",
-              );
+              if (liveNoteContext.current === noteContext) router.refresh();
+            } catch {
+              if (liveNoteContext.current === noteContext) setNotePinError(noteContext);
             }
           }
 
@@ -1500,6 +1490,7 @@ export default function FirmaDetayPage({
                 <div className="flex items-center gap-3">
                   {mevcutEtiketler.length > 0 && (
                     <select
+                      aria-label="Not etiketi"
                       value={notTagFilter}
                       onChange={(e) => setNotTagFilter(e.target.value as NoteTagKey | "")}
                       className={`px-2 py-1 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
@@ -1522,15 +1513,14 @@ export default function FirmaDetayPage({
                 </div>
               </div>
 
-              {notlarError && (
+              {notePinError === noteContext && (
                 <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-                  {notlarError}
+                  Notun sabitleme durumu değiştirilemedi. Tekrar deneyin.
                 </p>
               )}
 
-              {notlarLoading ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-              ) : notlar.length === 0 ? (
+              <AsyncSection isLoading={notesResource.loading} hasError={notesResource.error} onRetry={() => { void reloadNotlar(); }}>
+              {notlar.length === 0 ? (
                 <EmptyState title="Not yok" description="Bu firma için henüz not eklenmemiş." size="tab" />
               ) : (
                 <div className="space-y-0">
@@ -1545,7 +1535,7 @@ export default function FirmaDetayPage({
                         <div key={n.id} className={`py-3 ${idx < sabitlenenler.length - 1 ? `border-b ${BORDER_SUBTLE}` : `border-b ${BORDER_DEFAULT} mb-3 pb-3`}`}>
                           <div className="flex items-start justify-between">
                             <div className="min-w-0 flex-1">
-                              <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
+                              <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>{n.content}</p>
                               <div className={`flex items-center gap-2 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
                                 <span>{n.author_name}</span>
                                 <span>·</span>
@@ -1592,7 +1582,7 @@ export default function FirmaDetayPage({
                     <div key={n.id} className={`py-3 ${idx < filtrelenmis.length - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
-                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
+                          <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>{n.content}</p>
                           <div className={`flex items-center gap-2 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
                             <span>{n.author_name}</span>
                             <span>·</span>
@@ -1629,6 +1619,7 @@ export default function FirmaDetayPage({
                   ))}
                 </div>
               )}
+              </AsyncSection>
             </div>
           );
         })()}
