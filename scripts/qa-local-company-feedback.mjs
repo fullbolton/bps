@@ -14,6 +14,7 @@ import {checkCompanyContactRead} from './helpers/company-contact-read-acceptance
 import {checkCompanyNotePin} from './helpers/company-note-pin-acceptance.mjs';
 import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
+import {checkDocumentValidity} from './helpers/document-validity-acceptance.mjs';
 import {checkGeneralDocumentForm} from './helpers/general-document-form-acceptance.mjs';
 import {checkCompanyUploadRecovery} from './helpers/company-upload-recovery-acceptance.mjs';
 import {checkCompanyUploadSuccess} from './helpers/company-upload-success-acceptance.mjs';
@@ -53,6 +54,7 @@ try {
  if(process.env.BPS_RECORD_DELETE_CHECK==='1'){sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));}
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-workforce-summary.sql',import.meta.url),'utf8'));
  if((process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1'||process.env.BPS_COMPANY_UPLOAD_RECOVERY_CHECK==='1'||process.env.BPS_GENERAL_DOCUMENT_FORM_CHECK==='1')){sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-company-upload-write.sql',import.meta.url),'utf8'));}
+ if(process.env.BPS_DOCUMENT_VALIDITY_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-document-validity.sql',import.meta.url),'utf8'));
  admin=createClient(s.API_URL,s.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
  const email=`ux-${randomUUID()}@example.test`,password=randomUUID()+'Aa1!';
  const a=await admin.auth.admin.createUser({email,password,email_confirm:true,app_metadata:{active_tenant:id(1)}});assert.ifError(a.error);user=a.data.user.id;
@@ -756,6 +758,7 @@ try {
  if(process.env.BPS_COMPANY_NOTE_PIN_CHECK==='1') await checkCompanyNotePin({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTE_FORM_CHECK==='1') await checkCompanyNoteForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTES_CHECK==='1') await checkCompanyNotes({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
+ if(process.env.BPS_DOCUMENT_VALIDITY_CHECK==='1') await checkDocumentValidity({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_GENERAL_DOCUMENT_FORM_CHECK==='1') await checkGeneralDocumentForm({page,sql,user,tenant:id(1),first,prefix,origin,output,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_UPLOAD_RECOVERY_CHECK==='1') await checkCompanyUploadRecovery({page,sql,user,tenant:id(1),first,prefix,origin,output,ownedStoragePaths});
  if(process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1') await checkCompanyUploadSuccess({page,sql,user,tenant:id(1),first,prefix,origin,output,client,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});

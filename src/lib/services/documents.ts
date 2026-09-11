@@ -15,15 +15,15 @@
  *         via `requireCompanyByLegacyMockId`.
  *   - Document name must be non-blank.
  *   - storage_path is an object key, never a public URL.
- *   - status is set by the caller (tam/eksik/suresi_yaklsiyor/suresi_doldu).
- *     Expiry derivation from validity_date is optional and happens in the
- *     service layer, but status itself is a human-driven classification.
+ *   - Manual status changes remain explicit. File upload and validity-date
+ *     updates share the UTC-day expiry classification in document-validity.
  *
  * Error surface:
  *   - DocumentValidationError        -- blank name
  *   - CompanyNotFoundOrOutOfScopeError -- reused from services/companies
  */
 
+import { documentStatusForFile, isDocumentValidityDate } from "@/lib/document-validity";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EvrakDurumu } from "@/types/ui";
 import type {
@@ -263,7 +263,7 @@ export async function updateContractDocumentFile(
 // ---------------------------------------------------------------------------
 
 /**
- * Update a document's validity date and mark it as 'tam'.
+ * Update the validity date and derive the stored status with the upload convention.
  * Used by the "Gecerlilik Guncelle" flow.
  */
 export async function updateDocumentValidity(
@@ -274,6 +274,10 @@ export async function updateDocumentValidity(
   const trimmedDate = input.validityDate.trim();
   if (!trimmedDate) {
     throw new DocumentValidationError("Gecerlilik tarihi bos birakilamaz.");
+  }
+
+  if (!isDocumentValidityDate(trimmedDate)) {
+    throw new DocumentValidationError("Geçerli bir tarih girin (YYYY-AA-GG).");
   }
 
   // Verify the document exists and is visible
@@ -289,13 +293,13 @@ export async function updateDocumentValidity(
   // domain error instead of a raw constraint violation.
   if (!existing.storage_path) {
     throw new DocumentValidationError(
-      "Dosyasi yuklenmemis evrak 'tam' olarak isaretlenemez. Once evrak dosyasini yukleyin.",
+      "Geçerlilik tarihini güncellemeden önce evrak dosyasını yükleyin.",
     );
   }
 
   const patch: DocumentUpdate = {
     validity_date: trimmedDate,
-    status: "tam",
+    status: documentStatusForFile(trimmedDate),
     updated_at: new Date().toISOString(),
   };
 

@@ -5,7 +5,6 @@ import { useScopedResource } from "@/components/ui/useScopedResource";
 import { DocumentUploadReviewRequiredError } from "@/lib/company-document-upload";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Upload, AlertTriangle } from "lucide-react";
 import {
@@ -25,6 +24,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   listAllDocuments,
   updateDocumentValidity,
+  DocumentValidationError,
 } from "@/lib/services/documents";
 import { uploadCompanyDocumentAction } from "../firmalar/[id]/actions";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
@@ -126,7 +126,6 @@ const COLUMNS: ColumnDef<DocumentListRow>[] = [
 export default function EvraklarPage() {
   const { role } = useRole();
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const supabase = createClient();
 
   // ---------------------------------------------------------------------------
@@ -159,7 +158,7 @@ export default function EvraklarPage() {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<FilterValues>({ durum: "", kategori: "", firma: "" });
   const [openUploadContext, setOpenUploadContext] = useState<typeof context | null>(null);
-  const [validityTarget, setValidityTarget] = useState<{ open: boolean; evrakAdi?: string; evrakId?: string; currentDate?: string }>({ open: false });
+  const [validityTarget, setValidityTarget] = useState<{ context: typeof context; row: DocumentListRow } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Per-row signed-URL failures. A failure here used to flow into the
   // page-level `loadError` and collapse the whole page; now it stays
@@ -171,7 +170,7 @@ export default function EvraklarPage() {
 
   useEffect(() => {
     liveContext.current = context;
-    setOpenUploadContext(null); setSelectedId(null); setValidityTarget({ open: false }); setSignedUrlErrorIds(new Set());
+    setOpenUploadContext(null); setSelectedId(null); setValidityTarget(null); setSignedUrlErrorIds(new Set());
     notice.clear();
     return () => { liveContext.current = null; };
     // Notice functions change on render; reset only on authorization context changes.
@@ -276,7 +275,8 @@ export default function EvraklarPage() {
   const rowActions: RowAction<DocumentListRow>[] = [
     ...(canMutateEvrak ? [{
       label: "Gecerlilik Guncelle",
-      onClick: (row: DocumentListRow) => setValidityTarget({ open: true, evrakAdi: row.name, evrakId: row.id, currentDate: row.validity_date ?? "" }),
+      onClick: (row: DocumentListRow) => setValidityTarget({ context, row }),
+      isDisabled: (row: DocumentListRow) => !!row.contract_id && role !== "yonetici",
     }] : []),
     {
       label: "Indir",
@@ -458,13 +458,22 @@ export default function EvraklarPage() {
           void reload();
         }}
       />}
-      <UpdateValidityModal open={validityTarget.open} onClose={() => setValidityTarget({ open: false })} evrakAdi={validityTarget.evrakAdi} evrakId={validityTarget.evrakId} currentDate={validityTarget.currentDate}
+      {validityTarget?.context === context && context.scope && <UpdateValidityModal key={validityTarget.row.id} open
+        onClose={() => { if (liveContext.current === context) setValidityTarget(null); }}
+        evrakAdi={validityTarget.row.name} evrakId={validityTarget.row.id} currentDate={validityTarget.row.validity_date ?? ""}
         onSubmit={async ({ evrakId, yeniTarih }) => {
-          await updateDocumentValidity(supabase, evrakId, { validityDate: yeniTarih });
-          await reload();
-          router.refresh();
+          if (liveContext.current !== context || evrakId !== validityTarget.row.id) return;
+          try { await updateDocumentValidity(supabase, evrakId, { validityDate: yeniTarih }); }
+          catch (error) {
+            if (liveContext.current !== context) return;
+            throw new Error(error instanceof DocumentValidationError ? error.message : "Geçerlilik güncellenemedi. Tekrar deneyin.");
+          }
+          if (liveContext.current !== context) return;
+          setValidityTarget(null);
+          notice.show(`${validityTarget.row.name} geçerlilik tarihi güncellendi.`);
+          void reload();
         }}
-      />
+      />}
     </>
   );
 }

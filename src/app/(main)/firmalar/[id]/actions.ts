@@ -1,5 +1,6 @@
 "use server";
 
+import { documentStatusForFile, isDocumentValidityDate } from "@/lib/document-validity";
 import { recoverCompanyDocumentInsert } from "@/lib/services/company-document-recovery";
 
 /**
@@ -52,7 +53,6 @@ import { createContact } from "@/lib/services/contacts";
 import type { ContactCreateInput } from "@/lib/services/contacts";
 import { createNote } from "@/lib/services/notes";
 import type { NoteCreateInput } from "@/lib/services/notes";
-import type { EvrakDurumu } from "@/types/ui";
 import type { DocumentCategory } from "@/lib/document-categories";
 
 // PDF only, 10 MB cap (matches existing UploadDocumentModal limit).
@@ -81,10 +81,6 @@ const UPLOAD_ROLES: ReadonlySet<string> = new Set([
   "ik",
 ]);
 
-// 30-day soft window — matches `getApproachingLevel("approaching")`
-// semantics elsewhere in the codebase.
-const APPROACHING_WINDOW_DAYS = 30;
-
 export type UploadResult =
   | { ok: true; documentId: string }
   | { ok: false; error: string; reviewRequired?: boolean };
@@ -104,27 +100,6 @@ export type ContactDeleteResult =
 export type PassivateResult =
   | { ok: true; name?: string }
   | { ok: false; error: string };
-
-function deriveStatus(validityDate: string | null): EvrakDurumu {
-  // A file is being attached, so the row will not be `eksik`. The
-  // expiry buckets only matter when validity_date is set; missing dates
-  // fall through to "tam" — file present, no expiry tracked yet.
-  if (!validityDate) return "tam";
-
-  const expiry = new Date(`${validityDate.slice(0, 10)}T00:00:00Z`);
-  if (Number.isNaN(expiry.getTime())) return "tam";
-
-  const now = new Date();
-  const today = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const diffDays = Math.floor(
-    (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diffDays < 0) return "suresi_doldu";
-  if (diffDays <= APPROACHING_WINDOW_DAYS) return "suresi_yaklsiyor";
-  return "tam";
-}
 
 function readString(formData: FormData, key: string): string {
   const v = formData.get(key);
@@ -224,20 +199,8 @@ export async function uploadCompanyDocumentAction(
   // raw string is written into a date column at step 9 — a malformed
   // value would pass every guard, upload the file at step 8, then fail
   // the insert and orphan the storage object on every retry.
-  if (validityDate) {
-    let validIso = /^\d{4}-\d{2}-\d{2}$/.test(validityDate);
-    if (validIso) {
-      const parsed = new Date(`${validityDate}T00:00:00Z`);
-      validIso =
-        !Number.isNaN(parsed.getTime()) &&
-        parsed.toISOString().slice(0, 10) === validityDate;
-    }
-    if (!validIso) {
-      return {
-        ok: false,
-        error: "Geçerlilik tarihi biçimi geçersiz (YYYY-AA-GG bekleniyor).",
-      };
-    }
+  if (validityDate && !isDocumentValidityDate(validityDate)) {
+    return { ok: false, error: "Geçerlilik tarihi biçimi geçersiz (YYYY-AA-GG bekleniyor)." };
   }
 
   // 5. Contract PDFs use the versioned/reserved upload workflow on the
@@ -305,7 +268,7 @@ export async function uploadCompanyDocumentAction(
       contract_id: contractId,
       name,
       category,
-      status: deriveStatus(validityDate),
+      status: documentStatusForFile(validityDate),
       validity_date: validityDate,
       storage_path: storagePath,
       uploaded_by: uploadedBy,
