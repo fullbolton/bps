@@ -111,7 +111,6 @@ import { NOTE_TAG_LABELS } from "@/lib/note-tags";
 import type { NoteTagKey } from "@/lib/note-tags";
 import type {
   ContactRow,
-  ContractRow,
   NoteRow,
   AppointmentRow,
 } from "@/types/database.types";
@@ -418,30 +417,15 @@ export default function FirmaDetayPage({
   // One fetch feeds both the Sözleşmeler tab (full list) and the
   // Genel Bakış > Aktif Sözleşmeler card (filtered to status='aktif').
   // Resolution path: legacy mock id → companies row (RLS-checked) →
-  // contracts query, so partner scope is re-verified at every read.
-  const [firmaSozlesmeler, setFirmaSozlesmeler] = useState<ContractRow[]>([]);
-  const [sozlesmelerLoading, setSozlesmelerLoading] = useState(true);
-  const [sozlesmelerError, setSozlesmelerError] = useState<string | null>(null);
-  const reloadSozlesmeler = useCallback(async () => {
-    setSozlesmelerError(null);
-    try {
-      const rows = await listContractsByLegacyCompanyId(supabase, id);
-      setFirmaSozlesmeler(rows);
-    } catch (err) {
-      setFirmaSozlesmeler([]);
-      setSozlesmelerError(
-        err instanceof Error
-          ? err.message
-          : "Sözleşmeler yüklenirken bir hata oluştu.",
-      );
-    } finally {
-      setSozlesmelerLoading(false);
-    }
-  }, [supabase, id]);
-  useEffect(() => {
-    setSozlesmelerLoading(true);
-    void reloadSozlesmeler();
-  }, [reloadSozlesmeler]);
+  // contracts query. UI roles follow the existing contract SELECT policy.
+  const contractsAllowed = ["yonetici", "operasyon"].includes(role);
+  const readContracts = useCallback(() => listContractsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const contractsResource = useScopedResource(
+    !authLoading && user && contractsAllowed ? companyScope : null,
+    readContracts,
+  );
+  const firmaSozlesmeler = contractsResource.data ?? [];
+  const reloadSozlesmeler = contractsResource.reload;
   const aktifSozlesmeler = useMemo(
     () => firmaSozlesmeler.filter((s) => s.status === "aktif"),
     [firmaSozlesmeler]
@@ -628,51 +612,55 @@ export default function FirmaDetayPage({
                 <FileText size={14} className={TEXT_MUTED} />
                 Aktif Sözleşmeler
               </h3>
-              {sozlesmelerError ? (
-                <p className={`${TYPE_CAPTION} text-red-600 py-2`} role="alert">{sozlesmelerError}</p>
-              ) : sozlesmelerLoading ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>Yükleniyor…</p>
-              ) : aktifSozlesmeler.length === 0 ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
-                  Aktif sözleşme yok.
-                </p>
+              {!contractsAllowed ? (
+                <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Bu rolde sözleşmeler görüntülenemez.</p>
               ) : (
-                <div className="space-y-2">
-                  {aktifSozlesmeler.map((s) => {
-                    const kalanGun = computeRemainingDays(s.end_date);
-                    return (
-                      <div
-                        key={s.id}
-                        className="flex items-center justify-between py-1.5"
-                      >
-                        <span className={`${TYPE_BODY} ${TEXT_BODY} truncate mr-3`}>
-                          {s.name}
-                        </span>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {kalanGun !== null && kalanGun <= 30 && (
-                            <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
-                              {kalanGun} gün
+                <AsyncSection isLoading={contractsResource.loading} hasError={contractsResource.error} onRetry={() => { void reloadSozlesmeler(); }}>
+                  {aktifSozlesmeler.length === 0 ? (
+                    <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
+                      {firmaSozlesmeler.length === 0 ? "Bu firmaya ait sözleşme kaydı yok." : "Aktif sözleşme yok."}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {aktifSozlesmeler.map((s) => {
+                        const kalanGun = computeRemainingDays(s.end_date);
+                        return (
+                          <a
+                            href={`/sozlesmeler/${s.id}`}
+                            aria-label={`${s.name} — sözleşmeyi aç`}
+                            key={s.id}
+                            className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-slate-50"
+                          >
+                            <span className={`${TYPE_BODY} ${TEXT_BODY} min-w-0 break-words`}>
+                              {s.name}
                             </span>
-                          )}
-                          <StatusBadge status={s.status} />
-                        </div>
-                      </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {kalanGun !== null && kalanGun <= 30 && (
+                                <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
+                                  {kalanGun} gün
+                                </span>
+                              )}
+                              <StatusBadge status={s.status} />
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Preparation in-flight count — derived from real lifecycle status */}
+                  {(() => {
+                    const hazirlikta = firmaSozlesmeler.filter(
+                      (s) => s.status === "taslak" || s.status === "imza_bekliyor"
+                    ).length;
+                    if (hazirlikta === 0) return null;
+                    return (
+                      <p className={`${TYPE_CAPTION} text-amber-600 mt-2`}>
+                        {hazirlikta} sözleşme hazırlık aşamasında
+                      </p>
                     );
-                  })}
-                </div>
+                  })()}
+                </AsyncSection>
               )}
-              {/* Preparation in-flight count — derived from real lifecycle status */}
-              {(() => {
-                const hazirlikta = firmaSozlesmeler.filter(
-                  (s) => s.status === "taslak" || s.status === "imza_bekliyor"
-                ).length;
-                if (hazirlikta === 0) return null;
-                return (
-                  <p className={`${TYPE_CAPTION} text-amber-600 mt-2`}>
-                    {hazirlikta} sözleşme hazırlık aşamasında
-                  </p>
-                );
-              })()}
             </div>}
 
             {/* 2. Açık Talepler — hidden for muhasebe */}
@@ -1175,50 +1163,45 @@ export default function FirmaDetayPage({
             <h3 className={CARD_TITLE_PLAIN}>
               Firma Sözleşmeleri
             </h3>
-            {sozlesmelerError && (
-              <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-                {sozlesmelerError}
-              </p>
-            )}
-            {sozlesmelerLoading ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-            ) : firmaSozlesmeler.length === 0 ? (
-              <EmptyState title="Sözleşme yok" description="Bu firmaya ait sözleşme bulunamadı." size="tab" />
+            {!contractsAllowed ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Bu rolde sözleşmeler görüntülenemez.</p>
             ) : (
-              <div className="space-y-2">
-                {firmaSozlesmeler.map((s) => {
-                  const kalanGun = computeRemainingDays(s.end_date);
-                  return (
-                    <div
-                      key={s.id}
-                      {...(role !== "muhasebe" ? { onClick: () => router.push(`/sozlesmeler/${s.id}`) } : {})}
-                      className={`flex items-center justify-between py-2.5 ${LIST_DIVIDER} ${role !== "muhasebe" ? `cursor-pointer ${TABLE_ROW_HOVER}` : ""} -mx-2 px-2 rounded`}
-                    >
-                      <div className="min-w-0">
-                        <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{s.name}</p>
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
-                          {s.contract_type ?? "—"} · {s.responsible ?? "—"}
-                          {s.last_action_label ? ` · ${s.last_action_label}` : ""}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                        {(role === "yonetici" || role === "partner") && (() => {
-                          // ticari kalite still reads from the static mock id
-                          // index — that mock keys by the legacy "s1".."s12"
-                          // Ticari kalite / margin band: no real data source yet
-                          return null;
-                        })()}
-                        {kalanGun !== null && kalanGun <= 30 && (
-                          <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
-                            {kalanGun} gün
-                          </span>
-                        )}
-                        <StatusBadge status={s.status} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <AsyncSection isLoading={contractsResource.loading} hasError={contractsResource.error} onRetry={() => { void reloadSozlesmeler(); }}>
+                {firmaSozlesmeler.length === 0 ? (
+                  <EmptyState title="Sözleşme yok" description="Bu firmaya ait sözleşme bulunamadı." size="tab" />
+                ) : (
+                  <div className="space-y-2">
+                    {firmaSozlesmeler.map((s) => {
+                      const kalanGun = computeRemainingDays(s.end_date);
+                      return (
+                        <a
+                          href={`/sozlesmeler/${s.id}`}
+                          aria-label={`${s.name} — sözleşmeyi aç`}
+                          key={s.id}
+                          className={`flex min-h-11 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-3 ${LIST_DIVIDER} ${TABLE_ROW_HOVER} -mx-2 px-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+                        >
+                          <div className="min-w-0 flex-1 break-words">
+                            <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{s.name}</p>
+                            <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                              {s.contract_type ?? "—"} · {s.responsible ?? "—"}
+                              {s.last_action_label ? ` · ${s.last_action_label}` : ""}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
+                            {kalanGun !== null && kalanGun <= 30 && (
+                              <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
+                                {kalanGun} gün
+                              </span>
+                            )}
+                            <StatusBadge status={s.status} />
+                            <span className={`${TYPE_CAPTION} text-blue-700`}>Sözleşmeyi aç</span>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </AsyncSection>
             )}
           </div>
         )}

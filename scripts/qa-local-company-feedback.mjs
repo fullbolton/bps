@@ -14,6 +14,7 @@ import {checkCompanyContactRead} from './helpers/company-contact-read-acceptance
 import {checkCompanyNotePin} from './helpers/company-note-pin-acceptance.mjs';
 import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
+import {checkCompanyContractRead} from './helpers/company-contract-read-acceptance.mjs';
 import {checkCompanyDocuments} from './helpers/company-document-acceptance.mjs';
 import {checkCompanyStaffing} from './helpers/company-staffing-acceptance.mjs';
 import {checkCompanyAppointmentRecovery} from './helpers/company-appointment-recovery-acceptance.mjs';
@@ -750,6 +751,7 @@ try {
  if(process.env.BPS_COMPANY_NOTE_PIN_CHECK==='1') await checkCompanyNotePin({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTE_FORM_CHECK==='1') await checkCompanyNoteForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTES_CHECK==='1') await checkCompanyNotes({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
+ if(process.env.BPS_COMPANY_CONTRACT_READ_CHECK==='1') await checkCompanyContractRead({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_DOCUMENT_CHECK==='1') await checkCompanyDocuments({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1') await checkCompanyStaffing({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_APPOINTMENT_RECOVERY_CHECK==='1') await checkCompanyAppointmentRecovery({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
