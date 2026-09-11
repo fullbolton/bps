@@ -16,6 +16,7 @@ import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
 import {checkCompanyDocumentMobile} from './helpers/company-document-mobile-acceptance.mjs';
 import {checkCompanyDownload} from './helpers/company-download-acceptance.mjs';
+import {checkDailyNavigation} from './helpers/daily-navigation-acceptance.mjs';
 import {checkBulkSelection} from './helpers/bulk-selection-acceptance.mjs';
 import {checkBulkRecovery} from './helpers/bulk-recovery-acceptance.mjs';
 import {checkRecoveryDraft} from './helpers/recovery-draft-acceptance.mjs';
@@ -781,6 +782,7 @@ try {
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_BATCH_CHECK==='1') await checkDocumentBatch({page,sql,user,tenant:id(1),prefix,origin});
+ if(process.env.BPS_DAILY_NAVIGATION_CHECK==='1') await checkDailyNavigation({page,sql,user,tenant:id(1),prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_BULK_SELECTION_CHECK==='1') await checkBulkSelection({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_BULK_RECOVERY_CHECK==='1') await checkBulkRecovery({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_RECOVERY_DRAFT_CHECK==='1') await checkRecoveryDraft({page,sql,user,tenant:id(1),prefix,origin,output});

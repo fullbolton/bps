@@ -1,5 +1,5 @@
 "use client";
-import { useCallback,useEffect,useRef,useState,type RefObject } from "react";
+import { useCallback,useEffect,useRef,useState,type RefObject,type MouseEvent } from "react";
 import Link from "next/link";
 import RequestConversation from "@/components/communication/RequestConversation";
 import AttendancePanel from "./AttendancePanel";
@@ -7,7 +7,7 @@ import RequestBatch from "./RequestBatch";
 import PendingOperations from "./PendingOperations";
 import LocationImport from "./LocationImport";
 import CancelRequestDialog from "./CancelRequestDialog";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams,useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader,EmptyState } from "@/components/ui";
 import AsyncSection from "@/components/ui/AsyncSection";
@@ -87,7 +87,7 @@ export default function DailyOperations() {
 }
 
 function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInput,dateInput}:DailyWorkspaceProps) {
-  const {user,role,loading:authLoading}=useAuth(); const search=useSearchParams();
+  const {user,role,loading:authLoading}=useAuth(); const search=useSearchParams(); const router=useRouter();
   const [board,setBoard]=useState<PilotBoard>(emptyBoard);
   const [boardReady,setBoardReady]=useState(false);
   const [loading,setLoading]=useState(true); const [busy,setBusy]=useState(false);
@@ -97,7 +97,7 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   const forms=useRef<HTMLDivElement>(null);
   const requestForm=useRef<HTMLFormElement>(null);
   const locationForm=useRef<HTMLFormElement>(null),workerForm=useRef<HTMLFormElement>(null);
-  const [pendingSelection,setPendingSelection]=useState<{change:SelectionChange;labels:string[]}|null>(null);
+  const [pendingSelection,setPendingSelection]=useState<{action:{type:"selection";change:SelectionChange}|{type:"link";href:string};labels:string[]}|null>(null);
   const [formEpoch,setFormEpoch]=useState(0);
   const batchRecovery=useRef<DraftRecovery|null>(null),importRecovery=useRef<DraftRecovery|null>(null);
   const batchDirty=useRef<DraftCheck|null>(null),importDirty=useRef<DraftCheck|null>(null);
@@ -165,10 +165,7 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
     finally{submitting.current=false;setBusy(false);}
   }
 
-  function selectWithDraftCheck(change:SelectionChange) {
-    if(busy||submitting.current)return;
-    if(change.companyId===companyId||change.date===date)return;
-    if(change.date!==undefined&&(!isWorkDate(change.date)||change.date<"2000-01-01"||change.date>"2100-12-31"))return;
+  function draftLabels() {
     // Inspect each mounted form independently, including closed details and disabled fields.
     // A successful form.reset() cleans only that form; other drafts remain protected.
     const drafts:{form:HTMLFormElement|null;label:string;initial:Record<string,string>}[]=[
@@ -182,9 +179,27 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
     })).map(draft=>draft.label);
     if(batchDirty.current?.())labels.push("Toplu talep");
     if(importDirty.current?.())labels.push("Şube aktarımı");
+    return labels;
+  }
+
+  function selectWithDraftCheck(change:SelectionChange) {
+    if(busy||submitting.current)return;
+    if(change.companyId===companyId||change.date===date)return;
+    if(change.date!==undefined&&(!isWorkDate(change.date)||change.date<"2000-01-01"||change.date>"2100-12-31"))return;
+    const labels=draftLabels();
     if(!labels.length){onSelect(change);return;}
     (change.companyId!==undefined?companyInput.current:dateInput.current)?.focus();
-    setPendingSelection({change,labels});
+    setPendingSelection({action:{type:"selection",change},labels});
+  }
+
+  function navigateWithDraftCheck(event:MouseEvent<HTMLAnchorElement>) {
+    const link=event.currentTarget;
+    if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||link.hasAttribute("download")||(link.target&&link.target!=="_self"))return;
+    if(busy||submitting.current){event.preventDefault();setMessage("İşlem sürüyor. Sayfadan ayrılmadan önce sonucu bekleyin.");return;}
+    const labels=draftLabels();
+    if(!labels.length)return;
+    event.preventDefault();link.focus();
+    setPendingSelection({action:{type:"link",href:link.getAttribute("href")!},labels});
   }
 
   const company=companies.find(c=>c.id===companyId);
@@ -193,17 +208,17 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   return <>
     {pendingSelection&&<ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
       recordName={`${company?.name??"Firma"} · ${date}`}
-      description={`${pendingSelection.labels.join(", ")} formundaki kaydedilmemiş bilgiler bırakılacak. Seçtiğiniz firma ve gün için plan açılacak.`}
+      description={`${pendingSelection.labels.join(", ")} formundaki kaydedilmemiş bilgiler bırakılacak. ${pendingSelection.action.type==="selection"?"Seçtiğiniz firma ve gün için plan açılacak.":"Seçtiğiniz sayfa açılacak."}`}
       confirmLabel="Değişiklikleri bırak" destructive onClose={()=>setPendingSelection(null)}
-      onConfirm={async()=>{if(!busy&&!submitting.current)onSelect(pendingSelection.change);}} />}
+      onConfirm={async()=>{if(busy||submitting.current)return;const action=pendingSelection.action;if(action.type==="selection")onSelect(action.change);else router.push(action.href);}} />}
     <CancelRequestDialog target={cancelTarget} busy={busy} error={error} onClose={()=>{if(!busy)setCancelTarget(null);}} onConfirm={()=>{if(cancelTarget)void submit("cancel",{requestId:cancelTarget.id});}} />
     <PageHeader title="Günlük personel planı" subtitle="Şube ihtiyacını kaydedin, personeli atayın ve açıkları takip edin." />
     <nav aria-label="Operasyon ekranları" className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
-    <Link className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={`/talepler/dizin?firma=${companyId}`}>Şube ve personel dizini</Link>
-    <Link className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={`/talepler/ise-baslama?gun=${date}`}>İşe Başlama Takibi</Link>
-    <Link className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={`/talepler/kontrol?firma=${companyId}&gun=${date}`}>Operasyon kontrol listesi</Link>
-    <Link className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={`/talepler/haftalik?firma=${companyId}&gun=${date}`}>Haftalık plan ve çıktı</Link>
-    <Link className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={companyId?`/firmalar/${companyId}`:"/firmalar"}>Firma detayına dön</Link>
+    <Link onClick={navigateWithDraftCheck} aria-disabled={busy||undefined} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={`/talepler/dizin?firma=${companyId}`}>Şube ve personel dizini</Link>
+    <Link onClick={navigateWithDraftCheck} aria-disabled={busy||undefined} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={`/talepler/ise-baslama?gun=${date}`}>İşe Başlama Takibi</Link>
+    <Link onClick={navigateWithDraftCheck} aria-disabled={busy||undefined} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={`/talepler/kontrol?firma=${companyId}&gun=${date}`}>Operasyon kontrol listesi</Link>
+    <Link onClick={navigateWithDraftCheck} aria-disabled={busy||undefined} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={`/talepler/haftalik?firma=${companyId}&gun=${date}`}>Haftalık plan ve çıktı</Link>
+    <Link onClick={navigateWithDraftCheck} aria-disabled={busy||undefined} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={companyId?`/firmalar/${companyId}`:"/firmalar"}>Firma detayına dön</Link>
     </nav>
     <fieldset disabled={busy} className="mb-5 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
       <label className="text-sm">Firma<select ref={companyInput} aria-label="Firma" className={inputClass} value={companyId} onChange={e=>selectWithDraftCheck({companyId:e.target.value})}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?"":" (operasyona kapalı)"}</option>)}</select></label>
