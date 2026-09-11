@@ -66,6 +66,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRole } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
+import { selectPrimaryContactNames, selectActiveContractCounts } from "@/lib/supabase/company-summaries";
 import { SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
 import type { FirmaDurumu, RiskSeviyesi, ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
@@ -145,17 +146,17 @@ export default function FirmalarPage() {
   const readDirectory = useCallback(async () => {
     const rows = await selectAllCompanies(supabase);
     const companyIds = rows.map(row => row.id);
-    const nameMap: Record<string, string> = {}, countMap: Record<string, number> = {};
-    if (!companyIds.length) return { rows, nameMap, countMap, contactsError: false, contractsError: false };
-    const [contacts, contracts] = await Promise.all([
-      supabase.from("contacts").select("company_id, full_name, is_primary").eq("is_primary", true).in("company_id", companyIds),
-      supabase.from("contracts").select("company_id").eq("status", "aktif").in("company_id", companyIds),
+    const [contacts, contracts] = await Promise.allSettled([
+      selectPrimaryContactNames(supabase, companyIds),
+      selectActiveContractCounts(supabase, companyIds),
     ]);
-    const contactsError = !!contacts.error || !Array.isArray(contacts.data);
-    const contractsError = !!contracts.error || !Array.isArray(contracts.data);
-    if (!contactsError) for (const contact of contacts.data ?? []) nameMap[contact.company_id] = contact.full_name;
-    if (!contractsError) for (const contract of contracts.data ?? []) countMap[contract.company_id] = (countMap[contract.company_id] ?? 0) + 1;
-    return { rows, nameMap, countMap, contactsError, contractsError };
+    return {
+      rows,
+      nameMap: contacts.status === "fulfilled" ? contacts.value : {},
+      countMap: contracts.status === "fulfilled" ? contracts.value : {},
+      contactsError: contacts.status === "rejected",
+      contractsError: contracts.status === "rejected",
+    };
   }, [supabase]);
   const directory = useScopedResource(listScope, readDirectory);
   const companies = directory.data?.rows ?? [];
