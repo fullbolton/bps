@@ -265,19 +265,40 @@ export default function FirmaDetayPage({
   // Phase 3 state: Talepler, Randevular, İş Gücü — real Supabase truth.
   const [firmaTalepler, setFirmaTalepler] = useState<StaffingDemandRow[]>([]);
   const [appointmentOpen, setAppointmentOpen] = useState(false);
-  useEffect(() => { setAppointmentOpen(false); }, [companyScope]);
-  const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
-  const [firmaRandevular, setFirmaRandevular] = useState<AppointmentRow[]>([]);
+  const appointmentsEnabled = !authLoading && !!user;
+  const appointmentContext = useMemo(() => ({ scope: companyScope, enabled: appointmentsEnabled }), [companyScope, appointmentsEnabled]);
+  const liveAppointmentContext = useRef<typeof appointmentContext | null>(appointmentContext);
+  liveAppointmentContext.current = appointmentContext;
+  const appointmentsGeneration = useRef(0);
+  const [appointmentsSnapshot, setAppointmentsSnapshot] = useState<{ context: typeof appointmentContext; rows: AppointmentRow[]; loading: boolean; error: boolean } | null>(null);
+  const firmaRandevular = appointmentsSnapshot?.context === appointmentContext ? appointmentsSnapshot.rows : [];
+  const appointmentsLoading = appointmentsSnapshot?.context !== appointmentContext || appointmentsSnapshot.loading;
+  const appointmentsError = appointmentsSnapshot?.context === appointmentContext && appointmentsSnapshot.error;
+  const reloadAppointments = useCallback(async () => {
+    if (!appointmentContext.enabled || liveAppointmentContext.current !== appointmentContext) return;
+    const generation = ++appointmentsGeneration.current;
+    const current = () => liveAppointmentContext.current === appointmentContext && generation === appointmentsGeneration.current;
+    setAppointmentsSnapshot({ context: appointmentContext, rows: [], loading: true, error: false });
+    try {
+      const rows = await listAppointmentsByLegacyCompanyId(supabase, id);
+      if (current()) setAppointmentsSnapshot({ context: appointmentContext, rows, loading: false, error: false });
+    } catch {
+      if (current()) setAppointmentsSnapshot({ context: appointmentContext, rows: [], loading: false, error: true });
+    }
+  }, [supabase, id, appointmentContext]);
+  useEffect(() => {
+    liveAppointmentContext.current = appointmentContext;
+    setAppointmentOpen(false);
+    feedback.clear();
+    void reloadAppointments();
+    return () => { liveAppointmentContext.current = null; ++appointmentsGeneration.current; };
+    // Clear only on context changes; notice helpers are recreated each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointmentContext, reloadAppointments]);
   const [firmaIsGucu, setFirmaIsGucu] = useState<WorkforceSummaryRow | null>(null);
   useEffect(() => {
     void listDemandsByLegacyCompanyId(supabase, id)
       .then(setFirmaTalepler).catch(() => setFirmaTalepler([]));
-    setAppointmentsError(null);
-    void listAppointmentsByLegacyCompanyId(supabase, id)
-      .then(setFirmaRandevular).catch(() => {
-        setFirmaRandevular([]);
-        setAppointmentsError("Randevular yüklenemedi. Sayfayı yenileyin.");
-      });
     void getWorkforceSummaryByLegacyCompanyId(supabase, id)
       .then(setFirmaIsGucu).catch(() => setFirmaIsGucu(null));
   }, [supabase, id]);
@@ -744,6 +765,7 @@ export default function FirmaDetayPage({
                     <CalendarCheck size={14} className={TEXT_MUTED} />
                     Yaklaşan Randevular
                   </h3>
+                  <AsyncSection isLoading={appointmentsLoading} hasError={appointmentsError} onRetry={() => { void reloadAppointments(); }}>
                   <div className="flex items-baseline gap-2 py-3">
                     <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>
                       {planliRandevuSayisi}
@@ -757,6 +779,7 @@ export default function FirmaDetayPage({
                       Detaylar Randevular sekmesinde.
                     </p>
                   )}
+                  </AsyncSection>
                 </div>
               );
             })()}
@@ -1227,9 +1250,8 @@ export default function FirmaDetayPage({
               <h3 className={CARD_TITLE_PLAIN}>
                 Firma Randevuları
               </h3>
-              {appointmentsError ? (
-                <p role="alert" className="text-sm text-red-600">{appointmentsError}</p>
-              ) : firmaRandevular.length === 0 ? (
+              <AsyncSection isLoading={appointmentsLoading} hasError={appointmentsError} onRetry={() => { void reloadAppointments(); }}>
+              {firmaRandevular.length === 0 ? (
                 <EmptyState title="Randevu yok" description="Bu firmaya ait randevu bulunamadı." size="tab" />
               ) : (
                 <div className="space-y-2">
@@ -1251,6 +1273,7 @@ export default function FirmaDetayPage({
                   ))}
                 </div>
               )}
+              </AsyncSection>
             </div>
           );
         })()}
@@ -1631,11 +1654,12 @@ export default function FirmaDetayPage({
         <NewAppointmentModal
           key={companyScope}
           open={appointmentOpen}
-          onClose={() => setAppointmentOpen(false)}
+          onClose={() => { if (liveAppointmentContext.current === appointmentContext) setAppointmentOpen(false); }}
           defaultFirmaId={companyShell.id}
           firmalar={[{ id: companyShell.id, ad: companyShell.name }]}
           allowNewCompany={false}
           onSubmit={async ({ firmaId, tarih, saat, gorusmeTipi, katilimci }) => {
+            if (liveAppointmentContext.current !== appointmentContext || firmaId !== companyShell.id) throw new Error("Firma bilgisi değişti. Randevu formunu yeniden açın.");
             const result = await createAppointmentAction({
               legacyCompanyId: firmaId,
               meetingDate: tarih,
@@ -1643,16 +1667,14 @@ export default function FirmaDetayPage({
               meetingType: gorusmeTipi,
               attendee: katilimci || undefined,
             });
+            if (liveAppointmentContext.current !== appointmentContext) return;
             if (!result.ok) throw new Error(result.error);
             // Creation succeeded: a subsequent list refresh failure must not
             // keep a retryable create form open and invite a duplicate insert.
             setAppointmentOpen(false);
             setActiveTab("randevular");
-            setAppointmentsError(null);
-            void listAppointmentsByLegacyCompanyId(supabase, id)
-              .then(setFirmaRandevular).catch(() => {
-                setAppointmentsError("Randevu oluşturuldu, liste yenilenemedi. Sayfayı yenileyin.");
-              });
+            feedback.show("Randevu oluşturuldu. Durumu: planlandı.");
+            void reloadAppointments();
             router.refresh();
           }}
         />
