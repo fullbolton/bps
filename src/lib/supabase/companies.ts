@@ -79,7 +79,7 @@ export async function selectCompanyByLegacyMockId(
 /**
  * Batch-resolve multiple company rows by legacy mock id.
  * Used by the Firmalar list cutover to fetch the Ana Yetkili column for
- * many firmas in a single query.
+ * many firmas in bounded, paginated lookups.
  *
  * Returns only rows the caller can read per RLS — out-of-scope rows are
  * silently dropped. The caller should treat a missing legacy_mock_id in
@@ -89,17 +89,7 @@ export async function selectCompaniesByLegacyMockIds(
   client: Client,
   legacyMockIds: string[],
 ): Promise<CompanyRow[]> {
-  if (legacyMockIds.length === 0) return [];
-
-  const { data, error } = await client
-    .from("companies")
-    .select("*")
-    .in("legacy_mock_id", legacyMockIds);
-
-  if (error) {
-    throw new Error(`companies select failed: ${error.message}`);
-  }
-  return data ?? [];
+  return readCompanyBatches(client, "legacy_mock_id", legacyMockIds);
 }
 
 /**
@@ -176,15 +166,42 @@ export async function selectCompaniesByIds(
   client: Client,
   companyIds: string[],
 ): Promise<CompanyRow[]> {
-  if (companyIds.length === 0) return [];
+  return readCompanyBatches(client, "id", companyIds);
+}
 
-  const { data, error } = await client
-    .from("companies")
-    .select("*")
-    .in("id", companyIds);
 
-  if (error) {
-    throw new Error(`companies select failed: ${error.message}`);
+/** Keep both the requested identity set and the encoded filter size bounded. */
+async function readCompanyBatches(client: Client, column: "id" | "legacy_mock_id", requested: string[]): Promise<CompanyRow[]> {
+  if (!Array.isArray(requested) || requested.some(key => typeof key !== "string" || !key)) throw new Error("companies batch invalid keys");
+  const chunks: string[][] = [];
+  let chunk: string[] = [], size = 0;
+  for (const key of new Set(requested)) {
+    // JSON quotes/escapes and URLSearchParams conservatively budget encoded IN values.
+    const cost = new URLSearchParams({ value: JSON.stringify(key) }).toString().length + 3;
+    if (cost > 3000) throw new Error("companies batch key too long");
+    if (chunk.length && (chunk.length >= 75 || size + cost > 3000)) { chunks.push(chunk); chunk = []; size = 0; }
+    chunk.push(key); size += cost;
   }
-  return data ?? [];
+  if (chunk.length) chunks.push(chunk);
+  const rows: CompanyRow[] = [], seen = new Set<string>();
+  for (const keys of chunks) {
+    const allowed = new Set(keys);
+    let cursor: string | null = null;
+    for (let page = 0; page <= 200; page++) {
+      let query = client.from("companies").select("*").in(column, keys).order("id", { ascending: true }).limit(100);
+      if (cursor) query = query.gt("id", cursor);
+      const { data, error } = await query;
+      if (error) throw new Error("companies batch page failed");
+      if (!Array.isArray(data)) throw new Error("companies batch invalid page");
+      if (!data.length) break;
+      if (page === 200) throw new Error("companies batch scan limit exceeded");
+      for (const row of data) {
+        if (!row || typeof row.id !== "string" || !row.id || (cursor !== null && row.id <= cursor) || seen.has(row.id)) throw new Error("companies batch did not advance");
+        const key = row[column];
+        if (typeof key !== "string" || !allowed.has(key)) throw new Error("companies batch scope mismatch");
+        seen.add(row.id); cursor = row.id; rows.push(row);
+      }
+    }
+  }
+  return rows;
 }

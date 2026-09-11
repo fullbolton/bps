@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';
+export async function checkCompanyBatch({page,sql,user,tenant,prefix,origin}) {
+ sql(`INSERT INTO companies(id,tenant_id,name,status,legacy_mock_id,created_by) SELECT gen_random_uuid(),'${tenant}','${prefix}-company-batch-'||n,'aday','${prefix}-legacy-'||n,'${user}' FROM generate_series(1,1005) n`);
+ const rows=JSON.parse(sql(`SELECT json_agg(json_build_object('id',id,'legacy',legacy_mock_id) ORDER BY id) FROM companies WHERE created_by='${user}' AND name LIKE '${prefix}-company-batch-%'`));
+ const result=page.getByTestId('company-reader-result'),button=page.getByRole('button',{name:'Firmaları oku',exact:true}),input=page.getByLabel('Test firma kimlikleri',{exact:true}),pattern='**/rest/v1/companies?*';
+ try {
+  await page.goto(origin+'/qa-company-read');const ids=rows.map(r=>r.id),legacy=rows.map(r=>r.legacy);let statuses=[],urls=[],failedRequests=0;const outgoing=r=>{if(r.method()==='GET'&&new URL(r.url()).pathname==='/rest/v1/companies')urls.push(r.url());};const failed=r=>{if(new URL(r.url()).pathname==='/rest/v1/companies')failedRequests++;};page.on('request',outgoing);page.on('requestfailed',failed);const watch=r=>{if(r.request().method()==='GET'&&new URL(r.url()).pathname==='/rest/v1/companies'){statuses.push(r.status());}};page.on('response',watch);
+  const start=async(kind,keys)=>{await input.fill(JSON.stringify({kind,ids:keys}));await button.click();};
+  if(process.env.BPS_COMPANY_BATCH_REPRO==='1'){await start('id',ids);await result.filter({hasText:'error'}).waitFor();assert.ok(statuses.some(n=>n>=400)||failedRequests>0);assert.ok(urls.some(u=>u.length>30000));console.log('REPRO confirmed: 1005 UUID lookup failed; received HTTP errors '+statuses.filter(n=>n>=400).length+', network failures '+failedRequests+'; request exceeded 30000 URL characters');page.off('response',watch);page.off('request',outgoing);page.off('requestfailed',failed);return;}
+  const verify=async()=>{await result.filter({hasText:/^\{/}).waitFor();assert.deepEqual(JSON.parse(await result.textContent()),{count:1005,covered:1006,unexpected:0});};
+  await start('id',[...ids,ids[0],randomUUID()]);await verify();assert.ok(urls.length>2);assert.ok(urls.every(u=>u.length<4000));statuses=[];urls=[];
+  await start('legacy',[...legacy,legacy[0],prefix+'-absent']);await verify();assert.ok(urls.length>2);assert.ok(urls.every(u=>u.length<4000));assert.ok(statuses.every(s=>s<400));page.off('response',watch);page.off('request',outgoing);page.off('requestfailed',failed);
+  let calls=0;const failure=async r=>{if(r.request().method()==='GET'&&++calls===3)return r.fulfill({status:503,contentType:'application/json',body:'{"message":"Synthetic later company batch failure"}'});await r.fallback();};await page.route(pattern,failure);await start('id',ids);await result.filter({hasText:'error'}).waitFor();assert.equal(await result.textContent(),'error');await page.unroute(pattern,failure);await start('id',[...ids,ids[0],randomUUID()]);await verify();
+  console.log('PASS 1005 real company UUID and legacy mappings, duplicate/missing key semantics, all lookup URLs under 4000 chars, later-batch failure exposes no partial map, retry recovers');
+ }finally{sql(`DELETE FROM companies WHERE created_by='${user}' AND name LIKE '${prefix}-company-batch-%'`);}
+}

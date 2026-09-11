@@ -138,7 +138,7 @@ export async function requireCompanyByLegacyMockId(
  *   { legacyMockId → real companies.id (uuid) }
  *
  * Used by the Firmalar list cutover to translate the still-mock-backed
- * row ids into real ids in a single query. Out-of-scope rows are silently
+ * row ids into real ids through bounded lookups. Out-of-scope rows are silently
  * absent from the returned map (consistent with the rest of this layer).
  */
 export async function getCompanyIdMapByLegacyMockIds(
