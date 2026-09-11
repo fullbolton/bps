@@ -1068,7 +1068,7 @@ export default function FirmaDetayPage({
                 {/* Yetkili Ekle (create) — yonetici-only by app-level
                     product decision; partner is HOLD / pending follow-up.
                     Passive-company guard (disabled + tooltip) preserved. */}
-                {role === "yonetici" && (!contactsReady || yetkililer.length < 5) && (
+                {role === "yonetici" && yetkililer.length < 5 && (
                   <button
                     type="button"
                     onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setOpenContactContext(contactContext); }}

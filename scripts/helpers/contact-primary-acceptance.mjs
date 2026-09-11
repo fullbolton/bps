@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+export async function checkContactPrimary({page,sql,user,tenant,first,prefix,origin,client,anonymous}) {
+ const company=sql(`SELECT id FROM companies WHERE name='${first}' AND created_by='${user}'`),a=randomUUID(),b=randomUUID(),bad=prefix+'-primary-fault',target=prefix+'-primary-target',fault='ux_primary_'+randomUUID().replaceAll('-','');
+ sql(`INSERT INTO contacts(id,tenant_id,company_id,full_name,email,is_primary,created_by) VALUES('${a}','${tenant}','${company}','${prefix}-primary-old','old@example.test',true,'${user}'),('${b}','${tenant}','${company}','${target}','target@example.test',false,'${user}');CREATE FUNCTION public.${fault}() RETURNS trigger LANGUAGE plpgsql SET search_path='' AS $$ BEGIN IF NEW.id='${b}'::uuid AND NEW.full_name='${bad}' THEN RAISE EXCEPTION 'SYNTHETIC_PRIMARY_TARGET_FAILURE'; END IF; RETURN NEW; END $$;CREATE TRIGGER ${fault} BEFORE UPDATE ON public.contacts FOR EACH ROW EXECUTE FUNCTION public.${fault}();`);
+ try {
+  await page.goto(origin+'/firmalar/'+company);await page.getByRole('navigation',{name:'Sayfa bölümleri',exact:true}).getByRole('button',{name:'Yetkililer',exact:true}).click();await page.getByRole('button',{name:target+' — düzenle',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'Yetkili Düzenle',exact:true});await dialog.getByLabel('Ad soyad',{exact:false}).fill(bad);await dialog.getByRole('checkbox',{name:'Ana yetkili olarak işaretle',exact:true}).check();await dialog.getByRole('button',{name:'Güncelle',exact:true}).click();await dialog.getByText('Yetkili kaydedilemedi. Bilgileriniz korundu; tekrar deneyin.',{exact:true}).waitFor();
+  const expected=process.env.BPS_CONTACT_PRIMARY_REPRO==='1'?'0':'1';assert.equal(sql(`SELECT count(*) FROM contacts WHERE company_id='${company}' AND is_primary`),expected);
+  if(process.env.BPS_CONTACT_PRIMARY_REPRO==='1'){console.log('REPRO confirmed: failing target update after primary demotion leaves zero primary contacts');return;}
+  assert.equal(sql(`SELECT is_primary FROM contacts WHERE id='${a}'`),'t');
+  sql(`DROP TRIGGER ${fault} ON public.contacts;DROP FUNCTION public.${fault}()`);
+  await dialog.getByRole('button',{name:'Güncelle',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.getByText('Yetkili bilgileri güncellendi.',{exact:true}).waitFor();assert.equal(sql(`SELECT is_primary FROM contacts WHERE id='${b}'`),'t');assert.equal(sql(`SELECT count(*) FROM contacts WHERE company_id='${company}' AND is_primary`),'1');
+  console.log('PASS primary edit failure rolls back demotion; retry atomically promotes the target');
+  const args=(contactId,name,isPrimary=true)=>({p_company_id:company,p_contact_id:contactId,p_full_name:name,p_title:null,p_phone:null,p_email:'atomic@example.test',p_is_primary:isPrimary,p_context_note:null});
+  // A failed create after demotion must also roll back the old primary.
+  sql(`CREATE FUNCTION public.${fault}() RETURNS trigger LANGUAGE plpgsql SET search_path='' AS $$ BEGIN IF NEW.company_id='${company}'::uuid AND NEW.full_name='${bad}' THEN RAISE EXCEPTION 'SYNTHETIC_PRIMARY_INSERT_FAILURE'; END IF; RETURN NEW; END $$;CREATE TRIGGER ${fault} BEFORE INSERT ON public.contacts FOR EACH ROW EXECUTE FUNCTION public.${fault}()`);
+  assert.ok((await client.rpc('write_company_contact',args(null,bad))).error);assert.equal(sql(`SELECT is_primary FROM contacts WHERE id='${b}'`),'t');assert.equal(sql(`SELECT count(*) FROM contacts WHERE company_id='${company}'`),'2');sql(`DROP TRIGGER ${fault} ON public.contacts;DROP FUNCTION public.${fault}()`);
+  // Direct command authorization, stale membership, and mismatched company/id.
+  assert.equal((await anonymous.rpc('write_company_contact',args(null,'anonymous'))).error?.code,'42501');
+  sql(`UPDATE profiles SET role='operasyon' WHERE id='${user}'`);assert.equal((await client.rpc('write_company_contact',args(a,'forbidden'))).error?.code,'42501');sql(`UPDATE profiles SET role='yonetici' WHERE id='${user}'`);
+  sql(`DELETE FROM tenant_memberships WHERE user_id='${user}' AND tenant_id='${tenant}'`);assert.equal((await client.rpc('write_company_contact',args(a,'stale-claim'))).error?.code,'42501');sql(`INSERT INTO tenant_memberships(user_id,tenant_id) VALUES('${user}','${tenant}')`);
+  const other=randomUUID();sql(`INSERT INTO companies(id,tenant_id,name,status,created_by) VALUES('${other}','${tenant}','${prefix}-other','aday','${user}')`);
+  assert.equal((await client.rpc('write_company_contact',{...args(b,'wrong-company'),p_company_id:other})).error?.code,'42501');assert.equal(sql(`SELECT is_primary FROM contacts WHERE id='${b}'`),'t');
+  const promoted=await Promise.all([client.rpc('write_company_contact',args(a,'primary-A')),client.rpc('write_company_contact',args(b,'primary-B'))]);for(const result of promoted)assert.ifError(result.error);assert.equal(sql(`SELECT count(*) FROM contacts WHERE company_id='${company}' AND is_primary`),'1');
+  // Hold the first insert inside its transaction so the parallel create overlaps.
+  const c=randomUUID(),d=randomUUID();sql(`INSERT INTO contacts(id,tenant_id,company_id,full_name,email) VALUES('${c}','${tenant}','${company}','third','third@example.test'),('${d}','${tenant}','${company}','fourth','fourth@example.test');CREATE FUNCTION public.${fault}() RETURNS trigger LANGUAGE plpgsql SET search_path='' AS $$ BEGIN IF NEW.company_id='${company}'::uuid AND NEW.full_name LIKE 'race-%' THEN PERFORM pg_catalog.pg_sleep(0.4); END IF; RETURN NEW; END $$;CREATE TRIGGER ${fault} BEFORE INSERT ON public.contacts FOR EACH ROW EXECUTE FUNCTION public.${fault}()`);
+  const raced=await Promise.all([client.rpc('write_company_contact',args(null,'race-A')),client.rpc('write_company_contact',args(null,'race-B'))]);assert.equal(raced.filter(x=>!x.error).length,1);assert.equal(raced.filter(x=>x.error).length,1);assert.match(raced.find(x=>x.error).error.message,/en fazla 5/);assert.equal(sql(`SELECT count(*) FROM contacts WHERE company_id='${company}'`),'5');assert.equal(sql(`SELECT count(*) FROM contacts WHERE company_id='${company}' AND is_primary`),'1');
+  console.log('PASS atomic primary edit/create rollback, anonymous/role/stale membership/company binding, parallel promotions and overlapping max-five creates');
+
+ } finally {sql(`DROP TRIGGER IF EXISTS ${fault} ON public.contacts;DROP FUNCTION IF EXISTS public.${fault}();DELETE FROM contacts WHERE company_id='${company}'`);}
+}

@@ -15,6 +15,7 @@ DROP POLICY IF EXISTS contacts_feedback_update ON public.contacts;
 CREATE POLICY contacts_feedback_update ON public.contacts FOR UPDATE TO authenticated
  USING(tenant_id=public.current_user_verified_tenant() AND public.current_user_role() IN ('yonetici','operasyon'))
  WITH CHECK(tenant_id=public.current_user_verified_tenant() AND public.current_user_role() IN ('yonetici','operasyon'));
+CREATE UNIQUE INDEX IF NOT EXISTS contacts_one_primary_per_company ON public.contacts(company_id) WHERE is_primary;
 GRANT INSERT,UPDATE ON public.contacts TO authenticated;
 NOTIFY pgrst,'reload schema';
 COMMIT;

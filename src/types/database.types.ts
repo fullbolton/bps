@@ -1224,6 +1224,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      write_company_contact: {
+        Args: { p_company_id: string; p_contact_id: string | null; p_full_name: string; p_title: string | null; p_phone: string | null; p_email: string | null; p_is_primary: boolean; p_context_note: string | null };
+        Returns: Database["public"]["Tables"]["contacts"]["Row"][];
+      };
       ops_start_board: { Args: { p_actor_id:string; p_tenant_id:string; p_day:string; p_offset?:number }; Returns: Json };
       ops_start_board_filtered: { Args: { p_actor_id:string; p_tenant_id:string; p_day:string; p_offset?:number; p_search?:string; p_only_mine?:boolean; p_only_urgent?:boolean }; Returns: Json };
       ops_start_execute: { Args: { p_actor_id:string; p_tenant_id:string; p_command_id:string; p_assignment_id:string; p_expected_revision:number; p_action:string; p_payload:Json }; Returns: Json };

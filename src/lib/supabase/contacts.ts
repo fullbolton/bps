@@ -164,9 +164,9 @@ export async function updateContact(
 
 /**
  * Demote every primary contact for a given company to is_primary = false.
- * Used by the service layer in the same transaction as a promote — without
- * this, the partial unique index `contacts_one_primary_per_company` would
- * reject the new primary row.
+ * This standalone statement is NOT atomic with a later insert/update.
+ * @deprecated Active create/full-edit paths use writeCompanyContact so a
+ * failed target write cannot leave the company without its former primary.
  *
  * The exclude_id parameter lets the caller skip a row (e.g. the row that
  * is about to be promoted).
@@ -212,4 +212,15 @@ export async function deleteContact(
   if (error) {
     throw new Error(`contacts delete failed: ${error.message}`);
   }
+}
+
+
+/** One RPC transaction; never fall back to separate demote/write calls. */
+export async function writeCompanyContact(
+  client: Client,
+  input: Database["public"]["Functions"]["write_company_contact"]["Args"],
+): Promise<ContactRow> {
+  const { data, error } = await client.rpc("write_company_contact", input).single();
+  if (error) throw new Error(`contacts atomic write failed: ${error.message}`);
+  return data;
 }

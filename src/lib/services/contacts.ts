@@ -13,7 +13,7 @@
  *
  *   1. Application-level invariant enforcement, with clean error messages:
  *        - max 5 contacts per firma
- *        - exactly one is_primary per firma (when at least one exists)
+ *        - at most one is_primary per firma; zero is allowed
  *        - phone or email is required
  *        - role-narrowed updates: operasyon may write phone/email only
  *
@@ -42,15 +42,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Database,
   ContactRow,
-  ContactInsert,
 } from "@/types/database.types";
 import {
   selectContactsByCompanyId,
   selectPrimaryContactsByCompanyIds,
   selectContactByIdAndCompany,
-  insertContact,
+  writeCompanyContact,
   updateContact,
-  clearPrimaryForCompany,
   deleteContact,
 } from "@/lib/supabase/contacts";
 import { requireCompanyByLegacyMockId } from "@/lib/services/companies";
@@ -243,9 +241,8 @@ export async function getPrimaryContactNamesByLegacyIds(
  *   - Resolves the company via the company resolver (throws on miss).
  *   - Enforces the max-5-per-firma rule with a count read before insert.
  *   - Enforces phone-or-email at the application layer.
- *   - When `isPrimary` is true, demotes any existing primary in the same
- *     transaction (well, two queries in sequence — the partial unique
- *     index prevents racing inserts).
+ *   - The RPC locks the company, rechecks the count, and atomically
+ *     demotes/promotes the primary. A failed target write rolls back both.
  *   - Returns the inserted ContactRow so the caller can update local
  *     state without a refetch.
  */
@@ -267,23 +264,12 @@ export async function createContact(
     throw new ContactLimitReachedError();
   }
 
-  // If the new row will be primary, demote any existing primary first
-  // so the partial unique index does not reject the insert.
-  if (input.isPrimary) {
-    await clearPrimaryForCompany(client, company.id);
-  }
-
-  const payload: ContactInsert = {
-    company_id: company.id,
-    full_name: fullName,
-    title: normalizeOptional(input.title),
-    phone,
-    email,
-    is_primary: input.isPrimary,
-    context_note: normalizeOptional(input.contextNote),
-  };
-
-  return insertContact(client, payload);
+  return writeCompanyContact(client, {
+    p_company_id: company.id, p_contact_id: null,
+    p_full_name: fullName, p_title: normalizeOptional(input.title),
+    p_phone: phone, p_email: email, p_is_primary: input.isPrimary,
+    p_context_note: normalizeOptional(input.contextNote),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -291,11 +277,8 @@ export async function createContact(
 // ---------------------------------------------------------------------------
 
 /**
- * Full edit of a contact. Allowed for yonetici (anywhere) and partner
- * (within scope). Operasyon must use `updateContactPhoneEmail` instead —
- * this function does not narrow by role; the calling component already
- * knows the role and chose which function to invoke. Database RLS is the
- * defense-in-depth backstop.
+ * Full edit is a manager-only RPC command in the verified tenant.
+ * Operasyon uses updateContactPhoneEmail; that bounded path is unchanged.
  */
 export async function updateContactFull(
   client: Client,
@@ -313,20 +296,11 @@ export async function updateContactFull(
   const email = normalizeOptional(input.email);
   ensurePhoneOrEmail(phone, email);
 
-  if (input.isPrimary) {
-    // Demote every other primary in the same firma. We exclude the row
-    // being promoted so a no-op promote (already-primary) does not flip
-    // its own value to false and back.
-    await clearPrimaryForCompany(client, company.id, contactId);
-  }
-
-  return updateContact(client, contactId, {
-    full_name: fullName,
-    title: normalizeOptional(input.title),
-    phone,
-    email,
-    is_primary: input.isPrimary,
-    context_note: normalizeOptional(input.contextNote),
+  return writeCompanyContact(client, {
+    p_company_id: company.id, p_contact_id: contactId,
+    p_full_name: fullName, p_title: normalizeOptional(input.title),
+    p_phone: phone, p_email: email, p_is_primary: input.isPrimary,
+    p_context_note: normalizeOptional(input.contextNote),
   });
 }
 
