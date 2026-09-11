@@ -766,3 +766,16 @@ Commit edilmiş PATCH success ve error ayrı tutuldu. Yönetici→operasyon→y�
 TypeScript, git diff --check, son izole production build başarılı; statik 16 kural, 0 FAIL, 1 WARN (TimelineList), R14 261 dosya. Bağımsız lint yapılandırması yok. Ürün SQL/push/deploy yok; 20260911000100 production uygulaması bekliyor. Kullanıcının 3000 sunucusuna dokunulmadı.
 
 Sınırlar: validity update için optimistic revision veya farklı operatörler arasında conflict uyarısı eklenmedi; son başarılı yazı geçerlidir. Tarihi boşaltma bu akışta desteklenmez. Gerçek user/tenant geçişi ayrıca ölçülmedi; rol A→B→A ölçüldü. 105 durable review/idempotency sınırları sürer. Sıradaki 108: genel evrak indirme signed URL isteğinde pending, hata/retry ve context değişiminden sonra geç yanıtın pencere açması. Liste filtrelerinin korunması ayrı sonraki dilimdir.
+
+
+## 108 — Genel evrak indirmede hazırlama, retry ve geç yanıt koruması
+
+Önceki signed URL hatası satırı tam sayfa yenilenene kadar kilitliyor; gecikmiş başarı koşulsuz window.open yapıyordu. Yeni sayfa içi indirme kartı loading/error/ready durumunu belge adıyla gösterir. Hata sayfayı yenilemeden yeniden denenir. Hazır bağlantı kullanıcı tarafından Dosyayı aç ile yeni sekmede açılır. Böylece async response kendi başına popup açmaz. Link 60 sn server TTL ile istenir; istemci isteğin başlangıcından itibaren 55 sn sonra bağlantıyı kaldırır. Geç response ve tıklama anı ayrıca kontrol edilir.
+
+Context nesnesi ve request identity başlangıç/yanıt/finally kontrolü sağlar. Kapatma pending sonucu geçersiz kılar; eski finally yeni işlemin kilidini kaldıramaz. Pending boyunca sayfadaki indirme aksiyonları disabled; pathless satır her zaman disabled. Hata ham Storage mesajı/log yerine genel metindir. Signed URL yalnız geçici React state/DOM içinde tutulur; bu kaynak incelemesidir, ayrıca browser storage taraması yapılmadı.
+
+Yeni document-download-acceptance helper ve BPS_DOCUMENT_DOWNLOAD_CHECK mevcut sentetik Storage fixture'ını kullanır. Gerçek iki PDF ve bir pathless metadata satırı: tek held POST, diğer satır disabled, 503/retry, explicit link popup ve GET 200, Playwright clock ile 56 sn ilerletince expiry; gerçek rol yönetici→operasyon→yönetici boyunca eski success/error yeni B sonucunu bozmadı. Kapat A→başlat B pending→A release durumunda B kilidi korundu. 390 px screenshot incelendi, yatay taşma yok. /private/tmp/bps-company-feedback-wnHwnu exit 0; runner kendi Storage yolları, DB ve Auth kayıtlarını temizledi.
+
+TypeScript ve git diff --check başarılı. İzole build bps-build-hk1MfW BUILD_ID üretmiş; statik kontrol yeniden ölçüldü: 16 kontrol, 0 FAIL, 1 WARN (TimelineList), R14 261 dosya. Bağımsız lint yapılandırılmamış. Ürün migration/push/deploy yok. 20260911000100 yalnız dedicated yerelde, production uygulaması hâlâ bekler.
+
+Sınırlar: iptal network isteğini abort etmez; eski sonucu yok sayar. Önceden verilmiş signed URL rol değişiminde iptal edilmez, TTL sonuna kadar kullanılabilir. Test yeni sekme ve HTTP 200 kanıtlar, işletim sistemi dosya kaydını veya PDF render doğruluğunu kanıtlamaz. Firma detayındaki ayrı indirme akışı değiştirilmedi. Gerçek user/tenant değişimi ayrıca ölçülmedi. 105 durable review/idempotency sınırları sürer. Sıradaki 109: evrak listesi filtre hafızası ve boş sonuç ayrımı.

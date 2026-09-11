@@ -160,19 +160,23 @@ export default function EvraklarPage() {
   const [openUploadContext, setOpenUploadContext] = useState<typeof context | null>(null);
   const [validityTarget, setValidityTarget] = useState<{ context: typeof context; row: DocumentListRow } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Per-row signed-URL failures. A failure here used to flow into the
-  // page-level `loadError` and collapse the whole page; now it stays
-  // item-level so the row remains visible with a degraded "Indir"
-  // action. Cleared on page reload (full mount = new Set).
-  const [signedUrlErrorIds, setSignedUrlErrorIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  type DownloadState = { context: typeof context; row: DocumentListRow; phase: "loading" | "error" | "ready"; href?: string; expiresAt?: number; message?: string };
+  const [download, setDownload] = useState<DownloadState | null>(null);
+  const downloadFlight = useRef<{ context: typeof context } | null>(null);
+  const currentDownload = download?.context === context ? download : null;
+  function dismissDownload() { downloadFlight.current = null; setDownload(null); }
+  useEffect(() => {
+    if (download?.phase !== "ready" || !download.expiresAt) return;
+    const timer = window.setTimeout(() => setDownload(current => current === download
+      ? { context: download.context, row: download.row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." } : current), Math.max(0, download.expiresAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [download]);
 
   useEffect(() => {
     liveContext.current = context;
-    setOpenUploadContext(null); setSelectedId(null); setValidityTarget(null); setSignedUrlErrorIds(new Set());
+    setOpenUploadContext(null); setSelectedId(null); setValidityTarget(null); downloadFlight.current = null; setDownload(null);
     notice.clear();
-    return () => { liveContext.current = null; };
+    return () => { liveContext.current = null; downloadFlight.current = null; };
     // Notice functions change on render; reset only on authorization context changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context]);
@@ -240,35 +244,29 @@ export default function EvraklarPage() {
     [allCompanies],
   );
 
-  // Partner'ın evrak yükleme hakkı ROLE_MATRIX §5.7 ve documents RLS
-  // INSERT policy'sinde "Portföyünde Evet" olarak kayıtlıdır. Mevcut
-  // UI bu hakkı gizliyordu — bu batch'te UI kaynağa hizalandı (raporda
-  // "Partner UI drift correction" olarak belirtildi). Partner scope
-  // zaten RLS + storage.objects INSERT policy'sinde enforce edilir.
   const canMutateEvrak = allowed;
 
   async function handleDownload(row: DocumentListRow) {
-    if (!row.storage_path) return;
+    if (!context.scope || liveContext.current !== context || !row.storage_path || downloadFlight.current?.context === context) return;
+    const operation = { context };
+    downloadFlight.current = operation;
+    setDownload({ context, row, phase: "loading" });
+    // Conservative client lifetime measured before requesting the server's 60s URL.
+    const expiresAt = Date.now() + 55_000;
+    const current = () => liveContext.current === context && downloadFlight.current === operation;
     try {
-      const { data, error } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(row.storage_path, 60);
-      if (error || !data?.signedUrl) {
-        throw error ?? new Error("signed URL bos dondu");
+      const { data, error } = await supabase.storage.from("documents").createSignedUrl(row.storage_path, 60);
+      if (!current()) return;
+      if (error || !data?.signedUrl) throw new Error("download unavailable");
+      if (Date.now() >= expiresAt) {
+        setDownload({ context, row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." });
+      } else {
+        setDownload({ context, row, phase: "ready", href: data.signedUrl, expiresAt });
       }
-      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-    } catch (err) {
-      // Per-row failure must NOT collapse the page (was: setLoadError(...)).
-      // Mark the row so its "Indir" action goes disabled and the inline
-      // banner above the table explains the reason. Full error context
-      // stays in the console for ops; UI never surfaces raw messages.
-      console.error(`[evraklar] signed URL failed for row ${row.id}:`, err);
-      setSignedUrlErrorIds((prev) => {
-        if (prev.has(row.id)) return prev;
-        const next = new Set(prev);
-        next.add(row.id);
-        return next;
-      });
+    } catch {
+      if (current()) setDownload({ context, row, phase: "error", message: "Dosya bağlantısı hazırlanamadı. Tekrar deneyin." });
+    } finally {
+      if (current()) downloadFlight.current = null;
     }
   }
 
@@ -281,10 +279,7 @@ export default function EvraklarPage() {
     {
       label: "Indir",
       onClick: (row: DocumentListRow) => { void handleDownload(row); },
-      // Disabled when (a) row has no storage_path (existing behavior)
-      // or (b) a prior signed-URL attempt for this row failed.
-      isDisabled: (row: DocumentListRow) =>
-        !row.storage_path || signedUrlErrorIds.has(row.id),
+      isDisabled: (row: DocumentListRow) => !row.storage_path || currentDownload?.phase === "loading",
     },
   ];
 
@@ -316,6 +311,25 @@ export default function EvraklarPage() {
       ] : []} />
 
       <ActionNotice message={notice.message} onDismiss={notice.clear} />
+      {currentDownload && <section aria-label="Evrak indirme" className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex items-start justify-between gap-3">
+          <p className="min-w-0 break-words text-sm font-medium text-slate-800">{currentDownload.row.name}</p>
+          <button type="button" onClick={dismissDownload} className="min-h-11 shrink-0 px-3 text-sm text-slate-600">Kapat</button>
+        </div>
+        {currentDownload.phase === "loading" && <p role="status" className="text-sm text-blue-700">Dosya bağlantısı hazırlanıyor…</p>}
+        {currentDownload.phase === "error" && <>
+          <p role="status" className="text-sm text-amber-700">{currentDownload.message}</p>
+          <button type="button" onClick={() => { void handleDownload(currentDownload.row); }} className="min-h-11 mt-2 text-sm text-blue-700 underline">Bağlantıyı yeniden hazırla</button>
+        </>}
+        {currentDownload.phase === "ready" && <>
+          <p role="status" className="text-sm text-slate-600">Bağlantı hazır. Dosyayı yeni sekmede açabilirsiniz.</p>
+          <a href={currentDownload.href} target="_blank" rel="noopener noreferrer" onClick={event => {
+            if (!currentDownload.expiresAt || Date.now() >= currentDownload.expiresAt) {
+              event.preventDefault(); setDownload({ context, row: currentDownload.row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." });
+            }
+          }} className="min-h-11 mt-2 inline-flex items-center text-sm font-medium text-blue-700 underline">Dosyayı aç</a>
+        </>}
+      </section>}
       <AsyncSection isLoading={documentResource.loading} hasError={documentResource.error} onRetry={() => { void reload(); }}>
       <div className="space-y-4">
         <DocumentsChecklistCard
@@ -371,25 +385,6 @@ export default function EvraklarPage() {
           <div className="w-full sm:max-w-xs"><SearchInput placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
           <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
         </div>
-
-        {/* Per-row signed-URL failure banner. Visible only when at least
-            one "Indir" attempt has failed in this session. Item-level UX:
-            those rows' Indir actions are already disabled via isDisabled;
-            this banner explains the reason without page collapse. Matches
-            existing amber visual language used by the operational risk
-            card above. Cleared on full page reload. */}
-        {signedUrlErrorIds.size > 0 && (
-          <div
-            className={`${RADIUS_DEFAULT} border border-amber-200 bg-amber-50 p-3`}
-            role="status"
-            aria-live="polite"
-          >
-            <p className={`${TYPE_CAPTION} text-amber-700 flex items-center gap-1.5`}>
-              <AlertTriangle size={14} />
-              Bazi belgelerin baglantisi olusturulamadi. Sayfayi yenileyerek tekrar deneyin.
-            </p>
-          </div>
-        )}
 
         <DataTable<DocumentListRow> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle="Evrak bulunamadi" emptyDescription="Arama veya filtre kriterlerinizi degistirin." />
       </div>
