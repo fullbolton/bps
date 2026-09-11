@@ -14,6 +14,7 @@ import {checkCompanyContactRead} from './helpers/company-contact-read-acceptance
 import {checkCompanyNotePin} from './helpers/company-note-pin-acceptance.mjs';
 import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
+import {checkCompanyDownload} from './helpers/company-download-acceptance.mjs';
 import {checkDocumentDetail} from './helpers/document-detail-acceptance.mjs';
 import {checkDocumentList} from './helpers/document-list-acceptance.mjs';
 import {checkDocumentDownload} from './helpers/document-download-acceptance.mjs';
@@ -39,7 +40,7 @@ try {
  const s=JSON.parse(run('supabase',['status','--workdir','/private/tmp/bps-supabase-acceptance','-o','json']));
  const [db,gateway]=JSON.parse(run('docker',['inspect',container,'supabase_kong_bps-supabase-acceptance']));
  validateLocalStatus(s,readFileSync('/private/tmp/bps-supabase-acceptance/supabase/config.toml','utf8'),db,gateway);
- if(process.env.BPS_RECORD_DELETE_CHECK==='1'||(process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1'||process.env.BPS_COMPANY_UPLOAD_RECOVERY_CHECK==='1'||process.env.BPS_GENERAL_DOCUMENT_FORM_CHECK==='1'||process.env.BPS_DOCUMENT_DOWNLOAD_CHECK==='1')) {
+ if(process.env.BPS_RECORD_DELETE_CHECK==='1'||(process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1'||process.env.BPS_COMPANY_UPLOAD_RECOVERY_CHECK==='1'||process.env.BPS_GENERAL_DOCUMENT_FORM_CHECK==='1'||process.env.BPS_DOCUMENT_DOWNLOAD_CHECK==='1'||process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1')) {
   let storage;
   try { [storage]=JSON.parse(run('docker',['inspect','supabase_storage_bps-supabase-acceptance'])); } catch { /* Report before creating fixtures/accounts. */ }
   assert.ok(storage?.Name==='/supabase_storage_bps-supabase-acceptance'&&storage?.State?.Running===true,'Dedicated local Storage is not running. Start scripts/start-local-document-storage.mjs before document Storage acceptance.');
@@ -56,7 +57,7 @@ try {
  if((process.env.BPS_CONTACT_PRIMARY_CHECK==='1'||process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1')&&process.env.BPS_CONTACT_PRIMARY_REPRO!=='1')sql(readFileSync(new URL('../supabase/migrations/20260911000100_contact_atomic_write.sql',import.meta.url),'utf8'));
  if(process.env.BPS_RECORD_DELETE_CHECK==='1'){sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));}
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-workforce-summary.sql',import.meta.url),'utf8'));
- if((process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1'||process.env.BPS_COMPANY_UPLOAD_RECOVERY_CHECK==='1'||process.env.BPS_GENERAL_DOCUMENT_FORM_CHECK==='1'||process.env.BPS_DOCUMENT_DOWNLOAD_CHECK==='1')){sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-company-upload-write.sql',import.meta.url),'utf8'));}
+ if((process.env.BPS_COMPANY_UPLOAD_SUCCESS_CHECK==='1'||process.env.BPS_COMPANY_UPLOAD_RECOVERY_CHECK==='1'||process.env.BPS_GENERAL_DOCUMENT_FORM_CHECK==='1'||process.env.BPS_DOCUMENT_DOWNLOAD_CHECK==='1'||process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1')){sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-company-upload-write.sql',import.meta.url),'utf8'));}
  if(process.env.BPS_DOCUMENT_VALIDITY_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-document-validity.sql',import.meta.url),'utf8'));
  admin=createClient(s.API_URL,s.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
  const email=`ux-${randomUUID()}@example.test`,password=randomUUID()+'Aa1!';
@@ -761,6 +762,7 @@ try {
  if(process.env.BPS_COMPANY_NOTE_PIN_CHECK==='1') await checkCompanyNotePin({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTE_FORM_CHECK==='1') await checkCompanyNoteForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTES_CHECK==='1') await checkCompanyNotes({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
+ if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_DETAIL_CHECK==='1') await checkDocumentDetail({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_DOCUMENT_LIST_CHECK==='1') await checkDocumentList({page,sql,user,tenant:id(1),first,prefix,origin,output});
  if(process.env.BPS_DOCUMENT_DOWNLOAD_CHECK==='1') await checkDocumentDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});

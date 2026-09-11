@@ -463,8 +463,7 @@ export default function FirmaDetayPage({
     if (target.scope === companyScopeRef.current) router.refresh();
   }
 
-  // Document upload modal + per-row download error (item-level — never
-  // collapses the tab; matches the Evraklar page resilience pattern).
+  // Document upload draft is isolated from authorization/context changes.
   const uploadAllowed = !authLoading && !!user && ["yonetici", "operasyon", "ik"].includes(role);
   const uploadContext = useMemo(() => ({ scope: uploadAllowed ? companyScope : null }), [uploadAllowed, companyScope]);
   const liveUploadContext = useRef<typeof uploadContext | null>(uploadContext);
@@ -476,7 +475,47 @@ export default function FirmaDetayPage({
     return () => { liveUploadContext.current = null; };
   }, [uploadContext]);
   const [evrakUploadError, setEvrakUploadError] = useState<string | null>(null);
-  const [evrakDownloadError, setEvrakDownloadError] = useState<string | null>(null);
+  const downloadEnabled = !authLoading && !!user && !documentsAccessRestricted && activeTab === "evraklar";
+  const downloadContext = useMemo(() => ({ scope: downloadEnabled ? companyScope : null }), [downloadEnabled, companyScope]);
+  const liveDownloadContext = useRef<typeof downloadContext | null>(downloadContext);
+  liveDownloadContext.current = downloadContext;
+  type DownloadState = { context: typeof downloadContext; row: (typeof firmaDocs)[number]; phase: "loading" | "error" | "ready"; href?: string; expiresAt?: number; message?: string };
+  const [download, setDownload] = useState<DownloadState | null>(null);
+  const downloadFlight = useRef<{ context: typeof downloadContext } | null>(null);
+  const currentDownload = download?.context === downloadContext ? download : null;
+  function dismissDownload() { downloadFlight.current = null; setDownload(null); }
+  useEffect(() => {
+    liveDownloadContext.current = downloadContext;
+    downloadFlight.current = null; setDownload(null);
+    return () => { liveDownloadContext.current = null; downloadFlight.current = null; };
+  }, [downloadContext]);
+  useEffect(() => {
+    if (download?.phase !== "ready" || !download.expiresAt) return;
+    const timer = window.setTimeout(() => setDownload(current => current === download
+      ? { context: download.context, row: download.row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." } : current), Math.max(0, download.expiresAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [download]);
+  async function handleEvrakDownload(row: (typeof firmaDocs)[number]) {
+    if (!downloadContext.scope || liveDownloadContext.current !== downloadContext || !row.storage_path || downloadFlight.current?.context === downloadContext) return;
+    const operation = { context: downloadContext };
+    downloadFlight.current = operation;
+    setDownload({ context: downloadContext, row, phase: "loading" });
+    // Server URL TTL is 60 seconds. Include action latency in the shorter UI lifetime.
+    const expiresAt = Date.now() + 55_000;
+    const current = () => liveDownloadContext.current === downloadContext && downloadFlight.current === operation;
+    try {
+      const result = await getCompanyDocumentDownloadUrlAction(row.id);
+      if (!current()) return;
+      if (!result.ok) { setDownload({ context: downloadContext, row, phase: "error", message: result.error }); return; }
+      setDownload(Date.now() >= expiresAt
+        ? { context: downloadContext, row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." }
+        : { context: downloadContext, row, phase: "ready", href: result.url, expiresAt });
+    } catch {
+      if (current()) setDownload({ context: downloadContext, row, phase: "error", message: "Dosya bağlantısı hazırlanamadı. Tekrar deneyin." });
+    } finally {
+      if (current()) downloadFlight.current = null;
+    }
+  }
   if (companyLoading || loadedCompanyScope !== companyScope) {
     return <p className="text-sm text-slate-500 py-12 text-center">Yukleniyor...</p>;
   }
@@ -1337,17 +1376,6 @@ export default function FirmaDetayPage({
           const canDeleteDocs = role === "yonetici";
           const contractLabelById = new Map(firmaSozlesmeler.map((c) => [c.id, c.name]));
 
-          async function handleEvrakDownload(documentId: string) {
-            setEvrakDownloadError(null);
-            const result = await getCompanyDocumentDownloadUrlAction(documentId);
-            if (result.ok) {
-              window.open(result.url, "_blank", "noopener,noreferrer");
-              return;
-            }
-            // Per-row failure stays item-level — page chrome unaffected.
-            setEvrakDownloadError(result.error);
-          }
-
           return (
             <div className={CARD_LG}>
               <div className="flex items-center justify-between mb-4">
@@ -1366,11 +1394,25 @@ export default function FirmaDetayPage({
                 )}
               </div>
 
-              {evrakDownloadError && (
-                <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-                  {evrakDownloadError}
-                </p>
-              )}
+              {currentDownload && <section aria-label="Evrak indirme" className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 break-words text-sm font-medium text-slate-800">{currentDownload.row.name}</p>
+                  <button type="button" onClick={dismissDownload} className="min-h-11 shrink-0 px-3 text-sm text-slate-600">Kapat</button>
+                </div>
+                {currentDownload.phase === "loading" && <p role="status" className="text-sm text-blue-700">Dosya bağlantısı hazırlanıyor…</p>}
+                {currentDownload.phase === "error" && <>
+                  <p role="status" className="text-sm text-amber-700">{currentDownload.message}</p>
+                  <button type="button" onClick={() => { void handleEvrakDownload(currentDownload.row); }} className="min-h-11 mt-2 text-sm text-blue-700 underline">Bağlantıyı yeniden hazırla</button>
+                </>}
+                {currentDownload.phase === "ready" && <>
+                  <p role="status" className="text-sm text-slate-600">Bağlantı hazır. Dosyayı yeni sekmede açabilirsiniz.</p>
+                  <a href={currentDownload.href} target="_blank" rel="noopener noreferrer" onClick={event => {
+                    if (!currentDownload.expiresAt || Date.now() >= currentDownload.expiresAt) {
+                      event.preventDefault(); setDownload({ context: downloadContext, row: currentDownload.row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." });
+                    }
+                  }} className="min-h-11 mt-2 inline-flex items-center text-sm font-medium text-blue-700 underline">Dosyayı aç</a>
+                </>}
+              </section>}
 
               <AsyncSection isLoading={docsLoading} hasError={docsError} onRetry={() => void reloadDocs()}>
               {firmaDocs.length === 0 ? (
@@ -1404,8 +1446,8 @@ export default function FirmaDetayPage({
                             <div className="inline-flex items-center gap-3">
                               <button
                                 type="button"
-                                onClick={() => { void handleEvrakDownload(d.id); }}
-                                disabled={!d.storage_path}
+                                onClick={() => { void handleEvrakDownload(d); }}
+                                disabled={!d.storage_path || currentDownload?.phase === "loading"}
                                 className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
                                 title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
                               >

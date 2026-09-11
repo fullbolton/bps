@@ -330,7 +330,7 @@ export async function getCompanyDocumentDownloadUrlAction(
   if (signed.error || !signed.data?.signedUrl) {
     return {
       ok: false,
-      error: `İndirme bağlantısı oluşturulamadı: ${signed.error?.message ?? "bilinmeyen"}.`,
+      error: "İndirme bağlantısı oluşturulamadı. Tekrar deneyin.",
     };
   }
 
