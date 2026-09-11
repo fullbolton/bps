@@ -8,6 +8,7 @@ import {createClient} from '@supabase/supabase-js';
 import {createServerClient} from '@supabase/ssr';
 import {validateLocalStatus,acquireLock} from './helpers/acceptance-runner.mjs';
 import {id} from './fixtures/daily-operations.mjs';
+import {checkCompanyContactForm} from './helpers/company-contact-form-acceptance.mjs';
 import {checkCompanyContactRead} from './helpers/company-contact-read-acceptance.mjs';
 import {checkCompanyNotePin} from './helpers/company-note-pin-acceptance.mjs';
 import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
@@ -40,7 +41,8 @@ try {
  sql(readFileSync(new URL('./fixtures/local-company-feedback.sql',import.meta.url),'utf8'));
  if(process.env.BPS_APPOINTMENT_LINK_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contract-appointments.sql',import.meta.url),'utf8'));
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1'||process.env.BPS_REQUEST_FORM_CHECK==='1'||process.env.BPS_REQUEST_RECOVERY_CHECK==='1'||process.env.BPS_OWNER_FORM_CHECK==='1'||process.env.BPS_REQUEST_LIST_CHECK==='1'||process.env.BPS_REQUEST_MOBILE_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-request-feedback.sql',import.meta.url),'utf8'));
- if(process.env.BPS_COMPANY_CONTACT_READ_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));
+ if(process.env.BPS_COMPANY_CONTACT_READ_CHECK==='1'||process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));
+ if(process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contact-write.sql',import.meta.url),'utf8'));
  if(process.env.BPS_RECORD_DELETE_CHECK==='1'){sql(readFileSync(new URL('./fixtures/local-contact-feedback.sql',import.meta.url),'utf8'));sql(readFileSync(new URL('./fixtures/local-document-storage.sql',import.meta.url),'utf8'));}
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-workforce-summary.sql',import.meta.url),'utf8'));
  admin=createClient(s.API_URL,s.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -740,6 +742,7 @@ try {
   }
   console.log('PASS workspace desktop/mobile six routes, no page overflow, mobile dialog/Escape');
  }
+ if(process.env.BPS_COMPANY_CONTACT_FORM_CHECK==='1') await checkCompanyContactForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_CONTACT_READ_CHECK==='1') await checkCompanyContactRead({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTE_PIN_CHECK==='1') await checkCompanyNotePin({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTE_FORM_CHECK==='1') await checkCompanyNoteForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});

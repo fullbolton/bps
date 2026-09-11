@@ -78,6 +78,8 @@ import {
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
 import {
+  ContactValidationError,
+  ContactLimitReachedError,
   listContactsByLegacyCompanyId,
   updateContactFull,
   updateContactPhoneEmail,
@@ -285,9 +287,17 @@ export default function FirmaDetayPage({
     // Clear only on context changes; notice helpers are recreated each render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentContext, reloadAppointments]);
-  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const contactContext = useMemo(() => ({ scope: contactScope }), [contactScope]);
+  const liveContactContext = useRef<typeof contactContext | null>(contactContext);
+  liveContactContext.current = contactContext;
+  const [openContactContext, setOpenContactContext] = useState<typeof contactContext | null>(null);
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [editPhoneEmailOnly, setEditPhoneEmailOnly] = useState(false);
+  useEffect(() => {
+    liveContactContext.current = contactContext;
+    setOpenContactContext(null); setEditingContact(null); setEditPhoneEmailOnly(false);
+    return () => { liveContactContext.current = null; };
+  }, [contactContext]);
   // Ticari Temas — outbound draft helpers
   const [temasType, setTemasType] = useState<"yeniden_temas" | "odeme_takibi" | null>(null);
   const [temasDraftText, setTemasDraftText] = useState<string | null>(null);
@@ -1061,7 +1071,7 @@ export default function FirmaDetayPage({
                 {role === "yonetici" && (!contactsReady || yetkililer.length < 5) && (
                   <button
                     type="button"
-                    onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setContactModalOpen(true); }}
+                    onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setOpenContactContext(contactContext); }}
                     disabled={isPassiveCompany || !contactsReady}
                     title={isPassiveCompany ? PASSIVE_BLOCK_TITLE : undefined}
                     className={`min-h-11 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 ${TYPE_CAPTION} font-medium ${TEXT_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
@@ -1130,7 +1140,7 @@ export default function FirmaDetayPage({
                             onClick={() => {
                               setEditingContact(ytk);
                               setEditPhoneEmailOnly(role === "operasyon");
-                              setContactModalOpen(true);
+                              setOpenContactContext(contactContext);
                             }}
                             className={`min-h-11 min-w-11 inline-flex items-center justify-center ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
                             aria-label={`${ytk.full_name} — düzenle`}
@@ -1709,73 +1719,43 @@ export default function FirmaDetayPage({
         }}
       />}
 
-      <AddContactModal
-        open={contactModalOpen}
-        onClose={() => { setContactModalOpen(false); setEditingContact(null); setEditPhoneEmailOnly(false); }}
+      {openContactContext === contactContext && contactScope && <AddContactModal
+        key={`${companyScope}:${editingContact?.id ?? "new"}`}
+        open
+        onClose={() => {
+          if (liveContactContext.current !== contactContext) return;
+          setOpenContactContext(null); setEditingContact(null); setEditPhoneEmailOnly(false);
+        }}
         editData={editingContact}
         phoneEmailOnly={editPhoneEmailOnly}
         currentAnaYetkiliAdi={yetkililer.find((y) => y.is_primary)?.full_name}
         onSubmit={async (data) => {
-          // Faz 1A: persist via service layer. The service re-verifies
-          // partner scope, enforces max-5 / phone-or-email / single-primary,
-          // and narrows the operasyon patch to {phone, email}. Errors
-          // (validation, scope, DB) bubble up so the modal can render
-          // them inline; only on resolve do we refetch and close.
-          //
-          // Faz 1A closeout fix: after a successful mutation we MUST also
-          // call router.refresh() so the Firmalar list page sees the new
-          // truth on its next visit. Without this, Next.js 15's client
-          // Router Cache (staleTimes.static = 300s) restores the cached
-          // tree of /firmalar when we router.push back to it, preserving
-          // the stale `primaryNames` state — its useEffect never re-runs
-          // and the Ana Yetkili column shows the static mock fallback.
-          // router.refresh() is the only client API that invalidates the
-          // entire prefetch cache (see refresh-reducer.js: prefetchCache
-          // = new Map()).
-          if (editingContact) {
-            if (editPhoneEmailOnly) {
-              await updateContactPhoneEmail(supabase, id, editingContact.id, {
-                phone: data.phone,
-                email: data.email,
-              });
+          if (liveContactContext.current !== contactContext || !contactContext.scope) return;
+          try {
+            if (editingContact) {
+              if (editPhoneEmailOnly) await updateContactPhoneEmail(supabase, id, editingContact.id, { phone: data.phone, email: data.email });
+              else await updateContactFull(supabase, id, editingContact.id, data);
             } else {
-              await updateContactFull(supabase, id, editingContact.id, {
-                fullName: data.fullName,
-                title: data.title,
-                phone: data.phone,
-                email: data.email,
-                isPrimary: data.isPrimary,
-                contextNote: data.contextNote,
-              });
+              if (!companyShell) throw new Error("Firma yüklenmedi.");
+              const result = await createContactAction(companyShell.id, data);
+              if (!result.ok) {
+                if (result.error === new ContactLimitReachedError().message) throw new ContactLimitReachedError();
+                throw new Error(result.error);
+              }
             }
-          } else {
-            // Create runs through the server action (Patch 2): cookie-auth,
-            // role + tenant + passive-company guard, then delegates to the
-            // contacts service. The real company UUID (companyShell.id) is
-            // required — never the route param, which may be a legacy id.
-            if (!companyShell) {
-              throw new Error("Firma yüklenmedi.");
-            }
-            const result = await createContactAction(companyShell.id, {
-              fullName: data.fullName,
-              title: data.title,
-              phone: data.phone,
-              email: data.email,
-              isPrimary: data.isPrimary,
-              contextNote: data.contextNote,
-            });
-            if (!result.ok) {
-              throw new Error(result.error);
-            }
+          } catch (error) {
+            if (liveContactContext.current !== contactContext) return;
+            if (error instanceof ContactValidationError) throw error;
+            throw new Error("Yetkili kaydedilemedi. Bilgileriniz korundu; tekrar deneyin.");
           }
-          await reloadYetkililer();
-          // Invalidate the entire client Router Cache so /firmalar
-          // (cached as a static page with staleTimes.static = 300s)
-          // re-fetches its primaryNames on next visit instead of
-          // restoring the cached tree with stale state.
+          if (liveContactContext.current !== contactContext) return;
+          setOpenContactContext(null); setEditingContact(null); setEditPhoneEmailOnly(false);
+          setActiveTab("yetkililer");
+          feedback.show(editingContact ? "Yetkili bilgileri güncellendi." : "Yetkili firmaya eklendi.");
+          void reloadYetkililer();
           router.refresh();
         }}
-      />
+      />}
 
       {/* Note Suggestion Flow — prompt → preview → confirm into QuickNoteModal */}
       {suggestOpen && (

@@ -25,7 +25,8 @@
  * shown inline above the footer.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useId } from "react";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { ModalShell } from "@/components/ui";
 import type { ContactRow } from "@/types/database.types";
 import {
@@ -66,42 +67,38 @@ interface AddContactModalProps {
   onSubmit: (data: AddContactSubmitData) => Promise<void> | void;
 }
 
-export default function AddContactModal({
-  open,
+export default function AddContactModal(props: AddContactModalProps) {
+  return props.open ? <ContactDraft {...props} /> : null;
+}
+
+function ContactDraft({
   onClose,
   editData,
   phoneEmailOnly = false,
   currentAnaYetkiliAdi,
   onSubmit,
 }: AddContactModalProps) {
-  const [adSoyad, setAdSoyad] = useState("");
-  const [unvan, setUnvan] = useState("");
-  const [telefon, setTelefon] = useState("");
-  const [eposta, setEposta] = useState("");
-  const [anaYetkili, setAnaYetkili] = useState(false);
-  const [kisaNotlar, setKisaNotlar] = useState("");
+  const formId = useId();
+  const [adSoyad, setAdSoyad] = useState(editData?.full_name ?? "");
+  const [unvan, setUnvan] = useState(editData?.title ?? "");
+  const [telefon, setTelefon] = useState(editData?.phone ?? "");
+  const [eposta, setEposta] = useState(editData?.email ?? "");
+  const [anaYetkili, setAnaYetkili] = useState(editData?.is_primary ?? false);
+  const [kisaNotlar, setKisaNotlar] = useState(editData?.context_note ?? "");
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (editData) {
-      setAdSoyad(editData.full_name);
-      setUnvan(editData.title ?? "");
-      setTelefon(editData.phone ?? "");
-      setEposta(editData.email ?? "");
-      setAnaYetkili(editData.is_primary);
-      setKisaNotlar(editData.context_note ?? "");
-    } else {
-      setAdSoyad("");
-      setUnvan("");
-      setTelefon("");
-      setEposta("");
-      setAnaYetkili(false);
-      setKisaNotlar("");
-    }
-    setSubmitError(null);
-    setSaving(false);
-  }, [editData, open]);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const submitting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const hasChanges = telefon !== (editData?.phone ?? "") || eposta !== (editData?.email ?? "") || (!phoneEmailOnly && (
+    adSoyad !== (editData?.full_name ?? "") || unvan !== (editData?.title ?? "") || anaYetkili !== (editData?.is_primary ?? false) || kisaNotlar !== (editData?.context_note ?? "")
+  ));
+  function requestClose() {
+    if (submitting.current) return;
+    if (hasChanges) setDiscardOpen(true);
+    else onClose();
+  }
 
   const isEdit = !!editData;
   const hasContact = telefon.trim() || eposta.trim();
@@ -110,7 +107,8 @@ export default function AddContactModal({
     : adSoyad.trim() && hasContact;
 
   async function handleSubmit() {
-    if (!isValid || saving) return;
+    if (!isValid || submitting.current) return;
+    submitting.current = true;
     setSaving(true);
     setSubmitError(null);
     try {
@@ -122,51 +120,56 @@ export default function AddContactModal({
         isPrimary: anaYetkili,
         contextNote: kisaNotlar.trim(),
       });
-      onClose();
+      if (mounted.current) onClose();
     } catch (err) {
-      setSubmitError(
+      if (mounted.current) setSubmitError(
         err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu.",
       );
     } finally {
-      setSaving(false);
+      submitting.current = false;
+      if (mounted.current) setSaving(false);
     }
   }
 
   return (
+    <>
     <ModalShell
-      open={open}
-      onClose={onClose}
+      open
+      closeDisabled={saving}
+      onClose={requestClose}
       title={isEdit ? (phoneEmailOnly ? "İletişim Bilgisi Güncelle" : "Yetkili Düzenle") : "Yeni Yetkili Kişi"}
       footer={
         <>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={saving}
-            className={`${BUTTON_BASE} ${BUTTON_SECONDARY} disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`${BUTTON_BASE} min-h-11 ${BUTTON_SECONDARY} disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             İptal
           </button>
           <button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
+            form={formId}
             disabled={!isValid || saving}
-            className={`${BUTTON_BASE} ${BUTTON_PRIMARY} disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`${BUTTON_BASE} min-h-11 ${BUTTON_PRIMARY} disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             {saving ? "Kaydediliyor…" : isEdit ? "Güncelle" : "Ekle"}
           </button>
         </>
       }
     >
-      <div className="space-y-4">
+      <form id={formId} aria-busy={saving} onSubmit={event => { event.preventDefault(); void handleSubmit(); }} className="space-y-4">
         {/* Ad Soyad — disabled for phoneEmailOnly */}
         <div>
-          <label htmlFor="contact-ad-soyad" className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
+          <label htmlFor={`${formId}-ad-soyad`} className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
             Ad soyad {!phoneEmailOnly && <span className="text-red-500">*</span>}
           </label>
           <input
-            id="contact-ad-soyad"
+            id={`${formId}-ad-soyad`}
             type="text"
+            required={!phoneEmailOnly}
+            data-dialog-initial-focus={!phoneEmailOnly || undefined}
             value={adSoyad}
             onChange={(e) => setAdSoyad(e.target.value)}
             placeholder="Ad Soyad"
@@ -178,11 +181,11 @@ export default function AddContactModal({
 
         {/* Unvan — disabled for phoneEmailOnly */}
         <div>
-          <label htmlFor="contact-unvan" className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
+          <label htmlFor={`${formId}-unvan`} className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
             Unvan / görev
           </label>
           <input
-            id="contact-unvan"
+            id={`${formId}-unvan`}
             type="text"
             value={unvan}
             onChange={(e) => setUnvan(e.target.value)}
@@ -195,12 +198,13 @@ export default function AddContactModal({
         {/* Telefon + Eposta — always editable */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor="contact-telefon" className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
+            <label htmlFor={`${formId}-telefon`} className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
               Telefon
             </label>
             <input
-              id="contact-telefon"
+              id={`${formId}-telefon`}
               type="tel"
+              data-dialog-initial-focus={phoneEmailOnly || undefined}
               value={telefon}
               onChange={(e) => setTelefon(e.target.value)}
               placeholder="0532 000 0000"
@@ -210,11 +214,11 @@ export default function AddContactModal({
             />
           </div>
           <div>
-            <label htmlFor="contact-eposta" className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
+            <label htmlFor={`${formId}-eposta`} className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
               E-posta
             </label>
             <input
-              id="contact-eposta"
+              id={`${formId}-eposta`}
               type="email"
               value={eposta}
               onChange={(e) => setEposta(e.target.value)}
@@ -253,11 +257,11 @@ export default function AddContactModal({
         {/* Kısa notlar — disabled for phoneEmailOnly */}
         {!phoneEmailOnly && (
           <div>
-            <label htmlFor="contact-kisa-not" className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
+            <label htmlFor={`${formId}-kisa-not`} className={`block ${TYPE_CAPTION} font-medium ${TEXT_SECONDARY} mb-1`}>
               Kısa not
             </label>
             <input
-              id="contact-kisa-not"
+              id={`${formId}-kisa-not`}
               type="text"
               value={kisaNotlar}
               onChange={(e) => setKisaNotlar(e.target.value)}
@@ -268,6 +272,7 @@ export default function AddContactModal({
           </div>
         )}
 
+        {saving && <p role="status" className="text-sm text-blue-700">Yetkili kaydediliyor, lütfen bekleyin…</p>}
         {submitError && (
           <p
             className={`${TYPE_CAPTION} text-red-600`}
@@ -277,7 +282,11 @@ export default function AddContactModal({
             {submitError}
           </p>
         )}
-      </div>
+      </form>
     </ModalShell>
+    {discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler" recordName={isEdit ? "Yetkili düzenlemesi" : "Yeni yetkili kişi"}
+      description="Bu formdaki kaydedilmemiş bilgiler bırakılacak." confirmLabel="Değişiklikleri bırak" destructive
+      onClose={() => setDiscardOpen(false)} onConfirm={async () => { if (!submitting.current) onClose(); }} />}
+    </>
   );
 }
