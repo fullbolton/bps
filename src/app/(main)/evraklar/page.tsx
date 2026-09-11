@@ -9,7 +9,7 @@ import { DocumentUploadReviewRequiredError } from "@/lib/company-document-upload
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { formatDateTR } from "@/lib/format-date";
-import { Upload, AlertTriangle } from "lucide-react";
+import { Upload, ClipboardList } from "lucide-react";
 import {
   PageHeader,
   SearchInput,
@@ -47,7 +47,6 @@ import {
   TEXT_INVERSE,
   BORDER_SUBTLE,
   RADIUS_FULL,
-  RADIUS_DEFAULT,
 } from "@/styles/tokens";
 
 // ---------------------------------------------------------------------------
@@ -60,6 +59,7 @@ interface DocumentListRow extends DocumentRow {
 }
 
 // Page-local helpers
+const FOLLOW_UP_STATUSES = ["eksik", "suresi_yaklsiyor", "suresi_doldu"] as const;
 const LIST_FILTER_DEFAULTS = { durum: "", kategori: "", firma: "" };
 const CHIP_BASE = `min-h-11 px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
 const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
@@ -190,6 +190,23 @@ export default function EvraklarPage() {
     for (const e of documents) c[e.status] = (c[e.status] || 0) + 1;
     return c;
   }, [documents]);
+
+  const followUpCompanies = useMemo(() => {
+    const groups = new Map<string, { id: string; name: string; counts: Record<(typeof FOLLOW_UP_STATUSES)[number], number> }>();
+    for (const row of documents) {
+      if (!FOLLOW_UP_STATUSES.some(status => status === row.status)) continue;
+      const group = groups.get(row.company_id) ?? { id: row.company_id, name: row.firma_name, counts: { eksik: 0, suresi_yaklsiyor: 0, suresi_doldu: 0 } };
+      group.counts[row.status as (typeof FOLLOW_UP_STATUSES)[number]]++;
+      groups.set(row.company_id, group);
+    }
+    return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, "tr"));
+  }, [documents]);
+  const searchArea = useRef<HTMLDivElement>(null);
+  function showFollowUp(companyId: string, status: (typeof FOLLOW_UP_STATUSES)[number]) {
+    searchControl.current?.clear();
+    setFilters({ ...LIST_FILTER_DEFAULTS, firma: companyId, durum: status });
+    searchArea.current?.scrollIntoView({ block: "center" });
+  }
 
   // Build firma filter options dynamically from loaded data
   const firmaFilterConfig = useMemo((): FilterConfig[] => {
@@ -348,38 +365,28 @@ export default function EvraklarPage() {
           suresiDoldu={statusCounts["suresi_doldu"] ?? 0}
         />
 
-        {/* Operational billing-risk signal -- read-only, driven by document completeness */}
-        {(() => {
-          const riskCount = (statusCounts["eksik"] ?? 0) + (statusCounts["suresi_doldu"] ?? 0);
-          if (riskCount === 0) return null;
-          // group by firma
-          const firmaRisk = new Map<string, string[]>();
-          for (const e of documents) {
-            if (e.status === "eksik" || e.status === "suresi_doldu") {
-              const list = firmaRisk.get(e.firma_name) ?? [];
-              list.push(e.name);
-              firmaRisk.set(e.firma_name, list);
-            }
-          }
-          return (
-            <div className={`${RADIUS_DEFAULT} border border-amber-200 bg-amber-50 p-4`}>
-              <h3 className={`${TYPE_BODY} font-medium text-amber-800 flex items-center gap-1.5 mb-2`}>
-                <AlertTriangle size={14} />
-                Operasyonel Faturalama Riski
-              </h3>
-              <p className={`${TYPE_CAPTION} text-amber-700 mb-2`}>
-                {riskCount} evrak eksik veya suresi dolmus -- ilgili firmalarda faturalama sureci etkilenebilir.
-              </p>
-              <div className="space-y-1">
-                {Array.from(firmaRisk.entries()).map(([firma, evraklar]) => (
-                  <p key={firma} className={`${TYPE_CAPTION} text-amber-600`}>
-                    <span className="font-medium">{firma}</span>: {evraklar.length} sorunlu evrak
-                  </p>
-                ))}
-              </div>
+        {followUpCompanies.length > 0 && (
+          <section aria-label="Takip gerektiren evraklar" className="rounded-xl border border-slate-200 bg-white p-4">
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-800"><ClipboardList size={16} />Takip gerektiren evraklar</h3>
+            <p className="mb-3 text-xs text-slate-500">Yüklenen listedeki kayıtlı durumlar gösterilir. Bir durum seçerek ilgili firmanın evraklarını listeleyin.</p>
+            <div className="divide-y divide-slate-100">
+              {followUpCompanies.map(company => (
+                <section key={company.id} aria-label={`${company.name} evrak takibi`} className="py-3 first:pt-0 last:pb-0">
+                  <h4 className="mb-2 break-words text-sm font-medium text-slate-800">{company.name}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {FOLLOW_UP_STATUSES.filter(status => company.counts[status] > 0).map(status => (
+                      <button type="button" key={status} onClick={() => showFollowUp(company.id, status)}
+                        aria-pressed={filters.firma === company.id && filters.durum === status}
+                        className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm text-blue-700 hover:bg-blue-50 aria-pressed:border-blue-500 aria-pressed:bg-blue-50">
+                        {STATUS_LABELS[status]} ({company.counts[status]})
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
-          );
-        })()}
+          </section>
+        )}
 
         <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(statusCounts).filter(([, c]) => c > 0).map(([status, count]) => (
@@ -390,7 +397,7 @@ export default function EvraklarPage() {
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div ref={searchArea} className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs"><SearchInput key={context.scope} ref={searchControl} value={search} maxLength={512} placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
           <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
         </div>
