@@ -1,146 +1,96 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId, useRef } from "react";
 import { ModalShell } from "@/components/ui";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { NOTE_TAG_LABELS } from "@/lib/note-tags";
 import type { NoteTagKey } from "@/lib/note-tags";
 
 interface QuickNoteModalProps {
   open: boolean;
   onClose: () => void;
-  /** Contextual: shown in modal title when opened from a specific firma */
   firmaAdi?: string;
-  /** Pre-filled note text, e.g. from AI suggestion flow */
   defaultIcerik?: string;
-  /** Pre-selected tag for edit mode */
   defaultEtiket?: NoteTagKey | "";
-  /** If true, modal is in edit mode */
   editMode?: boolean;
-  /**
-   * Called on submit with note content + tag. May return a Promise —
-   * the modal awaits it and only closes on resolve, so the parent can
-   * throw a Turkish-localized service-layer error and the modal
-   * surfaces it inline instead of silently closing on failure.
-   */
-  onSubmit?: (data: { icerik: string; etiket: NoteTagKey | "" }) => Promise<void> | void;
+  onSubmit: (data: { icerik: string; etiket: NoteTagKey | "" }) => Promise<void> | void;
 }
 
-/**
- * QuickNoteModal is the single note creation/edit surface.
- * It opens from Firmalar Liste row action, Firma Detay header,
- * note suggestion flow, and Notlar tab "Yeni Not" button.
- */
-export default function QuickNoteModal({
-  open,
-  onClose,
-  firmaAdi,
-  defaultIcerik,
-  defaultEtiket,
-  editMode = false,
-  onSubmit,
-}: QuickNoteModalProps) {
-  const [icerik, setIcerik] = useState(defaultIcerik ?? "");
-  const [etiket, setEtiket] = useState<NoteTagKey | "">(defaultEtiket ?? "");
+/** Mount a fresh draft on each opening. Parent keys by authorization context/record. */
+export default function QuickNoteModal(props: QuickNoteModalProps) {
+  return props.open ? <NoteDraft {...props} /> : null;
+}
+
+function NoteDraft({onClose, firmaAdi, defaultIcerik = "", defaultEtiket = "", editMode = false, onSubmit}: QuickNoteModalProps) {
+  const formId = useId();
+  const [icerik, setIcerik] = useState(defaultIcerik);
+  const [etiket, setEtiket] = useState<NoteTagKey | "">(defaultEtiket);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      setIcerik(defaultIcerik ?? "");
-      setEtiket(defaultEtiket ?? "");
-      setSubmitError(null);
-      setSaving(false);
-    }
-  }, [open, defaultIcerik, defaultEtiket]);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const submitting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   async function handleSubmit() {
-    if (!icerik.trim() || saving) return;
+    if (!icerik.trim() || submitting.current) return;
+    submitting.current = true;
     setSaving(true);
     setSubmitError(null);
     try {
-      if (onSubmit) {
-        await onSubmit({ icerik: icerik.trim(), etiket });
-      } else {
-        console.log("[demo] Not eklendi:", { firma: firmaAdi, icerik: icerik.trim(), etiket });
-      }
-      resetAndClose();
+      await onSubmit({ icerik: icerik.trim(), etiket });
+      if (mounted.current) onClose();
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu.",
-      );
+      if (mounted.current) setSubmitError(err instanceof Error ? err.message : "Not kaydedilemedi. Tekrar deneyin.");
     } finally {
-      setSaving(false);
+      submitting.current = false;
+      if (mounted.current) setSaving(false);
     }
   }
 
-  function resetAndClose() {
-    setIcerik("");
-    setEtiket("");
-    setSubmitError(null);
-    setSaving(false);
-    onClose();
+  const hasChanges = editMode
+    ? icerik !== defaultIcerik || etiket !== defaultEtiket
+    : icerik !== "" || etiket !== "";
+  function requestClose() {
+    if (submitting.current) return;
+    if (hasChanges) setDiscardOpen(true);
+    else onClose();
   }
 
-  return (
-    <ModalShell
-      open={open}
-      onClose={resetAndClose}
+  return <>
+    <ModalShell open onClose={requestClose} closeDisabled={saving}
       title={editMode ? "Notu Düzenle" : firmaAdi ? `Not Ekle — ${firmaAdi}` : "Not Ekle"}
-      footer={
-        <>
-          <button
-            onClick={resetAndClose}
-            disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            İptal
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!icerik.trim() || saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {saving ? "Kaydediliyor…" : editMode ? "Güncelle" : "Kaydet"}
-          </button>
-        </>
-      }
+      footer={<>
+        <button type="button" onClick={requestClose} disabled={saving}
+          className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40">İptal</button>
+        <button type="submit" form={formId} disabled={!icerik.trim() || saving}
+          className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+          {saving ? "Kaydediliyor…" : editMode ? "Güncelle" : "Kaydet"}
+        </button>
+      </>}
     >
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Not <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            value={icerik}
-            onChange={(e) => setIcerik(e.target.value)}
-            placeholder="Notunuzu yazın..."
-            rows={4}
-            disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:bg-slate-50 disabled:text-slate-400"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Etiket
-          </label>
-          <select
-            value={etiket}
-            onChange={(e) => setEtiket(e.target.value as NoteTagKey | "")}
-            disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
-          >
-            <option value="">Etiket seçin (opsiyonel)</option>
-            {(Object.entries(NOTE_TAG_LABELS) as [NoteTagKey, string][]).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
-        </div>
-        {submitError && (
-          <p className="text-xs text-red-600" role="alert" aria-live="polite">
-            {submitError}
-          </p>
-        )}
-      </div>
+      <form id={formId} onSubmit={event => { event.preventDefault(); void handleSubmit(); }} aria-busy={saving}>
+        <fieldset disabled={saving} className="space-y-4">
+          <div>
+            <label htmlFor={`${formId}-content`} className="block text-sm font-medium text-slate-700 mb-1">Not <span className="text-red-500">*</span></label>
+            <textarea id={`${formId}-content`} data-dialog-initial-focus required value={icerik} onChange={e => setIcerik(e.target.value)} placeholder="Notunuzu yazın..." rows={5}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y disabled:bg-slate-50 disabled:text-slate-400" />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-tag`} className="block text-sm font-medium text-slate-700 mb-1">Etiket</label>
+            <select id={`${formId}-tag`} value={etiket} onChange={e => setEtiket(e.target.value as NoteTagKey | "")}
+              className="min-h-11 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400">
+              <option value="">Etiket seçin (opsiyonel)</option>
+              {(Object.entries(NOTE_TAG_LABELS) as [NoteTagKey, string][]).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </div>
+        </fieldset>
+        {saving && <p role="status" className="mt-4 text-sm text-blue-700">Not kaydediliyor, lütfen bekleyin…</p>}
+        {submitError && <p className="mt-4 break-words text-sm text-red-600" role="alert" aria-live="polite">{submitError}</p>}
+      </form>
     </ModalShell>
-  );
+    {discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler" recordName={editMode ? "Not düzenlemesi" : "Yeni not"}
+      description="Bu nottaki kaydedilmemiş değişiklikler bırakılacak." confirmLabel="Değişiklikleri bırak" destructive
+      onClose={() => setDiscardOpen(false)} onConfirm={async () => { if (!submitting.current) onClose(); }} />}
+  </>;
 }

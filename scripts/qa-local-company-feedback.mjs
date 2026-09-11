@@ -8,6 +8,7 @@ import {createClient} from '@supabase/supabase-js';
 import {createServerClient} from '@supabase/ssr';
 import {validateLocalStatus,acquireLock} from './helpers/acceptance-runner.mjs';
 import {id} from './fixtures/daily-operations.mjs';
+import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
 import {checkCompanyDocuments} from './helpers/company-document-acceptance.mjs';
 import {checkCompanyStaffing} from './helpers/company-staffing-acceptance.mjs';
@@ -27,7 +28,7 @@ try {
  validateLocalStatus(s,readFileSync('/private/tmp/bps-supabase-acceptance/supabase/config.toml','utf8'),db,gateway);release=acquireLock();
  sql=q=>run('docker',['exec','-i',container,'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],q).trim();
  assert.equal(sql("SELECT obj_description(to_regclass('public.documents'))='BPS synthetic documents fixture v1'"),'t');
- if(process.env.BPS_COMPANY_NOTES_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-notes-feedback.sql',import.meta.url),'utf8'));
+ if(process.env.BPS_COMPANY_NOTES_CHECK==='1'||process.env.BPS_COMPANY_NOTE_FORM_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-notes-feedback.sql',import.meta.url),'utf8'));
  sql(readFileSync(new URL('./fixtures/local-company-feedback.sql',import.meta.url),'utf8'));
  if(process.env.BPS_APPOINTMENT_LINK_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-contract-appointments.sql',import.meta.url),'utf8'));
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1'||process.env.BPS_REQUEST_FORM_CHECK==='1'||process.env.BPS_REQUEST_RECOVERY_CHECK==='1'||process.env.BPS_OWNER_FORM_CHECK==='1'||process.env.BPS_REQUEST_LIST_CHECK==='1'||process.env.BPS_REQUEST_MOBILE_CHECK==='1')sql(readFileSync(new URL('./fixtures/local-request-feedback.sql',import.meta.url),'utf8'));
@@ -730,6 +731,7 @@ try {
   }
   console.log('PASS workspace desktop/mobile six routes, no page overflow, mobile dialog/Escape');
  }
+ if(process.env.BPS_COMPANY_NOTE_FORM_CHECK==='1') await checkCompanyNoteForm({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_NOTES_CHECK==='1') await checkCompanyNotes({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_DOCUMENT_CHECK==='1') await checkCompanyDocuments({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1') await checkCompanyStaffing({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});

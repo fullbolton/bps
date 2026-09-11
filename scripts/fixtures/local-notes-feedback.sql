@@ -1,4 +1,4 @@
--- TEST ONLY: read/pin acceptance in the dedicated synthetic environment.
+-- TEST ONLY: read/create/edit/pin acceptance in the dedicated synthetic environment.
 BEGIN;
 SET LOCAL lock_timeout='5s';
 DO $$ BEGIN
@@ -26,6 +26,9 @@ DROP POLICY IF EXISTS notes_fixture_update ON public.notes;
 CREATE POLICY notes_fixture_update ON public.notes FOR UPDATE TO authenticated
  USING(tenant_id=public.current_user_verified_tenant() AND public.current_user_role()='yonetici')
  WITH CHECK(tenant_id=public.current_user_verified_tenant() AND public.current_user_role()='yonetici');
-GRANT SELECT,UPDATE ON public.notes TO authenticated;
+DROP POLICY IF EXISTS notes_fixture_insert ON public.notes;
+CREATE POLICY notes_fixture_insert ON public.notes FOR INSERT TO authenticated
+ WITH CHECK(tenant_id=public.current_user_verified_tenant() AND author_id=auth.uid() AND public.current_user_role() IN ('yonetici','operasyon','ik'));
+GRANT SELECT,INSERT,UPDATE ON public.notes TO authenticated;
 NOTIFY pgrst,'reload schema';
 COMMIT;

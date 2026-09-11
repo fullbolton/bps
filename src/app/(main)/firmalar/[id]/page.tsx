@@ -193,7 +193,7 @@ export default function FirmaDetayPage({
   const setActiveTab = useCallback((key: string) => {
     if (visibleTabs.some(tab => tab.key === key)) setTabFilters({ tab: key });
   }, [visibleTabs, setTabFilters]);
-  const [noteOpen, setNoteOpen] = useState(false);
+  const [openNoteContext, setOpenNoteContext] = useState<{ scope: string | null } | null>(null);
   const [noteDefaultIcerik, setNoteDefaultIcerik] = useState("");
   // Note suggestion flow state
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -249,6 +249,13 @@ export default function FirmaDetayPage({
   const [notePinError, setNotePinError] = useState<typeof noteContext | null>(null);
   useEffect(() => {
     liveNoteContext.current = noteContext;
+    setOpenNoteContext(null);
+    setNotEditTarget(null);
+    setNoteDefaultIcerik("");
+    setNotTagFilter("");
+    setSuggestOpen(false);
+    setSuggestPrompt("");
+    setSuggestResult(null);
     return () => { liveNoteContext.current = null; };
   }, [noteContext]);
   // Phase 3 state: Talepler, Randevular, İş Gücü — real Supabase truth.
@@ -502,7 +509,7 @@ export default function FirmaDetayPage({
     ...(canCreateNotes ? [
     {
       label: "Not Ekle",
-      onClick: () => { setNoteDefaultIcerik(""); setNoteOpen(true); },
+      onClick: () => { setNotEditTarget(null); setNoteDefaultIcerik(""); setOpenNoteContext(noteContext); },
       icon: <StickyNote size={16} />,
     },
       {
@@ -1485,7 +1492,7 @@ export default function FirmaDetayPage({
 
           return (
             <div className={CARD_LG}>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <h3 className={CARD_TITLE_PLAIN}>Firma Notları</h3>
                 <div className="flex items-center gap-3">
                   {mevcutEtiketler.length > 0 && (
@@ -1503,8 +1510,8 @@ export default function FirmaDetayPage({
                   )}
                   {canCreateNotes && (
                     <button
-                      onClick={() => { setNotEditTarget(null); setNoteDefaultIcerik(""); setNoteOpen(true); }}
-                      className={`flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
+                      onClick={() => { setNotEditTarget(null); setNoteDefaultIcerik(""); setOpenNoteContext(noteContext); }}
+                      className={`min-h-11 flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
                     >
                       <Plus size={13} />
                       Yeni Not
@@ -1536,7 +1543,7 @@ export default function FirmaDetayPage({
                           <div className="flex items-start justify-between">
                             <div className="min-w-0 flex-1">
                               <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>{n.content}</p>
-                              <div className={`flex items-center gap-2 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
+                              <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
                                 <span>{n.author_name}</span>
                                 <span>·</span>
                                 <span>{formatDateTR(n.created_at.slice(0, 10))}</span>
@@ -1549,11 +1556,11 @@ export default function FirmaDetayPage({
                                 <span className="text-blue-500 flex items-center gap-0.5"><Pin size={9} /> Sabit</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-1 flex-shrink-0 ml-2">
                               {canPin(n) && (
                                 <button
                                   onClick={() => { void handlePinToggle(n, false); }}
-                                  className={`p-1 ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                                  className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
                                   title="Sabitlemeyi kaldır"
                                 >
                                   <Pin size={12} />
@@ -1561,8 +1568,9 @@ export default function FirmaDetayPage({
                               )}
                               {canEditNote(n) && (
                                 <button
-                                  onClick={() => { setNotEditTarget(n); setNoteOpen(true); }}
-                                  className={`p-1 ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                                  aria-label="Notu düzenle"
+                                  onClick={() => { setNotEditTarget(n); setOpenNoteContext(noteContext); }}
+                                  className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
                                 >
                                   <Pencil size={12} />
                                 </button>
@@ -1583,7 +1591,7 @@ export default function FirmaDetayPage({
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
                           <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>{n.content}</p>
-                          <div className={`flex items-center gap-2 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
+                          <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
                             <span>{n.author_name}</span>
                             <span>·</span>
                             <span>{formatDateTR(n.created_at.slice(0, 10))}</span>
@@ -1595,11 +1603,11 @@ export default function FirmaDetayPage({
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                        <div className="flex flex-col sm:flex-row items-center gap-1 flex-shrink-0 ml-2">
                           {canPin(n) && (
                             <button
                               onClick={() => { void handlePinToggle(n, true); }}
-                              className={`p-1 ${TEXT_MUTED} hover:text-blue-500 ${RADIUS_SM} hover:bg-slate-100`}
+                              className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-blue-500 ${RADIUS_SM} hover:bg-slate-100`}
                               title="Sabitle"
                             >
                               <Pin size={12} />
@@ -1607,8 +1615,9 @@ export default function FirmaDetayPage({
                           )}
                           {canEditNote(n) && (
                             <button
-                              onClick={() => { setNotEditTarget(n); setNoteOpen(true); }}
-                              className={`p-1 ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                              aria-label="Notu düzenle"
+                                  onClick={() => { setNotEditTarget(n); setOpenNoteContext(noteContext); }}
+                              className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
                             >
                               <Pencil size={12} />
                             </button>
@@ -1664,46 +1673,42 @@ export default function FirmaDetayPage({
         />
       )}
 
-      <QuickNoteModal
-        open={noteOpen}
-        onClose={() => { setNoteOpen(false); setNoteDefaultIcerik(""); setNotEditTarget(null); }}
+      {openNoteContext === noteContext && notesScope && <QuickNoteModal
+        key={`${companyScope}:${notEditTarget?.id ?? "new"}`}
+        open
+        onClose={() => {
+          if (liveNoteContext.current !== noteContext) return;
+          setOpenNoteContext(null); setNoteDefaultIcerik(""); setNotEditTarget(null);
+        }}
         firmaAdi={firma.firmaAdi}
         defaultIcerik={notEditTarget ? notEditTarget.content : noteDefaultIcerik}
         defaultEtiket={notEditTarget?.tag ?? ""}
         editMode={!!notEditTarget}
         onSubmit={async ({ icerik, etiket }) => {
-          // Faz 1B: persist via service layer. The service re-verifies
-          // partner scope, enforces ownership (author_id based) for the
-          // self-edit path, trims content, whitelists the tag, and
-          // stamps author_id/author_name from the authenticated session.
-          // Errors (validation, ownership, scope, DB) bubble up so the
-          // modal can render them inline; only on resolve do we refetch.
-          // router.refresh() is called for the same reason as the
-          // Yetkililer cutover — the Firmalar list is a cached static
-          // page and its RSC payload must be invalidated for downstream
-          // readers to re-fetch.
-          if (notEditTarget) {
-            await updateNoteContent(supabase, id, notEditTarget.id, {
-              content: icerik,
-              tag: etiket,
-            });
-          } else {
-            // Server action: notes.tenant_id must be resolved server-side
-            // via current_user_active_tenant(), which the browser client
-            // cannot do. Same shape as createContactAction below.
-            const result = await createNoteAction(id, {
-              content: icerik,
-              tag: etiket,
-            });
-            if (!result.ok) {
-              throw new Error(result.error);
+          if (liveNoteContext.current !== noteContext || !noteContext.scope) return;
+          try {
+            if (notEditTarget) {
+              await updateNoteContent(supabase, id, notEditTarget.id, { content: icerik, tag: etiket });
+            } else {
+              const result = await createNoteAction(id, { content: icerik, tag: etiket });
+              if (!result.ok) throw new Error("Not kaydedilemedi.");
             }
+          } catch {
+            if (liveNoteContext.current !== noteContext) return;
+            throw new Error("Not kaydedilemedi. Bilgileriniz korundu; tekrar deneyin.");
           }
+          if (liveNoteContext.current !== noteContext) return;
+          // A committed save is complete even if the subsequent list read fails.
+          setOpenNoteContext(null);
+          setNoteDefaultIcerik("");
           setNotEditTarget(null);
-          await reloadNotlar();
+          setNotTagFilter("");
+          setActiveTab("notlar");
+          feedback.show(notEditTarget ? "Not güncellendi." : "Not firmaya eklendi.");
+          void reloadNotlar();
           router.refresh();
         }}
-      />
+      />}
 
       <AddContactModal
         open={contactModalOpen}
@@ -1824,7 +1829,7 @@ export default function FirmaDetayPage({
                       setNoteDefaultIcerik(suggestResult);
                       setSuggestOpen(false);
                       setSuggestResult(null);
-                      setNoteOpen(true);
+                      setOpenNoteContext(noteContext);
                     }}
                     className={`px-3 py-2 ${TYPE_BODY} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700`}
                   >
