@@ -1,5 +1,5 @@
 "use client";
-import { useCallback,useEffect,useRef,useState } from "react";
+import { useCallback,useEffect,useRef,useState,type RefObject } from "react";
 import Link from "next/link";
 import RequestConversation from "@/components/communication/RequestConversation";
 import AttendancePanel from "./AttendancePanel";
@@ -10,6 +10,8 @@ import CancelRequestDialog from "./CancelRequestDialog";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader,EmptyState } from "@/components/ui";
+import AsyncSection from "@/components/ui/AsyncSection";
+import { useScopedResource } from "@/components/ui/useScopedResource";
 import { isWorkDate,deriveDailyCoverage } from "@/lib/operations/daily-demand";
 import type { PilotBoard,PilotCompany,PilotKind } from "@/lib/operations/pilot-types";
 import { pilotBoardAction,pilotCommandAction,pilotCompaniesAction,pilotScopeAction } from "./actions";
@@ -22,12 +24,70 @@ const inputClass="w-full min-w-0 min-h-11 rounded-lg border border-slate-300 bg-
 const buttonClass="min-h-11 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-40";
 const emptyBoard:PilotBoard={locations:[],workers:[],requests:[]};
 const today=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Istanbul"}).format(new Date());
+type SelectionChange = {companyId?:string;date?:string};
+type DailyWorkspaceProps = {
+  companies:PilotCompany[];companyId:string;date:string;onSelect:(change:SelectionChange)=>void;
+  companyInput:RefObject<HTMLSelectElement|null>;dateInput:RefObject<HTMLInputElement|null>;
+};
 
 export default function DailyOperations() {
+  const {user,role,loading:authLoading}=useAuth();
+  const search=useSearchParams();
+  const companyInput=useRef<HTMLSelectElement>(null),dateInput=useRef<HTMLInputElement>(null);
+  const focusAfterSelection=useRef<keyof SelectionChange|null>(null);
+  const allowed=role==="yonetici"||role==="operasyon";
+  const context=!authLoading&&allowed&&user ? JSON.stringify([user.id,user.app_metadata?.active_tenant??null,role]) : null;
+  const readCompanies=useCallback(async()=>{
+    const result=await pilotCompaniesAction();
+    if(!result.ok)throw new Error(result.message);
+    return result.data;
+  },[]);
+  const directory=useScopedResource(context,readCompanies);
+  const companies=directory.data??[];
+  const rawCompany=search.get("firma");
+  const requestedCompany=isUuid(rawCompany)?rawCompany.toLowerCase():rawCompany;
+  const companyId=rawCompany===null ? companies[0]?.id??"" : companies.find(c=>c.id===requestedCompany)?.id??"";
+  const unknownCompany=!!rawCompany&&!companyId;
+  const rawDate=search.get("gun");
+  const date=isWorkDate(rawDate)&&rawDate>="2000-01-01"&&rawDate<="2100-12-31"?rawDate:today();
+  useEffect(()=>{
+    if(focusAfterSelection.current==="companyId")companyInput.current?.focus();
+    if(focusAfterSelection.current==="date")dateInput.current?.focus();
+    focusAfterSelection.current=null;
+  },[companyId,date]);
+
+  useEffect(()=>{
+    if(!directory.data||unknownCompany)return;
+    const params=new URLSearchParams(search.toString());
+    params.set("firma",companyId);params.set("gun",date);
+    if(rawCompany!==companyId||rawDate!==date||!isUuid(params.get("talep")))params.delete("talep");
+    if(params.toString()!==search.toString())window.history.replaceState(null,"",`?${params}`);
+  },[directory.data,unknownCompany,companyId,date,rawCompany,rawDate,search]);
+
+  const select=(change:SelectionChange)=>{
+    // Read the latest URL so rapid field changes cannot overwrite one another.
+    const params=new URLSearchParams(window.location.search);
+    const priorDate=params.get("gun");
+    const nextDate=change.date??(isWorkDate(priorDate)&&priorDate>="2000-01-01"&&priorDate<="2100-12-31"?priorDate:date);
+    const nextCompany=change.companyId??params.get("firma")??companyId;
+    if(!isWorkDate(nextDate)||nextDate<"2000-01-01"||nextDate>"2100-12-31")return;
+    params.set("firma",nextCompany);params.set("gun",nextDate);params.delete("talep");
+    if(params.toString()!==window.location.search.slice(1)){
+      focusAfterSelection.current=change.companyId!==undefined?"companyId":"date";
+      window.history.pushState(null,"",`?${params}`);
+    }
+  };
+  if(authLoading)return <p role="status">Oturum yükleniyor…</p>;
+  if(!allowed)return <EmptyState title="Bu çalışma alanına erişiminiz yok" />;
+  return <AsyncSection isLoading={directory.loading} hasError={directory.error} onRetry={()=>{void directory.reload();}}>
+    {unknownCompany&&<p role="alert" className="mb-4 rounded-lg bg-amber-50 p-3 text-amber-900">Bağlantıdaki firma bulunamadı veya erişiminiz yok. Listeden bir firma seçin.</p>}
+    <DailyOperationsWorkspace key={`${context}:${companyId}:${date}`} companies={companies} companyId={companyId} date={date} onSelect={select} companyInput={companyInput} dateInput={dateInput}/>
+  </AsyncSection>;
+}
+
+function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInput,dateInput}:DailyWorkspaceProps) {
   const {user,role,loading:authLoading}=useAuth(); const search=useSearchParams();
-  const [companies,setCompanies]=useState<PilotCompany[]>([]);
-  const [companyId,setCompanyId]=useState(search.get("firma")??"");
-  const [date,setDate]=useState(()=>{const d=search.get("gun");return isWorkDate(d)&&d>="2000-01-01"&&d<="2100-12-31"?d:today();}); const [board,setBoard]=useState<PilotBoard>(emptyBoard);
+  const [board,setBoard]=useState<PilotBoard>(emptyBoard);
   const [boardReady,setBoardReady]=useState(false);
   const [loading,setLoading]=useState(true); const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState(""); const [error,setError]=useState("");
@@ -73,16 +133,6 @@ export default function DailyOperations() {
     return()=>{current=false;};
   },[authLoading,allowed,user?.id]);
   useEffect(()=>{window.addEventListener("storage",syncPending);return()=>window.removeEventListener("storage",syncPending);},[syncPending]);
-  useEffect(()=>{
-    if(authLoading||!allowed)return;
-    let current=true;
-    pilotCompaniesAction().then(result=>{
-      if(!current)return;
-      if(result.ok){setCompanies(result.data);setCompanyId(old=>result.data.some(c=>c.id===old)?old:result.data[0]?.id??"");}
-      else setError(result.message);
-    }).catch(()=>{if(current)setError("Firmalar yüklenemedi.");});
-    return()=>{current=false;};
-  },[authLoading,allowed,user?.id]);
   useEffect(()=>{if(!authLoading&&allowed)void refresh();return()=>{requestSequence.current++;};},[refresh,authLoading,allowed]);
 
   useEffect(()=>{
@@ -123,8 +173,8 @@ export default function DailyOperations() {
     <Link className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={companyId?`/firmalar/${companyId}`:"/firmalar"}>Firma detayına dön</Link>
     </nav>
     <fieldset disabled={busy} className="mb-5 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
-      <label className="text-sm">Firma<select className={inputClass} value={companyId} onChange={e=>{setCompanyId(e.target.value);setMessage("");}}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?"":" (operasyona kapalı)"}</option>)}</select></label>
-      <label className="text-sm">İş günü<input className={inputClass} type="date" min="2000-01-01" max="2100-12-31" value={date} onChange={e=>{if(e.target.value)setDate(e.target.value);}} /></label>
+      <label className="text-sm">Firma<select ref={companyInput} aria-label="Firma" className={inputClass} value={companyId} onChange={e=>onSelect({companyId:e.target.value})}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?"":" (operasyona kapalı)"}</option>)}</select></label>
+      <label className="text-sm">İş günü<input ref={dateInput} className={inputClass} type="date" min="2000-01-01" max="2100-12-31" value={date} onChange={e=>onSelect({date:e.target.value})} /></label>
       <div className="flex items-end"><button className={buttonClass} onClick={()=>void refresh()} disabled={loading}>Yenile</button></div>
     </fieldset>
     {recoveryError&&<p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-800">{recoveryError}</p>}
