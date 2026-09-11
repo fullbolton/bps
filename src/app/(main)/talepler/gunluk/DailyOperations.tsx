@@ -19,7 +19,7 @@ import { pilotBoardAction,pilotCommandAction,pilotCompaniesAction,pilotScopeActi
 
 import { isUuid,validatePilotPayload } from "@/lib/operations/pilot-validation";
 import { taskPrefillHref } from "@/lib/operations/task-prefill";
-import { reserveCommand,acknowledgeCommand,commandDigest,pendingCount,type CommandScope } from "@/lib/operations/pending-commands";
+import { reserveCommand,acknowledgeCommand,commandDigest,pendingCount,type DraftRecovery,type CommandScope } from "@/lib/operations/pending-commands";
 
 const inputClass="w-full min-w-0 min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm";
 const buttonClass="min-h-11 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-40";
@@ -99,6 +99,7 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   const locationForm=useRef<HTMLFormElement>(null),workerForm=useRef<HTMLFormElement>(null);
   const [pendingSelection,setPendingSelection]=useState<{change:SelectionChange;labels:string[]}|null>(null);
   const [formEpoch,setFormEpoch]=useState(0);
+  const batchRecovery=useRef<DraftRecovery|null>(null),importRecovery=useRef<DraftRecovery|null>(null);
   const [scope,setScope]=useState<CommandScope|null>(null);
   const [pending,setPending]=useState(0);
   const [recoveryError,setRecoveryError]=useState("");
@@ -229,7 +230,9 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
           catch{continue;} // Incomplete/edited drafts cannot match a valid sent command.
           if(form.isConnected&&settledDigests.includes(digest))form.reset();
         }
-        forms.current?.querySelectorAll("form").forEach(form=>{if(!protectedForms.includes(form))form.reset();});
+        await batchRecovery.current?.(settledDigests);
+        await importRecovery.current?.(settledDigests);
+        forms.current?.querySelectorAll("form").forEach(form=>{if(!protectedForms.includes(form)&&form.dataset.recoveryDraft!=="batch")form.reset();});
         setFormEpoch(n=>n+1);setCancelTarget(null);setError("");
         setMessage("Sonuçlar kontrol edildi. Sonucu kesinleşen formlar temizlendi; diğer talep, lokasyon ve personel taslakları korundu.");
         await refresh();
@@ -250,13 +253,13 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
         <p className="mt-2 text-xs text-slate-500">Seçili firma ve günün aktif talepleri. Atanmış olmak, işe başlamanın teyit edildiği anlamına gelmez.</p>
       </section>}
       {manager&&<details className="mb-5 rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer text-sm font-semibold text-slate-700">Şube ve personel hazırlığı</summary><div className="mt-4">
-      {manager&&<LocationImport key={`${scope?.actorId}:${scope?.tenantId}:${companyId}:${formEpoch}`} scope={scope} companyId={companyId} disabled={busy||!writeReady||!company?.active} onBusy={setBusy} onComplete={refresh} onPendingChange={syncPending} />}
+      {manager&&<LocationImport reconcileRef={importRecovery} key={`${scope?.actorId}:${scope?.tenantId}:${companyId}`} scope={scope} companyId={companyId} disabled={busy||!writeReady||!company?.active} onBusy={setBusy} onComplete={refresh} onPendingChange={syncPending} />}
       {manager&&<div className="mb-5 grid gap-4 lg:grid-cols-2">
         <details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-medium">Lokasyon ekle</summary><form ref={locationForm} aria-label="Lokasyon hazırlık formu" className="mt-3 space-y-3" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("location",{companyId,name:String(d.get("name")),city:String(d.get("city"))},f);}}><fieldset disabled={busy||!writeReady||!company?.active} className="space-y-3"><label className="block text-sm">Şube / bina adı<input name="name" className={inputClass} maxLength={160} required /></label><label className="block text-sm">İl<input name="city" className={inputClass} maxLength={80} required /></label><button className={buttonClass}>Lokasyonu kaydet</button></fieldset></form></details>
         <details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-medium">Personel ekle</summary><form ref={workerForm} aria-label="Personel hazırlık formu" className="mt-3 space-y-3" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("worker",{name:String(d.get("name")),code:String(d.get("code")),kind:String(d.get("kind"))},f);}}><fieldset disabled={busy||!writeReady} className="space-y-3"><label className="block text-sm">Ad soyad<input name="name" className={inputClass} maxLength={160} required /></label><label className="block text-sm">Personel kodu<input name="code" className={inputClass} maxLength={40} required /></label><label className="block text-sm">Tür<select name="kind" className={inputClass}><option value="idp">İDP</option><option value="sabit">Sabit</option></select></label><button className={buttonClass}>Personeli kaydet</button></fieldset></form></details>
       </div>}
       </div></details>}
-      <RequestBatch key={`${scope?.actorId}:${scope?.tenantId}:${companyId}:${date}:${formEpoch}`} companyId={companyId} date={date} locations={board.locations} scope={scope} disabled={busy||!writeReady||loading||!boardReady||!company?.active} onBusy={setBusy} onComplete={refresh} onPendingChange={syncPending} />
+      <RequestBatch reconcileRef={batchRecovery} key={`${scope?.actorId}:${scope?.tenantId}:${companyId}:${date}`} companyId={companyId} date={date} locations={board.locations} scope={scope} disabled={busy||!writeReady||loading||!boardReady||!company?.active} onBusy={setBusy} onComplete={refresh} onPendingChange={syncPending} />
       <section className="mb-5 rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-semibold">Günlük talep aç</h2><form ref={requestForm} aria-label="Günlük talep formu" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("request",{companyId,locationId:String(d.get("locationId")),workDate:date,serviceLine:String(d.get("serviceLine")),position:String(d.get("position")),requiredCount:Number(d.get("requiredCount"))},f);}}><fieldset disabled={busy||!writeReady||loading||!boardReady||!company?.active} className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="text-sm">Lokasyon<select className={inputClass} name="locationId" required defaultValue=""><option value="" disabled>Lokasyon seçin</option>{board.locations.filter(l=>l.active).map(l=><option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}</select></label><label className="text-sm">Hizmet hattı<input name="serviceLine" className={inputClass} defaultValue="Temizlik" maxLength={80} required /></label><label className="text-sm">Pozisyon<input name="position" className={inputClass} defaultValue="Temizlik görevlisi" maxLength={80} required /></label><label className="text-sm">Kişi sayısı<input name="requiredCount" className={inputClass} type="number" defaultValue={1} min={1} max={100} required /></label><button className={buttonClass}>Talebi kaydet</button></fieldset></form></section>
       <section aria-busy={loading} className="space-y-3"><h2 className="font-semibold">{date} · Talepler</h2>{loading?<p role="status">Plan yükleniyor…</p>:!boardReady?<p role="status">Plan doğrulanamadı. Bağlantı düzeldikten sonra Yenile düğmesini kullanın.</p>:!board.requests.length?<EmptyState title="Bu gün için talep yok" size="tab" />:board.requests.map(r=>{
         const coverage=deriveDailyCoverage(r.requiredCount,r.assignments.length,r.lifecycle);

@@ -1,18 +1,32 @@
 "use client";
-import {useRef,useState} from 'react';
+import {useEffect,useRef,useState,type RefObject} from 'react';
 import Link from 'next/link';
 import {addDays} from '@/lib/operations/weekly-plan';
 import {buildRequestDates,validateRequestBatch,type RequestBatch as Batch} from '@/lib/operations/request-batch';
-import {reserveCommand,acknowledgeCommand,type CommandScope} from '@/lib/operations/pending-commands';
+import {reserveCommand,acknowledgeCommand,commandDigest,type DraftRecovery,type CommandScope} from '@/lib/operations/pending-commands';
 import type {PilotBoard} from '@/lib/operations/pilot-types';
 import {pilotRequestBatchAction} from './actions';
 const field='mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
-export default function RequestBatch({companyId,date,locations,scope,disabled,onBusy,onComplete,onPendingChange}:{
-  companyId:string;date:string;locations:PilotBoard['locations'];scope:CommandScope|null;disabled:boolean;onBusy:(v:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void;
+export default function RequestBatch({companyId,date,locations,scope,disabled,onBusy,onComplete,onPendingChange,reconcileRef}:{
+  reconcileRef:RefObject<DraftRecovery|null>;companyId:string;date:string;locations:PilotBoard['locations'];scope:CommandScope|null;disabled:boolean;onBusy:(v:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void;
 }){
   const [batch,setBatch]=useState<Batch|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[resultDay,setResultDay]=useState('');
-  const form=useRef<HTMLFormElement>(null),sending=useRef(false);
+  const form=useRef<HTMLFormElement>(null),sending=useRef(false),revision=useRef(0);
+  useEffect(()=>{
+    let current=true;
+    reconcileRef.current=async digests=>{
+      const ticket=revision.current;
+      if(!batch?.dates.length)return;
+      const digest=await commandDigest('request_batch',validateRequestBatch(batch));
+      if(current&&ticket===revision.current&&digests.includes(digest)){
+        revision.current++;form.current?.reset();setBatch(null);setError('');setResultDay('');
+        setMessage('Bu toplu işlemin sonucu kesinleşti. Aynı önizleme temizlendi.');
+      }
+    };
+    return()=>{current=false;reconcileRef.current=null;};
+  },[batch,reconcileRef]);
   function preview(node:HTMLFormElement){
+    revision.current++;
     setError('');setMessage('');setResultDay('');
     try{const d=new FormData(node);const dates=buildRequestDates(String(d.get('start')),String(d.get('end')),d.getAll('weekday').map(Number));
       setBatch(validateRequestBatch({companyId,locationId:String(d.get('location')),serviceLine:String(d.get('service')),position:String(d.get('position')),requiredCount:Number(d.get('count')),dates}));
@@ -27,14 +41,14 @@ export default function RequestBatch({companyId,date,locations,scope,disabled,on
       if(!r.ok){setError(r.message);return;}
       let msg=`${r.data.created} günlük talep oluşturuldu · ${r.data.created*clean.requiredCount} kişi-gün ihtiyaç.`;
       try{await acknowledgeCommand(scope,id,localStorage,navigator.locks);onPendingChange();}catch{msg+=' Bekleyen işareti kaldırılamadı; sonuçlar panelinden kontrol edin.';}
-      setMessage(msg);setResultDay(clean.dates[0]);setBatch(null);form.current?.reset();await onComplete();
+      revision.current++;setMessage(msg);setResultDay(clean.dates[0]);setBatch(null);form.current?.reset();await onComplete();
     }catch{setError('Toplu işlemin sonucu doğrulanamadı. Aynı önizlemeyi tekrar gönderin veya bekleyen sonuçlarını kontrol edin.');}
     finally{sending.current=false;setBusy(false);onBusy(false);}
   }
   return <details className="mb-5 rounded-xl border bg-white p-4">
     <summary className="cursor-pointer font-semibold">Birden fazla gün için talep aç</summary>
     <p className="mt-3 text-sm text-slate-600">Aynı şube ve pozisyon için en fazla 31 günlük aralık seçin. Resmî tatiller otomatik çıkarılmaz; önizlemeden gün çıkarabilirsiniz. Personel ataması daha sonra yapılır.</p>
-    <form ref={form} onChange={()=>{setBatch(null);setError('');setMessage('');setResultDay('');}} onSubmit={e=>{e.preventDefault();preview(e.currentTarget);}}>
+    <form ref={form} data-recovery-draft="batch" aria-label="Toplu talep formu" onChange={()=>{revision.current++;setBatch(null);setError('');setMessage('');setResultDay('');}} onSubmit={e=>{e.preventDefault();preview(e.currentTarget);}}>
       <fieldset disabled={disabled||busy} className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <label className="text-sm">Toplu talep lokasyonu<select name="location" className={field} required defaultValue=""><option value="" disabled>Lokasyon seçin</option>{locations.filter(l=>l.active).map(l=><option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}</select></label>
         <label className="text-sm">Başlangıç günü<input name="start" className={field} type="date" defaultValue={date} min="2000-01-01" max="2100-12-31" required /></label>
@@ -53,7 +67,7 @@ export default function RequestBatch({companyId,date,locations,scope,disabled,on
       <h3 className="font-semibold">Önizleme · {batch.dates.length} gün / {batch.dates.length*batch.requiredCount} kişi-gün</h3>
       <p className="mt-1 text-sm">{locations.find(l=>l.id===batch.locationId)?.name} · {batch.serviceLine} · {batch.position} · günlük {batch.requiredCount} kişi</p>
       <p className="mt-2 text-sm text-slate-600">Mevcut aktif talepler kayıt sırasında kontrol edilir. Bir gün çakışırsa bütün parti durur.</p>
-      <ul className="my-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{batch.dates.map(day=><li key={day} className="flex items-center justify-between rounded border bg-white p-2 text-sm"><span>{day}</span><button disabled={disabled||busy} type="button" className="underline" aria-label={`${day} gününü çıkar`} onClick={()=>setBatch({...batch,dates:batch.dates.filter(d=>d!==day)})}>Çıkar</button></li>)}</ul>
+      <ul className="my-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{batch.dates.map(day=><li key={day} className="flex items-center justify-between rounded border bg-white p-2 text-sm"><span>{day}</span><button disabled={disabled||busy} type="button" className="underline" aria-label={`${day} gününü çıkar`} onClick={()=>{revision.current++;setBatch({...batch,dates:batch.dates.filter(d=>d!==day)});}}>Çıkar</button></li>)}</ul>
       <button disabled={disabled||busy||!batch.dates.length} onClick={()=>void save()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40">{busy?'Kaydediliyor…':`${batch.dates.length} günlük talebi oluştur`}</button>
     </div>}
   </details>;

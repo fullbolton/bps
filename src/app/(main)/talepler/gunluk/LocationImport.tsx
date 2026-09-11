@@ -1,16 +1,29 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { IMPORT_MAX_BYTES, parseLocationCsv, type LocationRow } from "@/lib/operations/location-import";
-import { reserveCommand,acknowledgeCommand,type CommandScope } from "@/lib/operations/pending-commands";
+import { reserveCommand,acknowledgeCommand,commandDigest,type DraftRecovery,type CommandScope } from "@/lib/operations/pending-commands";
 import { pilotImportAction } from "./actions";
 
-export default function LocationImport({companyId,scope,disabled,onBusy,onComplete,onPendingChange}:{companyId:string;scope:CommandScope|null;disabled:boolean;onBusy:(busy:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void}) {
+export default function LocationImport({companyId,scope,disabled,onBusy,onComplete,onPendingChange,reconcileRef}:{reconcileRef:RefObject<DraftRecovery|null>;companyId:string;scope:CommandScope|null;disabled:boolean;onBusy:(busy:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void}) {
   const [rows,setRows]=useState<LocationRow[]>([]);
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState(false);
   const [reading,setReading]=useState(false);
   const submitting=useRef(false);
-  const sequence=useRef(0);
+  const sequence=useRef(0),fileInput=useRef<HTMLInputElement>(null);
+  useEffect(()=>{
+    let current=true;
+    reconcileRef.current=async digests=>{
+      const ticket=sequence.current;
+      if(!rows.length)return;
+      const digest=await commandDigest("location_import",{companyId,rows});
+      if(current&&ticket===sequence.current&&digests.includes(digest)){
+        sequence.current++;setRows([]);if(fileInput.current)fileInput.current.value="";
+        setMessage("Bu şube aktarımının sonucu kesinleşti. Aynı dosya önizlemesi temizlendi.");
+      }
+    };
+    return()=>{current=false;reconcileRef.current=null;};
+  },[rows,companyId,reconcileRef]);
   async function preview(file?:File) {
     const ticket=++sequence.current;
     setRows([]);setMessage("");
@@ -38,7 +51,7 @@ export default function LocationImport({companyId,scope,disabled,onBusy,onComple
       try{await acknowledgeCommand(scope,command,localStorage,navigator.locks);onPendingChange();}
       catch{saved+=" Bekleyen işaret kaldırılamadı; aynı aktarım tekrarlandığında ikinci kayıt oluşmaz.";}
       setMessage(saved);
-      setRows([]);await onComplete();
+      sequence.current++;setRows([]);if(fileInput.current)fileInput.current.value="";await onComplete();
     } catch(e){setMessage(e instanceof Error?e.message:"Sonuç alınamadı. Aynı CSV’yi tekrar yükleyerek işlemi kontrol edin.");}
     finally{submitting.current=false;setBusy(false);onBusy(false);}
   }
@@ -46,7 +59,7 @@ export default function LocationImport({companyId,scope,disabled,onBusy,onComple
     <summary className="cursor-pointer font-medium">Şubeleri toplu aktar</summary>
     <p className="mt-3 text-sm text-slate-600">UTF-8 CSV: şube kodu, şube adı ve il. En fazla 500 şube. Aynı kod ve içerik atlanır; değişmiş içerik aktarımı durdurur. Kodlar büyük/küçük harfe duyarlıdır.</p>
     <a className="my-3 inline-block text-sm underline" href="/templates/import_template_locations.csv" download>Örnek şablonu indir</a>
-    <label className="block text-sm">Şube dosyası<input className="my-2 block" type="file" accept=".csv,text/csv" disabled={disabled||busy||reading} onChange={e=>void preview(e.target.files?.[0])}/></label>
+    <label className="block text-sm">Şube dosyası<input ref={fileInput} className="my-2 block" type="file" accept=".csv,text/csv" disabled={disabled||busy||reading} onChange={e=>void preview(e.target.files?.[0])}/></label>
     {reading&&<p role="status">Dosya okunuyor…</p>}
     {message&&<p role="status" className="my-3 text-sm">{message}</p>}
     {!!rows.length&&<><p className="my-2 text-sm">{rows.length} satır doğrulandı. Aşağıda ilk 20 satır gösteriliyor. Mevcut kayıtlarla son kontrol aktarım sırasında yapılır.</p>
