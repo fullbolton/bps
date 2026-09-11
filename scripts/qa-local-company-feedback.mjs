@@ -8,6 +8,7 @@ import {createClient} from '@supabase/supabase-js';
 import {createServerClient} from '@supabase/ssr';
 import {validateLocalStatus,acquireLock} from './helpers/acceptance-runner.mjs';
 import {id} from './fixtures/daily-operations.mjs';
+import {checkCompanyDocuments} from './helpers/company-document-acceptance.mjs';
 import {checkCompanyStaffing} from './helpers/company-staffing-acceptance.mjs';
 import {checkCompanyAppointmentRecovery} from './helpers/company-appointment-recovery-acceptance.mjs';
 import {checkCompanyAppointmentLink} from './helpers/company-appointment-link-acceptance.mjs';
@@ -727,6 +728,7 @@ try {
   }
   console.log('PASS workspace desktop/mobile six routes, no page overflow, mobile dialog/Escape');
  }
+ if(process.env.BPS_COMPANY_DOCUMENT_CHECK==='1') await checkCompanyDocuments({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_STAFFING_CHECK==='1') await checkCompanyStaffing({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_APPOINTMENT_RECOVERY_CHECK==='1') await checkCompanyAppointmentRecovery({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_APPOINTMENT_LINK_CHECK==='1') await checkCompanyAppointmentLink({page,sql,user,tenant:id(1),first,prefix,origin,output});

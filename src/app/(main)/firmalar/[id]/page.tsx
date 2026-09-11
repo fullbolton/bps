@@ -112,7 +112,6 @@ import type {
   ContractRow,
   NoteRow,
   AppointmentRow,
-  DocumentRow,
 } from "@/types/database.types";
 import type { TabItem } from "@/types/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
@@ -455,25 +454,12 @@ export default function FirmaDetayPage({
   // -------------------------------------------------------------------------
   // Phase 4A — Firma Evraklar (real Supabase truth)
   // -------------------------------------------------------------------------
-  const [firmaDocs, setFirmaDocs] = useState<DocumentRow[]>([]);
-  const [docsLoading, setDocsLoading] = useState(true);
-  const [docsError, setDocsError] = useState(false);
-  const docsGeneration = useRef(0);
-  const reloadDocs = useCallback(async () => {
-    const generation = ++docsGeneration.current;
-    const current = () => generation === docsGeneration.current && companyScopeRef.current === companyScope;
-    setDocsLoading(true);
-    setDocsError(false);
-    try {
-      const rows = await listDocumentsByLegacyCompanyId(supabase, id);
-      if (current()) setFirmaDocs(rows);
-    } catch {
-      if (current()) { setFirmaDocs([]); setDocsError(true); }
-    } finally {
-      if (current()) setDocsLoading(false);
-    }
-  }, [supabase, id, companyScope]);
-  useEffect(() => { void reloadDocs(); }, [reloadDocs]);
+  const readDocuments = useCallback(() => listDocumentsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const documentResource = useScopedResource(!authLoading && user && !documentsAccessRestricted ? companyScope : null, readDocuments);
+  const firmaDocs = documentResource.data ?? [];
+  const docsLoading = documentResource.loading;
+  const docsError = documentResource.error;
+  const reloadDocs = documentResource.reload;
 
   async function confirmRecordDelete(target: NonNullable<typeof deleteTarget>) {
     if (target.scope !== companyScopeRef.current) throw new Error("Firma bilgisi değişti. Sayfayı yenileyin.");
@@ -783,34 +769,38 @@ export default function FirmaDetayPage({
               );
             })()}
 
-            {/* 5. Eksik Evraklar — hidden for muhasebe */}
+            {/* 5. Evrak takibi — stored status, only after a successful read */}
             {role !== "muhasebe" && (() => {
               const eksikler = firmaDocs.filter((e) => e.status !== "tam");
               return (
                 <div className={CARD}>
                   <h3 className={CARD_TITLE}>
                     <FolderOpen size={14} className={TEXT_MUTED} />
-                    Eksik Evraklar
+                    Evrak Takibi
                   </h3>
-                  <div className="flex items-baseline gap-2 py-2">
-                    <span className={`${TYPE_KPI_VALUE} font-semibold ${eksikler.length > 0 ? "text-amber-600" : TEXT_PRIMARY}`}>
-                      {eksikler.length}
-                    </span>
-                    <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>eksik / suresi dolan evrak</span>
-                  </div>
                   {documentsAccessRestricted ? (
                     <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Erişim kısıtlı — bu rolde evrak görüntülenemez.</p>
-                  ) : eksikler.length === 0 ? (
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Tum evraklar tamam.</p>
                   ) : (
-                    <div className="space-y-1.5 mt-2">
-                      {eksikler.map((e) => (
-                        <div key={e.id} className={`flex items-center justify-between ${TYPE_CAPTION}`}>
-                          <span className="text-slate-600 truncate mr-2">{e.name}</span>
-                          <StatusBadge status={e.status} />
+                    <AsyncSection isLoading={docsLoading} hasError={docsError} onRetry={() => { void reloadDocs(); }}>
+                      <div className="flex items-baseline gap-2 py-2">
+                        <span className={`${TYPE_KPI_VALUE} font-semibold ${eksikler.length > 0 ? "text-amber-600" : TEXT_PRIMARY}`}>
+                          {eksikler.length}
+                        </span>
+                        <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>takip gerektiren belge</span>
+                      </div>
+                      {eksikler.length === 0 ? (
+                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{firmaDocs.length === 0 ? "Bu firmaya ait belge kaydı yok." : "Kayıtlı belgelerde takip gerektiren durum yok."}</p>
+                      ) : (
+                        <div className="space-y-1.5 mt-2">
+                          {eksikler.map((e) => (
+                            <div key={e.id} className={`flex items-center justify-between ${TYPE_CAPTION}`}>
+                              <span className="text-slate-600 truncate mr-2">{e.name}</span>
+                              <StatusBadge status={e.status} />
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </AsyncSection>
                   )}
                 </div>
               );
