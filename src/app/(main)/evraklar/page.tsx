@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import { useListViewState } from "@/components/ui/useListViewState";
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
@@ -218,6 +219,12 @@ export default function EvraklarPage() {
     });
   }, [documents, search, filters]);
 
+  const columns = useMemo<ColumnDef<DocumentListRow>[]>(() => COLUMNS.map(column => column.key !== "name" ? column : {
+    ...column,
+    render: (_value, row) => <button type="button" aria-haspopup="dialog" onClick={event => { event.stopPropagation(); setSelectedId(row.id); }}
+      className="min-h-11 w-52 max-w-full whitespace-normal break-words rounded-lg py-2 text-left font-medium text-blue-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 sm:w-auto sm:max-w-xs">{row.name}</button>,
+  }), []);
+
   const selectedEvrak = useMemo(() => documents.find((e) => e.id === selectedId) ?? null, [documents, selectedId]);
 
   // FirmDocumentChecklistPanel: show selected firma's documents
@@ -388,7 +395,7 @@ export default function EvraklarPage() {
           <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
         </div>
 
-        <DataTable<DocumentListRow> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle={documents.length === 0 ? "Henüz evrak yok" : "Bu filtrelerle eşleşen evrak yok"}
+        <DataTable<DocumentListRow> columns={columns} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle={documents.length === 0 ? "Henüz evrak yok" : "Bu filtrelerle eşleşen evrak yok"}
           emptyDescription={documents.length === 0 ? "Evrak Yükle ile ilk firma belgenizi ekleyebilirsiniz." : "Aramayı veya filtreleri değiştirerek yeniden deneyin."}
           emptyAction={documents.length === 0 ? { label: "İlk evrakı yükle", onClick: () => setOpenUploadContext(context) }
             : (search !== "" || Object.values(filters).some(Boolean)) ? { label: "Arama ve filtreleri temizle", onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); } } : undefined} />
@@ -396,15 +403,26 @@ export default function EvraklarPage() {
 
       </AsyncSection>
       {/* FirmDocumentChecklistPanel */}
-      <RightSidePanel open={!!selectedEvrak} onClose={() => setSelectedId(null)} title={selectedEvrak ? `${selectedEvrak.firma_name} -- Evrak Durumu` : undefined}>
+      <RightSidePanel open={!!selectedEvrak} onClose={() => setSelectedId(null)} title="Evrak detayı">
         {selectedEvrak && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            <section aria-label="Seçili evrak" className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="break-words text-base font-semibold text-slate-900">{selectedEvrak.name}</h3>
+              <StatusBadge status={selectedEvrak.status} />
+              <dl className="space-y-3 text-sm">
+                <div><dt className="text-slate-500">Firma</dt><dd className="min-w-0"><Link href={`/firmalar/${selectedEvrak.company_id}`} className="inline-flex min-h-11 max-w-full items-center break-words py-2 font-medium text-blue-700 underline">{selectedEvrak.firma_name}</Link></dd></div>
+                <div><dt className="text-slate-500">Kategori</dt><dd>{DOCUMENT_CATEGORY_LABELS[selectedEvrak.category]}</dd></div>
+                <div><dt className="text-slate-500">Geçerlilik tarihi</dt><dd>{selectedEvrak.validity_date ? formatDateTR(selectedEvrak.validity_date) : "Belirtilmemiş"}</dd></div>
+                <div><dt className="text-slate-500">Dosya</dt><dd>{selectedEvrak.storage_path ? "Dosya kayıtlı" : "Henüz dosya yüklenmemiş"}</dd></div>
+              </dl>
+            </section>
+            <h3 className="text-sm font-semibold text-slate-800">Firmanın evrakları</h3>
             <DocumentsChecklistCard {...firmaEvrakCounts} />
             <div className="space-y-2">
               {firmaEvraklar.map((e) => (
-                <div key={e.id} className={`flex items-center justify-between py-2 ${LIST_DIVIDER}`}>
+                <div key={e.id} className={`flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between ${LIST_DIVIDER}`}>
                   <div className="min-w-0">
-                    <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{e.name}</p>
+                    <p className={`break-words ${TYPE_BODY} ${TEXT_BODY}`}>{e.name}</p>
                     <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{DOCUMENT_CATEGORY_LABELS[e.category]} {e.validity_date ? `· ${formatDateTR(e.validity_date)}` : ""}</p>
                   </div>
                   <StatusBadge status={e.status} />
