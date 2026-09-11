@@ -2008,11 +2008,16 @@ function EvrakUploadModal({companyId, companyName, contracts, contractsState, on
   const [validityDate, setValidityDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [reviewRequired, setReviewRequired] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (submitError) { errorRef.current?.focus({ preventScroll: true }); errorRef.current?.scrollIntoView({ block: "nearest" }); }
+  }, [submitError]);
   const saving = useRef(false);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const contractVerified = contractsState === "ready" && contracts.some(c => c.id === contractId);
-  const canSubmit = !!file && name.trim().length > 0 && !submitting && !contractId;
+  const canSubmit = !!file && name.trim().length > 0 && !submitting && !contractId && !reviewRequired;
   const dirty = !!file || !!fileError || name !== "" || category !== "diger" || contractId !== "" || validityDate !== "";
   function requestClose() {
     if (saving.current) return;
@@ -2041,9 +2046,9 @@ function EvrakUploadModal({companyId, companyName, contracts, contractsState, on
       const result = await uploadCompanyDocumentAction(fd);
       if (!mounted.current) return;
       if (result.ok) onSuccess(name.trim());
-      else onSubmitError(result.error);
+      else { setReviewRequired(result.reviewRequired === true); onSubmitError(result.error); }
     } catch {
-      if (mounted.current) onSubmitError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin.");
+      if (mounted.current) { setReviewRequired(true); onSubmitError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin."); }
     } finally {
       saving.current = false;
       if (mounted.current) setSubmitting(false);
@@ -2100,7 +2105,7 @@ function EvrakUploadModal({companyId, companyName, contracts, contractsState, on
           </div>
         </fieldset>
         {submitting && <p role="status" className="mt-4 text-sm text-blue-700">Belge yükleniyor, lütfen bekleyin…</p>}
-        {submitError && <p role="alert" className="mt-4 break-words text-sm text-red-600">{submitError}</p>}
+        {submitError && <p ref={errorRef} tabIndex={-1} role="alert" className="mt-4 break-words text-sm text-red-600">{submitError}</p>}
       </form>
     </ModalShell>
     {discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler" recordName="Belge yükleme taslağı" description="Seçilen dosya ve form bilgileri bırakılacak." confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)} onConfirm={async () => { if (!saving.current) onClose(); }} />}

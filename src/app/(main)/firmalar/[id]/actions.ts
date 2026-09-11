@@ -1,5 +1,7 @@
 "use server";
 
+import { recoverCompanyDocumentInsert } from "@/lib/services/company-document-recovery";
+
 /**
  * BPS Company Detail — Server Actions
  *
@@ -14,9 +16,9 @@
  *      Client inputs `{company_id, file, name, category, validity_date?}`;
  *      server resolves tenant / author and checks company scope. A supplied
  *      contract_id is rejected before upload: contract PDFs use the dedicated
- *      versioned workflow. Storage first → DB row second; a DB failure after
- *      a successful upload returns a clear orphan-warning error (orphan
- *      cleanup is out of scope).
+ *      versioned workflow. Storage first → DB row second; recovery checks
+ *      the server-generated document ID before considering bounded cleanup.
+ *      Unverified outcomes require review rather than a blind retry.
  *
  *   2. `getCompanyDocumentDownloadUrlAction(documentId)` — short-lived
  *      (60s) signed URL for an existing document. RLS-bounded lookup; no
@@ -85,7 +87,7 @@ const APPROACHING_WINDOW_DAYS = 30;
 
 export type UploadResult =
   | { ok: true; documentId: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; reviewRequired?: boolean };
 
 export type DownloadResult =
   | { ok: true; url: string }
@@ -260,7 +262,8 @@ export async function uploadCompanyDocumentAction(
 
   // 7. Build storage path. The storage RLS policy parses the company
   //    UUID from the first path segment, so this format is required.
-  const storagePath = `${companyId}/${crypto.randomUUID()}.pdf`;
+  const documentId = crypto.randomUUID();
+  const storagePath = `${companyId}/${documentId}.pdf`;
 
   // 8. Storage upload. If this fails, no DB row is created.
   const upload = await supabase.storage
@@ -270,16 +273,18 @@ export async function uploadCompanyDocumentAction(
       upsert: false,
     });
   if (upload.error) {
+    console.error("company_document_storage_review", { documentId, companyId, storagePath, code: upload.error.name });
     return {
       ok: false,
-      error: `Yükleme başarısız: ${upload.error.message}`,
+      error: `Dosya yükleme sonucu doğrulanamadı. Yeniden yüklemeden önce belge listesini ve işlemi yöneticinizle kontrol edin. İşlem: ${documentId}`,
+      reviewRequired: true,
     };
   }
 
   // 9. DB row insert. tenant_id, company_id, contract_id,
   //    storage_path are server-controlled; created_by / uploaded_by
-  //    derive from auth. If this fails, the storage object is orphaned
-  //    and we surface that explicitly (no silent failure).
+  //    derive from auth. Reconcile a failed response by the generated ID;
+  //    only definite SQL rejection permits caller-authorized cleanup.
   // Display provenance from DB truth (profiles.display_name), not
   // user_metadata — any user can rewrite their own metadata via
   // auth.updateUser(), so the uploader label was spoofable. created_by
@@ -294,6 +299,7 @@ export async function uploadCompanyDocumentAction(
   const insert = await supabase
     .from("documents")
     .insert({
+      id: documentId,
       tenant_id: tenantId,
       company_id: companyId,
       contract_id: contractId,
@@ -309,10 +315,9 @@ export async function uploadCompanyDocumentAction(
     .single();
 
   if (insert.error || !insert.data) {
-    return {
-      ok: false,
-      error: `Belge kaydı oluşturulamadı: ${insert.error?.message ?? "bilinmeyen"}. (Storage'da ${storagePath} yolu orphan olabilir — orphan temizliği bu işlem kapsamında değil.)`,
-    };
+    return recoverCompanyDocumentInsert(supabase, {
+      id: documentId, companyId, tenantId, userId: user.id, storagePath,
+    }, insert.error?.code);
   }
 
   return { ok: true, documentId: insert.data.id };

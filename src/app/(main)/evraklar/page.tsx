@@ -1,4 +1,5 @@
 "use client";
+import { DocumentUploadReviewRequiredError } from "@/lib/company-document-upload";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -475,8 +476,11 @@ export default function EvraklarPage() {
           if (p.gecerlilikTarihi) fd.set("validity_date", p.gecerlilikTarihi);
           fd.set("file", p.file);
 
-          const result = await uploadCompanyDocumentAction(fd);
+          let result;
+          try { result = await uploadCompanyDocumentAction(fd); }
+          catch { throw new DocumentUploadReviewRequiredError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin."); }
           if (!result.ok) {
+            if (result.reviewRequired) throw new DocumentUploadReviewRequiredError(result.error);
             throw new Error(result.error);
           }
           await reload();

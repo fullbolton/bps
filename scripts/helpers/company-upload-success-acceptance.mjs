@@ -16,6 +16,7 @@ export async function checkCompanyUploadSuccess({page,sql,user,tenant,first,pref
  const open=async title=>{await tab.click();await page.getByRole('button',{name:'Belge Yükle',exact:true}).click();await dialog.waitFor();await name.fill(title);await file.setInputFiles({name:'synthetic.pdf',mimeType:'application/pdf',buffer:bytes});};
  const rows=title=>JSON.parse(sql(`SELECT coalesce(json_agg(row_to_json(d)),'[]') FROM (SELECT id,company_id,tenant_id,contract_id,name,category,status,validity_date,storage_path,created_by,uploaded_by FROM documents WHERE company_id='${company}' AND name='${title}' AND created_by='${user}') d`));
  const ownPaths=()=>sql(`SELECT name FROM storage.objects WHERE bucket_id='documents' AND name LIKE '${company}/%' ORDER BY name`).split('\n').filter(Boolean);
+ const initialObjects=ownPaths().length;
  const verify=async(title,linked=false)=>{
   const data=rows(title);assert.equal(data.length,1);const row=data[0];assert.equal(row.company_id,company);assert.equal(row.tenant_id,tenant);assert.equal(row.created_by,user);assert.equal(row.uploaded_by,'Synthetic UX acceptance');assert.equal(row.contract_id,linked?contract:null);
   assert.match(row.storage_path,new RegExp('^'+company+'/[a-f0-9-]{36}\\.pdf$'));assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name='${row.storage_path}'`),'1');
@@ -59,9 +60,9 @@ export async function checkCompanyUploadSuccess({page,sql,user,tenant,first,pref
    await page.route('**/*',tamper);await submit.click();await dialog.getByText('Sözleşmeye bağlı belgeleri sözleşme sayfasındaki Dosyalar bölümünden yükleyin.',{exact:true}).waitFor();assert.ok(tampered);assert.equal(ownPaths().length,before);assert.equal(rows(title).length,0);await page.unroute('**/*',tamper);
    await submit.click();await dialog.waitFor({state:'hidden'});await page.getByText(title+' firmaya yüklendi.',{exact:true}).waitFor();await section.getByText(title,{exact:true}).waitFor();await verify(title);
   }
-  await role('yonetici');assert.equal(ownPaths().length,5);
+  await role('yonetici');assert.equal(ownPaths().length,initialObjects+5);
   // Actual UI removal of an unlinked document clears its row and object.
-  await tab.click();await section.getByRole('button',{name:lateTitle+' — kalıcı olarak sil',exact:true}).click();await page.getByRole('dialog',{name:'Belgeyi kalıcı olarak sil',exact:true}).getByRole('button',{name:'Kalıcı olarak sil',exact:true}).click();await page.getByText(lateTitle+' belge kaydı silindi.',{exact:true}).waitFor();assert.equal(rows(lateTitle).length,0);assert.equal(ownPaths().length,4);
+  await tab.click();await section.getByRole('button',{name:lateTitle+' — kalıcı olarak sil',exact:true}).click();await page.getByRole('dialog',{name:'Belgeyi kalıcı olarak sil',exact:true}).getByRole('button',{name:'Kalıcı olarak sil',exact:true}).click();await page.getByText(lateTitle+' belge kaydı silindi.',{exact:true}).waitFor();assert.equal(rows(lateTitle).length,0);assert.equal(ownPaths().length,initialObjects+4);
   console.log('PASS real company PDF upload: one POST/row/object, tenant/company/author/category/date/contract metadata and downloaded bytes, success+read error/retry without rewrite, late committed success through role A→B→A, manager/operasyon/ik forged contract rejected before Storage then unlinked upload, UI delete row+object');
  } finally {
   // Even a failure before UI success can leave an object: collect ONLY this run-owned company's prefix.

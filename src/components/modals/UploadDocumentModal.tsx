@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { DocumentUploadReviewRequiredError } from "@/lib/company-document-upload";
 import { ModalShell } from "@/components/ui";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
 import type { DocumentCategory } from "@/lib/document-categories";
@@ -31,7 +32,12 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reviewRequired, setReviewRequired] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (submitError) { errorRef.current?.focus({ preventScroll: true }); errorRef.current?.scrollIntoView({ block: "nearest" }); }
+  }, [submitError]);
 
   // Reset form state when modal opens
   useEffect(() => {
@@ -43,6 +49,7 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
       setFile(null);
       setFileError(null);
       setSaving(false);
+      setReviewRequired(false);
       setSubmitError(null);
     }
   }, [open]);
@@ -69,7 +76,7 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
   }
 
   async function handleSubmit() {
-    if (!firmaId || !evrakAdi.trim() || !file || saving) return;
+    if (!firmaId || !evrakAdi.trim() || !file || saving || reviewRequired) return;
     const firma = firmalar.find((f) => f.id === firmaId);
     const payload: UploadDocumentSubmitData = {
       firmaId,
@@ -85,6 +92,7 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
       await onSubmit(payload);
       onClose();
     } catch (err) {
+      if (err instanceof DocumentUploadReviewRequiredError) setReviewRequired(true);
       setSubmitError(err instanceof Error ? err.message : "Evrak yuklenemedi.");
     } finally {
       setSaving(false);
@@ -95,14 +103,14 @@ export default function UploadDocumentModal({ open, onClose, firmalar, onSubmit 
     <ModalShell open={open} onClose={onClose} title="Evrak Yukle" footer={
       <>
         <button onClick={onClose} disabled={saving} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40">Iptal</button>
-        <button onClick={handleSubmit} disabled={!firmaId || !evrakAdi.trim() || !file || saving} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+        <button onClick={handleSubmit} disabled={!firmaId || !evrakAdi.trim() || !file || saving || reviewRequired} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? "Kaydediliyor..." : "Yukle"}
         </button>
       </>
     }>
       <div className="space-y-4">
         {submitError && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{submitError}</div>
+          <div ref={errorRef} tabIndex={-1} role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{submitError}</div>
         )}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Firma <span className="text-red-500">*</span></label>
