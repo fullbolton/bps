@@ -19,7 +19,7 @@ import { pilotBoardAction,pilotCommandAction,pilotCompaniesAction,pilotScopeActi
 
 import { isUuid,validatePilotPayload } from "@/lib/operations/pilot-validation";
 import { taskPrefillHref } from "@/lib/operations/task-prefill";
-import { reserveCommand,acknowledgeCommand,pendingCount,type CommandScope } from "@/lib/operations/pending-commands";
+import { reserveCommand,acknowledgeCommand,commandDigest,pendingCount,type CommandScope } from "@/lib/operations/pending-commands";
 
 const inputClass="w-full min-w-0 min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm";
 const buttonClass="min-h-11 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-40";
@@ -207,9 +207,33 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       <div className="flex items-end"><button className={buttonClass} onClick={()=>void refresh()} disabled={loading}>Yenile</button></div>
     </fieldset>
     {recoveryError&&<p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-800">{recoveryError}</p>}
-    {scope&&<PendingOperations key={`${scope.actorId}:${scope.tenantId}`} scope={scope} count={pending} disabled={busy||!writeReady} onBusy={setBusy} onComplete={async settled=>{
+    {scope&&<PendingOperations key={`${scope.actorId}:${scope.tenantId}`} scope={scope} count={pending} disabled={busy||!writeReady} onBusy={setBusy} onComplete={async (settled,settledDigests)=>{
       syncPending();
-      if(settled){forms.current?.querySelectorAll("form").forEach(form=>form.reset());setFormEpoch(n=>n+1);setCancelTarget(null);setError("");setMessage("");await refresh();}
+      if(settled){
+        const protectedForms=[requestForm.current,locationForm.current,workerForm.current];
+        const candidates:{form:HTMLFormElement|null;kind:PilotKind;fixed:Record<string,string>}[]=[
+          {form:requestForm.current,kind:"request",fixed:{companyId,workDate:date}},
+          {form:locationForm.current,kind:"location",fixed:{companyId}},
+          {form:workerForm.current,kind:"worker",fixed:{}},
+        ];
+        // Only clear a draft whose normalized payload is the terminal command itself.
+        // A changed draft, another form, or a command from another day/company stays intact.
+        for(const {form,kind,fixed} of candidates){
+          if(!form)continue;
+          const payload:Record<string,string|number>={...fixed};
+          form.querySelectorAll<HTMLInputElement|HTMLSelectElement>("input[name],select[name]").forEach(field=>{
+            payload[field.name]=field.name==="requiredCount"?Number(field.value):field.value;
+          });
+          let digest:string;
+          try{digest=await commandDigest(kind,validatePilotPayload(kind,payload));}
+          catch{continue;} // Incomplete/edited drafts cannot match a valid sent command.
+          if(form.isConnected&&settledDigests.includes(digest))form.reset();
+        }
+        forms.current?.querySelectorAll("form").forEach(form=>{if(!protectedForms.includes(form))form.reset();});
+        setFormEpoch(n=>n+1);setCancelTarget(null);setError("");
+        setMessage("Sonuçlar kontrol edildi. Sonucu kesinleşen formlar temizlendi; diğer talep, lokasyon ve personel taslakları korundu.");
+        await refresh();
+      }
     }} />}
     {error&&<p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-800">{error}</p>}
     {message&&<p role="status" className="mb-4 rounded-lg bg-emerald-50 p-3 text-emerald-800">{message}</p>}

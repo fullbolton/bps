@@ -23,10 +23,15 @@ function canonical(v:unknown):unknown{
   return v;
 }
 export function pendingCount(scope:CommandScope,storage:Storage):number{return entries(storage,keyFor(scope)).length;}
-export async function reserveCommand(scope:CommandScope,kind:string,payload:unknown,storage:Storage,locks:Locks):Promise<string>{
-  const key=keyFor(scope);
+export async function commandDigest(kind:string,payload:unknown):Promise<string>{
   const bytes=new TextEncoder().encode(JSON.stringify({kind,payload:canonical(payload)}));
-  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),n=>n.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),n=>n.toString(16).padStart(2,'0')).join('');
+}
+export function pendingCommandSnapshot(scope:CommandScope,storage:Storage):ReadonlyArray<Readonly<Entry>>{
+  return entries(storage,keyFor(scope));
+}
+export async function reserveCommand(scope:CommandScope,kind:string,payload:unknown,storage:Storage,locks:Locks):Promise<string>{
+  const key=keyFor(scope),digest=await commandDigest(kind,payload);
   if(!locks?.request)throw new Error('Bu tarayıcı güvenli işlem kurtarmayı desteklemiyor.');
   return locks.request(key,()=>{
     const list=entries(storage,key),existing=list.find(e=>e.digest===digest);

@@ -1,10 +1,10 @@
 "use client";
 import {useRef,useState} from 'react';
-import {pendingCommandIds,reconcilePending,type CommandScope} from '@/lib/operations/pending-commands';
+import {pendingCommandIds,pendingCommandSnapshot,reconcilePending,type CommandScope} from '@/lib/operations/pending-commands';
 import {pilotReconcileAction} from './actions';
 
 export default function PendingOperations({scope,count,disabled,onBusy,onComplete}:{
-  scope:CommandScope;count:number;disabled:boolean;onBusy:(v:boolean)=>void;onComplete:(settled:boolean)=>Promise<void>;
+  scope:CommandScope;count:number;disabled:boolean;onBusy:(v:boolean)=>void;onComplete:(settled:boolean,settledDigests:readonly string[])=>Promise<void>;
 }){
   const dialog=useRef<HTMLDialogElement>(null),inFlight=useRef(false),closingIds=useRef<string[]>([]);
   const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
@@ -12,13 +12,15 @@ export default function PendingOperations({scope,count,disabled,onBusy,onComplet
     if(disabled||inFlight.current)return;
     inFlight.current=true;setBusy(true);onBusy(true);setError('');setMessage('');
     try{
-      const ids=close?closingIds.current:pendingCommandIds(scope,localStorage);
+      const snapshot=pendingCommandSnapshot(scope,localStorage);
+      const ids=close?closingIds.current:snapshot.map(entry=>entry.id);
       const result=await pilotReconcileAction(scope,ids,close);
       if(!result.ok){setError(result.message);return;}
       const totals=await reconcilePending(scope,ids,result.data,localStorage,navigator.locks);
       setMessage(`${totals.confirmed} işlem tamamlanmış, ${totals.closed} işlem kapatılmış olarak doğrulandı.${totals.unknown?` ${totals.unknown} işlemin sonucu henüz kesin değil; bekleyen kimlikleri korundu.`:''}`);
       if(close)dialog.current?.close();
-      await onComplete(totals.confirmed+totals.closed>0);
+      const settledIds=new Set(result.data.filter(row=>row.status!=='unknown').map(row=>row.id));
+      await onComplete(totals.confirmed+totals.closed>0,snapshot.filter(entry=>settledIds.has(entry.id)).map(entry=>entry.digest));
     }catch{setError('Sonuçlar veya tarayıcı kaydı doğrulanamadı. Bekleyen işlemleri yeniden kontrol edin.');}
     finally{inFlight.current=false;setBusy(false);onBusy(false);}
   }

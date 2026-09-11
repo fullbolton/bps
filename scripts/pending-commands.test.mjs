@@ -34,3 +34,17 @@ test('reconciliation storage failure keeps recoverable identity',async()=>{
   await assert.rejects(()=>reconcilePending(scope,[a],[{id:a,status:'confirmed'}],{...f.storage,setItem(){throw Error('quota');}},f.locks));
   assert.equal(pendingCount(scope,f.storage),1);
 });
+
+test('read-only digest snapshot matches normalized intent without reserving or exposing payload',async()=>{
+ const {commandDigest,pendingCommandSnapshot,reconcilePending}=await importActualTypeScript(new URL('../src/lib/operations/pending-commands.ts',import.meta.url));
+ const f=fixture(),payload={name:'Synthetic private worker',code:'P1',kind:'idp'};
+ const digest=await commandDigest('worker',payload);assert.equal(f.disk.size,0);
+ const a=await reserveCommand(scope,'worker',payload,f.storage,f.locks),b=await reserveCommand(scope,'worker',{...payload,name:'New draft'},f.storage,f.locks);
+ const snapshot=pendingCommandSnapshot(scope,f.storage);assert.equal(snapshot[0].digest,digest);assert.notEqual(snapshot[1].digest,digest);
+ assert.equal(await commandDigest('worker',{kind:'idp',code:'P1',name:payload.name}),digest);
+ assert.notEqual(await commandDigest('location',payload),digest);
+ assert.ok(!JSON.stringify(snapshot).includes(payload.name));
+ await reconcilePending(scope,[a,b],[{id:a,status:'confirmed'},{id:b,status:'unknown'}],f.storage,f.locks);
+ assert.equal(snapshot.length,2);assert.deepEqual(pendingCommandSnapshot(scope,f.storage).map(e=>e.id),[b]);
+ assert.notEqual((await commandDigest('request',{companyId:'a',workDate:'2026-10-12'})),(await commandDigest('request',{companyId:'a',workDate:'2026-10-13'})));
+});
