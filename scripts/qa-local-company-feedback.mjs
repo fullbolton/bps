@@ -16,6 +16,7 @@ import {checkCompanyNoteForm} from './helpers/company-note-form-acceptance.mjs';
 import {checkCompanyNotes} from './helpers/company-notes-acceptance.mjs';
 import {checkCompanyDocumentMobile} from './helpers/company-document-mobile-acceptance.mjs';
 import {checkCompanyDownload} from './helpers/company-download-acceptance.mjs';
+import {checkCompanyDirectory} from './helpers/company-directory-acceptance.mjs';
 import {checkCompanyBatch} from './helpers/company-batch-acceptance.mjs';
 import {checkCompanyDocumentPagination} from './helpers/company-document-pagination-acceptance.mjs';
 import {checkDocumentPagination} from './helpers/document-pagination-acceptance.mjs';
@@ -769,6 +770,7 @@ try {
  if(process.env.BPS_COMPANY_NOTES_CHECK==='1') await checkCompanyNotes({page,sql,user,tenant:id(1),first,prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
+ if(process.env.BPS_COMPANY_DIRECTORY_CHECK==='1') await checkCompanyDirectory({page,sql,user,tenant:id(1),prefix,origin,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_COMPANY_BATCH_CHECK==='1') await checkCompanyBatch({page,sql,user,tenant:id(1),prefix,origin});
  if(process.env.BPS_COMPANY_DOCUMENT_PAGINATION_CHECK==='1') await checkCompanyDocumentPagination({page,sql,user,tenant:id(1),first,prefix,origin});
  if(process.env.BPS_DOCUMENT_PAGINATION_CHECK==='1') await checkDocumentPagination({page,sql,user,tenant:id(1),first,prefix,origin});

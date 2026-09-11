@@ -58,6 +58,8 @@ import {
   StatusBadge,
   RiskBadge,
 } from "@/components/ui";
+import AsyncSection from "@/components/ui/AsyncSection";
+import { useScopedResource } from "@/components/ui/useScopedResource";
 import NewCompanyModal from "@/components/modals/NewCompanyModal";
 import type { CreatedCompany } from "@/components/modals/NewCompanyModal";
 import { useAuth } from "@/context/AuthContext";
@@ -66,7 +68,6 @@ import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
 import { SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
-import type { CompanyRow } from "@/types/database.types";
 import type { FirmaDurumu, RiskSeviyesi, ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
 
 // ---------------------------------------------------------------------------
@@ -79,7 +80,7 @@ interface FirmaListRow {
   sektor: string;
   sehir: string;
   anaYetkili: string;
-  aktifSozlesme: number;
+  aktifSozlesme: number | null;
   risk: RiskSeviyesi;
   durum: FirmaDurumu;
 }
@@ -106,7 +107,7 @@ const COLUMNS: ColumnDef<FirmaListRow>[] = [
   },
   { key: "sehir", header: "Sehir", sortable: true },
   { key: "anaYetkili", header: "Ana Yetkili" },
-  { key: "aktifSozlesme", header: "Aktif Sozlesme", sortable: true },
+  { key: "aktifSozlesme", header: "Aktif Sozlesme", sortable: true, render: value => value === null ? "Okunamadı" : String(value) },
   {
     key: "risk",
     header: "Risk Etiketi",
@@ -141,53 +142,30 @@ export default function FirmalarPage() {
   // ---------------------------------------------------------------------------
   // Data loading — UUID-keyed enrichment for ALL companies
   // ---------------------------------------------------------------------------
-  const [companies, setCompanies] = useState<CompanyRow[]>([]);
-  const [primaryNameById, setPrimaryNameById] = useState<Record<string, string>>({});
-  const [activeContractById, setActiveContractById] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  // Yeniden yükleme, mevcut effect'i TEKRAR çalıştırarak yapılıyor. Yükleyiciyi
-  // dışarı almak, effect'in `active` iptal guard'ını her çağrı için ayrı ayrı
-  // kurma özelliğini kaybettirirdi.
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (!active) return;
-        setCompanies(rows);
-
-        const companyIds = rows.map((r) => r.id);
-        if (companyIds.length === 0) { setLoading(false); return; }
-
-        // Enrich via UUID — direct queries, works for all companies
-        const [contactsResult, contractsResult] = await Promise.all([
-          supabase.from("contacts").select("company_id, full_name, is_primary").eq("is_primary", true).in("company_id", companyIds),
-          supabase.from("contracts").select("company_id").eq("status", "aktif").in("company_id", companyIds),
-        ]);
-
-        if (!active) return;
-
-        // Primary contact name by company UUID
-        const nameMap: Record<string, string> = {};
-        for (const c of contactsResult.data ?? []) {
-          nameMap[c.company_id] = c.full_name;
-        }
-        setPrimaryNameById(nameMap);
-
-        // Active contract count by company UUID
-        const countMap: Record<string, number> = {};
-        for (const c of contractsResult.data ?? []) {
-          countMap[c.company_id] = (countMap[c.company_id] ?? 0) + 1;
-        }
-        setActiveContractById(countMap);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [supabase, reloadKey]);
+  const readDirectory = useCallback(async () => {
+    const rows = await selectAllCompanies(supabase);
+    const companyIds = rows.map(row => row.id);
+    const nameMap: Record<string, string> = {}, countMap: Record<string, number> = {};
+    if (!companyIds.length) return { rows, nameMap, countMap, contactsError: false, contractsError: false };
+    const [contacts, contracts] = await Promise.all([
+      supabase.from("contacts").select("company_id, full_name, is_primary").eq("is_primary", true).in("company_id", companyIds),
+      supabase.from("contracts").select("company_id").eq("status", "aktif").in("company_id", companyIds),
+    ]);
+    const contactsError = !!contacts.error || !Array.isArray(contacts.data);
+    const contractsError = !!contracts.error || !Array.isArray(contracts.data);
+    if (!contactsError) for (const contact of contacts.data ?? []) nameMap[contact.company_id] = contact.full_name;
+    if (!contractsError) for (const contract of contracts.data ?? []) countMap[contract.company_id] = (countMap[contract.company_id] ?? 0) + 1;
+    return { rows, nameMap, countMap, contactsError, contractsError };
+  }, [supabase]);
+  const directory = useScopedResource(listScope, readDirectory);
+  const companies = directory.data?.rows ?? [];
+  const primaryNameById = directory.data?.nameMap ?? {};
+  const activeContractById = directory.data?.countMap ?? {};
+  const contactsError = directory.data?.contactsError ?? false;
+  const contractsError = directory.data?.contractsError ?? false;
+  const viewContext = useMemo(() => ({ scope: listScope }), [listScope]);
+  const liveView = useRef(viewContext); liveView.current = viewContext;
+  useEffect(() => { setNotice(null); setNewOpen(false); }, [viewContext]);
 
   // ---------------------------------------------------------------------------
   // Dynamic filter config — no mock dependency
@@ -233,8 +211,8 @@ export default function FirmalarPage() {
         firmaAdi: c.name,
         sektor: sectorLabel(c.sector),
         sehir: c.city ?? "—",
-        anaYetkili: primaryNameById[c.id] ?? "—",
-        aktifSozlesme: activeContractById[c.id] ?? 0,
+        anaYetkili: contactsError ? "Okunamadı" : primaryNameById[c.id] ?? "—",
+        aktifSozlesme: contractsError ? null : activeContractById[c.id] ?? 0,
         risk: c.risk,
         durum: c.status,
       };
@@ -256,7 +234,7 @@ export default function FirmalarPage() {
       if (filters.sehir && f.sehir !== filters.sehir) return false;
       return true;
     });
-  }, [search, filters, companies, primaryNameById, activeContractById]);
+  }, [search, filters, companies, primaryNameById, activeContractById, contactsError, contractsError]);
 
   /**
    * Modal kapandığında: kayıt GÖRÜNÜR olmalı, yoksa "oldu mu" belirsizliği
@@ -268,30 +246,23 @@ export default function FirmalarPage() {
    */
   const handleCompanyCreated = useCallback(
     (company: CreatedCompany, origin: "created" | "existing") => {
+      if (liveView.current !== viewContext) return;
       handleSearch("");
       setFilters({ durum: "", risk: "", sektor: "", sehir: "" });
-      setReloadKey((k) => k + 1);
+      void directory.reload();
       setNotice(
         origin === "created"
           ? `${company.name} firmalara eklendi. Durumu: aday.`
           : `${company.name} zaten kayıtlı — listede.`,
       );
     },
-    [handleSearch, setFilters],
+    [handleSearch, setFilters, directory.reload, viewContext],
   );
 
   const rowActions: RowAction<FirmaListRow>[] = [
     { label: "Detaya Git", onClick: (row) => router.push(`/firmalar/${row.id}`) },
   ];
 
-  if (loading || !viewReady) {
-    return (
-      <>
-        <PageHeader title="Firmalar" subtitle="Firma portfoyu" />
-        <p className="text-sm text-slate-500 py-8 text-center">Yukleniyor...</p>
-      </>
-    );
-  }
 
   return (
     <>
@@ -326,6 +297,11 @@ export default function FirmalarPage() {
             </button>
           </div>
         )}
+        <AsyncSection isLoading={directory.loading || !viewReady} hasError={directory.error} onRetry={() => { void directory.reload(); }}>
+        {(contactsError || contractsError) && <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p>Firma listesi yüklendi; bazı yetkili veya sözleşme özetleri okunamadı.</p>
+          <button type="button" onClick={() => { void directory.reload(); }} className="min-h-11 text-blue-700 underline">Özetleri yeniden dene</button>
+        </div>}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
             <SearchInput ref={searchControl} key={listScope} maxLength={512} value={search} placeholder="Firma, yetkili, sektor ara..." onChange={handleSearch} />
@@ -356,6 +332,7 @@ export default function FirmalarPage() {
               : "Arama veya filtre kriterlerinizi degistirin."
           }
         />
+        </AsyncSection>
       </div>
 
       {/* yonetici-only: RLS ve server action zaten kapatıyor, bu üçüncü katman. */}

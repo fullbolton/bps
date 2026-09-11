@@ -103,14 +103,22 @@ export async function selectCompaniesByLegacyMockIds(
 export async function selectAllCompanies(
   client: Client,
 ): Promise<CompanyRow[]> {
-  const { data, error } = await client
-    .from("companies")
-    .select("*");
-
-  if (error) {
-    throw new Error(`companies select-all failed: ${error.message}`);
+  const rows: CompanyRow[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page <= 200; page++) {
+    let query = client.from("companies").select("*").order("id", { ascending: true }).limit(500);
+    if (cursor) query = query.gt("id", cursor);
+    const { data, error } = await query;
+    if (error) throw new Error("companies directory page failed");
+    if (!Array.isArray(data)) throw new Error("companies directory invalid page");
+    if (!data.length) return rows;
+    if (page === 200) throw new Error("companies directory scan limit exceeded");
+    for (const row of data) {
+      if (!row || typeof row.id !== "string" || !row.id || (cursor !== null && row.id <= cursor)) throw new Error("companies directory did not advance");
+      cursor = row.id; rows.push(row);
+    }
   }
-  return data ?? [];
+  throw new Error("companies directory incomplete scan");
 }
 
 /**
