@@ -11,6 +11,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader,EmptyState } from "@/components/ui";
 import AsyncSection from "@/components/ui/AsyncSection";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { useScopedResource } from "@/components/ui/useScopedResource";
 import { isWorkDate,deriveDailyCoverage } from "@/lib/operations/daily-demand";
 import type { PilotBoard,PilotCompany,PilotKind } from "@/lib/operations/pilot-types";
@@ -94,6 +95,8 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   const [cancelTarget,setCancelTarget]=useState<{id:string;label:string}|null>(null);
   const requestSequence=useRef(0); const submitting=useRef(false);
   const forms=useRef<HTMLDivElement>(null);
+  const requestForm=useRef<HTMLFormElement>(null);
+  const [pendingSelection,setPendingSelection]=useState<SelectionChange|null>(null);
   const [formEpoch,setFormEpoch]=useState(0);
   const [scope,setScope]=useState<CommandScope|null>(null);
   const [pending,setPending]=useState(0);
@@ -159,10 +162,30 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
     finally{submitting.current=false;setBusy(false);}
   }
 
+  function selectWithDraftCheck(change:SelectionChange) {
+    if(busy||submitting.current)return;
+    if(change.companyId===companyId||change.date===date)return;
+    if(change.date!==undefined&&(!isWorkDate(change.date)||change.date<"2000-01-01"||change.date>"2100-12-31"))return;
+    // Read live fields, including disabled ones. form.reset() restores these baselines.
+    const dirty=Object.entries({locationId:"",serviceLine:"Temizlik",position:"Temizlik görevlisi",requiredCount:"1"})
+      .some(([name,initial])=>{
+        const field=requestForm.current?.querySelector<HTMLInputElement|HTMLSelectElement>(`[name="${name}"]`);
+        return !!field&&field.value!==initial;
+      });
+    if(!dirty){onSelect(change);return;}
+    (change.companyId!==undefined?companyInput.current:dateInput.current)?.focus();
+    setPendingSelection(change);
+  }
+
   const company=companies.find(c=>c.id===companyId);
   if(authLoading)return <p role="status">Oturum yükleniyor…</p>;
   if(!allowed)return <EmptyState title="Bu çalışma alanına erişiminiz yok" />;
   return <>
+    {pendingSelection&&<ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
+      recordName={`${company?.name??"Firma"} · ${date}`}
+      description="Günlük talep formundaki kaydedilmemiş bilgiler bırakılacak. Seçtiğiniz firma ve gün için plan açılacak."
+      confirmLabel="Değişiklikleri bırak" destructive onClose={()=>setPendingSelection(null)}
+      onConfirm={async()=>{if(!busy&&!submitting.current)onSelect(pendingSelection);}} />}
     <CancelRequestDialog target={cancelTarget} busy={busy} error={error} onClose={()=>{if(!busy)setCancelTarget(null);}} onConfirm={()=>{if(cancelTarget)void submit("cancel",{requestId:cancelTarget.id});}} />
     <PageHeader title="Günlük personel planı" subtitle="Şube ihtiyacını kaydedin, personeli atayın ve açıkları takip edin." />
     <nav aria-label="Operasyon ekranları" className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
@@ -173,8 +196,8 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
     <Link className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800" href={companyId?`/firmalar/${companyId}`:"/firmalar"}>Firma detayına dön</Link>
     </nav>
     <fieldset disabled={busy} className="mb-5 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
-      <label className="text-sm">Firma<select ref={companyInput} aria-label="Firma" className={inputClass} value={companyId} onChange={e=>onSelect({companyId:e.target.value})}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?"":" (operasyona kapalı)"}</option>)}</select></label>
-      <label className="text-sm">İş günü<input ref={dateInput} className={inputClass} type="date" min="2000-01-01" max="2100-12-31" value={date} onChange={e=>onSelect({date:e.target.value})} /></label>
+      <label className="text-sm">Firma<select ref={companyInput} aria-label="Firma" className={inputClass} value={companyId} onChange={e=>selectWithDraftCheck({companyId:e.target.value})}><option value="">Firma seçin</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}{c.active?"":" (operasyona kapalı)"}</option>)}</select></label>
+      <label className="text-sm">İş günü<input ref={dateInput} className={inputClass} type="date" min="2000-01-01" max="2100-12-31" value={date} onChange={e=>selectWithDraftCheck({date:e.target.value})} /></label>
       <div className="flex items-end"><button className={buttonClass} onClick={()=>void refresh()} disabled={loading}>Yenile</button></div>
     </fieldset>
     {recoveryError&&<p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-800">{recoveryError}</p>}
@@ -204,7 +227,7 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       </div>}
       </div></details>}
       <RequestBatch key={`${scope?.actorId}:${scope?.tenantId}:${companyId}:${date}:${formEpoch}`} companyId={companyId} date={date} locations={board.locations} scope={scope} disabled={busy||!writeReady||loading||!boardReady||!company?.active} onBusy={setBusy} onComplete={refresh} onPendingChange={syncPending} />
-      <section className="mb-5 rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-semibold">Günlük talep aç</h2><form onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("request",{companyId,locationId:String(d.get("locationId")),workDate:date,serviceLine:String(d.get("serviceLine")),position:String(d.get("position")),requiredCount:Number(d.get("requiredCount"))},f);}}><fieldset disabled={busy||!writeReady||loading||!boardReady||!company?.active} className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="text-sm">Lokasyon<select className={inputClass} name="locationId" required defaultValue=""><option value="" disabled>Lokasyon seçin</option>{board.locations.filter(l=>l.active).map(l=><option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}</select></label><label className="text-sm">Hizmet hattı<input name="serviceLine" className={inputClass} defaultValue="Temizlik" maxLength={80} required /></label><label className="text-sm">Pozisyon<input name="position" className={inputClass} defaultValue="Temizlik görevlisi" maxLength={80} required /></label><label className="text-sm">Kişi sayısı<input name="requiredCount" className={inputClass} type="number" defaultValue={1} min={1} max={100} required /></label><button className={buttonClass}>Talebi kaydet</button></fieldset></form></section>
+      <section className="mb-5 rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-semibold">Günlük talep aç</h2><form ref={requestForm} aria-label="Günlük talep formu" onSubmit={e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f);void submit("request",{companyId,locationId:String(d.get("locationId")),workDate:date,serviceLine:String(d.get("serviceLine")),position:String(d.get("position")),requiredCount:Number(d.get("requiredCount"))},f);}}><fieldset disabled={busy||!writeReady||loading||!boardReady||!company?.active} className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="text-sm">Lokasyon<select className={inputClass} name="locationId" required defaultValue=""><option value="" disabled>Lokasyon seçin</option>{board.locations.filter(l=>l.active).map(l=><option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}</select></label><label className="text-sm">Hizmet hattı<input name="serviceLine" className={inputClass} defaultValue="Temizlik" maxLength={80} required /></label><label className="text-sm">Pozisyon<input name="position" className={inputClass} defaultValue="Temizlik görevlisi" maxLength={80} required /></label><label className="text-sm">Kişi sayısı<input name="requiredCount" className={inputClass} type="number" defaultValue={1} min={1} max={100} required /></label><button className={buttonClass}>Talebi kaydet</button></fieldset></form></section>
       <section aria-busy={loading} className="space-y-3"><h2 className="font-semibold">{date} · Talepler</h2>{loading?<p role="status">Plan yükleniyor…</p>:!boardReady?<p role="status">Plan doğrulanamadı. Bağlantı düzeldikten sonra Yenile düğmesini kullanın.</p>:!board.requests.length?<EmptyState title="Bu gün için talep yok" size="tab" />:board.requests.map(r=>{
         const coverage=deriveDailyCoverage(r.requiredCount,r.assignments.length,r.lifecycle);
         const location=board.locations.find(l=>l.id===r.locationId);
