@@ -1351,3 +1351,10 @@ Ayrıntılı kapsam, açık öncelikler ve kanıt sınırı UI_UX_TURU_2026_09_1
 > **138 — Font, açılır seçim ve buton modernizasyonu.** Geist body override ve font değişkeni döngüsü düzeltildi, latin-ext eklendi. Ortak tokenlarda yumuşak köşeler, hafif gölge, odak ve pasif durumlar; native tekli seçimlerde sade ok ve44px hedef. Native popup/multiple davranışı korunur. Masaüstü/390px bileşen önizlemesi, gerçek klavye seçim değişimi ve Geist ölçümü geçti; TypeScript/build başarılı, statik0 FAIL/1 mevcut WARN. Üretim SQL/push/deploy yok. Sıradaki139: Sidebar taslak koruması.
 
 Geçici snapshot login bileşen önizlemesinde İstanbul→Ankara klavye seçimi doğrulandı; select46px ve font Geist ölçüldü. Native açılan seçenek listesinin görünümü işletim sistemine bırakıldı. Çoklu/listbox seçimleri custom arrow kuralından hariç; forced-colors native appearance kullanır, coarse pointer form yazıları16px. Build bps-build-P9sBiM; tam kimlikli modül regresyonu bu tur yapılmadı. Repo login değişmedi.
+
+
+## 139 — Tam üretim yayını
+
+> **139 — TAM YAYIN, 2026-09-13.** Kullanıcının “herşey yayımla” onayıyla tamamlanmış tüm yerel uygulama (274 dosya, kaynak64d2701) https://www.bpsys.net adresinde yayında: `dpl_7wrg2M2UABgFsZwqjzxWMahQ8qSa`. Dört migration20260910000200/300/400 ve20260911000100 üretime uygulandı, remote defterleri doğrulandı. İletişim bayrağı açık.192 operasyon,12 SQL,4 gerçek yerel Auth grubu; Vercel build/TypeScript; canlı sağlık5/5 ve rota yönlendirmeleri geçti. Canlı iş verisi yazma testi yapılmadı. Yalnız tasarım yayını notu artık tarihsel. Eski20260722000200 asistan rol taslağı tamamlanmadığı için uygulanmadı. Sonraki140: Sidebar taslak koruması.
+
+Manifest: supabase/manual/release-20260913-full.json. Güncel kaynak izolasyonlu klasörden sadece uygulama/config dosyalarıyla yayınlandı; .env dosyaları ve iş verileri yüklenmedi. Supabase migration kaynakları değiştirilmedi; eski local-only başlıkları tarihsel, uygulama kanıtı manifest/defterdir. Yeni sohbet yazma bildirimleri uygulama içidir; test amacıyla gerçek kişilere mesaj gönderilmedi.
