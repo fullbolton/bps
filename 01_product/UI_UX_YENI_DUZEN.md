@@ -1337,3 +1337,10 @@ TypeScript, izole build bps-build-kHlySa exit0, script syntax/diff temiz; statik
 Sınırlar: bu iki link ve daha önceki üst beş operasyon linki korunur; sol menü, tarayıcı history ve uygulamanın diğer ekranları için genel koruma tamamlanmadı. Hedef görev/haftalık ekranının bütün işlevleri bu navigasyon kabulünün kapsamı değildir. Kalıcı taslak kaydı yoktur; açık bırakma taslağı geri getirmez. Gerçek rol/tenant geçişleri tekrar sınanmadı.
 
 Sıradaki137: Günlük planın güncel taslak/busy korumasını ana sol menüdeki normal aynı-sekme bağlantılarına bağla. Kapsamlı bir kayıt/cleanup mekanizmasıyla yalnız aktif günlük workspace koruması kullanılmalı; unmount/rol/firma/gün değişiminde eski callback kalmamalı. İptal aynı plan/alan/odağı tutsun, onay gerçek menü hedefine gitsin; yeni sekme ve temiz sayfa normal çalışsın. Masaüstü ve mobil menü, eski callback ve bekleyen yazı sınırlarını dedicated yerel sentetik ortamda ölç. Browser history/geri düğmesini ayrı kapsam olarak belirt; SQL/push/deploy yok.
+
+
+## 137 — Genel UI/UX turu ve ortak menü
+
+> **137 — Kullanıcı isteğiyle genel UI/UX turu.** Ortak menüde 44 px hedefler, Escape/Tab kapanması ve odak dönüşü düzeltildi; talep başlıkları Türkçeleştirildi. Masaüstü/390 px yalıtılmış gerçek bileşen önizlemesinde kontrol edildi; tam kimlikli uygulama kabulü yapılmadı. TypeScript/build geçti, statik0 FAIL/1 mevcut WARN. Rapor: `01_product/UI_UX_TURU_2026_09_13.md`. Ürün SQL/push/deploy yok. Sonraki138: günlük plandan Sidebar ile ayrılırken taslak koruması; ardından operasyon alt gezinmesi.
+
+Ayrıntılı kapsam, açık öncelikler ve kanıt sınırı UI_UX_TURU_2026_09_13.md içinde. Önizleme yalnız geçici snapshot login sayfasında gerçek shell bileşenlerini kullandı; repo login ve yetkilendirme aynı kaldı. Build: bps-build-l4sldX. Tarayıcı CUA ile masaüstü Escape/Tab, 390×844 menü/hesap Escape odak dönüşü; iki düğme44×44 ölçüldü. Mevcut kabul scriptindeki detay başlığı locatorları eşlendi; bu scriptin kimlikli senaryoları bu tur çalıştırılmadı.

@@ -46,6 +46,7 @@ export default function Topbar() {
   }, []);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -66,13 +67,25 @@ export default function Topbar() {
         <div className="flex items-center gap-2 ml-auto">
           {process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED==="true"&&<ConversationInbox />}
           {/* User menu */}
-          <div ref={userMenuRef} className="relative">
+          <div ref={userMenuRef} className="relative"
+            onKeyDown={e => {
+              if (e.key === "Escape" && userMenuOpen) {
+                e.preventDefault();
+                e.stopPropagation();
+                setUserMenuOpen(false);
+                userMenuButtonRef.current?.focus();
+              }
+            }}
+            onBlur={e => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setUserMenuOpen(false);
+            }}>
             <button
+              ref={userMenuButtonRef}
               aria-label="Kullanıcı menüsü"
               aria-expanded={userMenuOpen}
+              aria-controls={userMenuOpen ? "user-account-actions" : undefined}
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              onKeyDown={e => { if (e.key === "Escape") setUserMenuOpen(false); }}
-              className={`flex items-center gap-2 px-2 py-1.5 ${TYPE_BODY} text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
+              className={`flex min-h-11 min-w-11 items-center justify-center gap-2 px-2 py-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${TYPE_BODY} text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
             >
               <div className={`w-7 h-7 bg-slate-200 ${RADIUS_FULL} flex items-center justify-center`}>
                 <User size={14} className={TEXT_SECONDARY} />
@@ -81,10 +94,10 @@ export default function Topbar() {
             </button>
 
             {userMenuOpen && (
-              <div className={`absolute right-0 top-full mt-1 w-48 ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SHADOW_DROPDOWN} py-1 ${Z_OVERLAY}`}>
+              <div id="user-account-actions" className={`absolute right-0 top-full mt-1 w-48 ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SHADOW_DROPDOWN} py-1 ${Z_OVERLAY}`}>
                 <button
                   onClick={() => { setUserMenuOpen(false); signOut(); }}
-                  className={`w-full text-left px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} hover:bg-slate-50 flex items-center gap-2`}
+                  className={`min-h-11 w-full text-left px-3 py-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 ${TYPE_BODY} ${TEXT_BODY} hover:bg-slate-50 flex items-center gap-2`}
                 >
                   <LogOut size={14} />
                   Çıkış Yap

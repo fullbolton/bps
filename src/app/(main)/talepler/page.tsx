@@ -82,8 +82,8 @@ const DL_VALUE = `${TYPE_BODY} ${TEXT_BODY} mt-0.5`;
 
 const STATUS_LABELS: Record<string, string> = {
   yeni: "Yeni",
-  degerlendiriliyor: "Degerlendiriliyor",
-  kismi_doldu: "Kismi Doldu",
+  degerlendiriliyor: "Değerlendiriliyor",
+  kismi_doldu: "Kısmi doldu",
   tamamen_doldu: "Tamamen Doldu",
   beklemede: "Beklemede",
   iptal: "Iptal",
@@ -402,13 +402,13 @@ export default function TaleplerPage() {
   // ---------------------------------------------------------------------------
   // Role gate
   // ---------------------------------------------------------------------------
-  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
   if (authLoading || !viewReady) {
     return (
       <>
-        <PageHeader title="Personel Talepleri" subtitle="Talep yonetimi" />
-        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+        <PageHeader title="Personel Talepleri" subtitle="Talep yönetimi" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
       </>
     );
   }
@@ -416,9 +416,9 @@ export default function TaleplerPage() {
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
       <>
-        <PageHeader title="Personel Talepleri" subtitle="Talep yonetimi" />
+        <PageHeader title="Personel Talepleri" subtitle="Talep yönetimi" />
         <EmptyState
-          title="Erisim kisitli"
+          title="Erişim kısıtlı"
           description="Bu ekran erisiminizin disindadir."
           size="page"
         />
@@ -430,7 +430,7 @@ export default function TaleplerPage() {
     <>
       <PageHeader
         title="Personel Talepleri"
-        subtitle="Acik ihtiyaclar ve doluluk durumu"
+        subtitle="Açık ihtiyaçlar ve doluluk durumu"
         actions={[
           { label: "Günlük plan", onClick: () => router.push("/talepler/gunluk"), variant: "secondary" },
           {
@@ -459,14 +459,14 @@ export default function TaleplerPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPIStatCard label="Yeni" value={statusCounts["yeni"] ?? 0} />
           <KPIStatCard
-            label="Degerlendiriliyor"
+            label="Değerlendiriliyor"
             value={statusCounts["degerlendiriliyor"] ?? 0}
           />
           <KPIStatCard
-            label="Kismi Doldu"
+            label="Kısmi doldu"
             value={statusCounts["kismi_doldu"] ?? 0}
           />
-          <KPIStatCard label="Toplam Acik Kalan" value={totalOpenCount} />
+          <KPIStatCard label="Toplam açık kalan" value={totalOpenCount} />
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -530,7 +530,7 @@ export default function TaleplerPage() {
       <RightSidePanel
         open={!!selectedTalep}
         onClose={closeDetail}
-        title="Talep Detay"
+        title="Talep detayı"
       >
         {selectedTalep && (
           <dl className="space-y-3">

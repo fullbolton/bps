@@ -69,9 +69,9 @@ export default function Sidebar() {
   );
 
   const content = <>
-      <Link href="/dashboard" onClick={() => mobileDialog.current?.close()} className="flex h-20 shrink-0 items-center gap-3 px-5 border-b border-white/10">
+      <Link href="/dashboard" onClick={() => mobileDialog.current?.close()} className="flex h-20 shrink-0 items-center gap-3 pl-5 pr-14 md:pr-5 border-b border-white/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-300">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-sm font-bold tracking-tight text-white">BPS</span>
-        <span><span className="block font-semibold tracking-tight">Partner Staff</span><span className="block text-xs text-slate-400 mt-0.5">Operasyon çalışma alanı</span></span>
+        <span className="min-w-0"><span className="block truncate font-semibold tracking-tight">Partner Staff</span><span className="block truncate text-xs text-slate-400 mt-0.5">Operasyon çalışma alanı</span></span>
       </Link>
       <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 py-5">
         {[
@@ -88,7 +88,7 @@ export default function Sidebar() {
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
               return <li key={item.key}><Link href={item.href} aria-current={isActive ? "page" : undefined}
                 onClick={() => mobileDialog.current?.close()}
-                className={clsx("flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors", isActive ? "bg-blue-500/15 text-blue-200 font-semibold ring-1 ring-inset ring-blue-400/25" : "text-slate-300 hover:bg-white/5 hover:text-white")}>
+                className={clsx("flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300", isActive ? "bg-blue-500/15 text-blue-200 font-semibold ring-1 ring-inset ring-blue-400/25" : "text-slate-300 hover:bg-white/5 hover:text-white")}>
                 <Icon size={18} strokeWidth={1.8} aria-hidden="true"/><span>{item.label}</span>
               </Link></li>;
             })}</ul>
@@ -101,11 +101,11 @@ export default function Sidebar() {
     <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-slate-900 text-white hidden md:flex flex-col ${Z_SIDEBAR}`}>
       {content}
     </aside>
-    <button className="fixed left-3 top-3 z-50 rounded-lg p-2 text-slate-700 md:hidden" aria-label="Menüyü aç" aria-haspopup="dialog" aria-controls="mobile-navigation"
+    <button className="fixed left-3 top-2.5 z-50 flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 md:hidden" aria-label="Menüyü aç" aria-haspopup="dialog" aria-controls="mobile-navigation"
       onClick={() => mobileDialog.current?.showModal()}><Menu size={24} /></button>
     <dialog ref={mobileDialog} id="mobile-navigation" aria-label="Gezinme menüsü"
       className="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-72 max-w-[90vw] border-0 bg-slate-900 p-0 text-white backdrop:bg-black/40">
-      <button autoFocus className="absolute right-2 top-2 rounded p-1" aria-label="Menüyü kapat" onClick={() => mobileDialog.current?.close()}><X size={22} /></button>
+      <button autoFocus className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-lg hover:bg-white/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-300" aria-label="Menüyü kapat" onClick={() => mobileDialog.current?.close()}><X size={22} /></button>
       <div className="flex h-full flex-col">{content}</div>
     </dialog>
   </>;
