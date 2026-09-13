@@ -1344,3 +1344,10 @@ Sıradaki137: Günlük planın güncel taslak/busy korumasını ana sol menüdek
 > **137 — Kullanıcı isteğiyle genel UI/UX turu.** Ortak menüde 44 px hedefler, Escape/Tab kapanması ve odak dönüşü düzeltildi; talep başlıkları Türkçeleştirildi. Masaüstü/390 px yalıtılmış gerçek bileşen önizlemesinde kontrol edildi; tam kimlikli uygulama kabulü yapılmadı. TypeScript/build geçti, statik0 FAIL/1 mevcut WARN. Rapor: `01_product/UI_UX_TURU_2026_09_13.md`. Ürün SQL/push/deploy yok. Sonraki138: günlük plandan Sidebar ile ayrılırken taslak koruması; ardından operasyon alt gezinmesi.
 
 Ayrıntılı kapsam, açık öncelikler ve kanıt sınırı UI_UX_TURU_2026_09_13.md içinde. Önizleme yalnız geçici snapshot login sayfasında gerçek shell bileşenlerini kullandı; repo login ve yetkilendirme aynı kaldı. Build: bps-build-l4sldX. Tarayıcı CUA ile masaüstü Escape/Tab, 390×844 menü/hesap Escape odak dönüşü; iki düğme44×44 ölçüldü. Mevcut kabul scriptindeki detay başlığı locatorları eşlendi; bu scriptin kimlikli senaryoları bu tur çalıştırılmadı.
+
+
+## 138 — Ortak tipografi ve form kontrolleri
+
+> **138 — Font, açılır seçim ve buton modernizasyonu.** Geist body override ve font değişkeni döngüsü düzeltildi, latin-ext eklendi. Ortak tokenlarda yumuşak köşeler, hafif gölge, odak ve pasif durumlar; native tekli seçimlerde sade ok ve44px hedef. Native popup/multiple davranışı korunur. Masaüstü/390px bileşen önizlemesi, gerçek klavye seçim değişimi ve Geist ölçümü geçti; TypeScript/build başarılı, statik0 FAIL/1 mevcut WARN. Üretim SQL/push/deploy yok. Sıradaki139: Sidebar taslak koruması.
+
+Geçici snapshot login bileşen önizlemesinde İstanbul→Ankara klavye seçimi doğrulandı; select46px ve font Geist ölçüldü. Native açılan seçenek listesinin görünümü işletim sistemine bırakıldı. Çoklu/listbox seçimleri custom arrow kuralından hariç; forced-colors native appearance kullanır, coarse pointer form yazıları16px. Build bps-build-P9sBiM; tam kimlikli modül regresyonu bu tur yapılmadı. Repo login değişmedi.

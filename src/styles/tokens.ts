@@ -56,9 +56,9 @@ export const BORDER_SUBTLE = "border-slate-100";
 // ---------------------------------------------------------------------------
 
 export const TYPE_PAGE_TITLE = "text-2xl sm:text-3xl font-semibold tracking-tight";
-export const TYPE_SECTION_TITLE = "text-base font-semibold";
-export const TYPE_CARD_TITLE = "text-sm font-semibold";
-export const TYPE_BODY = "text-sm";
+export const TYPE_SECTION_TITLE = "text-base font-semibold tracking-tight";
+export const TYPE_CARD_TITLE = "text-sm font-semibold leading-5";
+export const TYPE_BODY = "text-sm leading-6";
 export const TYPE_LABEL = "text-xs font-medium";
 export const TYPE_CAPTION = "text-xs";
 export const TYPE_KPI_VALUE = "text-3xl font-semibold tracking-tight tabular-nums";
@@ -68,7 +68,7 @@ export const TYPE_TABLE_HEADER = "text-xs font-medium uppercase tracking-wider";
 // Radius
 // ---------------------------------------------------------------------------
 
-export const RADIUS_SM = "rounded-lg";
+export const RADIUS_SM = "rounded-xl";
 export const RADIUS_DEFAULT = "rounded-2xl";
 export const RADIUS_FULL = "rounded-full";
 
@@ -78,7 +78,7 @@ export const RADIUS_FULL = "rounded-full";
 
 export const SHADOW_NONE = "";
 export const SHADOW_HOVER = "shadow-sm";
-export const SHADOW_DROPDOWN = "shadow-lg";
+export const SHADOW_DROPDOWN = "shadow-xl shadow-slate-900/10";
 export const SHADOW_OVERLAY = "shadow-xl";
 
 // ---------------------------------------------------------------------------
@@ -94,9 +94,9 @@ export const Z_OVERLAY = "z-50";
 // Buttons
 // ---------------------------------------------------------------------------
 
-export const BUTTON_BASE = `inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 ${TYPE_BODY} font-medium ${RADIUS_SM} transition-colors`;
-export const BUTTON_PRIMARY = `${TEXT_INVERSE} bg-blue-600 hover:bg-blue-700`;
-export const BUTTON_SECONDARY = `${TEXT_BODY} ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} hover:bg-slate-50`;
+export const BUTTON_BASE = `inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 ${TYPE_BODY} font-medium ${RADIUS_SM} transition-[background-color,border-color,box-shadow] duration-150 disabled:cursor-not-allowed disabled:opacity-50`;
+export const BUTTON_PRIMARY = `${TEXT_INVERSE} bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20`;
+export const BUTTON_SECONDARY = `${TEXT_BODY} ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} hover:bg-slate-50 hover:border-slate-300 shadow-sm`;
 
 // ---------------------------------------------------------------------------
 // Right side panel
@@ -126,7 +126,7 @@ export const TABLE_PAGE_SIZE = 20;
 // Form density
 // ---------------------------------------------------------------------------
 
-export const INPUT_BASE = `w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`;
+export const INPUT_BASE = `w-full min-h-11 px-3.5 py-2.5 ${TYPE_BODY} bg-white border ${BORDER_DEFAULT} ${RADIUS_SM} shadow-sm transition-[border-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60`;
 
 // ---------------------------------------------------------------------------
 // Modal
