@@ -92,6 +92,9 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   const [boardReady,setBoardReady]=useState(false);
   const [loading,setLoading]=useState(true); const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState(""); const [error,setError]=useState("");
+  // Keep card drafts across board refresh/unmounts; successful writes clear only their own field.
+  const [assignmentDrafts,setAssignmentDrafts]=useState<Record<string,{workerId:string;label:string}>>({});
+  const [countDrafts,setCountDrafts]=useState<Record<string,{value:string;initial:number;label:string}>>({});
   const [cancelTarget,setCancelTarget]=useState<{id:string;label:string}|null>(null);
   const requestSequence=useRef(0); const submitting=useRef(false);
   const forms=useRef<HTMLDivElement>(null);
@@ -160,6 +163,8 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       let saved="İşlem kaydedildi.";
       try{await acknowledgeCommand(scope,id,localStorage,navigator.locks);syncPending();}
       catch{saved+=" Tarayıcıdaki bekleyen işaret kaldırılamadı; aynı işlem tekrar gönderilirse ikinci kayıt oluşmaz.";}
+      if(kind==="assign")setAssignmentDrafts(previous=>{const next={...previous};delete next[String(payload.requestId)];return next;});
+      if(kind==="resize")setCountDrafts(previous=>{const next={...previous};delete next[String(payload.requestId)];return next;});
       if(kind==="cancel")setCancelTarget(null);form?.reset();setMessage(saved);await refresh();
     }catch(e){setError(sent?"İşlemin sonucu alınamadı. Bu tarayıcıda aynı formu tekrar göndererek kontrol edebilirsiniz.":e instanceof Error?e.message:"İşlem kurtarma kaydı oluşturulamadı; kayıt gönderilmedi.");}
     finally{submitting.current=false;setBusy(false);}
@@ -177,6 +182,8 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       const field=form?.querySelector<HTMLInputElement|HTMLSelectElement>(`[name="${name}"]`);
       return !!field&&field.value!==value;
     })).map(draft=>draft.label);
+    labels.push(...Object.values(assignmentDrafts).map(draft=>`Personel atama · ${draft.label}`));
+    labels.push(...Object.values(countDrafts).map(draft=>`Kişi sayısı · ${draft.label}`));
     if(batchDirty.current?.())labels.push("Toplu talep");
     if(importDirty.current?.())labels.push("Şube aktarımı");
     return labels;
@@ -293,8 +300,9 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       <section aria-busy={loading} className="space-y-3"><h2 className="font-semibold">{date} · Talepler</h2>{loading?<p role="status">Plan yükleniyor…</p>:!boardReady?<p role="status">Plan doğrulanamadı. Bağlantı düzeldikten sonra Yenile düğmesini kullanın.</p>:!board.requests.length?<EmptyState title="Bu gün için talep yok" size="tab" />:board.requests.map(r=>{
         const coverage=deriveDailyCoverage(r.requiredCount,r.assignments.length,r.lifecycle);
         const location=board.locations.find(l=>l.id===r.locationId);
+        const cardLabel=`${location?.name??"Lokasyon"} · ${r.position}`;
         return <article id={`talep-${r.id}`} key={r.id} className={`scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${search.get("talep")===r.id?"ring-2 ring-slate-700":""}`}><div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-semibold">{location?.name??"Lokasyon"} · {r.position}</h3><p className="text-sm text-slate-600">{r.serviceLine} · {r.assignments.length}/{r.requiredCount} kişi</p></div><span className="text-sm font-medium">{r.lifecycle==="cancelled"?"İptal":coverage.open?`${coverage.open} kişi açık`:"Atandı"}</span></div>
-          {r.lifecycle==="active"&&<form key={`${r.id}:${r.requiredCount}:${formEpoch}`} className="mt-3 flex flex-wrap items-end gap-2" onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void submit("resize",{requestId:r.id,expectedCount:r.requiredCount,requiredCount:Number(d.get("requiredCount"))});}}><label className="text-sm">Yeni kişi sayısı<input className={inputClass} name="requiredCount" type="number" min={Math.max(1,r.assignments.length)} max={100} defaultValue={r.requiredCount} required disabled={busy||!writeReady||!company?.active} /></label><button className={buttonClass} disabled={busy||!writeReady||!company?.active}>İhtiyacı güncelle</button></form>}
+          {r.lifecycle==="active"&&<form aria-label={`Kişi sayısı · ${cardLabel}`} key={`${r.id}:${r.requiredCount}:${formEpoch}`} className="mt-3 flex flex-wrap items-end gap-2" onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void submit("resize",{requestId:r.id,expectedCount:countDrafts[r.id]?.initial??r.requiredCount,requiredCount:Number(d.get("requiredCount"))});}}><label className="text-sm">Yeni kişi sayısı<input className={inputClass} name="requiredCount" type="number" min={Math.max(1,r.assignments.length)} max={100} value={countDrafts[r.id]?.value??String(r.requiredCount)} onChange={e=>{const value=e.target.value;setCountDrafts(previous=>{const next={...previous},initial=previous[r.id]?.initial??r.requiredCount;if(value===String(initial)&&initial===r.requiredCount)delete next[r.id];else next[r.id]={value,initial,label:cardLabel};return next;});}} required disabled={busy||!writeReady||!company?.active} /></label><button className={buttonClass} disabled={busy||!writeReady||!company?.active}>İhtiyacı güncelle</button>{countDrafts[r.id]&&countDrafts[r.id].initial!==r.requiredCount&&<p className="basis-full text-sm text-amber-800">Güncel ihtiyaç {r.requiredCount} kişi. Taslağınız korunuyor. <button type="button" className="underline disabled:opacity-40" disabled={busy} onClick={()=>setCountDrafts(previous=>{const next={...previous};delete next[r.id];return next;})}>Güncel sayıya dön</button></p>}</form>}
           {r.lifecycle==="active"&&company?.active&&<Link className="mt-3 inline-block text-sm underline" href={taskPrefillHref({companyId,requestId:r.id,date:r.workDate})}>Takip görevi hazırla</Link>}
           <ul className="my-3 space-y-3">{r.assignments.map(a=>{
             const report=r.attendance.find(x=>x.id===a.id)!;
@@ -310,7 +318,7 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
           })}</ul>
           {process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED==="true"&&<RequestConversation requestId={r.id} />}
           <AttendancePanel records={r.attendance} workers={board.workers} future={r.workDate>today()} disabled={busy||!writeReady} onRecord={(a,status)=>void submit("attendance",{assignmentId:a.id,expectedRevision:a.revision,status})} />
-          {r.lifecycle==="active"&&<div className="flex flex-wrap items-end gap-3"><form className="flex flex-wrap items-end gap-2" onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void submit("assign",{requestId:r.id,workerId:String(d.get("workerId"))});}}><label className="text-sm">Personel<select className={inputClass} name="workerId" required disabled={busy||!writeReady||!company?.active||coverage.open===0} defaultValue=""><option value="" disabled>Personel seçin</option>{board.workers.filter(w=>w.active).map(w=><option disabled={w.booked} key={w.id} value={w.id}>{w.name} · {w.code}{w.booked?" (bu gün atanmış)":""}</option>)}</select></label><button className={buttonClass} disabled={busy||!writeReady||!company?.active||coverage.open===0}>Ata</button></form><button className="px-3 py-2 text-sm text-red-700 underline disabled:opacity-40" disabled={busy||!writeReady} onClick={()=>{setError("");setCancelTarget({id:r.id,label:`${location?.name??"Lokasyon"} · ${r.position} · ${r.workDate}`});}}>Talebi iptal et</button></div>}
+          {r.lifecycle==="active"&&<div className="flex flex-wrap items-end gap-3"><form aria-label={`Personel atama · ${cardLabel}`} className="flex flex-wrap items-end gap-2" onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void submit("assign",{requestId:r.id,workerId:String(d.get("workerId"))});}}><label className="text-sm">Personel<select className={inputClass} name="workerId" required disabled={busy||!writeReady||!company?.active||coverage.open===0} value={assignmentDrafts[r.id]?.workerId??""} onChange={e=>{const workerId=e.target.value;setAssignmentDrafts(previous=>{const next={...previous};if(workerId)next[r.id]={workerId,label:cardLabel};else delete next[r.id];return next;});}}><option value="" disabled>Personel seçin</option>{board.workers.filter(w=>w.active).map(w=><option disabled={w.booked} key={w.id} value={w.id}>{w.name} · {w.code}{w.booked?" (bu gün atanmış)":""}</option>)}</select></label><button className={buttonClass} disabled={busy||!writeReady||!company?.active||coverage.open===0}>Ata</button>{assignmentDrafts[r.id]&&<button type="button" className="px-3 py-2 text-sm underline disabled:opacity-40" disabled={busy} onClick={()=>setAssignmentDrafts(previous=>{const next={...previous};delete next[r.id];return next;})}>Seçimi temizle</button>}</form><button className="px-3 py-2 text-sm text-red-700 underline disabled:opacity-40" disabled={busy||!writeReady} onClick={()=>{setError("");setCancelTarget({id:r.id,label:`${location?.name??"Lokasyon"} · ${r.position} · ${r.workDate}`});}}>Talebi iptal et</button></div>}
         </article>;
       })}</section>
     </>}

@@ -1,3 +1,4 @@
+import {checkCardDraft} from './helpers/card-draft-acceptance.mjs';
 /** Real Auth/browser acceptance against the dedicated synthetic database only. */
 import {execFileSync} from 'node:child_process';
 import {readFileSync,mkdtempSync} from 'node:fs';
@@ -91,6 +92,7 @@ try {
  // Older acceptance helpers intentionally reload between draft scenarios.
  // Never auto-accept in the native unload acceptance itself.
  if(process.env.BPS_TEST_ALLOW_UNLOAD==='1'){
+  assert.notEqual(process.env.BPS_CARD_DRAFT_CHECK,'1','Card draft acceptance must observe its own native dialog');
   assert.notEqual(process.env.BPS_DAILY_UNLOAD_CHECK,'1','Native unload acceptance must observe its own dialogs');
   page.on('dialog',dialog=>{if(dialog.type()==='beforeunload')void dialog.accept();else void dialog.dismiss();});
  }
@@ -790,6 +792,7 @@ try {
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_BATCH_CHECK==='1') await checkDocumentBatch({page,sql,user,tenant:id(1),prefix,origin});
+ if(process.env.BPS_CARD_DRAFT_CHECK==='1')await checkCardDraft({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_DAILY_UNLOAD_CHECK==='1') await checkDailyUnload({page,sql,user,tenant:id(1),prefix,origin,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DAILY_NAVIGATION_CHECK==='1') await checkDailyNavigation({page,sql,user,tenant:id(1),prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_BULK_SELECTION_CHECK==='1') await checkBulkSelection({page,sql,user,tenant:id(1),prefix,origin,output});
