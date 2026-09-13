@@ -1,5 +1,7 @@
 # BPS — Güncel Ürün ve Geliştirme Yönü
 
+> **2026-09-13 tasarım yayını:** https://www.bpsys.net üzerinde canlı044 kaynak tabanına yalnız138 font/seçim/buton değişikliklerinin dört dosyası uygulandı. Deployment `dpl_2vra59BFBkaKkydgKArWWVRstBj9`, Vercel build/terfi başarılı; canlı login ve yeni CSS doğrulandı. Bu yayın yereldeki045–137 işlevsel geliştirmeleri veya137 menü düzeltmesini içermez. Üretim SQL uygulanmadı; bekleyen migrationlar hâlâ bekliyor. Tam HEAD canlı sanılmamalı. Manifest `supabase/manual/release-20260913-ui.json`.
+
 > **138 — Font, açılır seçim ve buton modernizasyonu.** Geist body override ve font değişkeni döngüsü düzeltildi, latin-ext eklendi. Ortak tokenlarda yumuşak köşeler, hafif gölge, odak ve pasif durumlar; native tekli seçimlerde sade ok ve44px hedef. Native popup/multiple davranışı korunur. Masaüstü/390px bileşen önizlemesi, gerçek klavye seçim değişimi ve Geist ölçümü geçti; TypeScript/build başarılı, statik0 FAIL/1 mevcut WARN. Üretim SQL/push/deploy yok. Sıradaki139: Sidebar taslak koruması.
 
 > **137 — Kullanıcı isteğiyle genel UI/UX turu.** Ortak menüde 44 px hedefler, Escape/Tab kapanması ve odak dönüşü düzeltildi; talep başlıkları Türkçeleştirildi. Masaüstü/390 px yalıtılmış gerçek bileşen önizlemesinde kontrol edildi; tam kimlikli uygulama kabulü yapılmadı. TypeScript/build geçti, statik0 FAIL/1 mevcut WARN. Rapor: `01_product/UI_UX_TURU_2026_09_13.md`. Ürün SQL/push/deploy yok. Sonraki138: günlük plandan Sidebar ile ayrılırken taslak koruması; ardından operasyon alt gezinmesi.
