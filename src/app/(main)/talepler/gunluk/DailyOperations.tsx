@@ -182,6 +182,17 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
     return labels;
   }
 
+  // Uncontrolled form values are read at unload time, including fields inside closed details.
+  // Rebind on render so the handler also sees the current child-operation busy state.
+  useEffect(()=>{
+    const beforeUnload=(event:BeforeUnloadEvent)=>{
+      if(!busy&&!submitting.current&&!draftLabels().length)return;
+      event.preventDefault();event.returnValue="";
+    };
+    window.addEventListener("beforeunload",beforeUnload);
+    return()=>window.removeEventListener("beforeunload",beforeUnload);
+  });
+
   function selectWithDraftCheck(change:SelectionChange) {
     if(busy||submitting.current)return;
     if(change.companyId===companyId||change.date===date)return;
