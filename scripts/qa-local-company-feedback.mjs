@@ -1,3 +1,4 @@
+import {checkAssignmentAvailability} from './helpers/assignment-availability-acceptance.mjs';
 import {checkCardRecovery} from './helpers/card-recovery-acceptance.mjs';
 import {checkCardDraft} from './helpers/card-draft-acceptance.mjs';
 /** Real Auth/browser acceptance against the dedicated synthetic database only. */
@@ -793,6 +794,7 @@ try {
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_BATCH_CHECK==='1') await checkDocumentBatch({page,sql,user,tenant:id(1),prefix,origin});
+ if(process.env.BPS_ASSIGNMENT_AVAILABILITY_CHECK==='1')await checkAssignmentAvailability({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_CARD_RECOVERY_CHECK==='1')await checkCardRecovery({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_CARD_DRAFT_CHECK==='1')await checkCardDraft({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_DAILY_UNLOAD_CHECK==='1') await checkDailyUnload({page,sql,user,tenant:id(1),prefix,origin,setRelease:fn=>releaseRequest=fn});
