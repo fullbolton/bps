@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useRef,useState,type RefObject} from 'react';
+import {useEffect,useRef,useState,type RefObject,type MouseEventHandler} from 'react';
 import Link from 'next/link';
 import {addDays} from '@/lib/operations/weekly-plan';
 import {buildRequestDates,validateRequestBatch,type RequestBatch as Batch} from '@/lib/operations/request-batch';
@@ -7,8 +7,8 @@ import {reserveCommand,acknowledgeCommand,commandDigest,type DraftRecovery,type 
 import type {PilotBoard} from '@/lib/operations/pilot-types';
 import {pilotRequestBatchAction} from './actions';
 const field='mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
-export default function RequestBatch({companyId,date,locations,scope,disabled,onBusy,onComplete,onPendingChange,reconcileRef,dirtyRef}:{
-  dirtyRef:RefObject<DraftCheck|null>;reconcileRef:RefObject<DraftRecovery|null>;companyId:string;date:string;locations:PilotBoard['locations'];scope:CommandScope|null;disabled:boolean;onBusy:(v:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void;
+export default function RequestBatch({onNavigate,navigationBusy,companyId,date,locations,scope,disabled,onBusy,onComplete,onPendingChange,reconcileRef,dirtyRef}:{
+  onNavigate:MouseEventHandler<HTMLAnchorElement>;navigationBusy:boolean;dirtyRef:RefObject<DraftCheck|null>;reconcileRef:RefObject<DraftRecovery|null>;companyId:string;date:string;locations:PilotBoard['locations'];scope:CommandScope|null;disabled:boolean;onBusy:(v:boolean)=>void;onComplete:()=>Promise<void>;onPendingChange:()=>void;
 }){
   const [batch,setBatch]=useState<Batch|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[resultDay,setResultDay]=useState('');
   const form=useRef<HTMLFormElement>(null),sending=useRef(false),revision=useRef(0);
@@ -69,7 +69,7 @@ export default function RequestBatch({companyId,date,locations,scope,disabled,on
     </form>
     {error&&<p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
     {message&&<p role="status" className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm">{message}</p>}
-    {resultDay&&<Link className="mt-3 inline-block text-sm underline" href={`/talepler/haftalik?firma=${companyId}&gun=${resultDay}`}>Oluşan talepleri haftalık planda gör</Link>}
+    {resultDay&&<Link onClick={onNavigate} aria-disabled={navigationBusy||undefined} className="mt-3 inline-flex min-h-11 items-center text-sm underline" href={`/talepler/haftalik?firma=${companyId}&gun=${resultDay}`}>Oluşan talepleri haftalık planda gör</Link>}
     {batch&&<div className="mt-4 rounded-lg border bg-slate-50 p-3">
       <h3 className="font-semibold">Önizleme · {batch.dates.length} gün / {batch.dates.length*batch.requiredCount} kişi-gün</h3>
       <p className="mt-1 text-sm">{locations.find(l=>l.id===batch.locationId)?.name} · {batch.serviceLine} · {batch.position} · günlük {batch.requiredCount} kişi</p>

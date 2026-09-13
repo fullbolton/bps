@@ -1,3 +1,4 @@
+import {checkContextNavigation} from './helpers/context-navigation-acceptance.mjs';
 import {checkDetachedDraft} from './helpers/detached-draft-acceptance.mjs';
 import {checkReplacementRecovery} from './helpers/replacement-recovery-acceptance.mjs';
 import {checkReplacementDraft} from './helpers/replacement-draft-acceptance.mjs';
@@ -798,6 +799,7 @@ try {
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_BATCH_CHECK==='1') await checkDocumentBatch({page,sql,user,tenant:id(1),prefix,origin});
+ if(process.env.BPS_CONTEXT_NAVIGATION_CHECK==='1')await checkContextNavigation({page,sql,user,tenant:id(1),prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DETACHED_DRAFT_CHECK==='1')await checkDetachedDraft({page,sql,user,tenant:id(1),prefix,origin,output,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_REPLACEMENT_RECOVERY_CHECK==='1')await checkReplacementRecovery({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_REPLACEMENT_DRAFT_CHECK==='1')await checkReplacementDraft({page,sql,client,user,tenant:id(1),prefix,origin,output});
