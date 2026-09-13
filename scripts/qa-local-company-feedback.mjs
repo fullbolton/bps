@@ -1,3 +1,4 @@
+import {checkReplacementDraft} from './helpers/replacement-draft-acceptance.mjs';
 import {checkAssignmentAvailability} from './helpers/assignment-availability-acceptance.mjs';
 import {checkCardRecovery} from './helpers/card-recovery-acceptance.mjs';
 import {checkCardDraft} from './helpers/card-draft-acceptance.mjs';
@@ -94,6 +95,7 @@ try {
  // Older acceptance helpers intentionally reload between draft scenarios.
  // Never auto-accept in the native unload acceptance itself.
  if(process.env.BPS_TEST_ALLOW_UNLOAD==='1'){
+  assert.notEqual(process.env.BPS_REPLACEMENT_DRAFT_CHECK,'1','Replacement acceptance must observe its own native dialog');
   assert.notEqual(process.env.BPS_CARD_DRAFT_CHECK,'1','Card draft acceptance must observe its own native dialog');
   assert.notEqual(process.env.BPS_DAILY_UNLOAD_CHECK,'1','Native unload acceptance must observe its own dialogs');
   page.on('dialog',dialog=>{if(dialog.type()==='beforeunload')void dialog.accept();else void dialog.dismiss();});
@@ -794,6 +796,7 @@ try {
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_BATCH_CHECK==='1') await checkDocumentBatch({page,sql,user,tenant:id(1),prefix,origin});
+ if(process.env.BPS_REPLACEMENT_DRAFT_CHECK==='1')await checkReplacementDraft({page,sql,client,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_ASSIGNMENT_AVAILABILITY_CHECK==='1')await checkAssignmentAvailability({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_CARD_RECOVERY_CHECK==='1')await checkCardRecovery({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_CARD_DRAFT_CHECK==='1')await checkCardDraft({page,sql,user,tenant:id(1),prefix,origin,output});

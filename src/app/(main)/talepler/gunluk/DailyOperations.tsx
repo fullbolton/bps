@@ -94,6 +94,7 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   const [message,setMessage]=useState(""); const [error,setError]=useState("");
   // Keep card drafts across board refresh/unmounts; successful writes clear only their own field.
   const [assignmentDrafts,setAssignmentDrafts]=useState<Record<string,{workerId:string;label:string;workerLabel:string}>>({});
+  const [replacementDrafts,setReplacementDrafts]=useState<Record<string,{workerId:string;workerLabel:string;label:string;initialRevision:number}>>({});
   const [countDrafts,setCountDrafts]=useState<Record<string,{value:string;initial:number;label:string}>>({});
   const [cancelTarget,setCancelTarget]=useState<{id:string;label:string}|null>(null);
   const requestSequence=useRef(0); const submitting=useRef(false);
@@ -164,6 +165,7 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       try{await acknowledgeCommand(scope,id,localStorage,navigator.locks);syncPending();}
       catch{saved+=" Tarayıcıdaki bekleyen işaret kaldırılamadı; aynı işlem tekrar gönderilirse ikinci kayıt oluşmaz.";}
       if(kind==="assign")setAssignmentDrafts(previous=>{const next={...previous};delete next[String(payload.requestId)];return next;});
+      if(kind==="replace")setReplacementDrafts(previous=>{const next={...previous};delete next[String(payload.assignmentId)];return next;});
       if(kind==="resize")setCountDrafts(previous=>{const next={...previous};delete next[String(payload.requestId)];return next;});
       if(kind==="cancel")setCancelTarget(null);form?.reset();setMessage(saved);await refresh();
     }catch(e){setError(sent?"İşlemin sonucu alınamadı. Bu tarayıcıda aynı formu tekrar göndererek kontrol edebilirsiniz.":e instanceof Error?e.message:"İşlem kurtarma kaydı oluşturulamadı; kayıt gönderilmedi.");}
@@ -183,6 +185,7 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       return !!field&&field.value!==value;
     })).map(draft=>draft.label);
     labels.push(...Object.values(assignmentDrafts).map(draft=>`Personel atama · ${draft.label}`));
+    labels.push(...Object.values(replacementDrafts).map(draft=>`Personel değişimi · ${draft.label}`));
     labels.push(...Object.values(countDrafts).map(draft=>`Kişi sayısı · ${draft.label}`));
     if(batchDirty.current?.())labels.push("Toplu talep");
     if(importDirty.current?.())labels.push("Şube aktarımı");
@@ -328,13 +331,23 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
           {r.lifecycle==="active"&&company?.active&&<Link className="mt-3 inline-block text-sm underline" href={taskPrefillHref({companyId,requestId:r.id,date:r.workDate})}>Takip görevi hazırla</Link>}
           <ul className="my-3 space-y-3">{r.assignments.map(a=>{
             const report=r.attendance.find(x=>x.id===a.id)!;
+            const replacementDraft=replacementDrafts[a.id],candidate=board.workers.find(w=>w.id===replacementDraft?.workerId);
+            const replacementLabel=`${cardLabel} · ${board.workers.find(w=>w.id===a.workerId)?.name??"Personel"}`;
+            const candidateAvailable=!!candidate?.active&&!candidate.booked&&candidate.id!==a.workerId;
+            const changedRevision=!!replacementDraft&&replacementDraft.initialRevision!==report.revision;
+            const replacementIssue=report.status==="present"?"Geldi bildirimi var. Bildirim hatalıysa önce düzeltin.":changedRevision?"Atama bilgisi değişti. Seçimi temizleyip güncel kayıtla yeniden değerlendirin.":replacementDraft&&!candidateAvailable?"Seçilen personel artık bu değişime uygun değil. Başka personel seçin veya seçimi temizleyin.":"";
+            const canReplace=!!replacementDraft&&candidateAvailable&&!changedRevision&&report.status!=="present";
+            const clearReplacement=()=>setReplacementDrafts(previous=>{const next={...previous};delete next[a.id];return next;});
+
             return <li className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-sm" key={a.id}>
               <div className="flex flex-wrap items-center justify-between gap-2"><span>{board.workers.find(w=>w.id===a.workerId)?.name??"Personel"}</span><button disabled={busy||!writeReady} className="underline disabled:opacity-40" onClick={()=>void submit("remove",{requestId:r.id,assignmentId:a.id})}>Atamayı kaldır</button></div>
-              <details className="mt-2"><summary className="cursor-pointer text-xs underline">Personeli değiştir</summary>
-                {report.status==="present"?<p className="mt-2 text-xs">Geldi bildirimi var. Bildirim hatalıysa önce düzeltin.</p>:<form className="mt-2 flex flex-wrap items-end gap-2" onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void submit("replace",{assignmentId:a.id,workerId:String(d.get("workerId")),expectedRevision:report.revision});}}>
-                  <label>Yerine atanacak personel<select className={inputClass} name="workerId" required defaultValue="" disabled={busy||!writeReady||!company?.active}><option value="" disabled>Personel seçin</option>{board.workers.filter(w=>w.active&&!w.booked&&w.id!==a.workerId).map(w=><option key={w.id} value={w.id}>{w.name} · {w.code}</option>)}</select></label>
-                  <button className={buttonClass} disabled={busy||!writeReady||!company?.active}>Değişimi kaydet</button><p className="basis-full text-xs text-slate-600">Yeni atama kurulamazsa mevcut atama korunur. Eski bildirim tarihçede kalır.</p>
+              <details className="mt-2" open={!!replacementDraft}><summary className="cursor-pointer text-xs underline">Personeli değiştir</summary>
+                {report.status!=="present"&&<form data-recovery-draft="card" aria-label={`Personel değişimi · ${replacementLabel}`} className="mt-2 flex flex-wrap items-end gap-2" onSubmit={e=>{e.preventDefault();if(!canReplace){setError(replacementIssue||"Yerine atanacak personeli seçin.");return;}void submit("replace",{assignmentId:a.id,workerId:replacementDraft.workerId,expectedRevision:replacementDraft.initialRevision});}}>
+                  <label>Yerine atanacak personel<select className={inputClass} name="workerId" required value={replacementDraft?.workerId??""} onChange={e=>{const workerId=e.target.value;setReplacementDrafts(previous=>{const next={...previous};if(workerId)next[a.id]={workerId,workerLabel:board.workers.find(w=>w.id===workerId)?.name??"Seçilen personel",label:replacementLabel,initialRevision:previous[a.id]?.initialRevision??report.revision};else delete next[a.id];return next;});}} disabled={busy||!writeReady||!company?.active}><option value="" disabled>Personel seçin</option>{replacementDraft&&!candidateAvailable&&<option value={replacementDraft.workerId} disabled>{replacementDraft.workerLabel} · seçime uygun değil</option>}{board.workers.filter(w=>w.active&&!w.booked&&w.id!==a.workerId).map(w=><option key={w.id} value={w.id}>{w.name} · {w.code}</option>)}</select></label>
+                  <button className={buttonClass} disabled={busy||!writeReady||!company?.active||!canReplace}>Değişimi kaydet</button><p className="basis-full text-xs text-slate-600">Yeni atama kurulamazsa mevcut atama korunur. Eski bildirim tarihçede kalır.</p>
                 </form>}
+                {replacementIssue&&<p role="alert" className="mt-2 text-sm text-amber-800">{replacementIssue}</p>}
+                {replacementDraft&&<button type="button" className="mt-2 px-3 py-2 text-sm underline disabled:opacity-40" disabled={busy} onClick={clearReplacement}>Değişim seçimini temizle</button>}
               </details>
             </li>;
           })}</ul>
