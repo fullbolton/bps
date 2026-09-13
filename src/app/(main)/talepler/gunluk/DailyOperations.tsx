@@ -96,6 +96,9 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
   const [assignmentDrafts,setAssignmentDrafts]=useState<Record<string,{workerId:string;label:string;workerLabel:string}>>({});
   const [replacementDrafts,setReplacementDrafts]=useState<Record<string,{workerId:string;workerLabel:string;label:string;initialRevision:number}>>({});
   const [countDrafts,setCountDrafts]=useState<Record<string,{value:string;initial:number;label:string}>>({});
+  type DetachedDraft={kind:"assign"|"resize"|"replace";id:string;label:string;value:string;draft:object};
+  const [discardDraft,setDiscardDraft]=useState<DetachedDraft|null>(null);
+  const detachedPanel=useRef<HTMLElement>(null);
   const [cancelTarget,setCancelTarget]=useState<{id:string;label:string}|null>(null);
   const requestSequence=useRef(0); const submitting=useRef(false);
   const forms=useRef<HTMLDivElement>(null);
@@ -223,10 +226,28 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
     setPendingSelection({action:{type:"link",href:link.getAttribute("href")!},labels});
   }
 
+  const activeRequests=new Set(board.requests.filter(request=>request.lifecycle==="active").map(request=>request.id));
+  const visibleAssignments=new Set(board.requests.flatMap(request=>request.assignments.map(assignment=>assignment.id)));
+  const detachedDrafts:DetachedDraft[]=boardReady&&!loading?[
+    ...Object.entries(assignmentDrafts).filter(([id])=>!activeRequests.has(id)).map(([id,draft])=>({kind:"assign" as const,id,label:`Personel atama · ${draft.label}`,value:draft.workerLabel,draft})),
+    ...Object.entries(countDrafts).filter(([id])=>!activeRequests.has(id)).map(([id,draft])=>({kind:"resize" as const,id,label:`Kişi sayısı · ${draft.label}`,value:draft.value||"Boş alan",draft})),
+    ...Object.entries(replacementDrafts).filter(([id])=>!visibleAssignments.has(id)).map(([id,draft])=>({kind:"replace" as const,id,label:`Personel değişimi · ${draft.label}`,value:draft.workerLabel,draft})),
+  ]:[];
+  async function discardDetachedDraft(){
+    if(busy||submitting.current||loading||!boardReady)throw Error("Plan kontrol ediliyor. Sonucu bekleyin.");
+    const target=discardDraft;
+    if(!target||!detachedDrafts.some(row=>row.kind===target.kind&&row.id===target.id&&row.draft===target.draft))throw Error("Taslak veya kayıt değişti. Güncel planı kontrol edin; taslak bırakılmadı.");
+    if(target.kind==="assign")setAssignmentDrafts(current=>{if(current[target.id]!==target.draft)return current;const next={...current};delete next[target.id];return next;});
+    if(target.kind==="resize")setCountDrafts(current=>{if(current[target.id]!==target.draft)return current;const next={...current};delete next[target.id];return next;});
+    if(target.kind==="replace")setReplacementDrafts(current=>{if(current[target.id]!==target.draft)return current;const next={...current};delete next[target.id];return next;});
+    setMessage("Seçilen taslak bırakıldı. Talep ve atama kayıtları değişmedi.");
+    requestAnimationFrame(()=>{(detachedPanel.current??companyInput.current)?.focus();});
+  }
   const company=companies.find(c=>c.id===companyId);
   if(authLoading)return <p role="status">Oturum yükleniyor…</p>;
   if(!allowed)return <EmptyState title="Bu çalışma alanına erişiminiz yok" />;
   return <>
+    {discardDraft&&<ConfirmActionDialog title="Taslağı bırak" recordName={discardDraft.label} description={`Taslak değeri: ${discardDraft.value}. Yalnız bu kaydedilmemiş seçim bırakılacak; talep ve atama kayıtları değişmeyecek.`} confirmLabel="Bu taslağı bırak" destructive onClose={()=>setDiscardDraft(null)} onConfirm={discardDetachedDraft} />}
     {pendingSelection&&<ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
       recordName={`${company?.name??"Firma"} · ${date}`}
       description={`${pendingSelection.labels.join(", ")} formundaki kaydedilmemiş bilgiler bırakılacak. ${pendingSelection.action.type==="selection"?"Seçtiğiniz firma ve gün için plan açılacak.":"Seçtiğiniz sayfa açılacak."}`}
@@ -246,6 +267,10 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
       <label className="text-sm">İş günü<input ref={dateInput} className={inputClass} type="date" min="2000-01-01" max="2100-12-31" value={date} onChange={e=>selectWithDraftCheck({date:e.target.value})} /></label>
       <div className="flex items-end"><button className={buttonClass} onClick={()=>void refresh()} disabled={loading}>Yenile</button></div>
     </fieldset>
+    {detachedDrafts.length>0&&<section ref={detachedPanel} tabIndex={-1} aria-label="Kaydı değişen taslaklar" className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+      <h2 className="font-semibold">Kaydı değişen taslaklar</h2><p className="mt-2 text-sm text-slate-700">Bu taslakların düzenlendiği alan artık güncel planda görünmüyor. Taslağı bırakmak talep veya atamayı değiştirmez.</p>
+      <ul className="mt-3 space-y-3">{detachedDrafts.map(row=><li key={`${row.kind}:${row.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white p-3"><div className="min-w-0 flex-1 break-words"><p className="text-sm font-medium">{row.label}</p><p className="mt-1 text-sm text-slate-600">Taslak: {row.value}</p></div><button type="button" disabled={busy} className="min-h-11 rounded-lg border px-3 py-2 text-sm disabled:opacity-40" onClick={()=>setDiscardDraft(row)}>Taslağı bırak</button></li>)}</ul>
+    </section>}
     {recoveryError&&<p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-800">{recoveryError}</p>}
     {scope&&<PendingOperations key={`${scope.actorId}:${scope.tenantId}`} scope={scope} count={pending} disabled={busy||!writeReady} onBusy={setBusy} onComplete={async (settled,settledDigests)=>{
       syncPending();
