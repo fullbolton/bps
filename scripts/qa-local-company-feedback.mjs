@@ -1,3 +1,4 @@
+import {checkReplacementRecovery} from './helpers/replacement-recovery-acceptance.mjs';
 import {checkReplacementDraft} from './helpers/replacement-draft-acceptance.mjs';
 import {checkAssignmentAvailability} from './helpers/assignment-availability-acceptance.mjs';
 import {checkCardRecovery} from './helpers/card-recovery-acceptance.mjs';
@@ -796,6 +797,7 @@ try {
  if(process.env.BPS_COMPANY_DOCUMENT_MOBILE_CHECK==='1') await checkCompanyDocumentMobile({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths});
  if(process.env.BPS_COMPANY_DOWNLOAD_CHECK==='1') await checkCompanyDownload({page,sql,user,tenant:id(1),first,prefix,origin,output,admin,ownedStoragePaths,setRelease:fn=>releaseRequest=fn});
  if(process.env.BPS_DOCUMENT_BATCH_CHECK==='1') await checkDocumentBatch({page,sql,user,tenant:id(1),prefix,origin});
+ if(process.env.BPS_REPLACEMENT_RECOVERY_CHECK==='1')await checkReplacementRecovery({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_REPLACEMENT_DRAFT_CHECK==='1')await checkReplacementDraft({page,sql,client,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_ASSIGNMENT_AVAILABILITY_CHECK==='1')await checkAssignmentAvailability({page,sql,user,tenant:id(1),prefix,origin,output});
  if(process.env.BPS_CARD_RECOVERY_CHECK==='1')await checkCardRecovery({page,sql,user,tenant:id(1),prefix,origin,output});

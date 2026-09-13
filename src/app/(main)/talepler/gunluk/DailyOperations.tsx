@@ -278,6 +278,13 @@ function DailyOperationsWorkspace({companies,companyId,date,onSelect,companyInpu
             const next={...current};delete next[requestId];return next;
           });
         }
+        for(const [assignmentId,draft] of Object.entries(replacementDrafts)){
+          const digest=await commandDigest("replace",validatePilotPayload("replace",{assignmentId,workerId:draft.workerId,expectedRevision:draft.initialRevision}));
+          if(settledDigests.includes(digest))setReplacementDrafts(current=>{
+            if(current[assignmentId]!==draft)return current;
+            const next={...current};delete next[assignmentId];return next;
+          });
+        }
         for(const [requestId,draft] of Object.entries(countDrafts)){
           let digest:string;
           try{digest=await commandDigest("resize",validatePilotPayload("resize",{requestId,expectedCount:draft.initial,requiredCount:Number(draft.value)}));}
