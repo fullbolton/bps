@@ -70,6 +70,19 @@ export default function SearchInput({
         maxLength={maxLength}
         value={internalValue}
         onChange={(e) => handleInput(e.target.value)}
+        onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing) return;
+          if (event.key === "Enter") {
+            event.preventDefault();
+            if (timer.current) clearTimeout(timer.current);
+            timer.current = null;
+            callback.current(internalValue);
+          } else if (event.key === "Escape" && internalValue) {
+            event.preventDefault();
+            event.stopPropagation();
+            handleClear();
+          }
+        }}
         placeholder={placeholder}
         className={`w-full min-h-11 pl-9 pr-12 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
       />
@@ -77,6 +90,7 @@ export default function SearchInput({
         <button
           type="button"
           aria-label="Aramayı temizle"
+          title="Aramayı temizle (Esc)"
           onClick={handleClear}
           className={`absolute right-0 top-1/2 flex h-11 w-11 items-center justify-center -translate-y-1/2 ${TEXT_MUTED} hover:text-slate-600`}
         >

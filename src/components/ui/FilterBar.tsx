@@ -92,7 +92,7 @@ export default function FilterBar({ filters, values, onChange }: FilterBarProps)
           className={`flex min-h-11 items-center gap-1 px-2 ${TYPE_BODY} ${TEXT_SECONDARY} hover:text-slate-700 transition-colors`}
         >
           <X size={14} />
-          <span>Temizle</span>
+          <span>Filtreleri temizle</span>
         </button>
       )}
     </div>
