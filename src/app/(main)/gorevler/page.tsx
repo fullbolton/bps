@@ -1,4 +1,5 @@
 "use client";
+import ListToolbar from "@/components/ui/ListToolbar";
 
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
@@ -449,7 +450,7 @@ export default function GorevlerPage() {
         title="Görevler"
         subtitle="Görev takibi ve koordinasyon"
         actions={[
-          ...(role === "yonetici" ? [{ label: "Görevleri devret", onClick: () => setTransferOpen(true) }] : []),
+          ...(role === "yonetici" ? [{ label: "Görevleri devret", variant: "secondary" as const, onClick: () => setTransferOpen(true) }] : []),
           {
             label: "Yeni Görev",
             onClick: () => { feedback.clear(); setTaskPrefill(null); setNewOpen(true); },
@@ -494,14 +495,11 @@ export default function GorevlerPage() {
         {/* Main content */}
         {!loading && !loadError && (
           <>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="w-full sm:max-w-xs">
-                <SearchInput ref={searchControl} key={listScope} value={search} maxLength={512} placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />
-              </div>
+            <ListToolbar label="Görevlerde ara" search={<SearchInput ref={searchControl} key={listScope} value={search} maxLength={512} placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />}>
               <CollapsibleFilters key={listScope} activeCount={Object.values(filters).filter(Boolean).length}>
                 <FilterBar filters={filterConfig} values={filters} onChange={next => { setFilters(next); setMobileView("all"); }} />
               </CollapsibleFilters>
-            </div>
+            </ListToolbar>
 
             <MobileTaskList view={mobileView} onViewChange={setMobileView} key={listScope} rows={filteredData} actorId={user?.id ?? null} role={role} busy={quickBusy || saving}
               onCreate={() => { feedback.clear(); setTaskPrefill(null); setNewOpen(true); }} onOpen={row => setSelectedId(row.id)} onClaim={row => void quickAction(row,'claim')} onComplete={setQuickTask} onReload={() => void reload()}

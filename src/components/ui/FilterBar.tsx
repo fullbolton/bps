@@ -12,7 +12,7 @@ import {
   TEXT_SECONDARY,
 } from "@/styles/tokens";
 
-const FILTER_INPUT = `${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} min-h-11 max-w-full px-3 py-2 ${SURFACE_PRIMARY} ${TEXT_BODY} focus:outline-none focus:ring-2 focus:ring-blue-500`;
+const FILTER_INPUT = `${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} min-h-11 w-full max-w-full px-3 py-2 ${SURFACE_PRIMARY} ${TEXT_BODY} focus:outline-none focus:ring-2 focus:ring-blue-500`;
 
 interface FilterBarProps {
   filters: FilterConfig[];
@@ -39,13 +39,13 @@ export default function FilterBar({ filters, values, onChange }: FilterBarProps)
   }
 
   return (
-    <div ref={groupRef} className="flex items-end gap-3 flex-wrap">
+    <div ref={groupRef} className="flex min-w-0 flex-wrap items-end gap-3">
       {filters.map((filter, index) => {
         const inputId = `${groupId}-${index}`;
         const missingChoice = filter.type === "select" && !!values[filter.key] && !filter.options?.some(option => option.value === values[filter.key]);
         if (filter.type === "select") {
           return (
-            <div key={filter.key} className="min-w-0 max-w-full">
+            <div key={filter.key} className="min-w-0 max-w-full flex-[1_1_160px]">
               <label htmlFor={inputId} className={`mb-1 block text-xs ${TEXT_SECONDARY}`}>{filter.label}</label>
               <select
                 id={inputId}
@@ -69,7 +69,7 @@ export default function FilterBar({ filters, values, onChange }: FilterBarProps)
 
         if (filter.type === "date") {
           return (
-            <div key={filter.key} className="min-w-0 max-w-full">
+            <div key={filter.key} className="min-w-0 max-w-full flex-[1_1_160px]">
               <label htmlFor={inputId} className={`mb-1 block text-xs ${TEXT_SECONDARY}`}>{filter.label}</label>
               <input
                 id={inputId}

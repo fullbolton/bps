@@ -1,4 +1,5 @@
 "use client";
+import ListToolbar from "@/components/ui/ListToolbar";
 import { cityLabel } from "@/lib/display-values";
 
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
@@ -304,12 +305,9 @@ export default function FirmalarPage() {
           <p>Firma listesi yüklendi; bazı yetkili veya sözleşme özetleri okunamadı.</p>
           <button type="button" onClick={() => { void directory.reload(); }} className="min-h-11 text-blue-700 underline">Özetleri yeniden dene</button>
         </div>}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="w-full sm:max-w-xs">
-            <SearchInput ref={searchControl} key={listScope} maxLength={512} value={search} placeholder="Firma, yetkili, sektör ara…" onChange={handleSearch} />
-          </div>
+        <ListToolbar label="Firmalarda ara" search={<SearchInput ref={searchControl} key={listScope} maxLength={512} value={search} placeholder="Firma, yetkili, sektör ara…" onChange={handleSearch} />}>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
-        </div>
+        </ListToolbar>
         <div aria-label="Firma listesi" role="region" className="max-sm:[&_table]:w-full max-sm:[&_table]:table-fixed max-sm:[&_th:not(:first-child)]:hidden max-sm:[&_td:not(:first-child)]:hidden">
         <DataTable<FirmaListRow>
           columns={COLUMNS}

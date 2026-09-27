@@ -1,4 +1,5 @@
 "use client";
+import ListToolbar from "@/components/ui/ListToolbar";
 import Link from "next/link";
 import {DOCUMENT_FOLDERS,documentFolder} from "@/lib/document-folders";
 import DocumentCategoryEditor from "@/components/modals/DocumentCategoryEditor";
@@ -363,8 +364,8 @@ export default function EvraklarPage() {
       <div className="space-y-4">
         <section aria-label="Evrak klasörleri" className="space-y-3">
           <button type="button" aria-pressed={!filters.klasor} className="min-h-11 rounded-lg border px-4 text-sm aria-pressed:bg-blue-50" onClick={()=>setFilters(p=>({...p,klasor:'',kategori:''}))}>Tüm evraklar ({documents.length})</button>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{DOCUMENT_FOLDERS.map(folder=><button type="button" key={folder.id} aria-pressed={filters.klasor===folder.id} onClick={()=>setFilters(p=>({...p,klasor:folder.id,kategori:''}))} className="rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-blue-400 aria-pressed:border-blue-600 aria-pressed:bg-blue-50">
-            <Folder className="mb-3 text-blue-600" size={24} aria-hidden="true"/><span className="block font-semibold">{folder.name} <span className="text-slate-500">({documents.filter(d=>documentFolder(d.category,d.contract_id)===folder.id).length})</span></span><span className="mt-1 block text-sm text-slate-500">{folder.description}</span>
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{DOCUMENT_FOLDERS.map(folder=><button type="button" key={folder.id} aria-pressed={filters.klasor===folder.id} onClick={()=>setFilters(p=>({...p,klasor:folder.id,kategori:''}))} className="min-w-0 break-words rounded-xl border border-slate-200 bg-white p-3 sm:p-4 text-left hover:border-blue-400 aria-pressed:border-blue-600 aria-pressed:bg-blue-50">
+            <Folder className="mb-3 text-blue-600" size={24} aria-hidden="true"/><span className="block font-semibold">{folder.name} <span className="text-slate-500">({documents.filter(d=>documentFolder(d.category,d.contract_id)===folder.id).length})</span></span><span className="mt-1 hidden text-sm text-slate-500 sm:block">{folder.description}</span>
           </button>)}</div>
           <p className="text-xs text-slate-500">Klasör sayıları tüm erişilebilir evrakları gösterir. Firma, arama ve durum filtreleri aşağıdaki listeye uygulanır.</p>
         </section>
@@ -407,9 +408,10 @@ export default function EvraklarPage() {
           ))}
         </div>
 
-        <div ref={searchArea} className="flex flex-col sm:flex-row gap-3">
-          <div className="w-full sm:max-w-xs"><SearchInput key={context.scope} ref={searchControl} value={search} maxLength={512} placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
-          <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
+        <div ref={searchArea}>
+          <ListToolbar label="Evraklarda ara" search={<SearchInput key={context.scope} ref={searchControl} value={search} maxLength={512} placeholder="Evrak, firma ara..." onChange={handleSearch} />}>
+            <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
+          </ListToolbar>
         </div>
 
         <DataTable<DocumentListRow> columns={columns} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle={documents.length === 0 ? "Henüz evrak yok" : "Bu filtrelerle eşleşen evrak yok"}
