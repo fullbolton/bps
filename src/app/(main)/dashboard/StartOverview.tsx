@@ -19,14 +19,14 @@ export default function StartOverview({actorId,tenantId,day}:{actorId:string;ten
  },[actorId,tenantId,day,scope,refresh]);
  const data=result?.scope===scope?result.value:null;
  return <section aria-label="İşe başlama özeti" className="border-t border-slate-200 pt-4 space-y-3">
-  <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">İşe Başlama Takibi</h3><button type="button" className="text-sm text-blue-700 disabled:opacity-50" disabled={busy} onClick={()=>setRefresh(n=>n+1)}>Takibi yenile</button></div>
+  <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">İşe Başlama Takibi</h3><button type="button" className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm text-blue-700 disabled:opacity-50" disabled={busy} onClick={()=>setRefresh(n=>n+1)}>Takibi yenile</button></div>
   {error?<p role="alert" className="text-sm text-red-700">{error}</p>:busy||!data?<p role="status" className="text-sm text-slate-500">İşe başlama özeti yükleniyor…</p>:<>
-   <p className="text-sm"><strong className={data.total>0?'text-amber-800':'text-slate-900'}>{data.total} atama takip bekliyor</strong><span className="text-slate-600"> · Bu gün toplam {data.dayTotal} atama</span></p>
-   <p className="text-xs text-slate-500">Saat/sorumlu eksikleri, arama ve teyit bekleyenler. Kapanmış atamalar gün toplamına dahildir. Son kontrol: <time dateTime={data.at}>{new Date(data.at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time>.</p>
-   {data.dayTotal===0?<p className="text-sm text-slate-600">Bu gün için henüz personel atanmamış.</p>:data.total===0?<p className="text-sm text-slate-600">Son kontrol anında takip gerektiren atama yok.</p>:<>
-    <ul className="divide-y divide-slate-100">{data.items.map(item=><li key={item.id} className="py-2 text-sm"><span className="font-medium">{item.worker} · {item.location}</span><span className="block text-slate-600">{item.company} · {item.status}</span></li>)}</ul>
-    {data.total>3&&<p className="text-xs text-slate-500">Takip listesindeki ilk 3 kayıt gösteriliyor.</p>}
-    <Link className="inline-block text-sm font-medium text-blue-700 hover:underline" href={data.href}>Takip bekleyenleri aç →</Link>
+   <p className="text-sm"><strong className={data.total>0?'text-amber-800':'text-slate-900'}>{data.total} atama takip bekliyor</strong><span className="text-slate-600"> · Bugün toplam {data.dayTotal} atama</span></p>
+   <p className="text-xs text-slate-500">Aranması veya işe varışı teyit edilmesi gerekenler ile saati ya da sorumlusu eksik atamalar. Son güncelleme: <time dateTime={data.at}>{new Date(data.at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time>.</p>
+   {data.dayTotal===0?<p className="text-sm text-slate-600">Bugün için henüz personel atanmamış.</p>:data.total===0?<p className="text-sm text-slate-600">Şu an takip bekleyen atama yok.</p>:<>
+    <ul className="divide-y divide-slate-100">{data.items.map(item=><li key={item.id} className="break-words py-3 text-sm"><span className="font-medium">{item.worker} · {item.location}</span><span className="block text-slate-600">{item.company} · {item.status}</span></li>)}</ul>
+    {data.total>3&&<p className="text-xs text-slate-500">İlk 3 kayıt gösteriliyor. Tümünü takip ekranında görebilirsiniz.</p>}
+    <Link className="inline-flex min-h-11 items-center rounded-lg bg-amber-50 px-3 text-sm font-medium text-amber-900 hover:bg-amber-100" href={data.href}>Takip bekleyenleri aç →</Link>
    </>}
   </>}
  </section>;

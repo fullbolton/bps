@@ -1,5 +1,5 @@
 {
-  "deployment": "dpl_6ZiNFHjtvidjUQQY5ZnG9fJ5EkTV",
+  "deployment": "dpl_6zkcuMCqACmoi1bQuU81yzvC4bjz",
   "date": "2026-09-28",
   "url": "https://www.bpsys.net",
   "files": {
@@ -17,11 +17,11 @@
     "src/app/(main)/aktif-isgucu/page.tsx": "ede509b77d1bcc35e54f7ddea5c80397def3b28152d9b4cce42c14fcc0de0e94",
     "src/app/(main)/ayarlar/page.tsx": "27adae4bb74c0bccc7757eff736b27e9e8b990a51b5dde4b960c6ac81d7388af",
     "src/app/(main)/dashboard/actions.ts": "5030c724eba2a2d53cb80cf7092f06bf5f6d174308d2de80245683703fb92385",
-    "src/app/(main)/dashboard/DailyOverview.tsx": "3c5aea3c26f928afdcb4bdf4c53888d54d6e139544b901c5856bb4479f2f090e",
+    "src/app/(main)/dashboard/DailyOverview.tsx": "35062683eb75321af0abe5e2424b111d9046851385944268c2c6858b8cd701ee",
     "src/app/(main)/dashboard/DashboardClient.tsx": "684e45e6178d80e2a9a2158f84e99734de4eb20e759c290d86784ba6017854bc",
     "src/app/(main)/dashboard/page.tsx": "46b4d00b23ff1fb151b5ebee5f502da98e6b59dfaf6887d7ec7ce8bcdc1c58f7",
     "src/app/(main)/dashboard/RecentActivities.tsx": "59257a474aacec35d25dc13806fdc84ab41113ed4364413ac11349393ad90ebb",
-    "src/app/(main)/dashboard/StartOverview.tsx": "376e34adc2972384ed25f323b40b4f780c606667dfaa77187ffb4f3f05458235",
+    "src/app/(main)/dashboard/StartOverview.tsx": "d88aa711bbb00222688f88629321f8fbbd0d5c19813e07d71e4b4e962f6a0ba4",
     "src/app/(main)/davet/page.tsx": "cb8a8d4c2711e5d762cf198283db4ab2f1b6919c52aa3df2d6347ab0291e99c1",
     "src/app/(main)/evraklar/page.tsx": "e49930b961bfe6d673e4115b15ad7e18b277f766ad07b41a4c687845f4963382",
     "src/app/(main)/finansal-ozet/page.tsx": "83af88bd17880a6d1daa5c7213ec5a74fc3bbc7a22ec80f023b0304effb79f99",
