@@ -7,8 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "qa:acceptance": "node scripts/qa-acceptance.mjs",
+    "qa:acceptance:unit": "node --test scripts/acceptance-runner.test.mjs",
     "qa:static": "node scripts/qa-static.mjs",
-    "qa:unit": "node scripts/qa-unit.mjs"
+    "qa:unit": "node scripts/qa-unit.mjs",
+    "qa:operations": "node --test scripts/daily-demand.test.mjs scripts/pilot-validation.test.mjs scripts/location-import.test.mjs scripts/pending-commands.test.mjs scripts/weekly-plan.test.mjs scripts/request-batch.test.mjs scripts/weekly-attendance.test.mjs scripts/operations-checklist.test.mjs scripts/operations-directory.test.mjs scripts/task-prefill.test.mjs scripts/task-revision.test.mjs scripts/appointment-completion.test.mjs scripts/task-transfer.test.mjs scripts/membership-task-guard.test.mjs scripts/contract-renewal.test.mjs scripts/contract-pdf.test.mjs scripts/pdf-upload.test.mjs scripts/contract-appendices.test.mjs scripts/dashboard-activity.test.mjs scripts/workspace-setup.test.mjs scripts/workspace-invitations.test.mjs scripts/daily-dashboard.test.mjs scripts/pending-mizan.test.mjs scripts/start-tracking.test.mjs scripts/start-board.test.mjs scripts/start-overview.test.mjs scripts/start-failure.test.mjs scripts/candidate-company.test.mjs scripts/conversation-command.test.mjs scripts/conversation-read.test.mjs scripts/document-delete.test.mjs scripts/list-view-state.test.mjs scripts/task-assignee-label.test.mjs scripts/task-link.test.mjs scripts/appointment-link.test.mjs scripts/display-values.test.mjs scripts/navigation-guard.test.mjs scripts/location-import-preview.test.mjs scripts/location-update.test.mjs scripts/document-folders.test.mjs scripts/task-claim.test.mjs scripts/talent-people.test.mjs scripts/workspace-context.test.mjs scripts/mobile-operations.test.mjs scripts/talent-import-preview.test.mjs scripts/talent-import-compare.test.mjs scripts/talent-import-decisions.test.mjs scripts/talent-import-batches.test.mjs scripts/login-boundary.test.mjs scripts/csv-integrity.test.mjs scripts/talent-conversations.test.mjs scripts/talent-attachments.test.mjs scripts/appointment-calendar.test.mjs scripts/talent-filters.test.mjs scripts/complete-result.test.mjs scripts/company-identities.test.mjs scripts/financial-overview.test.mjs scripts/company-financial.test.mjs scripts/document-validity.test.mjs scripts/istanbul-day-watch.test.mjs scripts/teklif-validation.test.mjs scripts/workforce-capacity.test.mjs scripts/mizan-workbook-limits.test.mjs scripts/workbook-zip.test.mjs scripts/mizan-reader.test.mjs scripts/mizan-numeric-cell.test.mjs scripts/csv-reader.test.mjs scripts/notification-stamp.test.mjs scripts/notification-memberships.test.mjs scripts/notification-profiles.test.mjs scripts/notification-assignments.test.mjs scripts/notification-contracts.test.mjs scripts/notification-companies.test.mjs scripts/notification-contract-recipients.test.mjs scripts/notification-batch-candidates.test.mjs scripts/notification-batch-integration.test.mjs scripts/calendar-date.test.mjs scripts/notification-contract-integration.test.mjs scripts/talent-import-minimization.test.mjs scripts/talent-local-reference.test.mjs scripts/related-company-record.test.mjs scripts/critical-date-edit.test.mjs scripts/daily-board-view.test.mjs scripts/attendance-controls.test.mjs scripts/start-tracking-link.test.mjs scripts/replacement-options.test.mjs scripts/replacement-outreach.test.mjs scripts/work-approval.test.mjs scripts/independent-tasks.test.mjs scripts/talent-import-queue.test.mjs scripts/management-talent-block.test.mjs scripts/worker-prepare.test.mjs scripts/pool-placement-link.test.mjs scripts/talent-contact-summary.test.mjs scripts/talent-merge-reference.test.mjs",
+    "qa:write-boundaries": "node scripts/qa-local-write-boundaries.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",
@@ -20,12 +24,13 @@
     "next": "^15.3.1",
     "radix-ui": "^1.4.3",
     "react": "^19.1.0",
+    "react-day-picker": "10.0.1",
     "react-dom": "^19.1.0",
     "recharts": "^3.8.1",
     "shadcn": "^4.2.0",
     "tailwind-merge": "^3.5.0",
     "tw-animate-css": "^1.4.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.3",
@@ -34,5 +39,8 @@
     "@types/react-dom": "^19.1.0",
     "tailwindcss": "^4.1.3",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "postcss": "8.5.28"
   }
 }

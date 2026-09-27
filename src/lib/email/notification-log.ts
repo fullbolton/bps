@@ -8,8 +8,9 @@
  * Neden bu sıra: gönderim ile damga arasında bir çökme olursa, damga önce
  * atılmışsa sonuç "bir alıcı bir maili kaçırdı" olur; damga sonra atılsaydı
  * sonuç "aynı mail tekrar gönderildi" olurdu. İkincisi kullanıcıya doğrudan
- * zarar verir ve geri alınamaz, birincisi bir sonraki tetikte telafi
- * edilebilir. V1 için bilinçli takas — mevcut akıştan devralındı.
+ * zarar verir ve geri alınamaz. İlk durumda kalan damga sonraki tetikte de
+ * gönderimi engeller; otomatik telafi yoktur. Kalıcı teslimat durumu/lease
+ * sözleşmesi kurulana kadar bu, mevcut akışın bilinen sınırıdır.
  *
  * Bu dosya YALNIZ service_role istemcisiyle çağrılır (cron). Tablo RLS açık
  * ve policy'siz: kullanıcı bağlamından bir YAZMA denemesi RLS ihlaliyle
@@ -64,11 +65,12 @@ export async function stampNotification(
     return { status: "failed", error: safeDbError(error) };
   }
 
-  // Beklenmeyen: hata yok ama satır dönmedi. Bu bir RLS senaryosu DEĞİL —
-  // yazma RLS'e takılsaydı hata dönerdi (üstteki nota bak). Buraya yalnız
-  // PostgREST'in beklenmedik bir cevabı düşer. "Gönderilmiş" sayılır: yanlış
-  // tarafa düşmek, aynı maili ikinci kez atmaktan iyidir.
-  if (!data) return { status: "already_sent" };
+  // A missing/malformed acknowledgement proves neither a new reservation nor
+  // a previous send. Do not send or roll back an uncertain reservation; report
+  // a fixed, non-PII error instead of counting it as an idempotent skip.
+  if (!data || data.kind !== key.kind) {
+    return { status: "failed", error: "code=STAMP_ACK_INVALID" };
+  }
 
   return { status: "stamped" };
 }

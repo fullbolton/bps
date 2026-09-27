@@ -20,6 +20,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import type { UserRole } from "@/context/AuthContext";
 import { safeDbError } from "./safe-error";
+import { readNotificationPages } from "./read-pages";
+import { completeRows } from "@/lib/supabase/complete-result";
 
 type Client = SupabaseClient<Database>;
 
@@ -68,36 +70,29 @@ export interface TenantScope {
 export async function loadTenantScope(
   client: Client,
 ): Promise<{ scope: TenantScope; error?: string }> {
-  const { data, error } = await client
-    .from("tenant_memberships")
-    .select("user_id, tenant_id");
-
+  const unavailable = (error: string) => ({
+    scope: { loaded: false, isMember: () => false } as TenantScope,
+    error,
+  });
   const byTenant = new Map<string, Set<string>>();
-  for (const row of data ?? []) {
-    let set = byTenant.get(row.tenant_id);
-    if (!set) {
-      set = new Set<string>();
-      byTenant.set(row.tenant_id, set);
+  try {
+    const rows = await readNotificationPages(
+      (from, to) => client.from("tenant_memberships")
+        .select("user_id, tenant_id", { count: "exact" })
+        .order("tenant_id").order("user_id").range(from, to),
+      row => typeof row.tenant_id === "string" && row.tenant_id && typeof row.user_id === "string" && row.user_id
+        ? JSON.stringify([row.tenant_id, row.user_id]) : null,
+    );
+    for (const row of rows) {
+      const members = byTenant.get(row.tenant_id) ?? new Set<string>();
+      members.add(row.user_id);
+      byTenant.set(row.tenant_id, members);
     }
-    set.add(row.user_id);
+  } catch {
+    return unavailable("tenant_memberships fetch failed: code=READ_INCOMPLETE");
   }
+  return { scope: { loaded: true, isMember: (tenantId, profileId) => byTenant.get(tenantId)?.has(profileId) ?? false } };
 
-  const loaded = !error;
-  const scope: TenantScope = {
-    loaded,
-    // FAIL-CLOSED: harita yüklenemediyse hiç kimse üye sayılmaz ve o koşuda
-    // hiç mail gitmez. Alternatifi — hata durumunda herkese göndermek —
-    // tam da bu filtrenin engellediği sızıntıyı üretirdi.
-    isMember: (tenantId, profileId) =>
-      loaded && (byTenant.get(tenantId)?.has(profileId) ?? false),
-  };
-
-  return {
-    scope,
-    error: error
-      ? `tenant_memberships fetch failed: ${safeDbError(error)}`
-      : undefined,
-  };
 }
 
 /** Aynı kişi iki yoldan gelebilir (hem yönetici hem atanmış partner). */
@@ -112,17 +107,18 @@ export async function fetchProfilesByRoles(
   client: Client,
   roles: readonly UserRole[],
 ): Promise<{ rows: RecipientRow[]; error?: string }> {
-  const { data, error } = await client
-    .from("profiles")
-    .select("id, email, display_name, role")
-    .in("role", roles as UserRole[]);
-
-  if (error)
-    return {
-      rows: [],
-      error: `profiles(${roles.join(",")}) fetch failed: ${safeDbError(error)}`,
-    };
-  return { rows: (data ?? []).filter(hasEmail) };
+  if (!roles.length) return { rows: [] };
+  try {
+    const rows = await readNotificationPages(
+      (from, to) => client.from("profiles")
+        .select("id, email, display_name, role", { count: "exact" })
+        .in("role", [...new Set(roles)]).order("id").range(from, to),
+      row => typeof row.id === "string" && row.id && roles.includes(row.role as UserRole) ? row.id : null,
+    );
+    return { rows: rows.filter(hasEmail) };
+  } catch {
+    return { rows: [], error: "profiles by role fetch failed: code=READ_INCOMPLETE" };
+  }
 }
 
 /** Tek tek id'lerle profil çözümleme (owner stratejisi için). */
@@ -130,18 +126,51 @@ export async function fetchProfilesByIds(
   client: Client,
   ids: string[],
 ): Promise<{ byId: Map<string, RecipientRow>; error?: string }> {
-  if (ids.length === 0) return { byId: new Map() };
-  const { data, error } = await client
-    .from("profiles")
-    .select("id, email, display_name, role")
-    .in("id", ids);
+  const uniqueIds = [...new Set(ids)];
+  const byId = new Map<string, RecipientRow>();
+  const failed = (code: string) => ({ byId: new Map<string, RecipientRow>(), error: `profiles by id fetch failed: ${code}` });
+  try {
+    for (let offset = 0; offset < uniqueIds.length; offset += 100) {
+      const chunk = uniqueIds.slice(offset, offset + 100);
+      const { data, error, count } = await client
+        .from("profiles")
+        .select("id, email, display_name, role", { count: "exact" })
+        .in("id", chunk);
+      if (error) return failed(safeDbError(error));
+      const seen = new Set<string>();
+      for (const profile of completeRows(data, count, "profiles")) {
+        if (!chunk.includes(profile.id) || seen.has(profile.id)) return failed("code=INVALID_PROFILE_SET");
+        seen.add(profile.id);
+        if (hasEmail(profile)) byId.set(profile.id, profile);
+      }
+    }
+    return { byId };
+  } catch {
+    return failed("code=INCOMPLETE_PROFILES");
+  }
 
-  if (error)
-    return {
-      byId: new Map(),
-      error: `profiles by id fetch failed: ${safeDbError(error)}`,
-    };
-  return { byId: new Map((data ?? []).filter(hasEmail).map((p) => [p.id, p])) };
+}
+
+/** Complete assignment rows for bounded company ID batches. */
+export async function fetchCompanyPartnerAssignments(client: Client, companyIds: string[]) {
+  const ids = [...new Set(companyIds)];
+  const rows: { company_id: string; partner_user_id: string }[] = [];
+  try {
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const chunk = ids.slice(offset, offset + 100);
+      const pageRows = await readNotificationPages(
+        (from, to) => client.from("partner_company_assignments")
+          .select("partner_user_id, company_id", { count: "exact" })
+          .in("company_id", chunk).order("company_id").order("partner_user_id").range(from, to),
+        row => chunk.includes(row.company_id) && typeof row.partner_user_id === "string" && row.partner_user_id
+          ? JSON.stringify([row.company_id, row.partner_user_id]) : null,
+      );
+      rows.push(...pageRows);
+    }
+    return { rows };
+  } catch {
+    return { rows: [], error: "partner assignments fetch failed: code=READ_INCOMPLETE" };
+  }
 }
 
 /**
@@ -161,7 +190,7 @@ export async function resolveCompanyRecipients(
   if (companyIds.length === 0) return { byCompany, errors };
 
   const yonetici = await fetchProfilesByRoles(client, ["yonetici"]);
-  if (yonetici.error) errors.push(yonetici.error);
+  if (yonetici.error) return { byCompany, errors: [yonetici.error] };
 
   const partnerIdsByCompany = new Map<string, Set<string>>();
   const allPartnerIds = new Set<string>();
@@ -170,16 +199,10 @@ export async function resolveCompanyRecipients(
   // ve bu, "partner'ı dışarıda bırakan çağrılar için sorgu hiç koşmaz"
   // yorumunu yanlış kılıyordu — yorum doğruydu, kod değildi.
   if (opts.includePartners) {
-    const { data: pcaRows, error: pcaError } = await client
-      .from("partner_company_assignments")
-      .select("partner_user_id, company_id")
-      .in("company_id", companyIds);
-    if (pcaError)
-      errors.push(
-        `partner_company_assignments fetch failed: ${safeDbError(pcaError)}`,
-      );
+    const assignments = await fetchCompanyPartnerAssignments(client, companyIds);
+    if (assignments.error) return { byCompany, errors: [assignments.error] };
 
-    for (const row of pcaRows ?? []) {
+    for (const row of assignments.rows) {
       let set = partnerIdsByCompany.get(row.company_id);
       if (!set) {
         set = new Set<string>();
@@ -194,16 +217,9 @@ export async function resolveCompanyRecipients(
   // partner'ın okuma görünürlüğü ROLE_MATRIX'te HOLD ve her yüzey ona
   // açılmaz (bkz. notification-kinds.ts, appointment_reminder notu).
   if (allPartnerIds.size > 0) {
-    const { data: partnerRows, error: partnerError } = await client
-      .from("profiles")
-      .select("id, email, display_name, role")
-      .in("id", Array.from(allPartnerIds))
-      .eq("role", "partner");
-    if (partnerError)
-      errors.push(`partner profiles fetch failed: ${safeDbError(partnerError)}`);
-    partnerById = new Map(
-      (partnerRows ?? []).filter(hasEmail).map((p) => [p.id, p]),
-    );
+    const partners = await fetchProfilesByIds(client, Array.from(allPartnerIds));
+    if (partners.error) return { byCompany, errors: [partners.error] };
+    partnerById = new Map([...partners.byId].filter(([, profile]) => profile.role === "partner"));
   }
 
   for (const companyId of companyIds) {

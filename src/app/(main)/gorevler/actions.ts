@@ -1,28 +1,12 @@
 "use server";
 
-/**
- * BPS Görevler — Server Actions
- *
- * `createTaskAction` wraps the previous browser-context `createTask` call
- * with the passive-company guard: a pasif firma cannot receive a new
- * görev. Mirrors the contract-create action (`sozlesmeler/actions.ts`);
- * the guard runs BEFORE the service insert so a rejected attempt produces
- * no row. Used by BOTH the global Görevler page ("Yeni Görev") and the
- * Randevular page's "Görev Oluştur" flow — both create a görev for a
- * firma picked in the modal, so both route through this one guard.
- *
- * NO app-level role guard here, on purpose: role enforcement stays with
- * RLS exactly as on the previous browser path (operasyon/ik keep their
- * current create access). Partner is frozen at the product/UI level, but
- * RLS still permits partner-scope inserts — a known drift recorded in
- * ROLE_MATRIX §11 (RLS drift memo), NOT enforced here. This action adds
- * no role guard, so RLS stays the sole authority and behavior is
- * unchanged from the browser path. The ONLY added behavior is the
- * passive-company guard. service_role is never used.
+/** Creates company-linked or independent tasks in the current verified workspace.
+ * Company-linked tasks retain the active-company guard; RLS enforces role/assignee scope.
+ * Independent tasks use company_id=null and cannot carry a contract/appointment source.
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { createTask } from "@/lib/services/tasks";
+import { createTask,claimTask,completeOperationTask } from "@/lib/services/tasks";
 import type { TaskCreateInput } from "@/lib/services/tasks";
 import {
   requireCompanyByLegacyMockId,
@@ -43,12 +27,12 @@ export async function createTaskAction(
   if (!user) {
     return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
   }
-  if (!input?.legacyCompanyId || typeof input.legacyCompanyId !== "string") {
+  if (!input || (input.legacyCompanyId !== null && typeof input.legacyCompanyId !== "string")) {
     return { ok: false, error: "Firma kimliği geçersiz." };
   }
 
   const { data: tenantId, error: tenantError } = await supabase.rpc(
-    "current_user_active_tenant",
+    "current_user_verified_tenant",
   );
   if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
     return { ok: false, error: "Aktif kiracı çözümlenemedi." };
@@ -57,6 +41,7 @@ export async function createTaskAction(
   try {
     // Resolve the firma (legacy "f1" or real UUID) so the passive guard
     // runs against the real company id — BEFORE any insert.
+    if (input.legacyCompanyId?.trim()) {
     const company = await requireCompanyByLegacyMockId(
       supabase,
       input.legacyCompanyId,
@@ -69,6 +54,7 @@ export async function createTaskAction(
     if (!activeCheck.ok) {
       return activeCheck;
     }
+    }
     await createTask(supabase, input, { tenantId });
     return { ok: true };
   } catch (err) {
@@ -77,4 +63,20 @@ export async function createTaskAction(
       error: err instanceof Error ? err.message : "Görev oluşturulamadı.",
     };
   }
+}
+
+export async function claimTaskAction(input:{id:string;revision:number;actorId:string;tenantId:string}):Promise<CreateTaskActionResult>{
+  try{
+    if(!input||![input.id,input.actorId,input.tenantId].every(v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)))throw new Error('Görev veya oturum bilgisi geçersiz.');
+    await claimTask(await createServerSupabaseClient(),input.id,input.revision,input.actorId,input.tenantId);
+    return {ok:true};
+  }catch(e){return {ok:false,error:e instanceof Error?e.message:'İş üstlenilemedi. Listeyi yenileyin.'};}
+}
+
+export async function completeTaskAction(input:{id:string;revision:number;actorId:string;tenantId:string}):Promise<CreateTaskActionResult>{
+  try {
+    if (!input) throw new Error('Görev bilgisi eksik.');
+    await completeOperationTask(await createServerSupabaseClient(12_000),input.id,input.revision,input.actorId,input.tenantId);
+    return {ok:true};
+  } catch(e) { return {ok:false,error:e instanceof Error?e.message:'Görev tamamlanamadı. Listeyi yenileyin.'}; }
 }

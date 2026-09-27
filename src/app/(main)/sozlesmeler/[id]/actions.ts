@@ -57,6 +57,15 @@ export async function deleteContractAction(
     .eq("id", contractId)
     .select("id, name");
   if (del.error) {
+    if (del.error.message.includes('contract_pdf_upload_commands_contract_id_fkey')) {
+      return {ok:false,error:'PDF yükleme geçmişi bulunan sözleşme silinemez. Geçmişi koruyarak sözleşme durumunu güncelleyin.'};
+    }
+    if (del.error.message === 'PDF_CONTEXT_IMMUTABLE' || del.error.message.includes('contract_document_versions_contract_id_fkey')) {
+      return {ok:false,error:'PDF sürüm geçmişi bulunan sözleşme silinemez. Sözleşme geçmişini koruyarak durumunu güncelleyin.'};
+    }
+    if (del.error.message === 'RENEWAL_CONTEXT_IMMUTABLE' || del.error.message.includes('contract_renewal_tasks_contract_id_fkey')) {
+      return {ok:false,error:'Yenileme görevi bulunan sözleşme silinemez. Görevi ve sözleşme geçmişini koruyarak durumunu güncelleyin.'};
+    }
     return { ok: false, error: `Sözleşme silinemedi: ${del.error.message}` };
   }
 

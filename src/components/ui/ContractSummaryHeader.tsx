@@ -6,12 +6,7 @@ import {
   BORDER_DEFAULT,
   RADIUS_DEFAULT,
   TYPE_PAGE_TITLE,
-  TYPE_BODY,
   TEXT_PRIMARY,
-  TEXT_SECONDARY,
-  TEXT_MUTED,
-  TEXT_BODY,
-  TEXT_LINK,
 } from "@/styles/tokens";
 
 interface ContractSummaryHeaderProps {
@@ -41,47 +36,20 @@ export default function ContractSummaryHeader({
   tutar,
 }: ContractSummaryHeaderProps) {
   return (
-    <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-5 mb-4`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className={`${TYPE_PAGE_TITLE} ${TEXT_PRIMARY}`}>{sozlesmeAdi}</h1>
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <StatusBadge status={durum} size="md" />
-            <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>{tur}</span>
-            <span className={`${TYPE_BODY} ${TEXT_MUTED}`}>·</span>
-            <a href={firmaHref} className={`${TYPE_BODY} ${TEXT_LINK} hover:underline`}>
-              {firmaAdi}
-            </a>
-          </div>
-          <div className={`flex items-center gap-4 mt-3 ${TYPE_BODY} ${TEXT_SECONDARY} flex-wrap`}>
-            <span>
-              {baslangic || "—"} → {bitis || "—"}
-            </span>
-            {kalanGun !== null && (
-              <span
-                className={clsx(
-                  "font-medium",
-                  kalanGun <= 15
-                    ? "text-red-600"
-                    : kalanGun <= 30
-                      ? "text-amber-600"
-                      : TEXT_BODY
-                )}
-              >
-                {kalanGun} gün kaldı
-              </span>
-            )}
-            <span className={TEXT_MUTED}>·</span>
-            <span>Sorumlu: {sorumlu}</span>
-            {tutar && (
-              <>
-                <span className={TEXT_MUTED}>·</span>
-                <span className={`font-medium ${TEXT_BODY}`}>{tutar}</span>
-              </>
-            )}
-          </div>
+    <section aria-label="Sözleşme özeti" className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-5 sm:p-6 mb-5 shadow-sm`}>
+      <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">Sözleşme çalışma alanı</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="min-w-0"><h1 className={`${TYPE_PAGE_TITLE} ${TEXT_PRIMARY} break-words`}>{sozlesmeAdi}</h1>
+          <a href={firmaHref} className="mt-2 inline-block text-sm text-blue-700 hover:underline break-words">{firmaAdi} →</a>
         </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0"><StatusBadge status={durum} size="md"/><span className="text-sm text-slate-500">{tur}</span></div>
       </div>
-    </div>
+      <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 border-t border-slate-100 pt-5">
+        <div><dt className="text-xs text-slate-500">Sözleşme dönemi</dt><dd className="mt-1.5 text-sm font-medium text-slate-800">{baslangic || "—"} → {bitis || "—"}</dd></div>
+        <div><dt className="text-xs text-slate-500">Bitişe kalan süre</dt><dd className={clsx("mt-1.5 text-sm font-semibold", kalanGun !== null && kalanGun <= 15 ? "text-red-700" : kalanGun !== null && kalanGun <= 30 ? "text-amber-700" : "text-slate-800")}>{kalanGun === null ? "Bitiş tarihi yok" : kalanGun < 0 ? `${Math.abs(kalanGun)} gün önce doldu` : kalanGun === 0 ? "Bugün doluyor" : `${kalanGun} gün`}</dd></div>
+        <div className="min-w-0"><dt className="text-xs text-slate-500">Sözleşme sorumlu notu</dt><dd className="mt-1.5 text-sm text-slate-800 break-words">{sorumlu}</dd></div>
+        {tutar && <div><dt className="text-xs text-slate-500">Sözleşme tutarı</dt><dd className="mt-1.5 text-sm font-semibold text-slate-800 break-words">{tutar}</dd></div>}
+      </dl>
+    </section>
   );
 }

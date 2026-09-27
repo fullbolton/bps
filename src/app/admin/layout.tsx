@@ -56,7 +56,7 @@ export default async function AdminLayout({
               Platform Yönetimi
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Kiracılar arası — bu ekran tek bir firmanın değil, kurulumun tamamının.
+              Şirketleri ve kullanıcıların şirket erişimlerini buradan yönetin.
             </p>
           </div>
           <a

@@ -43,6 +43,7 @@ export async function assignRoleAndTenantAction(input: {
   role: UserRole;
   tenantId: string;
 }): Promise<AdminActionResult> {
+  if(process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==="true")return {ok:false,error:"Şirket erişimleri ekranından üyeliği ayrı olarak düzenleyin."};
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },

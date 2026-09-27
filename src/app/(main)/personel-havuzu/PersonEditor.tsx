@@ -1,0 +1,52 @@
+"use client";
+import {useEffect,useRef,useState} from 'react';
+import {Plus,Trash2} from 'lucide-react';
+import ModalShell from '@/components/ui/ModalShell';
+import {Button} from '@/components/ui/button';
+import {useNavigationGuard} from '@/context/NavigationGuardContext';
+import {emptyPerson,validatePersonInput,workTypeLabels,type Person,type PersonInput,type WorkType,type Contact} from '@/lib/talent/people';
+const field='mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+export default function PersonEditor({person,workspaceName,writeDisabled,busy,pending,message,onClose,onSave,onResolve,onReloadWorkspace}:{person:Person|null;workspaceName:string|null;writeDisabled:boolean;busy:boolean;pending:boolean;message:string;onClose:()=>void;onSave:(input:PersonInput)=>void;onResolve:()=>void;onReloadWorkspace:()=>void}){
+ const initial=person?{gender:person.gender,birthDate:person.birthDate,name:person.name,city:person.city,district:person.district,contacts:person.contacts,skills:person.skills,regions:person.regions,workTypes:person.workTypes}:emptyPerson;
+ const [draft,setDraft]=useState<PersonInput>(initial),[skills,setSkills]=useState(initial.skills.join(', ')),[regions,setRegions]=useState(initial.regions.join(', '));
+ const [error,setError]=useState(''),[discard,setDiscard]=useState(false);
+ const [removedContact,setRemovedContact]=useState<{contact:Contact;index:number}|null>(null);
+ const undoRef=useRef<HTMLButtonElement>(null),contactsTitleRef=useRef<HTMLHeadingElement>(null);
+ useEffect(()=>{if(removedContact)undoRef.current?.focus();},[removedContact]);
+ const discardRef=useRef<HTMLButtonElement>(null),cancelRef=useRef<HTMLButtonElement>(null),wasDiscard=useRef(false);
+ useEffect(()=>{if(discard)discardRef.current?.focus();else if(wasDiscard.current)cancelRef.current?.focus();wasDiscard.current=discard;},[discard]);
+ const guard=useNavigationGuard(),dirty=JSON.stringify(draft)!==JSON.stringify(initial)||skills!==initial.skills.join(', ')||regions!==initial.regions.join(', ');
+ useEffect(()=>{const block=(e:BeforeUnloadEvent)=>{if(dirty||pending||busy){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',block);return()=>window.removeEventListener('beforeunload',block);},[dirty,pending,busy]);
+ useEffect(()=>guard.register(e=>{if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();setError('Kişi kartını kaydedin veya düzenlemeyi kapatın.');}),[guard]);
+ function close(){if(busy||pending)return;if(dirty)setDiscard(true);else onClose();}
+ function submit(){
+  try{const input=validatePersonInput({...draft,skills:skills.split(',').map(s=>s.trim()).filter(Boolean),regions:regions.split(',').map(s=>s.trim()).filter(Boolean)});setError('');onSave(input);}
+  catch{setError('Ad soyad, iletişim ve doğum tarihini kontrol edin. Geçersiz veya gelecekteki doğum tarihi kaydedilemez. Boş iletişim satırını doldurun veya kaldırın. Her listede en fazla 20 değer olabilir.');}
+ }
+ return <ModalShell open onClose={close} title={person?'Kişi bilgilerini düzenle':'Havuza kişi ekle'} closeDisabled={busy||pending} footer={<>
+  {discard?<div role="alert" className="w-full"><p className="mb-3 text-sm">Kaydedilmemiş değişiklikler bırakılsın mı?</p><div className="flex flex-wrap gap-2"><Button ref={discardRef} variant="outline" onClick={()=>setDiscard(false)}>Düzenlemeye devam et</Button><Button variant="destructive" onClick={onClose}>Değişiklikleri bırak</Button></div></div>:<div className="flex w-full flex-wrap justify-end gap-2"><Button ref={cancelRef} variant="outline" disabled={busy||pending} onClick={close}>Vazgeç</Button>{pending?<Button disabled={busy||writeDisabled} onClick={onResolve}>{busy?'Kontrol ediliyor…':'İşlem sonucunu kontrol et'}</Button>:<Button disabled={busy||writeDisabled} type="submit" form="talent-person-form">{busy?'Kaydediliyor…':person?'Değişiklikleri kaydet':'Kişiyi ekle'}</Button>}</div>}
+ </>}>
+  <div className="mb-4 rounded-xl border bg-slate-50 p-3 text-sm">{workspaceName?<><span className="text-slate-500">Kayıt şirketi: </span><strong>{workspaceName}</strong></>:<div role="alert"><p>Şirket bilgisi doğrulanana kadar kayıt işlemleri kapalı. Girdiğiniz bilgiler bu formda korunuyor.</p><Button type="button" variant="outline" className="mt-2" onClick={onReloadWorkspace}>Şirket bilgisini yeniden yükle</Button></div>}</div>
+  <p className="mb-4 text-sm leading-6 text-slate-600">Ad soyad yeterli. İletişim, bölge ve iş bilgilerini daha sonra tamamlayabilirsiniz.</p>
+  {person?.workerId&&<p className="mb-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-900">Mevcut personel kaydına bağlı: {person.workerCode}. Ad değişikliği günlük planlarda da görünür.</p>}
+  {(error||message)&&<p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-950">{error||message}</p>}
+  <form id="talent-person-form" onSubmit={e=>{e.preventDefault();if(!busy&&!pending&&!discard&&!writeDisabled)submit();}}>
+   <fieldset disabled={busy||pending||discard} className="space-y-5">
+    <label className="block text-sm font-medium">Ad soyad <span aria-hidden="true">*</span><input data-dialog-initial-focus required maxLength={160} className={field} autoComplete="off" value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}/></label>
+    <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">İl<input className={field} maxLength={80} value={draft.city??''} onChange={e=>setDraft({...draft,city:e.target.value||null})}/></label><label className="text-sm font-medium">İlçe<input className={field} maxLength={80} value={draft.district??''} onChange={e=>setDraft({...draft,district:e.target.value||null})}/></label></div>
+    <div className="grid gap-4 sm:grid-cols-2">
+     <label className="text-sm font-medium">Cinsiyet<select className={field} value={draft.gender??''} onChange={e=>setDraft({...draft,gender:(e.target.value||null) as PersonInput['gender']})}><option value="">Belirtilmedi</option><option value="female">Kadın</option><option value="male">Erkek</option><option value="other">Diğer</option></select></label>
+     <label className="text-sm font-medium">Doğum tarihi<input type="date" min="1900-01-01" className={field} value={draft.birthDate??''} onChange={e=>setDraft({...draft,birthDate:e.target.value||null})}/><span className="mt-1 block text-xs font-normal text-slate-500">Bilinmiyorsa boş bırakın. Yaş bu tarihten hesaplanır.</span></label>
+    </div>
+    <section aria-labelledby="person-contacts-title"><div className="flex items-center justify-between gap-2"><h3 ref={contactsTitleRef} tabIndex={-1} id="person-contacts-title" className="text-sm font-semibold">İletişim bilgileri</h3><Button type="button" variant="ghost" disabled={draft.contacts.length>=10} onClick={()=>setDraft({...draft,contacts:[...draft.contacts,{kind:'phone',value:''}]})}><Plus size={16}/> İletişim ekle</Button></div>
+     {!draft.contacts.length&&<p className="mt-1 text-sm text-slate-500">Henüz telefon veya e-posta eklenmedi.</p>}
+     <div className="space-y-3">{draft.contacts.map((c,i)=><div key={i} className="mt-2 grid grid-cols-[110px_minmax(0,1fr)_44px] items-end gap-2"><label className="text-xs text-slate-600">Tür<select aria-label={`İletişim ${i+1} türü`} className={field} value={c.kind} onChange={e=>setDraft({...draft,contacts:draft.contacts.map((old,n)=>n===i?{...old,kind:e.target.value as 'phone'|'email'}:old)})}><option value="phone">Telefon</option><option value="email">E-posta</option></select></label><label className="min-w-0 text-xs text-slate-600">{c.kind==='phone'?'Telefon':'E-posta'}<input aria-label={`İletişim ${i+1} ${c.kind==='phone'?'telefon':'e-posta'}`} type={c.kind==='email'?'email':'tel'} className={field} maxLength={c.kind==='phone'?31:254} value={c.value} onChange={e=>setDraft({...draft,contacts:draft.contacts.map((old,n)=>n===i?{...old,value:e.target.value}:old)})}/></label><Button type="button" variant="ghost" size="icon" aria-label={`İletişim ${i+1} kaldır`} onClick={()=>{setRemovedContact({contact:c,index:i});setDraft({...draft,contacts:draft.contacts.filter((_,n)=>n!==i)});}}><Trash2 size={17}/></Button></div>)}</div>
+     {removedContact&&<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm"><p role="status">İletişim bilgisi formdan kaldırıldı. Henüz kaydedilmedi; isterseniz geri alabilirsiniz.</p><Button ref={undoRef} type="button" variant="outline" className="mt-2" disabled={draft.contacts.length>=10} onClick={()=>{const contacts=[...draft.contacts];contacts.splice(Math.min(removedContact.index,contacts.length),0,removedContact.contact);setDraft({...draft,contacts});setRemovedContact(null);contactsTitleRef.current?.focus();}}>Son kaldırmayı geri al</Button>{draft.contacts.length>=10&&<p className="mt-2 text-xs">En fazla 10 iletişim bilgisi eklenebilir. Geri almak için önce başka bir iletişim bilgisini kaldırın.</p>}</div>}
+    </section>
+    <label className="block text-sm font-medium">Yapabileceği işler<input className={field} value={skills} maxLength={1620} placeholder="Örn. Temizlik, Garsonluk" onChange={e=>setSkills(e.target.value)}/><span className="mt-1 block text-xs font-normal text-slate-500">Birden fazla işi virgülle ayırın.</span></label>
+    <label className="block text-sm font-medium">Çalışabileceği bölgeler<input className={field} value={regions} maxLength={1620} placeholder="Örn. Kadıköy, Üsküdar" onChange={e=>setRegions(e.target.value)}/><span className="mt-1 block text-xs font-normal text-slate-500">İkametinden farklı bölgeleri de ekleyebilirsiniz.</span></label>
+    <fieldset><legend className="text-sm font-semibold">Çalışma tercihleri</legend><div className="mt-2 flex flex-wrap gap-3">{(Object.keys(workTypeLabels) as WorkType[]).map(v=><label key={v} className="flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm"><input type="checkbox" checked={draft.workTypes.includes(v)} onChange={e=>setDraft({...draft,workTypes:e.target.checked?[...draft.workTypes,v]:draft.workTypes.filter(t=>t!==v)})}/>{workTypeLabels[v]}</label>)}</div><p className="mt-2 text-xs text-slate-500">Personelin tercih ettiği çalışma türlerini seçin; bilmiyorsanız boş bırakın. Çalışabileceği tarihleri kişi kartındaki müsaitlik bölümünden ayrıca kaydedin.</p></fieldset>
+   </fieldset>
+  </form>
+ </ModalShell>;
+}

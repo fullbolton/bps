@@ -13,6 +13,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { CompletionInput } from "@/lib/appointment-completion";
 import type {
   Database,
   AppointmentRow,
@@ -21,6 +22,15 @@ import type {
 } from "@/types/database.types";
 
 type Client = SupabaseClient<Database>;
+
+export async function completeAppointmentScoped(client:Client,appointmentId:string,input:Required<CompletionInput>,scope:{actorId:string;tenantId:string}) {
+  const {data,error}=await client.rpc("complete_appointment_scoped",{
+    p_actor_id:scope.actorId,p_tenant_id:scope.tenantId,p_appointment_id:appointmentId,
+    p_result:input.result,p_next_action:input.nextAction,p_create_task:input.createTask,
+  });
+  if(error)throw error;
+  return data;
+}
 
 // ---------------------------------------------------------------------------
 // Reads

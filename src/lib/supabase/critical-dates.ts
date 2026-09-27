@@ -1,3 +1,4 @@
+import {completeRows} from "./complete-result";
 /**
  * BPS — Raw Supabase access for the `critical_dates` table.
  *
@@ -27,15 +28,15 @@ type Client = SupabaseClient<Database>;
 export async function selectAllCriticalDates(
   client: Client,
 ): Promise<CriticalDateRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("critical_dates")
-    .select("*")
+    .select("*", {count:"exact"})
     .order("deadline_date", { ascending: true });
 
   if (error) {
     throw new Error(`critical_dates select-all failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectAllCriticalDates");
 }
 
 /**
@@ -83,20 +84,33 @@ export async function insertCriticalDate(
 /**
  * Update a single critical date row by id.
  */
+export class CriticalDateConflictError extends Error {
+  constructor() {
+    super("Kayıt değişmiş veya artık erişilemiyor. Taslağınız korunuyor; güncel kaydı kontrol ederek yeniden açın.");
+    this.name = "CriticalDateConflictError";
+  }
+}
+
 export async function updateCriticalDate(
   client: Client,
   id: string,
   patch: CriticalDateUpdate,
+  expectedUpdatedAt: string,
 ): Promise<CriticalDateRow> {
+  if (typeof expectedUpdatedAt !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(expectedUpdatedAt) || !Number.isFinite(Date.parse(expectedUpdatedAt))) {
+    throw new Error("Kayıt sürümü doğrulanamadı. Sayfayı yenileyin.");
+  }
   const { data, error } = await client
     .from("critical_dates")
     .update(patch)
     .eq("id", id)
+    .eq("updated_at", expectedUpdatedAt)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`critical_dates update failed: ${error.message}`);
   }
+  if (!data) throw new CriticalDateConflictError();
   return data;
 }

@@ -1,5 +1,8 @@
 "use server";
 
+import { documentStatusForFile, isDocumentValidityDate } from "@/lib/document-validity";
+import { recoverCompanyDocumentInsert } from "@/lib/services/company-document-recovery";
+
 /**
  * BPS Company Detail — Server Actions
  *
@@ -11,12 +14,12 @@
  * `current_user_active_tenant()` resolving the tenant where needed.
  *
  *   1. `uploadCompanyDocumentAction(formData)` — upload a PDF for a firma.
- *      Client allow-list `{file, name, category, contract_id?,
- *      validity_date?}`; server sets tenant_id / company_id / created_by
- *      / uploaded_by / storage_path. Verifies contract↔company binding
- *      before upload. Storage first → DB row second; a DB failure after
- *      a successful upload returns a clear orphan-warning error (orphan
- *      cleanup is out of scope).
+ *      Client inputs `{company_id, file, name, category, validity_date?}`;
+ *      server resolves tenant / author and checks company scope. A supplied
+ *      contract_id is rejected before upload: contract PDFs use the dedicated
+ *      versioned workflow. Storage first → DB row second; recovery checks
+ *      the server-generated document ID before considering bounded cleanup.
+ *      Unverified outcomes require review rather than a blind retry.
  *
  *   2. `getCompanyDocumentDownloadUrlAction(documentId)` — short-lived
  *      (60s) signed URL for an existing document. RLS-bounded lookup; no
@@ -50,7 +53,6 @@ import { createContact } from "@/lib/services/contacts";
 import type { ContactCreateInput } from "@/lib/services/contacts";
 import { createNote } from "@/lib/services/notes";
 import type { NoteCreateInput } from "@/lib/services/notes";
-import type { EvrakDurumu } from "@/types/ui";
 import type { DocumentCategory } from "@/lib/document-categories";
 
 // PDF only, 10 MB cap (matches existing UploadDocumentModal limit).
@@ -79,20 +81,16 @@ const UPLOAD_ROLES: ReadonlySet<string> = new Set([
   "ik",
 ]);
 
-// 30-day soft window — matches `getApproachingLevel("approaching")`
-// semantics elsewhere in the codebase.
-const APPROACHING_WINDOW_DAYS = 30;
-
 export type UploadResult =
   | { ok: true; documentId: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; reviewRequired?: boolean };
 
 export type DownloadResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
 export type DeleteResult =
-  | { ok: true; warning?: string }
+  | { ok: true; deleted: boolean; warning?: string }
   | { ok: false; error: string };
 
 export type ContactDeleteResult =
@@ -102,27 +100,6 @@ export type ContactDeleteResult =
 export type PassivateResult =
   | { ok: true; name?: string }
   | { ok: false; error: string };
-
-function deriveStatus(validityDate: string | null): EvrakDurumu {
-  // A file is being attached, so the row will not be `eksik`. The
-  // expiry buckets only matter when validity_date is set; missing dates
-  // fall through to "tam" — file present, no expiry tracked yet.
-  if (!validityDate) return "tam";
-
-  const expiry = new Date(`${validityDate.slice(0, 10)}T00:00:00Z`);
-  if (Number.isNaN(expiry.getTime())) return "tam";
-
-  const now = new Date();
-  const today = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const diffDays = Math.floor(
-    (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diffDays < 0) return "suresi_doldu";
-  if (diffDays <= APPROACHING_WINDOW_DAYS) return "suresi_yaklsiyor";
-  return "tam";
-}
 
 function readString(formData: FormData, key: string): string {
   const v = formData.get(key);
@@ -222,43 +199,15 @@ export async function uploadCompanyDocumentAction(
   // raw string is written into a date column at step 9 — a malformed
   // value would pass every guard, upload the file at step 8, then fail
   // the insert and orphan the storage object on every retry.
-  if (validityDate) {
-    let validIso = /^\d{4}-\d{2}-\d{2}$/.test(validityDate);
-    if (validIso) {
-      const parsed = new Date(`${validityDate}T00:00:00Z`);
-      validIso =
-        !Number.isNaN(parsed.getTime()) &&
-        parsed.toISOString().slice(0, 10) === validityDate;
-    }
-    if (!validIso) {
-      return {
-        ok: false,
-        error: "Geçerlilik tarihi biçimi geçersiz (YYYY-AA-GG bekleniyor).",
-      };
-    }
+  if (validityDate && !isDocumentValidityDate(validityDate)) {
+    return { ok: false, error: "Geçerlilik tarihi biçimi geçersiz (YYYY-AA-GG bekleniyor)." };
   }
 
-  // 5. Contract↔company binding check. If a contract_id is supplied,
-  //    verify it actually belongs to this company — never trust the
-  //    client-submitted relationship. Done BEFORE the storage upload so
-  //    a mismatched payload cannot orphan an object. RLS also scopes
-  //    this read, so an out-of-scope contract returns no row.
+  // 5. Contract PDFs use the versioned/reserved upload workflow on the
+  // contract page. This legacy company action creates unlinked documents only;
+  // reject before Storage rather than orphaning a file on schema/RLS failure.
   if (contractId) {
-    const { data: contractRow, error: contractError } = await supabase
-      .from("contracts")
-      .select("id")
-      .eq("id", contractId)
-      .eq("company_id", companyId)
-      .maybeSingle();
-    if (contractError) {
-      return { ok: false, error: "Sözleşme doğrulanamadı." };
-    }
-    if (!contractRow) {
-      return {
-        ok: false,
-        error: "Seçilen sözleşme bu firmaya ait değil.",
-      };
-    }
+    return { ok: false, error: "Sözleşmeye bağlı belgeleri sözleşme sayfasındaki Dosyalar bölümünden yükleyin." };
   }
 
   // 6. Passive-company guard. A pasif firma cannot receive new
@@ -276,7 +225,8 @@ export async function uploadCompanyDocumentAction(
 
   // 7. Build storage path. The storage RLS policy parses the company
   //    UUID from the first path segment, so this format is required.
-  const storagePath = `${companyId}/${crypto.randomUUID()}.pdf`;
+  const documentId = crypto.randomUUID();
+  const storagePath = `${companyId}/${documentId}.pdf`;
 
   // 8. Storage upload. If this fails, no DB row is created.
   const upload = await supabase.storage
@@ -286,16 +236,18 @@ export async function uploadCompanyDocumentAction(
       upsert: false,
     });
   if (upload.error) {
+    console.error("company_document_storage_review", { documentId, companyId, storagePath, code: upload.error.name });
     return {
       ok: false,
-      error: `Yükleme başarısız: ${upload.error.message}`,
+      error: `Dosya yükleme sonucu doğrulanamadı. Yeniden yüklemeden önce belge listesini ve işlemi yöneticinizle kontrol edin. İşlem: ${documentId}`,
+      reviewRequired: true,
     };
   }
 
   // 9. DB row insert. tenant_id, company_id, contract_id,
   //    storage_path are server-controlled; created_by / uploaded_by
-  //    derive from auth. If this fails, the storage object is orphaned
-  //    and we surface that explicitly (no silent failure).
+  //    derive from auth. Reconcile a failed response by the generated ID;
+  //    only definite SQL rejection permits caller-authorized cleanup.
   // Display provenance from DB truth (profiles.display_name), not
   // user_metadata — any user can rewrite their own metadata via
   // auth.updateUser(), so the uploader label was spoofable. created_by
@@ -310,12 +262,13 @@ export async function uploadCompanyDocumentAction(
   const insert = await supabase
     .from("documents")
     .insert({
+      id: documentId,
       tenant_id: tenantId,
       company_id: companyId,
       contract_id: contractId,
       name,
       category,
-      status: deriveStatus(validityDate),
+      status: documentStatusForFile(validityDate),
       validity_date: validityDate,
       storage_path: storagePath,
       uploaded_by: uploadedBy,
@@ -325,10 +278,9 @@ export async function uploadCompanyDocumentAction(
     .single();
 
   if (insert.error || !insert.data) {
-    return {
-      ok: false,
-      error: `Belge kaydı oluşturulamadı: ${insert.error?.message ?? "bilinmeyen"}. (Storage'da ${storagePath} yolu orphan olabilir — orphan temizliği bu işlem kapsamında değil.)`,
-    };
+    return recoverCompanyDocumentInsert(supabase, {
+      id: documentId, companyId, tenantId, userId: user.id, storagePath,
+    }, insert.error?.code);
   }
 
   return { ok: true, documentId: insert.data.id };
@@ -378,7 +330,7 @@ export async function getCompanyDocumentDownloadUrlAction(
   if (signed.error || !signed.data?.signedUrl) {
     return {
       ok: false,
-      error: `İndirme bağlantısı oluşturulamadı: ${signed.error?.message ?? "bilinmeyen"}.`,
+      error: "İndirme bağlantısı oluşturulamadı. Tekrar deneyin.",
     };
   }
 
@@ -440,7 +392,7 @@ export async function deleteCompanyDocumentAction(
   }
   if (!doc) {
     // Already gone or not visible — idempotent success.
-    return { ok: true };
+    return { ok: true, deleted: false };
   }
 
   // DB-first delete with RETURNING. RLS enforces yonetici. `.select()`
@@ -456,7 +408,9 @@ export async function deleteCompanyDocumentAction(
   if (del.error) {
     return {
       ok: false,
-      error: `Belge silinemedi: ${del.error.message}`,
+      error: del.error.message.includes('contract_document_versions_document_id_fkey')
+        ? 'Sürüm geçmişi bulunan sözleşme PDF’i silinemez. Yeni sürüm yükleyerek geçmişi koruyun.'
+        : `Belge silinemedi: ${del.error.message}`,
     };
   }
 
@@ -464,7 +418,7 @@ export async function deleteCompanyDocumentAction(
   if (deletedRows.length === 0) {
     // Nothing was actually deleted (already gone / concurrent delete /
     // RLS-filtered). Idempotent no-op — storage is NOT touched.
-    return { ok: true };
+    return { ok: true, deleted: false };
   }
 
   // Storage remove — second. Use the path from the row that was
@@ -478,12 +432,13 @@ export async function deleteCompanyDocumentAction(
     if (remove.error) {
       return {
         ok: true,
+        deleted: true,
         warning: `DB kaydı silindi, storage dosyası silinemedi (orphan): ${deletedPath}`,
       };
     }
   }
 
-  return { ok: true };
+  return { ok: true, deleted: true };
 }
 
 /**

@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   PageHeader,
   TabNavigation,
   DataTable,
-  StatusBadge,
   EmptyState,
 } from "@/components/ui";
+import Link from "next/link";
+import { useNavigationGuard } from "@/context/NavigationGuardContext";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
+import { useScopedResource } from "@/components/ui/useScopedResource";
 import { listActiveTenantProfiles } from "@/lib/services/profiles";
 import type { TabItem, ColumnDef } from "@/types/ui";
 
@@ -18,12 +20,6 @@ import type { TabItem, ColumnDef } from "@/types/ui";
 // Static configuration dictionaries
 // Inline, not dynamic truth — these are product vocabulary constants.
 // ---------------------------------------------------------------------------
-
-interface AyarDictEntry {
-  id: string;
-  ad: string;
-  durum: "aktif" | "pasif";
-}
 
 interface AyarUserEntry {
   id: string;
@@ -38,46 +34,10 @@ interface AyarRolEntry {
   aciklama: string;
 }
 
-const FIRMA_ETIKETLERI: AyarDictEntry[] = [
-  { id: "fe1", ad: "Lojistik", durum: "aktif" },
-  { id: "fe2", ad: "Temizlik", durum: "aktif" },
-  { id: "fe3", ad: "Güvenlik", durum: "aktif" },
-  { id: "fe4", ad: "İnşaat", durum: "aktif" },
-  { id: "fe5", ad: "Gıda", durum: "aktif" },
-  { id: "fe6", ad: "Turizm", durum: "pasif" },
-  { id: "fe7", ad: "Tekstil", durum: "aktif" },
-  { id: "fe8", ad: "Enerji", durum: "aktif" },
-];
-
-const SOZLESME_TIPLERI: AyarDictEntry[] = [
-  { id: "st1", ad: "Hizmet", durum: "aktif" },
-  { id: "st2", ad: "Ek Protokol", durum: "aktif" },
-];
-
-const EVRAK_KATEGORILERI: AyarDictEntry[] = [
-  { id: "ek1", ad: "Çerçeve Sözleşme", durum: "aktif" },
-  { id: "ek2", ad: "Ek Protokol", durum: "aktif" },
-  { id: "ek3", ad: "Yetki Belgesi", durum: "aktif" },
-  { id: "ek4", ad: "Operasyon Evrakı", durum: "aktif" },
-  { id: "ek5", ad: "Teklif Dosyası", durum: "aktif" },
-  { id: "ek6", ad: "Ziyaret Tutanağı", durum: "aktif" },
-  { id: "ek7", ad: "Diğer", durum: "aktif" },
-];
-
-// Task source vocabulary per WORKFLOW_RULES — five accepted values
-// (manuel | randevu | sözleşme | talep | evrak). Reference-only.
-const GOREV_TIPLERI: AyarDictEntry[] = [
-  { id: "gt1", ad: "Manuel", durum: "aktif" },
-  { id: "gt2", ad: "Randevu", durum: "aktif" },
-  { id: "gt3", ad: "Sözleşme", durum: "aktif" },
-  { id: "gt4", ad: "Talep", durum: "aktif" },
-  { id: "gt5", ad: "Evrak", durum: "aktif" },
-];
-
 // Canonical 6-role BPS model. Order + slugs match the real role enum
 // (yonetici, partner, operasyon, ik, muhasebe, goruntuleyici) used by
 // RoleContext / migrations / ROLE_MATRIX. This array is reference
-// material only — surfaced under a non-truth banner. Role management
+// material only — shown in the collapsed role guide. Role management
 // is not built here; ROLE_MATRIX.md is the source of truth.
 const ROLLER: AyarRolEntry[] = [
   { id: "r1", rolAdi: "Yönetici", aciklama: "Kurumsal görünürlük, kontrol, kritik aksiyon ve yapılandırma yönetimi" },
@@ -87,23 +47,6 @@ const ROLLER: AyarRolEntry[] = [
   { id: "r5", rolAdi: "Muhasebe", aciklama: "Finansal veri girişi, alacak takibi ve faturalama görünürlüğü" },
   { id: "r6", rolAdi: "Görüntüleyici", aciklama: "Yalnızca okuma — takip ve rapor görünürlüğü" },
 ];
-
-const SEHIRLER: AyarDictEntry[] = [
-  { id: "seh1", ad: "İstanbul", durum: "aktif" },
-  { id: "seh2", ad: "İzmir", durum: "aktif" },
-  { id: "seh3", ad: "Ankara", durum: "aktif" },
-  { id: "seh4", ad: "Bursa", durum: "aktif" },
-  { id: "seh5", ad: "Antalya", durum: "pasif" },
-  { id: "seh6", ad: "Trabzon", durum: "aktif" },
-  { id: "seh7", ad: "Edirne", durum: "aktif" },
-  { id: "seh8", ad: "Konya", durum: "aktif" },
-];
-
-// Operasyon Partnerleri tab is intentionally left without a backing
-// data array. The previous fake human roster (Ahmet B., Mehmet Y., …)
-// looked like operational truth but wasn't; per the 2026-05-04 truth
-// sweep it now renders an honest empty state until a real
-// partner-roster feature is built.
 
 import {
   TYPE_BODY,
@@ -127,30 +70,8 @@ import {
 // ---------------------------------------------------------------------------
 
 const TABS: TabItem[] = [
-  { key: "kullanicilar", label: "Kullanıcılar" },
-  { key: "erisim-talepleri", label: "Erişim Talepleri" },
-  { key: "roller", label: "Roller" },
-  { key: "firma-etiketleri", label: "Firma Etiketleri" },
-  { key: "sozlesme-tipleri", label: "Sözleşme Tipleri" },
-  { key: "evrak-kategorileri", label: "Evrak Kategorileri" },
-  { key: "gorev-tipleri", label: "Görev Tipleri" },
-  { key: "sehirler", label: "Şehirler" },
-  { key: "operasyon-partnerleri", label: "Operasyon Partnerleri" },
-  { key: "bildirim-kurallari", label: "Bildirim Kuralları" },
-];
-
-// ---------------------------------------------------------------------------
-// Column definitions (existing)
-// ---------------------------------------------------------------------------
-
-const COLUMNS_DICT: ColumnDef<AyarDictEntry>[] = [
-  { key: "ad", header: "Ad", sortable: true },
-  {
-    key: "durum",
-    header: "Durum",
-    sortable: true,
-    render: (val) => <StatusBadge status={val as "aktif" | "pasif"} />,
-  },
+  { key: "kullanicilar", label: "Şirket ekibi" },
+  { key: "erisim-talepleri", label: "Platform başvuruları" },
 ];
 
 const COLUMNS_USERS: ColumnDef<AyarUserEntry>[] = [
@@ -167,26 +88,6 @@ const COLUMNS_ROLES: ColumnDef<AyarRolEntry>[] = [
     render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{val as string}</span>,
   },
 ];
-
-// ---------------------------------------------------------------------------
-// ReferenceListBanner — page-local non-truth label.
-// Sits above hard-coded reference dictionaries (Roller, Firma Etiketleri,
-// Sözleşme Tipleri, Evrak Kategorileri, Görev Tipleri, Şehirler) so the
-// admin reads them as setup guidance rather than operational truth.
-// Visual matches the Finansal Özet management-visibility banner. Stays
-// inline in this file — not extracted to components/ — because it is
-// settings-page copy, not a reusable primitive.
-// ---------------------------------------------------------------------------
-function ReferenceListBanner() {
-  return (
-    <div
-      className={`${TYPE_CAPTION} ${TEXT_MUTED} border ${BORDER_DEFAULT} ${RADIUS_SM} px-3 py-2 mb-3`}
-      role="note"
-    >
-      Statik yapılandırma sözlüğü — operasyonel kayıt değil
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Access request types
@@ -214,18 +115,7 @@ const BIRIM_DISPLAY: Record<string, string> = {
 // ---------------------------------------------------------------------------
 // Kullanıcılar Tab — real profiles read (yonetici-only surface)
 // ---------------------------------------------------------------------------
-// Replaces the previous KULLANICILAR mock. The page is already yonetici-gated
-// at the parent. Maps the profile shape into AyarUserEntry so the existing
-// COLUMNS_USERS and DataTable render identically to before. Honest empty
-// state when no rows.
-//
-// Reads through the service layer's tenant-scoped reader (2026-09-04). This
-// tab used to run its own raw `from("profiles")` query — bypassing the service
-// layer AND, because that query had no tenant filter, listing every tenant's
-// users. Same leak as the assignee picker, second call site. qa:static R14
-// now fails on a raw profiles query in any page.
-// ---------------------------------------------------------------------------
-
+// Tenant-scoped profiles; stale responses are discarded when the account or company changes.
 const ROL_DISPLAY: Record<string, string> = {
   yonetici: "Yönetici",
   partner: "Partner",
@@ -236,66 +126,17 @@ const ROL_DISPLAY: Record<string, string> = {
 };
 
 function UsersTab() {
-  const [users, setUsers] = useState<AyarUserEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const supabase = createClient();
-      try {
-        const rows = await listActiveTenantProfiles(supabase);
-        if (cancelled) return;
-        const mapped: AyarUserEntry[] = rows.map((p) => ({
-          id: p.id,
-          ad: p.display_name,
-          rol: ROL_DISPLAY[p.role] ?? p.role,
-          eposta: p.email,
-        }));
-        setUsers(mapped);
-      } catch {
-        if (cancelled) return;
-        setError("Kullanıcılar yüklenemedi.");
-        setUsers([]);
-      }
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const { user, role } = useAuth();
+  const tenantId = user?.app_metadata.active_tenant;
+  const reader = useCallback(async (): Promise<AyarUserEntry[]> => {
+    const rows = await listActiveTenantProfiles(createClient());
+    return rows.map(p => ({ id: p.id, ad: p.display_name, rol: ROL_DISPLAY[p.role] ?? p.role, eposta: p.email }));
   }, []);
-
-  if (loading) {
-    return (
-      <div
-        className={`${SURFACE_HEADER} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} px-4 py-12 text-center`}
-      >
-        <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Yükleniyor…</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div
-        className={`${SURFACE_HEADER} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} px-4 py-12 text-center`}
-      >
-        <p className={`${TYPE_BODY} text-red-600`} role="alert">
-          {error}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <DataTable<AyarUserEntry>
-      columns={COLUMNS_USERS}
-      data={users}
-      rowKey="id"
-      emptyTitle="Henüz kullanıcı yok"
-    />
-  );
+  const resource = useScopedResource(user && typeof tenantId === "string" ? `${user.id}:${tenantId}:${role}` : null, reader);
+  if (resource.loading) return <p role="status" className="p-6 text-sm text-slate-600">Şirket ekibi yükleniyor…</p>;
+  if (resource.error) return <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4"><p>Şirket ekibi yüklenemedi.</p><button type="button" onClick={() => void resource.reload()} className="mt-2 min-h-11 text-sm font-medium text-blue-700 underline">Yeniden dene</button></div>;
+  if (!resource.data) return <p role="status" className="p-6 text-sm text-slate-600">Şirket erişimi doğrulanıyor…</p>;
+  return <DataTable<AyarUserEntry> columns={COLUMNS_USERS} data={resource.data} rowKey="id" emptyTitle="Şirket ekibinde kullanıcı bulunamadı" emptyDescription="Şirket erişimini kontrol edin. Yeni ekip üyeleri için Ekip davetleri bağlantısını kullanabilirsiniz." />;
 }
 
 // ---------------------------------------------------------------------------
@@ -303,58 +144,48 @@ function UsersTab() {
 // ---------------------------------------------------------------------------
 
 function AccessRequestsTab() {
-  const { user } = useAuth();
-  const [requests, setRequests] = useState<AccessRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, role } = useAuth();
+  const inFlight = useRef(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
   const fetchRequests = useCallback(async () => {
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("access_requests")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setRequests(data as AccessRequest[]);
-    }
-    setLoading(false);
+    const permission = await supabase.rpc("is_platform_admin");
+    if (permission.error || typeof permission.data !== "boolean") throw new Error("permission");
+    if (!permission.data) return { allowed: false, rows: [] as AccessRequest[] };
+    const { data, error } = await supabase.from("access_requests")
+      .select("id,full_name,email,birim,status,created_at,reviewed_at,reviewed_by")
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100);
+    if (error || !Array.isArray(data)) throw new Error("read");
+    return { allowed: true, rows: data as AccessRequest[] };
   }, []);
-
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+  const resource = useScopedResource(user ? `${user.id}:${role}` : null, fetchRequests);
+  const requests = resource.data?.rows ?? [];
+  const loading = resource.loading;
 
   async function handleAction(id: string, newStatus: "onaylandi" | "reddedildi") {
+    if (inFlight.current || !resource.data?.allowed || !user) return;
+    inFlight.current = true;
     setActionLoading(id);
     setActionError(null);
-    const supabase = createClient();
-
-    const { error } = await supabase
-      .from("access_requests")
-      .update({
-        status: newStatus,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: user?.email ?? "yonetici",
-      })
-      .eq("id", id);
-
-    if (!error) {
-      setRequests((prev) =>
-        prev.map((r) =>
-          r.id === id
-            ? { ...r, status: newStatus, reviewed_at: new Date().toISOString(), reviewed_by: user?.email ?? "yonetici" }
-            : r
-        )
-      );
-    } else {
-      // Surface the failure — a silent branch left the click looking
-      // ignored while the request stayed beklemede.
-      setActionError(`İşlem kaydedilemedi: ${error.message}`);
+    try {
+      const { data, error } = await createClient().from("access_requests")
+        .update({ status: newStatus, reviewed_at: new Date().toISOString(), reviewed_by: user.email ?? user.id })
+        .eq("id", id).eq("status", "beklemede").select("id,status").single();
+      if (error || data?.id !== id || data.status !== newStatus) {
+        throw new Error("İşlem doğrulanamadı veya talep başka bir yönetici tarafından değerlendirildi. Listeyi yenileyerek kontrol edin.");
+      }
+      await resource.reload();
+    } catch {
+      setActionError("İşlem doğrulanamadı veya talep başka bir yönetici tarafından değerlendirildi. Listeyi yenileyerek kontrol edin.");
+    } finally {
+      inFlight.current = false;
+      setActionLoading(null);
     }
-    setActionLoading(null);
   }
+
+  if (resource.error) return <div role="alert"><p>Erişim talepleri okunamadı.</p><button type="button" onClick={() => void resource.reload()} className="min-h-11 text-blue-700 underline">Yeniden dene</button></div>;
+  if (!loading && resource.data?.allowed === false) return <EmptyState title="Platform yönetimine özel" description="Erişim başvurularını yalnız platform yöneticisi inceleyebilir. Şirket ekibinizi Çalışma alanı kurulumu bölümünden davet edebilirsiniz." size="tab" />;
 
   const pending = requests.filter((r) => r.status === "beklemede");
   const reviewed = requests.filter((r) => r.status !== "beklemede");
@@ -371,6 +202,7 @@ function AccessRequestsTab() {
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600"><p>En son 100 platform başvurusu gösterilir. Onay, kullanıcı hesabı veya şirket üyeliği oluşturmaz.</p><button type="button" disabled={actionLoading !== null} onClick={() => void resource.reload()} className="min-h-11 text-blue-700 underline disabled:opacity-50">Listeyi yenile</button></div>
       {actionError && (
         <p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">
           {actionError}
@@ -494,6 +326,7 @@ function AccessRequestsTab() {
 export default function AyarlarPage() {
   const { role } = useRole();
   const { loading: authLoading } = useAuth();
+  const guard = useNavigationGuard();
   const [activeTab, setActiveTab] = useState("kullanicilar");
 
   // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
@@ -501,7 +334,7 @@ export default function AyarlarPage() {
   if (authLoading) {
     return (
       <>
-        <PageHeader title="Ayarlar" subtitle="Sistem yapılandırması" />
+        <PageHeader title="Ayarlar" subtitle="Şirket ekibi, davetler ve erişim başvuruları" />
         <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
       </>
     );
@@ -510,7 +343,7 @@ export default function AyarlarPage() {
   if (role !== "yonetici") {
     return (
       <>
-        <PageHeader title="Ayarlar" subtitle="Sistem yapılandırması" />
+        <PageHeader title="Ayarlar" subtitle="Şirket ekibi, davetler ve erişim başvuruları" />
         <EmptyState
           title="Erişim kısıtlı"
           description="Bu ekran yönetici erişimi gerektirir."
@@ -522,107 +355,26 @@ export default function AyarlarPage() {
 
   return (
     <>
-      <PageHeader title="Ayarlar" subtitle="Sistem yapılandırması" />
-
+      <PageHeader title="Ayarlar" subtitle="Şirket ekibi, davetler ve erişim başvuruları" />
+      <div className="mb-5 grid gap-3 sm:grid-cols-2">
+        <Link href="/kurulum" onClick={guard.handle} className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-blue-600"><span className="block font-semibold">Ekip davetleri ve kurulum →</span><span className="mt-1 block text-sm">Ekibe erişim verin; firma, şube ve ilk plan adımlarını tamamlayın.</span></Link>
+        <Link href="/yonetim" onClick={guard.handle} className="rounded-xl border border-slate-200 bg-white p-4 text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><span className="block font-semibold">İş dağılımını görüntüle →</span><span className="mt-1 block text-sm">Kimde hangi iş var, hangi işler üstlenilmeyi bekliyor görün.</span></Link>
+      </div>
       <div className="space-y-4">
         <TabNavigation tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
-
-        {activeTab === "kullanicilar" && <UsersTab />}
-
-        {activeTab === "erisim-talepleri" && (
+        {activeTab === "kullanicilar" && <>
+          <p className="text-sm text-slate-600">Seçili şirketin kullanıcıları ve mevcut rolleri. Yeni bir ekip üyesi için Ekip davetleri ve kurulum bölümünü açın.</p>
+          <UsersTab />
+          <details className="rounded-xl border border-slate-200 bg-white p-4">
+            <summary className="min-h-11 cursor-pointer font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600">Roller hakkında</summary>
+            <p className="mb-3 text-sm text-slate-500">Genel rol açıklamalarıdır; bu bölüm yetki değiştirmez. Erişim, şirket üyeliği ve ilgili ekranın yetki kurallarına bağlıdır.</p>
+            <DataTable<AyarRolEntry> columns={COLUMNS_ROLES} data={ROLLER} rowKey="id" />
+          </details>
+        </>}
+        {activeTab === "erisim-talepleri" && <>
+          <p className="text-sm text-slate-600">Platforma gelen başvurular içindir. Şirketinize ekip üyesi eklemek için Ekip davetleri ve kurulum bölümünü kullanın.</p>
           <AccessRequestsTab />
-        )}
-
-        {activeTab === "roller" && (
-          <>
-            <ReferenceListBanner />
-            <DataTable<AyarRolEntry>
-              columns={COLUMNS_ROLES}
-              data={ROLLER}
-              rowKey="id"
-              emptyTitle="Rol tanımı yok"
-            />
-          </>
-        )}
-
-        {activeTab === "firma-etiketleri" && (
-          <>
-            <ReferenceListBanner />
-            <DataTable<AyarDictEntry>
-              columns={COLUMNS_DICT}
-              data={FIRMA_ETIKETLERI}
-              rowKey="id"
-              emptyTitle="Firma etiketi yok"
-            />
-          </>
-        )}
-
-        {activeTab === "sozlesme-tipleri" && (
-          <>
-            <ReferenceListBanner />
-            <DataTable<AyarDictEntry>
-              columns={COLUMNS_DICT}
-              data={SOZLESME_TIPLERI}
-              rowKey="id"
-              emptyTitle="Sözleşme tipi yok"
-            />
-          </>
-        )}
-
-        {activeTab === "evrak-kategorileri" && (
-          <>
-            <ReferenceListBanner />
-            <DataTable<AyarDictEntry>
-              columns={COLUMNS_DICT}
-              data={EVRAK_KATEGORILERI}
-              rowKey="id"
-              emptyTitle="Evrak kategorisi yok"
-            />
-          </>
-        )}
-
-        {activeTab === "gorev-tipleri" && (
-          <>
-            <ReferenceListBanner />
-            <DataTable<AyarDictEntry>
-              columns={COLUMNS_DICT}
-              data={GOREV_TIPLERI}
-              rowKey="id"
-              emptyTitle="Görev tipi yok"
-            />
-          </>
-        )}
-
-        {activeTab === "sehirler" && (
-          <>
-            <ReferenceListBanner />
-            <DataTable<AyarDictEntry>
-              columns={COLUMNS_DICT}
-              data={SEHIRLER}
-              rowKey="id"
-              emptyTitle="Şehir yok"
-            />
-          </>
-        )}
-
-        {/* DOWNGRADE-EMPTY (2026-05-04 truth sweep): the previous fake
-            human roster has been removed. Honest empty state until a
-            real partner-roster feature is built. */}
-        {activeTab === "operasyon-partnerleri" && (
-          <EmptyState
-            title="Henüz tanımlı operasyonel kayıt yok."
-            description="Bu bölüm gerçek operasyonel kayıtlar tanımlandığında doldurulacak."
-            size="tab"
-          />
-        )}
-
-        {activeTab === "bildirim-kurallari" && (
-          <EmptyState
-            title="Bildirim Kuralları"
-            description="Bildirim kuralları yapılandırması henüz kapsam dışıdır."
-            size="tab"
-          />
-        )}
+        </>}
       </div>
     </>
   );

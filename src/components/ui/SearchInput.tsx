@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useImperativeHandle, type Ref } from "react";
 import { Search, X } from "lucide-react";
 import {
   TYPE_BODY,
@@ -10,37 +10,52 @@ import {
   TEXT_MUTED,
 } from "@/styles/tokens";
 
+export interface SearchInputHandle { clear: () => void; }
+
 interface SearchInputProps {
+  ref?: Ref<SearchInputHandle>;
   placeholder?: string;
   value?: string;
   onChange: (value: string) => void;
   debounceMs?: number;
+  maxLength?: number;
 }
 
 export default function SearchInput({
+  ref,
   placeholder = "Ara...",
   value: externalValue,
   onChange,
   debounceMs = 300,
+  maxLength,
 }: SearchInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [internalValue, setInternalValue] = useState(externalValue ?? "");
 
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callback = useRef(onChange);
+  callback.current = onChange;
   useEffect(() => {
     if (externalValue !== undefined) {
+      if (timer.current) clearTimeout(timer.current);
       setInternalValue(externalValue);
     }
   }, [externalValue]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onChange(internalValue);
-    }, debounceMs);
-    return () => clearTimeout(timer);
-  }, [internalValue, debounceMs, onChange]);
-
-  const handleClear = useCallback(() => {
+  function handleInput(value: string) {
+    setInternalValue(value);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { timer.current = null; callback.current(value); }, debounceMs);
+  }
+  function handleClear() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
     setInternalValue("");
-  }, []);
+    callback.current("");
+    inputRef.current?.focus();
+  }
+  useImperativeHandle(ref, () => ({ clear: handleClear }));
 
   return (
     <div className="relative">
@@ -49,16 +64,21 @@ export default function SearchInput({
         className={`absolute left-3 top-1/2 -translate-y-1/2 ${TEXT_MUTED}`}
       />
       <input
+        ref={inputRef}
+        aria-label={placeholder}
         type="text"
+        maxLength={maxLength}
         value={internalValue}
-        onChange={(e) => setInternalValue(e.target.value)}
+        onChange={(e) => handleInput(e.target.value)}
         placeholder={placeholder}
-        className={`w-full pl-9 pr-8 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+        className={`w-full min-h-11 pl-9 pr-12 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
       />
       {internalValue && (
         <button
+          type="button"
+          aria-label="Aramayı temizle"
           onClick={handleClear}
-          className={`absolute right-2 top-1/2 -translate-y-1/2 ${TEXT_MUTED} hover:text-slate-600`}
+          className={`absolute right-0 top-1/2 flex h-11 w-11 items-center justify-center -translate-y-1/2 ${TEXT_MUTED} hover:text-slate-600`}
         >
           <X size={14} />
         </button>

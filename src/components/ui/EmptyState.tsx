@@ -70,8 +70,9 @@ export default function EmptyState({
       )}
       {action && (
         <button
+          type="button"
           onClick={action.onClick}
-          className={EMPTY_ACTION_BUTTON}
+          className={`min-h-11 ${EMPTY_ACTION_BUTTON}`}
         >
           {action.label}
         </button>

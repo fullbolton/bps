@@ -63,6 +63,7 @@ export interface CriticalDateCreateInput {
 }
 
 export interface CriticalDateUpdateInput {
+  expectedUpdatedAt: string;
   title?: string;
   dateType?: CriticalDateType;
   deadlineDate?: string;
@@ -199,5 +200,5 @@ export async function updateCriticalDateRecord(
     patch.note = nullableTrim(input.note);
   }
 
-  return updateCriticalDate(client, id, patch);
+  return updateCriticalDate(client, id, patch, input.expectedUpdatedAt);
 }

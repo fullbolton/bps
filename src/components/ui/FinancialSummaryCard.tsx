@@ -26,9 +26,9 @@ export default function FinancialSummaryCard({
   subLabel,
 }: FinancialSummaryCardProps) {
   return (
-    <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4 flex flex-col gap-1.5`}>
+    <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-5 flex min-w-0 flex-col gap-3 shadow-sm`}>
       <span className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>{label}</span>
-      <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{value}</span>
+      <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY} break-words`}>{value}</span>
       {subLabel && (
         <span className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>{subLabel}</span>
       )}

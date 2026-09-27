@@ -11,7 +11,8 @@
  * Pattern follows NewContractModal (Faz 2).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useId } from "react";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { ModalShell } from "@/components/ui";
 
 interface AssignOwnerModalProps {
@@ -19,6 +20,7 @@ interface AssignOwnerModalProps {
   onClose: () => void;
   talepRef?: string;
   talepId?: string;
+  initialSorumlu?: string;
   /**
    * Persistence callback. Awaited by the modal so the parent can throw
    * a Turkish-localized error and the modal will surface it inline
@@ -32,84 +34,110 @@ export default function AssignOwnerModal({
   onClose,
   talepRef,
   talepId,
+  initialSorumlu = "",
   onSubmit,
 }: AssignOwnerModalProps) {
-  const [sorumlu, setSorumlu] = useState("");
+  const submitting = useRef(false);
+  const formId = useId();
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [sorumlu, setSorumlu] = useState(initialSorumlu);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Reset form state when modal opens/closes
   useEffect(() => {
     if (!open) return;
-    setSorumlu("");
+    setSorumlu(initialSorumlu);
+    submitting.current = false;
+    setDiscardOpen(false);
     setSaving(false);
     setSubmitError(null);
-  }, [open]);
+  }, [open, talepId, initialSorumlu]);
+
+  const canSubmit = !!talepId && !!sorumlu.trim() && sorumlu.trim() !== initialSorumlu.trim();
 
   async function handleSubmit() {
-    if (!sorumlu.trim() || !talepId || saving) return;
+    if (!canSubmit || !talepId || submitting.current) return;
+    submitting.current = true;
     setSaving(true);
     setSubmitError(null);
     try {
       await onSubmit({ talepId, sorumlu: sorumlu.trim() });
+      submitting.current = false;
       resetAndClose();
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Beklenmeyen bir hata olustu.",
+        err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu.",
       );
     } finally {
+      submitting.current = false;
       setSaving(false);
     }
   }
 
+  function requestClose() {
+    if (submitting.current) return;
+    if (sorumlu !== initialSorumlu) setDiscardOpen(true);
+    else resetAndClose();
+  }
+
   function resetAndClose() {
-    if (saving) return;
+    if (submitting.current) return;
+    setDiscardOpen(false);
     setSorumlu("");
     setSubmitError(null);
     onClose();
   }
 
   return (
+    <>
     <ModalShell
       open={open}
-      onClose={resetAndClose}
+      onClose={requestClose}
+      closeDisabled={saving}
       title="Sorumlu Ata"
       footer={
         <>
           <button
-            onClick={resetAndClose}
+            type="button"
+            onClick={requestClose}
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Iptal
+            İptal
           </button>
           <button
-            onClick={handleSubmit}
-            disabled={!sorumlu.trim() || saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            type="submit"
+            form={formId}
+            disabled={!canSubmit || saving}
+            className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? "Kaydediliyor..." : "Ata"}
+            {saving ? "Kaydediliyor..." : initialSorumlu.trim() ? "Güncelle" : "Ata"}
           </button>
         </>
       }
     >
-      <div className="space-y-4">
+      <form id={formId} className="space-y-4" aria-busy={saving} onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+        {saving && <p role="status" className="text-sm text-slate-600">Sorumlu kaydediliyor, lütfen bekleyin…</p>}
         {talepRef && (
           <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
             <p className="text-xs text-blue-700">Talep: {talepRef}</p>
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Sorumlu Kisi <span className="text-red-500">*</span>
+          <label htmlFor={`${formId}-owner`} className="block text-sm font-medium text-slate-700 mb-1">
+            Sorumlu Kişi <span className="text-red-500">*</span>
           </label>
           <input
+            id={`${formId}-owner`}
+            data-dialog-initial-focus
+            required
             type="text"
             value={sorumlu}
             onChange={(e) => setSorumlu(e.target.value)}
-            placeholder="Kisi adi"
+            placeholder="Kişi adı"
             disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            className="min-h-11 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
         {submitError && (
@@ -117,7 +145,13 @@ export default function AssignOwnerModal({
             {submitError}
           </p>
         )}
-      </div>
+      </form>
     </ModalShell>
+    {open && discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
+      recordName={talepRef || "Talep sorumlusu"}
+      description="Sorumlu alanındaki kaydedilmemiş değişiklik bırakılacak."
+      confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)}
+      onConfirm={async () => { resetAndClose(); }} />}
+    </>
   );
 }

@@ -1,5 +1,13 @@
 "use client";
 
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
+import { useListViewState } from "@/components/ui/useListViewState";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import PickerFeedback from "@/components/ui/PickerFeedback";
+import AppointmentLinkOpener from "./AppointmentLinkOpener";
+import AppointmentTasks from "./AppointmentTasks";
+import AsyncSection from "@/components/ui/AsyncSection";
+
 /**
  * Randevular list page — Phase 3B cutover.
  *
@@ -15,10 +23,11 @@
  * update and the task creation atomically.
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { Suspense, useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { formatDateTR } from "@/lib/format-date";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import {
   PageHeader,
   SearchInput,
@@ -59,8 +68,6 @@ import type {
   RowAction,
   OncelikSeviyesi,
 } from "@/types/ui";
-import { selectTasksByAppointmentId } from "@/lib/supabase/tasks";
-import type { TaskRow } from "@/types/database.types";
 import { clsx } from "clsx";
 import {
   TYPE_BODY,
@@ -80,13 +87,13 @@ const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colo
 const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
 const CHIP_INACTIVE = "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
 const DL_LABEL = `${TYPE_CAPTION} ${TEXT_SECONDARY}`;
-const DL_VALUE = `${TYPE_BODY} ${TEXT_BODY} mt-0.5`;
+const DL_VALUE = `${TYPE_BODY} ${TEXT_BODY} mt-0.5 break-words`;
 const COL_TRUNCATED = `${TYPE_BODY} ${TEXT_SECONDARY} truncate max-w-[200px] block`;
 
 const STATUS_LABELS: Record<string, string> = {
-  planlandi: "Planlandi",
-  tamamlandi: "Tamamlandi",
-  iptal: "Iptal",
+  planlandi: "Planlandı",
+  tamamlandi: "Tamamlandı",
+  iptal: "İptal",
   ertelendi: "Ertelendi",
 };
 
@@ -103,11 +110,11 @@ const FILTER_CONFIG: FilterConfig[] = [
     key: "durum",
     label: "Durum",
     type: "select",
-    placeholder: "Tum durumlar",
+    placeholder: "Tüm durumlar",
     options: [
-      { label: "Planlandi", value: "planlandi" },
-      { label: "Tamamlandi", value: "tamamlandi" },
-      { label: "Iptal", value: "iptal" },
+      { label: "Planlandı", value: "planlandi" },
+      { label: "Tamamlandı", value: "tamamlandi" },
+      { label: "İptal", value: "iptal" },
       { label: "Ertelendi", value: "ertelendi" },
     ],
   },
@@ -115,7 +122,7 @@ const FILTER_CONFIG: FilterConfig[] = [
     key: "tip",
     label: "Tip",
     type: "select",
-    placeholder: "Tum tipler",
+    placeholder: "Tüm tipler",
     options: (Object.keys(APPOINTMENT_TYPE_LABELS) as AppointmentMeetingType[]).map((t) => ({
       label: APPOINTMENT_TYPE_LABELS[t],
       value: t,
@@ -130,7 +137,7 @@ function buildFirmaFilter(companyNames: string[]): FilterConfig {
     key: "firma",
     label: "Firma",
     type: "select",
-    placeholder: "Tum firmalar",
+    placeholder: "Tüm firmalar",
     options: Array.from(new Set(companyNames)).map((name) => ({
       label: name,
       value: name,
@@ -143,10 +150,10 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
   { key: "firma_name", header: "Firma", sortable: true },
   {
     key: "meeting_type",
-    header: "Gorusme Tipi",
+    header: "Görüşme Tipi",
     render: (val) => <span>{APPOINTMENT_TYPE_LABELS[val as AppointmentMeetingType] ?? String(val)}</span>,
   },
-  { key: "attendee", header: "Katilimci", render: (val) => <span>{(val as string) || "—"}</span> },
+  { key: "attendee", header: "Katılımcı", render: (val) => <span>{(val as string) || "—"}</span> },
   {
     key: "status",
     header: "Durum",
@@ -155,7 +162,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
   },
   {
     key: "result",
-    header: "Sonuc",
+    header: "Sonuç",
     render: (val) => (
       <span className={COL_TRUNCATED}>
         {(val as string) || "—"}
@@ -173,28 +180,39 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
   },
 ];
 
+const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", firma: "", tip: "" };
+
 export default function RandevularPage() {
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
+  const feedback = useActionNotice(JSON.stringify([user?.id, user?.app_metadata?.active_tenant, role]));
   const router = useRouter();
 
   const supabase = useMemo(() => createClient(), []);
-  const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
-  const [companyNameById, setCompanyNameById] = useState<Record<string, string>>({});
-  const [companyLegacyById, setCompanyLegacyById] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // Real companies for the firma filter + New Appointment modal.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
-  const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([]);
-  const [profilesDurum, setProfilesDurum] = useState<"loading" | "error" | "ready">("loading");
+  const [snapshot, setSnapshot] = useState<{scope: string; rows: AppointmentRow[]; names: Record<string,string>; legacy: Record<string,string>} | null>(null);
+  const [readState, setReadState] = useState<{scope: string; loading: boolean; error: string | null} | null>(null);
+  const generation = useRef(0);
+  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "ready" | "error"} | null>(null);
+  const [companyRetry, setCompanyRetry] = useState(0);
+  const [profileRetry, setProfileRetry] = useState(0);
+  const [profileSnapshot, setProfileSnapshot] = useState<{scope: string; rows: ProfileRow[]; status: "ready" | "error"} | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({
-    durum: "",
-    firma: "",
-    tip: "",
-  });
+  const searchControl = useRef<SearchInputHandle>(null);
+  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("randevular", listScope, LIST_FILTER_DEFAULTS);
+  // A new identity token also distinguishes A → B → A while a write is pending.
+  const context = useMemo(() => ({scope: listScope}), [listScope]);
+  const liveContext = useRef<typeof context | null>(context);
+  liveContext.current = context;
+  const appointments = useMemo(() => snapshot?.scope === listScope ? snapshot?.rows ?? [] : [], [snapshot, listScope]);
+  const companyNameById = useMemo(() => snapshot?.scope === listScope ? snapshot?.names ?? {} : {}, [snapshot, listScope]);
+  const companyLegacyById = useMemo(() => snapshot?.scope === listScope ? snapshot?.legacy ?? {} : {}, [snapshot, listScope]);
+  const loading = readState?.scope !== listScope || readState?.loading !== false;
+  const loadError = readState?.scope === listScope ? readState?.error : null;
+  const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
+  const allProfiles = useMemo(() => profileSnapshot?.scope === listScope ? profileSnapshot?.rows ?? [] : [], [profileSnapshot, listScope]);
+  const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
+  const profilesDurum = profileSnapshot?.scope === listScope ? profileSnapshot?.status ?? "loading" : "loading";
   const [newOpen, setNewOpen] = useState(false);
   const [resultTarget, setResultTarget] = useState<{ open: boolean; randevuId?: string }>({ open: false });
   // Info (not error): set when a completion succeeds but the follow-up
@@ -206,91 +224,66 @@ export default function RandevularPage() {
     randevuId?: string;
   }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedTasks, setSelectedTasks] = useState<TaskRow[]>([]);
+  const openLinkedAppointment = useCallback((id: string) => {
+    if (liveContext.current === context) setSelectedId(id);
+  }, [context]);
 
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
 
   // ------------------------------------------------------------------
   // Data loading
   // ------------------------------------------------------------------
 
   const reload = useCallback(async () => {
-    setLoadError(null);
+    if (!listScope || liveContext.current !== context) return;
+    const request = ++generation.current;
+    const isCurrent = () => request === generation.current && liveContext.current === context;
+    setReadState({scope: listScope, loading: true, error: null});
     try {
       const rows = await listAllAppointments(supabase);
-      setAppointments(rows);
-      const uniqueCompanyIds = Array.from(new Set(rows.map((r) => r.company_id)));
-      const display = await getCompanyDisplayMapByIds(supabase, uniqueCompanyIds);
-      setCompanyNameById(display.nameById);
-      setCompanyLegacyById(display.legacyById);
+      if (!isCurrent()) return;
+      const display = await getCompanyDisplayMapByIds(supabase, Array.from(new Set(rows.map(row => row.company_id))));
+      if (!isCurrent()) return;
+      setSnapshot({scope: listScope, rows, names: display.nameById, legacy: display.legacyById});
+      setReadState({scope: listScope, loading: false, error: null});
     } catch (err) {
-      setAppointments([]);
-      setCompanyNameById({});
-      setCompanyLegacyById({});
-      setLoadError(
-        err instanceof Error ? err.message : "Randevular yuklenirken bir hata olustu.",
-      );
-    } finally {
-      setLoading(false);
+      if (!isCurrent()) return;
+      setSnapshot(null);
+      setReadState({scope: listScope, loading: false, error: err instanceof Error ? err.message : "Randevular yüklenirken bir hata oluştu."});
     }
-  }, [supabase]);
+  }, [supabase, listScope, context]);
 
   useEffect(() => {
-    setLoading(true);
+    liveContext.current = context;
+    setSnapshot(null); setSelectedId(null); setCompletionNotice(null);
+    setResultTarget({open:false}); setNewOpen(false); setTaskTarget({open:false});
     void reload();
-  }, [reload]);
+    return () => { generation.current++; liveContext.current = null; };
+  }, [reload, context]);
 
-  // Companies for the firma filter + New Appointment modal.
+  // Directories must belong to the same resolved user/tenant/role as the list.
   useEffect(() => {
+    if (!listScope) return;
     let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
+    setCompanySnapshot(null);
+    void selectAllCompanies(supabase).then(rows => {
+      if (active) setCompanySnapshot({scope: listScope, rows, status: "ready"});
+    }).catch(() => {
+      if (active) setCompanySnapshot({scope: listScope, rows: [], status: "error"});
+    });
     return () => { active = false; };
-  }, [supabase]);
+  }, [supabase, listScope, companyRetry]);
 
-  // Assignable users for the "Görev Oluştur" assignee picker. On failure the
-  // picker renders disabled rather than pretending nobody exists.
   useEffect(() => {
+    if (!listScope) return;
     let active = true;
-    (async () => {
-      try {
-        const rows = await listActiveTenantProfiles(supabase);
-        if (active) { setAllProfiles(rows); setProfilesDurum("ready"); }
-      } catch {
-        if (active) { setAllProfiles([]); setProfilesDurum("error"); }
-      }
-    })();
+    setProfileSnapshot(null);
+    void listActiveTenantProfiles(supabase).then(rows => {
+      if (active) setProfileSnapshot({scope: listScope, rows, status: "ready"});
+    }).catch(() => {
+      if (active) setProfileSnapshot({scope: listScope, rows: [], status: "error"});
+    });
     return () => { active = false; };
-  }, [supabase]);
-
-  // ------------------------------------------------------------------
-  // Load tasks linked to the selected appointment (for the side panel)
-  // ------------------------------------------------------------------
-
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedTasks([]);
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const tasks = await selectTasksByAppointmentId(supabase, selectedId);
-        if (!cancelled) setSelectedTasks(tasks);
-      } catch {
-        if (!cancelled) setSelectedTasks([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, selectedId]);
+  }, [supabase, listScope, profileRetry]);
 
   // ------------------------------------------------------------------
   // Derived data
@@ -334,7 +327,7 @@ export default function RandevularPage() {
   );
 
   const kullaniciOptions = useMemo(
-    () => allProfiles.map((p) => ({ id: p.id, ad: p.display_name })),
+    () => allProfiles.filter((p) => ["yonetici", "operasyon", "ik"].includes(p.role)).map((p) => ({ id: p.id, ad: p.display_name })),
     [allProfiles],
   );
 
@@ -378,11 +371,11 @@ export default function RandevularPage() {
 
   // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
-  if (authLoading) {
+  if (authLoading || !viewReady) {
     return (
       <>
-        <PageHeader title="Randevular" subtitle="Gorusme takibi" />
-        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+        <PageHeader title="Randevular" subtitle="Görüşme takibi" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
       </>
     );
   }
@@ -390,7 +383,7 @@ export default function RandevularPage() {
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
       <>
-        <PageHeader title="Randevular" subtitle="Gorusme takibi" />
+        <PageHeader title="Randevular" subtitle="Görüşme takibi" />
         <EmptyState title="Erisim kisitli" description="Bu ekran erisiminizin disindadir." size="page" />
       </>
     );
@@ -400,23 +393,31 @@ export default function RandevularPage() {
     <>
       <PageHeader
         title="Randevular"
-        subtitle="Gorusme sonuclari ve takip aksiyonlari"
+        subtitle="Görüşme sonuclari ve takip aksiyonlari"
         actions={[
           {
             label: "Yeni Randevu",
-            onClick: () => setNewOpen(true),
+            onClick: () => { feedback.clear(); setNewOpen(true); },
             icon: <Plus size={16} />,
           },
         ]}
       />
 
+      <Suspense fallback={null}>
+        <AppointmentLinkOpener key={listScope} ready={!!listScope && !loading && !loadError && snapshot?.scope === listScope}
+          appointmentIds={appointments.map(row => row.id)} onOpen={openLinkedAppointment} />
+      </Suspense>
+      <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+
       <div className="space-y-4">
         {loadError && (
-          <p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">
-            {loadError}
-          </p>
+          <AsyncSection isLoading={false} hasError onRetry={() => { void reload(); }}>
+            {null}
+          </AsyncSection>
         )}
 
+        <PickerFeedback id="appointment-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
+          emptyText="Firma filtresinde gösterilecek firma yok." onRetry={() => setCompanyRetry(value => value + 1)} />
         {completionNotice && (
           <p className={`${TYPE_CAPTION} text-amber-600`} role="status" aria-live="polite">
             {completionNotice}
@@ -445,24 +446,33 @@ export default function RandevularPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput placeholder="Firma, katilimci ara..." onChange={handleSearch} />
+            <SearchInput ref={searchControl} key={listScope} value={search} maxLength={512} placeholder="Firma, katilimci ara..." onChange={handleSearch} />
           </div>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
+          <button type="button" disabled={loading} onClick={() => { void reload(); }}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">
+            <RefreshCw size={16} aria-hidden="true" className={loading ? "animate-spin" : undefined} />
+            Listeyi yenile
+          </button>
         </div>
 
         {loading ? (
-          <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Yukleniyor...</p>
-        ) : (
+          <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Randevular yükleniyor…</p>
+        ) : !loadError ? (
           <DataTable<AppointmentListRow>
             columns={COLUMNS}
             data={filteredData}
             rowKey="id"
             onRowClick={(row) => setSelectedId(row.id)}
             rowActions={rowActions}
-            emptyTitle="Randevu bulunamadi"
-            emptyDescription="Arama veya filtre kriterlerinizi degistirin."
+            emptyAction={(appointments.length > 0 && (search !== "" || Object.values(filters).some(Boolean))) ? {
+              label: "Arama ve filtreleri temizle",
+              onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
+            } : undefined}
+            emptyTitle={appointments.length === 0 ? "Henüz randevu yok" : "Bu filtrelerle eşleşen randevu yok"}
+            emptyDescription={appointments.length === 0 ? "Yeni Randevu ile ilk görüşmenizi planlayabilirsiniz.":"Aramayı veya filtreleri değiştirerek yeniden deneyin."}
           />
-        )}
+        ) : null}
       </div>
 
       <RightSidePanel
@@ -475,16 +485,10 @@ export default function RandevularPage() {
             <div>
               <dt className={DL_LABEL}>Firma</dt>
               <dd className={`${TYPE_BODY} mt-0.5`}>
-                {companyLegacyById[selectedRandevu.company_id] ? (
-                  <a
-                    href={`/firmalar/${companyLegacyById[selectedRandevu.company_id]}`}
-                    className={`${TEXT_LINK} hover:underline`}
-                  >
-                    {selectedRandevu.firma_name}
-                  </a>
-                ) : (
-                  <span className={TEXT_BODY}>{selectedRandevu.firma_name}</span>
-                )}
+                <Link href={`/firmalar/${selectedRandevu.company_id}`}
+                  className={`${TEXT_LINK} inline-block min-h-11 max-w-full break-words py-2 underline underline-offset-4`}>
+                  {selectedRandevu.firma_name === "—" ? "Firma kaydını aç" : selectedRandevu.firma_name}
+                </Link>
               </dd>
             </div>
             <div>
@@ -494,11 +498,11 @@ export default function RandevularPage() {
               </dd>
             </div>
             <div>
-              <dt className={DL_LABEL}>Gorusme Tipi</dt>
+              <dt className={DL_LABEL}>Görüşme Tipi</dt>
               <dd className={DL_VALUE}>{APPOINTMENT_TYPE_LABELS[selectedRandevu.meeting_type]}</dd>
             </div>
             <div>
-              <dt className={DL_LABEL}>Katilimci</dt>
+              <dt className={DL_LABEL}>Katılımcı</dt>
               <dd className={DL_VALUE}>{selectedRandevu.attendee || "—"}</dd>
             </div>
             <div>
@@ -507,7 +511,7 @@ export default function RandevularPage() {
             </div>
             {selectedRandevu.result && (
               <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
-                <dt className={DL_LABEL}>Sonuc</dt>
+                <dt className={DL_LABEL}>Sonuç</dt>
                 <dd className={DL_VALUE}>{selectedRandevu.result}</dd>
               </div>
             )}
@@ -517,26 +521,23 @@ export default function RandevularPage() {
                 <dd className={DL_VALUE}>{selectedRandevu.next_action}</dd>
               </div>
             )}
-            {selectedTasks.length > 0 && (
-              <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
-                <dt className={DL_LABEL}>Bu Randevudan Acilan Gorevler</dt>
-                <dd className="mt-1 space-y-1.5">
-                  {selectedTasks.map((task) => (
-                    <p key={task.id} className={`${TYPE_BODY} ${TEXT_BODY}`}>
-                      {task.title}
-                    </p>
-                  ))}
-                </dd>
-              </div>
-            )}
+            <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
+              <dt className={DL_LABEL}>Bu randevuya bağlı görevler</dt>
+              <dd className="mt-1">
+                <AppointmentTasks key={`${listScope}:${selectedRandevu.id}`} client={supabase} appointmentId={selectedRandevu.id} />
+              </dd>
+            </div>
           </dl>
         )}
       </RightSidePanel>
 
-      <NewAppointmentModal
+      {newOpen && <NewAppointmentModal
+        key={`${user?.id}:${user?.app_metadata?.active_tenant}:${role}`}
         open={newOpen}
-        onClose={() => setNewOpen(false)}
+        onClose={() => { if (liveContext.current === context) setNewOpen(false); }}
         firmalar={firmaOptions}
+        firmalarDurum={companiesDurum}
+        onRetryFirmalar={() => setCompanyRetry(value => value + 1)}
         onSubmit={async ({ firmaId, tarih, saat, gorusmeTipi, katilimci }) => {
           const result = await createAppointmentAction({
             legacyCompanyId: firmaId,
@@ -545,16 +546,21 @@ export default function RandevularPage() {
             meetingType: gorusmeTipi,
             attendee: katilimci || undefined,
           });
+          if (liveContext.current !== context) return;
           if (!result.ok) throw new Error(result.error);
-          await reload();
+          feedback.show("Randevu oluşturuldu. Durumu: planlandı.");
+          setNewOpen(false);
+          void reload();
           router.refresh();
         }}
-      />
+      />}
       <AppointmentResultModal
+        key={`${listScope}:${resultTarget.randevuId ?? "none"}`}
         open={resultTarget.open}
-        onClose={() => setResultTarget({ open: false })}
+        onClose={() => { if (liveContext.current === context) setResultTarget({ open: false }); }}
         randevuId={resultTarget.randevuId}
-        onComplete={async ({ randevuId, sonuc, sonrakiAksiyon }) => {
+        actorId={user?.id??""}
+        onComplete={async ({ randevuId, sonuc, sonrakiAksiyon, actorId }) => {
           if (!randevuId) return;
           // The action completes the appointment (allowed on a pasif firma)
           // and guards the follow-up task side-effect. On success it may
@@ -564,9 +570,12 @@ export default function RandevularPage() {
             result: sonuc,
             nextAction: sonrakiAksiyon,
             createTask: true,
-          });
+          }, actorId);
+          if (liveContext.current !== context) return;
           if (!result.ok) throw new Error(result.error);
+          feedback.show(result.taskCreated ? "Randevu tamamlandı ve takip görevi oluşturuldu." : "Randevu tamamlandı.");
           await reload();
+          if (liveContext.current !== context) return;
           router.refresh();
           setCompletionNotice(
             result.taskSkippedReason
@@ -576,11 +585,15 @@ export default function RandevularPage() {
         }}
       />
       <NewTaskModal
+        key={`${listScope}:${taskTarget.randevuId ?? "none"}`}
         open={taskTarget.open}
-        onClose={() => setTaskTarget({ open: false })}
+        onClose={() => { if (liveContext.current === context) setTaskTarget({ open: false }); }}
         firmalar={firmaOptions}
+        firmalarDurum={companiesDurum}
+        onRetryFirmalar={() => setCompanyRetry(value => value + 1)}
         kullanicilar={kullaniciOptions}
         kullanicilarDurum={profilesDurum}
+        onRetryKullanicilar={() => setProfileRetry(value => value + 1)}
         defaultKaynak="randevu"
         defaultFirmaId={taskTarget.firmaId}
         defaultKaynakRef={taskTarget.randevuId}
@@ -596,8 +609,11 @@ export default function RandevularPage() {
             appointmentId: kaynakRef,
             priority: oncelik,
           });
+          if (liveContext.current !== context) return;
           if (!result.ok) throw new Error(result.error);
+          feedback.show(`${baslik} görevlere eklendi.`);
           await reload();
+          if (liveContext.current !== context) return;
           router.refresh();
         }}
       />

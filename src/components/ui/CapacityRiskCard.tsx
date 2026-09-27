@@ -1,5 +1,4 @@
 import type { IsGucuRiskSeviyesi } from "@/types/batch4";
-import WorkforceRiskBadge from "./WorkforceRiskBadge";
 import {
   SURFACE_PRIMARY,
   BORDER_DEFAULT,
@@ -28,11 +27,10 @@ export default function CapacityRiskCard({
   acikFark,
   son30GunGiris,
   son30GunCikis,
-  riskEtiketi,
 }: CapacityRiskCardProps) {
   return (
     <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-      <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-3`}>Kapasite ve Risk</h3>
+      <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-3`}>Kadro özeti</h3>
       <dl className="space-y-2.5">
         <div className="flex justify-between items-baseline">
           <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Aktif Kişi</dt>
@@ -56,10 +54,7 @@ export default function CapacityRiskCard({
           <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Son 30 Gün Çıkış</dt>
           <dd className={`${TYPE_BODY} text-red-600`}>−{son30GunCikis}</dd>
         </div>
-        <div className={`flex justify-between items-center pt-1 border-t ${BORDER_SUBTLE}`}>
-          <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Risk</dt>
-          <dd><WorkforceRiskBadge risk={riskEtiketi} /></dd>
-        </div>
+
       </dl>
     </div>
   );

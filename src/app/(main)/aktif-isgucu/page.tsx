@@ -1,4 +1,5 @@
 "use client";
+import DailyOverview from "../dashboard/DailyOverview";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import {
@@ -7,7 +8,6 @@ import {
   FilterBar,
   DataTable,
   KPIStatCard,
-  WorkforceRiskBadge,
   RightSidePanel,
   CapacityRiskCard,
   EmptyState,
@@ -60,7 +60,7 @@ const COLUMNS: ColumnDef<WorkforceListRow>[] = [
   { key: "target_count", header: "Hedef Kisi", sortable: true },
   {
     key: "open_gap",
-    header: "Acik Fark",
+    header: "Açık Fark",
     sortable: true,
     render: (val) => {
       const n = val as number;
@@ -85,17 +85,9 @@ const COLUMNS: ColumnDef<WorkforceListRow>[] = [
   },
   {
     key: "exits_last_30d",
-    header: "Son 30g Cikis",
+    header: "Son 30g Çıkış",
     render: (val) => (
       <span className={`${TYPE_BODY} text-red-600`}>\u2212{val as number}</span>
-    ),
-  },
-  {
-    key: "risk_level",
-    header: "Risk Etiketi",
-    sortable: true,
-    render: (val) => (
-      <WorkforceRiskBadge risk={val as IsGucuRiskSeviyesi} />
     ),
   },
 ];
@@ -180,22 +172,10 @@ export default function AktifIsgucuPage() {
 
     return [
       {
-        key: "risk",
-        label: "Risk",
-        type: "select" as const,
-        placeholder: "Tum riskler",
-        options: (
-          Object.keys(IS_GUCU_RISK_LABELS) as IsGucuRiskSeviyesi[]
-        ).map((r) => ({
-          label: IS_GUCU_RISK_LABELS[r],
-          value: r,
-        })),
-      },
-      {
         key: "firma",
         label: "Firma",
         type: "select" as const,
-        placeholder: "Tum firmalar",
+        placeholder: "Tüm firmalar",
         options: firmaOptions,
       },
     ];
@@ -227,7 +207,6 @@ export default function AktifIsgucuPage() {
         )
           return false;
       }
-      if (filters.risk && row.risk_level !== filters.risk) return false;
       if (filters.firma && row.firma_name !== filters.firma) return false;
       return true;
     });
@@ -245,10 +224,10 @@ export default function AktifIsgucuPage() {
     return (
       <>
         <PageHeader
-          title="Aktif Is Gucu"
+          title="Aktif İş Gücü"
           subtitle="Firma bazli kapasite"
         />
-        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
       </>
     );
   }
@@ -257,7 +236,7 @@ export default function AktifIsgucuPage() {
     return (
       <>
         <PageHeader
-          title="Aktif Is Gucu"
+          title="Aktif İş Gücü"
           subtitle="Firma bazli kapasite"
         />
         <EmptyState
@@ -272,11 +251,19 @@ export default function AktifIsgucuPage() {
   return (
     <>
       <PageHeader
-        title="Aktif Is Gucu"
-        subtitle="Firma bazli doluluk ve kapasite"
+        title="Aktif İş Gücü"
+        subtitle="Günlük yerleştirmeler, işe başlama takibi ve önceki kadro kayıtları"
       />
 
       <div className="space-y-4">
+        <DailyOverview />
+        <nav aria-label="İş gücü işlemleri" className="flex flex-wrap gap-4 text-sm text-blue-700">
+          <a href="/talepler/dizin" className="underline">Şube ve personel kayıtları</a>
+          <a href="/talepler/haftalik" className="underline">Haftalık plan ve katılım</a>
+          <a href="/talepler/kontrol" className="underline">Operasyon kontrol listesi</a>
+        </nav>
+        <h2 className="text-lg font-semibold">Önceki kadro özetleri</h2>
+        <p className="text-sm text-slate-600">Aşağıdaki kayıtlar önceki modülde tutulan kadro özetleridir. Günlük atamalar bu sayılara eklenmez; güncel operasyon yukarıda gösterilir.</p>
         {loadError && (
           <p
             className={`${TYPE_CAPTION} text-red-600`}
@@ -290,8 +277,7 @@ export default function AktifIsgucuPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPIStatCard label="Toplam Aktif" value={totals.aktif} />
           <KPIStatCard label="Toplam Hedef" value={totals.hedef} />
-          <KPIStatCard label="Toplam Acik Fark" value={totals.fark} />
-          <KPIStatCard label="Riskli Firma" value={totals.riskli} />
+          <KPIStatCard label="Toplam Açık Fark" value={totals.fark} />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -310,7 +296,7 @@ export default function AktifIsgucuPage() {
 
         {loading ? (
           <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>
-            Yukleniyor\u2026
+            Yükleniyor\u2026
           </p>
         ) : (
           <DataTable<WorkforceListRow>
@@ -318,8 +304,8 @@ export default function AktifIsgucuPage() {
             data={filteredData}
             rowKey="id"
             onRowClick={(row) => setSelectedId(row.id)}
-            emptyTitle="Kayit bulunamadi"
-            emptyDescription="Arama veya filtre kriterlerinizi degistirin."
+            emptyTitle="Önceki kadro kaydı bulunamadı"
+            emptyDescription="Güncel ihtiyaç ve yerleştirmeler için günlük planı, personel için dizini kullanın."
           />
         )}
       </div>

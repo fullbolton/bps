@@ -36,8 +36,6 @@ import type {
   AppointmentRow,
   AppointmentInsert,
   AppointmentUpdate,
-  TaskRow,
-  TaskInsert,
 } from "@/types/database.types";
 import {
   selectAppointmentsByCompanyId,
@@ -47,13 +45,15 @@ import {
   selectAppointmentsByContractId,
   insertAppointment,
   updateAppointment,
+  completeAppointmentScoped,
 } from "@/lib/supabase/appointments";
 import { getCompanyIdMapByLegacyMockIds } from "@/lib/services/companies";
-import { insertTask } from "@/lib/supabase/tasks";
 import {
   requireCompanyByLegacyMockId,
-  assertCompanyIsActiveForNewOperation,
 } from "@/lib/services/companies";
+
+import { isUuid } from "@/lib/operations/pilot-validation";
+import { validateCompletion, parseCompletion, completionError, type CompletionResult } from "@/lib/appointment-completion";
 
 type Client = SupabaseClient<Database>;
 
@@ -235,110 +235,22 @@ export async function createAppointment(
 // Writes — complete (appointment→task handoff, item 21)
 // ---------------------------------------------------------------------------
 
-/**
- * Complete an appointment and optionally create a linked task.
- *
- * This is the appointment→task handoff (item 21). The function:
- *   1. Sets status='tamamlandi' on the appointment.
- *   2. Sets result + next_action (both required, non-blank).
- *   3. If createTask is true, inserts a new task row with:
- *      - company_id from the appointment
- *      - title = next_action
- *      - source_type = 'randevu'
- *      - appointment_id = appointmentId
- *      - status = 'acik'
- *   4. Returns the updated appointment, the (optional) newly created task,
- *      and a `taskSkippedReason` when the handoff task was intentionally
- *      NOT created.
- *
- * Passive-company rule (guard applied to the SIDE-EFFECT, not the whole
- * function): completing an appointment for a pasif firma is allowed — it
- * closes existing work. But the optional follow-up task is a NEW
- * operation, so for a pasif firma the task insert is skipped and the
- * reason is returned (never silently swallowed). The guard runs BEFORE
- * the insert; `options.tenantId` is REQUIRED (fail-closed by
- * construction) and the server action supplies it via
- * `current_user_active_tenant()`.
- *
- * The caller does NOT need to separately call `updateAppointmentStatus`
- * — this function handles the complete lifecycle transition.
+/** Atomically completes a scoped appointment and its optional follow-up.
+ * A matching retry returns the original receipt; no sequential-write fallback.
  */
 export async function completeAppointment(
   client: Client,
   appointmentId: string,
   input: AppointmentCompleteInput,
-  options: { tenantId: string },
-): Promise<{
-  appointment: AppointmentRow;
-  task: TaskRow | null;
-  taskSkippedReason: string | null;
-}> {
-  const result = ensureNonBlank(input.result, "Sonuç");
-  const nextAction = ensureNonBlank(input.nextAction, "Sonraki adım");
-
-  // Verify the appointment exists and is visible to the caller.
-  const existing = await selectAppointmentById(client, appointmentId);
-  if (!existing) {
-    throw new AppointmentValidationError(
-      "Randevu bulunamadı veya bu randevuya erişim yetkiniz yok.",
-    );
+  options: { tenantId: string; actorId: string },
+): Promise<CompletionResult> {
+  if (!isUuid(appointmentId) || !isUuid(options?.actorId) || !isUuid(options?.tenantId)) {
+    throw new AppointmentValidationError("Randevu veya oturum kapsamı geçersiz.");
   }
-
-  // Idempotency: a retry / double-submit on an already-completed
-  // appointment must not re-complete it and insert a duplicate handoff
-  // task (mirrors the guard in the `complete_appointment_atomic` RPC).
-  if (existing.status === "tamamlandi") {
-    throw new AppointmentValidationError("Randevu zaten tamamlanmış.");
-  }
-
-  // Update the appointment: status → tamamlandi, set result + next_action.
-  const appointmentPatch: AppointmentUpdate = {
-    status: "tamamlandi",
-    result,
-    next_action: nextAction,
-  };
-  const updatedAppointment = await updateAppointment(
-    client,
-    appointmentId,
-    appointmentPatch,
-  );
-
-  // Optionally create a linked task (the handoff). This is a NEW
-  // operation, so — unlike the completion above, which is allowed for a
-  // pasif firma — a pasif firma must NOT receive the follow-up task. The
-  // passive guard is applied to THIS side-effect only, before the insert;
-  // the completion already succeeded. A skip is reported, never silent.
-  let task: TaskRow | null = null;
-  let taskSkippedReason: string | null = null;
-  if (input.createTask) {
-    const activeCheck = await assertCompanyIsActiveForNewOperation(
-      client,
-      existing.company_id,
-      options.tenantId,
-    );
-
-    if (!activeCheck.ok) {
-      taskSkippedReason = activeCheck.error;
-    } else {
-      const {
-        data: { user },
-      } = await client.auth.getUser();
-
-      const taskPayload: TaskInsert = {
-        // Same tenant the passive-company guard above was checked against.
-        tenant_id: options.tenantId,
-        company_id: existing.company_id,
-        title: nextAction,
-        source_type: "randevu",
-        appointment_id: appointmentId,
-        status: "acik",
-        created_by: user?.id ?? null,
-      };
-      task = await insertTask(client, taskPayload);
-    }
-  }
-
-  return { appointment: updatedAppointment, task, taskSkippedReason };
+  const payload = validateCompletion(input);
+  try {
+    return parseCompletion(await completeAppointmentScoped(client, appointmentId, payload, options), appointmentId, payload.createTask);
+  } catch (error) { throw completionError(error); }
 }
 
 // ---------------------------------------------------------------------------
@@ -348,24 +260,17 @@ export async function completeAppointment(
 /**
  * Change an appointment's status. Validates the new status against the
  * whitelist. When the target status is 'tamamlandi', the caller MUST
- * supply result and nextAction in options — use `completeAppointment`
- * for the full handoff flow, or pass them here for a lower-level path.
+ * use `completeAppointment`; completion cannot use this lower-level path.
  */
 export async function updateAppointmentStatus(
   client: Client,
   appointmentId: string,
   nextStatus: string,
-  options?: { result?: string; nextAction?: string },
 ): Promise<AppointmentRow> {
   const validatedStatus = ensureStatus(nextStatus);
 
-  // When completing, require result + next_action.
   if (validatedStatus === "tamamlandi") {
-    if (!options?.result?.trim() || !options?.nextAction?.trim()) {
-      throw new AppointmentValidationError(
-        "Tamamlanan randevu için sonuç ve sonraki adım zorunludur.",
-      );
-    }
+    throw new AppointmentValidationError("Randevuyu sonuç ve takip işlemi üzerinden tamamlayın.");
   }
 
   // Verify the appointment exists and is visible.
@@ -379,10 +284,6 @@ export async function updateAppointmentStatus(
   const patch: AppointmentUpdate = {
     status: validatedStatus,
   };
-  if (validatedStatus === "tamamlandi" && options) {
-    patch.result = options.result!.trim();
-    patch.next_action = options.nextAction!.trim();
-  }
 
   return updateAppointment(client, appointmentId, patch);
 }

@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { User, LogOut } from "lucide-react";
+import ConversationInbox from "@/components/communication/ConversationInbox";
+import { User, LogOut, ChevronDown, LayoutGrid } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import Link from 'next/link';
+import {useNavigationGuard} from '@/context/NavigationGuardContext';
+import { useWorkspace } from "@/context/WorkspaceContext";
 import {
   TYPE_BODY,
-  TYPE_CAPTION,
   TEXT_BODY,
   TEXT_SECONDARY,
-  TEXT_MUTED,
   SURFACE_PRIMARY,
   BORDER_DEFAULT,
   RADIUS_SM,
@@ -33,6 +36,10 @@ function formatTurkishDateTime(d: Date): string {
 
 export default function Topbar() {
   const { displayName, signOut } = useAuth();
+  const { workspace, loading: workspaceLoading } = useWorkspace();
+  const pathname = usePathname();
+  const navigationGuard=useNavigationGuard();
+  const area = ({dashboard:"Genel bakış", firmalar:"Müşteri yönetimi", sozlesmeler:"Sözleşmeler", talepler:"Personel operasyonu", "personel-havuzu":"Personel havuzu", gorevler:"İş takibi", randevular:"Görüşmeler", evraklar:"Evrak yönetimi", "aktif-isgucu":"İş gücü", "finansal-ozet":"Finans", raporlar:"Raporlar", ayarlar:"Ayarlar", kurulum:"Çalışma alanı kurulumu", yonetim:"Şirket yönetimi"} as Record<string,string>)[pathname.split("/")[1]] ?? "Çalışma alanı";
   const [dateTimeStr, setDateTimeStr] = useState("");
 
   useEffect(() => {
@@ -44,6 +51,7 @@ export default function Topbar() {
   }, []);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -57,38 +65,45 @@ export default function Topbar() {
 
   return (
     <>
-      <header className={`fixed top-0 left-64 right-0 h-14 ${SURFACE_PRIMARY} border-b ${BORDER_DEFAULT} flex items-center px-5 gap-4 ${Z_TOPBAR}`}>
-        {/* Global search removed — the previous input had no wiring
-            (no value/onChange/submit/dropdown) and produced no results,
-            which misled users. A real search surface is out of scope
-            for this batch; honest absence is preferred over a fake
-            interactive control. */}
-
-        {/* Turkish date/time utility — desktop only, updates every minute */}
-        {dateTimeStr && (
-          <span className={`${TYPE_CAPTION} ${TEXT_MUTED} whitespace-nowrap hidden md:block`}>
-            {dateTimeStr}
-          </span>
-        )}
+      <header className={`fixed top-0 left-0 md:left-64 right-0 h-16 bg-white/95 backdrop-blur-sm border-b ${BORDER_DEFAULT} flex items-center pl-16 pr-4 md:px-8 gap-4 ${Z_TOPBAR}`}>
+        <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600"><LayoutGrid size={16} className="hidden sm:block shrink-0"/><div className="min-w-0"><p className="truncate font-semibold text-slate-900 md:hidden" title={workspace?.name}>{workspace?.name ?? (workspaceLoading ? 'Şirket doğrulanıyor…' : 'Şirket doğrulanamadı')}</p><p className="truncate text-xs md:text-sm">{area}</p></div></div>
+        {dateTimeStr && <span className="ml-auto hidden xl:block text-xs text-slate-500">{dateTimeStr}</span>}
 
         <div className="flex items-center gap-2 ml-auto">
+          {process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED==="true"&&<ConversationInbox />}
+          {process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&<Link href="/sirket-sec" onClick={navigationGuard.handle} className="inline-flex min-h-11 items-center rounded-lg border px-3 text-sm">Şirket değiştir</Link>}
           {/* User menu */}
-          <div ref={userMenuRef} className="relative">
+          <div ref={userMenuRef} className="relative"
+            onKeyDown={e => {
+              if (e.key === "Escape" && userMenuOpen) {
+                e.preventDefault();
+                e.stopPropagation();
+                setUserMenuOpen(false);
+                userMenuButtonRef.current?.focus();
+              }
+            }}
+            onBlur={e => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setUserMenuOpen(false);
+            }}>
             <button
+              ref={userMenuButtonRef}
+              aria-label="Kullanıcı menüsü"
+              aria-expanded={userMenuOpen}
+              aria-controls={userMenuOpen ? "user-account-actions" : undefined}
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className={`flex items-center gap-2 px-2 py-1.5 ${TYPE_BODY} text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
+              className={`flex min-h-11 min-w-11 items-center justify-center gap-2 px-2 py-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${TYPE_BODY} text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
             >
               <div className={`w-7 h-7 bg-slate-200 ${RADIUS_FULL} flex items-center justify-center`}>
                 <User size={14} className={TEXT_SECONDARY} />
               </div>
-              <span className="hidden sm:inline">{displayName || "Kullanıcı"}</span>
+              <span className="hidden lg:inline max-w-48 truncate">{displayName || "Kullanıcı"}</span><ChevronDown size={14} className="hidden sm:block"/>
             </button>
 
             {userMenuOpen && (
-              <div className={`absolute right-0 top-full mt-1 w-48 ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SHADOW_DROPDOWN} py-1 ${Z_OVERLAY}`}>
+              <div id="user-account-actions" className={`absolute right-0 top-full mt-1 w-48 ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SHADOW_DROPDOWN} py-1 ${Z_OVERLAY}`}>
                 <button
                   onClick={() => { setUserMenuOpen(false); signOut(); }}
-                  className={`w-full text-left px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} hover:bg-slate-50 flex items-center gap-2`}
+                  className={`min-h-11 w-full text-left px-3 py-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 ${TYPE_BODY} ${TEXT_BODY} hover:bg-slate-50 flex items-center gap-2`}
                 >
                   <LogOut size={14} />
                   Çıkış Yap

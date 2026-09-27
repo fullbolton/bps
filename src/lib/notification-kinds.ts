@@ -148,14 +148,4 @@ export const NOTIFICATION_RECIPIENTS: Record<NotificationKind, RecipientStrategy
  * Bu bir çözüm değil, bir siper. Kolonun `date` olması gerekirdi; dönüşüm
  * ayrı bir kalem (TASK_ROADMAP).
  */
-export function isIsoDate(value: string | null | undefined): value is string {
-  if (!value) return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const t = Date.parse(`${value}T00:00:00Z`);
-  if (!Number.isFinite(t)) return false;
-  // ROUND-TRIP ZORUNLU. `Date.parse` takvimde olmayan günleri reddetmez,
-  // SESSİZCE KAYDIRIR: "2026-02-30" NaN değil, 2026-03-02 olur (ölçüldü).
-  // Yalnız `Number.isFinite` bakan bir kontrol, olmayan bir tarihi geçerli
-  // sayar ve o görevi iki gün geç "gecikmiş" gösterirdi.
-  return new Date(t).toISOString().slice(0, 10) === value;
-}
+export { isIsoDate } from "./calendar-date";

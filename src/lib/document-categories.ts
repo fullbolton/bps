@@ -19,13 +19,13 @@ export type DocumentCategory =
   | "diger";
 
 export const DOCUMENT_CATEGORY_LABELS: Record<DocumentCategory, string> = {
-  cerceve_sozlesme: "Cereve Sozlesme",
+  cerceve_sozlesme: "Çerçeve Sözleşme",
   ek_protokol: "Ek Protokol",
-  yetki_belgesi: "Yetki Belgesi",
-  operasyon_evraki: "Operasyon Evraki",
-  teklif_dosyasi: "Teklif Dosyasi",
-  ziyaret_tutanagi: "Ziyaret Tutanagi",
-  diger: "Diger",
+  yetki_belgesi: "Firma / Yetki Belgesi",
+  operasyon_evraki: "Operasyon Evrakı",
+  teklif_dosyasi: "Teklif Dosyası",
+  ziyaret_tutanagi: "Ziyaret Tutanağı",
+  diger: "Diğer",
 };
 
 /** Normalize a raw string to DocumentCategory, defaulting to 'diger'. */

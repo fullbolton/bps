@@ -6,6 +6,7 @@ import {
 } from "@/lib/services/platform-admin";
 import type { AdminTenantRow, AdminUserRow } from "@/lib/services/platform-admin";
 import AdminClient from "./AdminClient";
+import WorkspaceAdminClient from "./WorkspaceAdminClient";
 
 /**
  * Platform Admin — tenant ve kullanıcı görünümü.
@@ -24,7 +25,7 @@ export default async function AdminPage() {
   let users: AdminUserRow[] = [];
   let loadError: string | null = null;
   try {
-    [tenants, users] = await Promise.all([listTenants(supabase), listUsers(supabase)]);
+    [tenants, users] = await Promise.all([listTenants(supabase), process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'?Promise.resolve([]):listUsers(supabase)]);
   } catch (err) {
     tenants = [];
     users = [];
@@ -35,6 +36,7 @@ export default async function AdminPage() {
       err instanceof PlatformAdminError ? err.message : "Veri okunamadı.";
   }
 
+  if(process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true')return <WorkspaceAdminClient tenants={tenants} loadError={loadError}/>;
   return (
     <AdminClient tenants={tenants} users={users} loadError={loadError} />
   );

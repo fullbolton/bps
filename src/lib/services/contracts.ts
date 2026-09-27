@@ -1,3 +1,4 @@
+import {readCurrentRole as getCurrentUserRole} from './current-role';
 /**
  * BPS service layer — contracts (Faz 2 "Sözleşmeler" slice).
  *
@@ -136,8 +137,6 @@ export interface ContractContentUpdateInput {
 export interface ContractRenewalUpdateInput {
   renewalTargetDate?: string | null;
   renewalDiscussionOpened?: boolean;
-  renewalResponsibleSet?: boolean;
-  renewalTaskCreated?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -220,29 +219,6 @@ function nullableTrim(value: string | null | undefined): string | null {
   if (value === null || value === undefined) return null;
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
-}
-
-/**
- * Resolve the calling user's role from `profiles`. Used to gate the
- * service-layer status writer (`updateContractStatus`). The DB RLS
- * UPDATE policy already enforces the same predicate; this redundant
- * application-layer check exists so the UI can show a clean Turkish
- * error before the SQL fires.
- */
-async function getCurrentUserRole(client: Client): Promise<string | null> {
-  const {
-    data: { user },
-    error: userError,
-  } = await client.auth.getUser();
-  if (userError || !user) return null;
-
-  const { data: profile } = await client
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return profile?.role ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -525,12 +501,9 @@ function defaultStatusActionLabel(status: SozlesmeDurumu): string {
 // Writes — bounded renewal tracking (scope item 5)
 // ---------------------------------------------------------------------------
 
-/**
- * Update the four-signal renewal tracking truth on a contract. This is
- * the only writer for `renewal_*` columns. Capability gate is the same
- * as the broader UPDATE policy (yonetici + partner-scoped) — it does
- * not require the stricter status-change gate because flipping a
- * renewal-tracking checkbox is operational, not a managerial decision.
+/** Update the suggested follow-up date and discussion declaration.
+ * Import can also write the suggested date. Actual renewal task/ownership is
+ * read from contract_renewal_snapshot; legacy booleans are no longer writable here.
  */
 export async function updateContractRenewal(
   client: Client,
@@ -550,12 +523,6 @@ export async function updateContractRenewal(
   }
   if (input.renewalDiscussionOpened !== undefined) {
     patch.renewal_discussion_opened = input.renewalDiscussionOpened;
-  }
-  if (input.renewalResponsibleSet !== undefined) {
-    patch.renewal_responsible_set = input.renewalResponsibleSet;
-  }
-  if (input.renewalTaskCreated !== undefined) {
-    patch.renewal_task_created = input.renewalTaskCreated;
   }
 
   return updateContract(client, contractId, patch);

@@ -47,6 +47,8 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isPublicRoute =
     pathname === "/login" ||
+    pathname === "/kayit" ||
+    pathname === "/auth/callback" ||
     pathname === "/" ||
     pathname.startsWith("/api/demo-request") ||
     pathname.startsWith("/api/cron") ||

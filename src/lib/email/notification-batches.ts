@@ -1,3 +1,4 @@
+import {readTenantRoleDirectory,tenantCompanyRecipients,sameRecipientMembership,type TenantRoleDirectory} from './tenant-role-recipients';
 /**
  * BPS — üç yeni e-posta bildirim tipinin toplayıcısı ve göndericisi.
  *
@@ -29,6 +30,9 @@
  * kalemler "gönderildi" görünür ve bir daha hiç denenmez.
  */
 
+import { istanbulDay } from "@/lib/istanbul-day";
+import { readTaskNotificationCandidates, readDocumentNotificationCandidates, readAppointmentNotificationCandidates } from "./batch-candidates";
+import { readNotificationCompanyNames } from "./company-names";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import {
@@ -53,7 +57,7 @@ import { stampNotification, rollbackStamp } from "@/lib/email/notification-log";
 import { sendEmail } from "@/lib/email/resend-transport";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { UserRole } from "@/context/AuthContext";
-import { safeDbError, safeSendError } from "./safe-error";
+import { safeSendError } from "./safe-error";
 
 type Client = SupabaseClient<Database>;
 
@@ -76,14 +80,6 @@ interface Item {
   line: string;
   /** Sıralama anahtarı — en acil üstte. */
   sortKey: string;
-}
-
-function isoDay(d: Date): string {
-  return new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
-  )
-    .toISOString()
-    .slice(0, 10);
 }
 
 function addDays(iso: string, days: number): string {
@@ -138,18 +134,17 @@ function escapeHtml(s: string): string {
 async function collectTaskOverdue(
   client: Client,
   now: Date,
+  directory?: TenantRoleDirectory,
 ): Promise<{ byRecipient: Map<string, { recipient: RecipientRow; items: Item[] }>; found: number; errors: string[] }> {
   const errors: string[] = [];
-  const today = isoDay(now);
+  const today = istanbulDay(now);
   const byRecipient = new Map<string, { recipient: RecipientRow; items: Item[] }>();
 
-  const { data: rows, error } = await client
-    .from("tasks")
-    .select("id, title, status, due_date, assigned_to_user_id, tenant_id, company_id")
-    .in("status", ["acik", "devam_ediyor", "gecikti"]);
-
-  if (error) {
-    errors.push(`tasks fetch failed: ${safeDbError(error)}`);
+  let rows: Awaited<ReturnType<typeof readTaskNotificationCandidates>>;
+  try {
+    rows = await readTaskNotificationCandidates(client);
+  } catch {
+    errors.push("tasks fetch failed: code=READ_INCOMPLETE");
     return { byRecipient, found: 0, errors };
   }
 
@@ -165,20 +160,26 @@ async function collectTaskOverdue(
   const ownerIds = Array.from(
     new Set(overdue.map((t) => t.assigned_to_user_id).filter((v): v is string => Boolean(v))),
   );
-  const owners = await fetchProfilesByIds(client, ownerIds);
-  if (owners.error) errors.push(owners.error);
+  const owners = directory ? {byId:new Map<string,RecipientRow>(),error:undefined} : await fetchProfilesByIds(client, ownerIds);
+  if (owners.error) {
+    errors.push(owners.error);
+    return { byRecipient, found: overdue.length, errors };
+  }
 
   // Sahipsiz görevler için yönetici yedeği — "sahipsiz iş yasağı" ile aynı
   // yön: sahibi olmayan iş sessizce kimseye bildirilmemiş olmaz.
   let fallback: RecipientRow[] = [];
-  if (strategy.mode === "owner" && strategy.fallbackToYonetici) {
+  if (!directory && strategy.mode === "owner" && strategy.fallbackToYonetici) {
     const y = await fetchProfilesByRoles(client, ["yonetici"]);
-    if (y.error) errors.push(y.error);
+    if (y.error) {
+      errors.push(y.error);
+      return { byRecipient, found: overdue.length, errors };
+    }
     fallback = y.rows;
   }
 
   for (const t of overdue) {
-    const assignee = t.assigned_to_user_id ? owners.byId.get(t.assigned_to_user_id) : undefined;
+    const assignee = directory ? directory.recipients(t.tenant_id,TASK_READABLE_ROLES).find(p=>p.id===t.assigned_to_user_id) : t.assigned_to_user_id ? owners.byId.get(t.assigned_to_user_id) : undefined;
 
     // ROL KAPISI — bildirim yetki genişletmez. `assigned_to_user_id` herhangi
     // bir profili gösterebilir; görevi OKUYAMAYAN bir role (muhasebe,
@@ -191,7 +192,7 @@ async function collectTaskOverdue(
         : undefined;
     const unreadableAssignee = assignee !== undefined && owner === undefined;
 
-    const targets = owner ? [owner] : fallback;
+    const targets = owner ? [owner] : directory ? (strategy.mode==='owner'&&strategy.fallbackToYonetici?directory.recipients(t.tenant_id,['yonetici']):[]) : fallback;
     const due = isIsoDate(t.due_date) ? formatDateTR(t.due_date) : "tarih yok";
     const suffix = owner
       ? ""
@@ -232,21 +233,19 @@ async function collectTaskOverdue(
 async function collectDocumentExpiry(
   client: Client,
   now: Date,
+  directory?: TenantRoleDirectory,
 ): Promise<{ byRecipient: Map<string, { recipient: RecipientRow; items: Item[] }>; found: number; errors: string[] }> {
   const errors: string[] = [];
   const byRecipient = new Map<string, { recipient: RecipientRow; items: Item[] }>();
-  const today = isoDay(now);
+  const today = istanbulDay(now);
   const windowDays = NOTIFICATION_WINDOW_DAYS.document_expiry ?? 30;
   const upper = addDays(today, windowDays);
 
-  const { data: rows, error } = await client
-    .from("documents")
-    .select("id, name, validity_date, tenant_id")
-    .not("validity_date", "is", null)
-    .lte("validity_date", upper);
-
-  if (error) {
-    errors.push(`documents fetch failed: ${safeDbError(error)}`);
+  let rows: Awaited<ReturnType<typeof readDocumentNotificationCandidates>>;
+  try {
+    rows = await readDocumentNotificationCandidates(client, upper);
+  } catch {
+    errors.push("documents fetch failed: code=READ_INCOMPLETE");
     return { byRecipient, found: 0, errors };
   }
   if ((rows ?? []).length === 0) return { byRecipient, found: 0, errors };
@@ -254,14 +253,14 @@ async function collectDocumentExpiry(
   const strategy = NOTIFICATION_RECIPIENTS.document_expiry;
   const roles: readonly UserRole[] =
     strategy.mode === "role" ? strategy.roles : (["yonetici"] as const);
-  const targets = await fetchProfilesByRoles(client, roles);
+  const targets = directory ? {rows:[],error:undefined} : await fetchProfilesByRoles(client, roles);
   if (targets.error) errors.push(targets.error);
-  if (targets.rows.length === 0) return { byRecipient, found: rows?.length ?? 0, errors };
+  if (!directory && targets.rows.length === 0) return { byRecipient, found: rows?.length ?? 0, errors };
 
   for (const d of rows ?? []) {
     const expired = (d.validity_date ?? "") < today;
     const line = `${d.name} — ${expired ? "süresi doldu" : "geçerlilik"}: ${formatDateTR(d.validity_date)}`;
-    for (const r of targets.rows) {
+    for (const r of directory ? directory.recipients(d.tenant_id,roles) : targets.rows) {
       let bucket = byRecipient.get(r.id);
       if (!bucket) {
         bucket = { recipient: r, items: [] };
@@ -295,42 +294,44 @@ async function collectDocumentExpiry(
 async function collectAppointmentReminder(
   client: Client,
   now: Date,
+  directory?: TenantRoleDirectory,
 ): Promise<{ byRecipient: Map<string, { recipient: RecipientRow; items: Item[] }>; found: number; errors: string[] }> {
   const errors: string[] = [];
   const byRecipient = new Map<string, { recipient: RecipientRow; items: Item[] }>();
-  const target = addDays(isoDay(now), NOTIFICATION_WINDOW_DAYS.appointment_reminder ?? 1);
+  const target = addDays(istanbulDay(now), NOTIFICATION_WINDOW_DAYS.appointment_reminder ?? 1);
 
-  const { data: rows, error } = await client
-    .from("appointments")
-    .select("id, meeting_type, attendee, meeting_date, company_id, tenant_id, status")
-    .eq("status", "planlandi")
-    .eq("meeting_date", target);
-
-  if (error) {
-    errors.push(`appointments fetch failed: ${safeDbError(error)}`);
+  let rows: Awaited<ReturnType<typeof readAppointmentNotificationCandidates>>;
+  try {
+    rows = await readAppointmentNotificationCandidates(client, target);
+  } catch {
+    errors.push("appointments fetch failed: code=READ_INCOMPLETE");
     return { byRecipient, found: 0, errors };
   }
   if ((rows ?? []).length === 0) return { byRecipient, found: 0, errors };
 
   const companyIds = Array.from(new Set((rows ?? []).map((a) => a.company_id)));
   const apptStrategy = NOTIFICATION_RECIPIENTS.appointment_reminder;
-  const { byCompany, errors: recErrors } = await resolveCompanyRecipients(client, companyIds, {
-    includePartners: apptStrategy.mode === "company" ? apptStrategy.includePartners : false,
-  });
+  let byCompany:Map<string,RecipientRow[]>;let recErrors:string[]=[];
+  try{
+   if(directory)byCompany=await tenantCompanyRecipients(client,directory,rows.map(a=>({companyId:a.company_id,tenantId:a.tenant_id})),apptStrategy.mode==='company'&&apptStrategy.includePartners);
+   else {const result=await resolveCompanyRecipients(client,companyIds,{includePartners:apptStrategy.mode==='company'&&apptStrategy.includePartners});byCompany=result.byCompany;recErrors=result.errors;}
+  }catch{return {byRecipient,found:rows.length,errors:['recipient directory unavailable']};}
   errors.push(...recErrors);
 
-  const { data: companyRows } = await client
-    .from("companies")
-    .select("id, name")
-    .in("id", companyIds);
-  const companyNameById = new Map((companyRows ?? []).map((c) => [c.id, c.name]));
+  let companyNameById: Map<string, string>;
+  try {
+    companyNameById = await readNotificationCompanyNames(client, companyIds);
+  } catch {
+    errors.push("appointment companies fetch failed: code=READ_INCOMPLETE");
+    return { byRecipient, found: rows?.length ?? 0, errors };
+  }
 
   for (const a of rows ?? []) {
     // `appointments`'ta konu/başlık kolonu YOK — görüşme tipi ve varsa
     // katılımcı, kaydı tanımaya yeten en yakın alanlar.
     const kindLabel = APPOINTMENT_TYPE_LABELS[a.meeting_type] ?? "Ziyaret";
     const who = a.attendee ? ` · ${a.attendee}` : "";
-    const line = `${companyNameById.get(a.company_id) ?? "—"} — ${kindLabel}${who} (${formatDateTR(a.meeting_date)})`;
+    const line = `${companyNameById.get(a.company_id)!} — ${kindLabel}${who} (${formatDateTR(a.meeting_date)})`;
     for (const r of byCompany.get(a.company_id) ?? []) {
       let bucket = byRecipient.get(r.id);
       if (!bucket) {
@@ -492,12 +493,16 @@ export async function runNotificationBatch(
     errors: [],
   };
 
+  let directory:TenantRoleDirectory|undefined;
+  if(process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'){
+   try{directory=await readTenantRoleDirectory(client);}catch{result.errors.push('tenant role directory unavailable; no email sent');return result;}
+  }
   const collected =
     kind === "task_overdue"
-      ? await collectTaskOverdue(client, now)
+      ? await collectTaskOverdue(client, now,directory)
       : kind === "document_expiry"
-        ? await collectDocumentExpiry(client, now)
-        : await collectAppointmentReminder(client, now);
+        ? await collectDocumentExpiry(client, now,directory)
+        : await collectAppointmentReminder(client, now,directory);
 
   result.itemsFound = collected.found;
   result.errors.push(...collected.errors);
@@ -516,6 +521,10 @@ export async function runNotificationBatch(
     return result;
   }
 
+  if(directory){
+   try{const fresh=await readTenantRoleDirectory(client);const original=scope.isMember;scope.isMember=(tenant,id)=>original(tenant,id)&&sameRecipientMembership(directory!,fresh,tenant,id);}
+   catch{result.errors.push('tenant roles changed or unavailable; no email sent');return result;}
+  }
   await sendGrouped(client, kind, collected.byRecipient, config.fromAddress, config.appUrl, scope, result);
   return result;
 }

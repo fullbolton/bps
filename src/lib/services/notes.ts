@@ -1,3 +1,4 @@
+import {readCurrentRole} from './current-role';
 /**
  * BPS service layer — notes (Faz 1B "Notlar" slice).
  *
@@ -124,7 +125,7 @@ async function requireCurrentAuthor(
 
   const { data: profile, error: profileError } = await client
     .from("profiles")
-    .select("id, display_name, role")
+    .select("id, display_name")
     .eq("id", user.id)
     .single();
 
@@ -137,7 +138,7 @@ async function requireCurrentAuthor(
   return {
     id: profile.id,
     displayName: profile.display_name,
-    role: profile.role,
+    role: await readCurrentRole(client),
   };
 }
 

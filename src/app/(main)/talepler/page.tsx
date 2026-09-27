@@ -13,7 +13,10 @@
  * persisted — the DB has no column for it by design.
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useListViewState } from "@/components/ui/useListViewState";
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { Plus } from "lucide-react";
@@ -24,10 +27,11 @@ import {
   DataTable,
   StatusBadge,
   PriorityBadge,
-  KPIStatCard,
   RightSidePanel,
   EmptyState,
 } from "@/components/ui";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import PickerFeedback from "@/components/ui/PickerFeedback";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { NewRequestModal, AssignOwnerModal } from "@/components/modals";
@@ -56,32 +60,26 @@ import { clsx } from "clsx";
 import {
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_LABEL,
   TEXT_PRIMARY,
   TEXT_BODY,
   TEXT_SECONDARY,
-  TEXT_INVERSE,
   TEXT_MUTED,
   TEXT_LINK,
   BORDER_SUBTLE,
-  RADIUS_FULL,
   SURFACE_HEADER,
 } from "@/styles/tokens";
 
 // Page-local helpers
-const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
-const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
-const CHIP_INACTIVE = "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
 const DL_LABEL = `${TYPE_CAPTION} ${TEXT_SECONDARY}`;
 const DL_VALUE = `${TYPE_BODY} ${TEXT_BODY} mt-0.5`;
 
 const STATUS_LABELS: Record<string, string> = {
   yeni: "Yeni",
-  degerlendiriliyor: "Degerlendiriliyor",
-  kismi_doldu: "Kismi Doldu",
+  degerlendiriliyor: "Değerlendiriliyor",
+  kismi_doldu: "Kısmi doldu",
   tamamen_doldu: "Tamamen Doldu",
   beklemede: "Beklemede",
-  iptal: "Iptal",
+  iptal: "İptal",
 };
 
 /**
@@ -99,7 +97,7 @@ const FILTER_CONFIG: FilterConfig[] = [
     key: "durum",
     label: "Durum",
     type: "select",
-    placeholder: "Tum durumlar",
+    placeholder: "Tüm durumlar",
     options: Object.entries(STATUS_LABELS).map(([v, l]) => ({
       value: v,
       label: l,
@@ -107,13 +105,13 @@ const FILTER_CONFIG: FilterConfig[] = [
   },
   {
     key: "oncelik",
-    label: "Oncelik",
+    label: "Öncelik",
     type: "select",
-    placeholder: "Tum oncelikler",
+    placeholder: "Tüm öncelikler",
     options: [
-      { label: "Dusuk", value: "dusuk" },
+      { label: "Düşük", value: "dusuk" },
       { label: "Normal", value: "normal" },
-      { label: "Yuksek", value: "yuksek" },
+      { label: "Yüksek", value: "yuksek" },
       { label: "Kritik", value: "kritik" },
     ],
   },
@@ -126,7 +124,7 @@ function buildFirmaFilter(companyNames: string[]): FilterConfig {
     key: "firma",
     label: "Firma",
     type: "select",
-    placeholder: "Tum firmalar",
+    placeholder: "Tüm firmalar",
     options: Array.from(new Set(companyNames)).map((name) => ({
       label: name,
       value: name,
@@ -146,10 +144,10 @@ const COLUMNS: ColumnDef<DemandListRow>[] = [
     header: "Talep Edilen",
     sortable: true,
   },
-  { key: "provided_count", header: "Saglanan", sortable: true },
+  { key: "provided_count", header: "Sağlanan", sortable: true },
   {
     key: "open_count",
-    header: "Acik Kalan",
+    header: "Açık Kalan",
     sortable: true,
     render: (val) => {
       const n = val as number;
@@ -176,13 +174,13 @@ const COLUMNS: ColumnDef<DemandListRow>[] = [
   },
   {
     key: "start_date",
-    header: "Baslangic",
+    header: "Başlangıç",
     sortable: true,
     render: (val) => formatDateTR(((val as string | null) ?? "").slice(0, 10)),
   },
   {
     key: "priority",
-    header: "Oncelik",
+    header: "Öncelik",
     sortable: true,
     render: (val) => <PriorityBadge priority={val as OncelikSeviyesi} />,
   },
@@ -203,98 +201,107 @@ const COLUMNS: ColumnDef<DemandListRow>[] = [
   },
 ];
 
+const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", oncelik: "", firma: "" };
+
 export default function TaleplerPage() {
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const router = useRouter();
 
   // ---------------------------------------------------------------------------
   // Supabase data state
   // ---------------------------------------------------------------------------
   const supabase = useMemo(() => createClient(), []);
-  const [demands, setDemands] = useState<StaffingDemandRow[]>([]);
-  const [companyNameById, setCompanyNameById] = useState<
-    Record<string, string>
-  >({});
-  const [companyLegacyById, setCompanyLegacyById] = useState<
-    Record<string, string>
-  >({});
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // Real companies for the firma filter + New Request modal.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const context = useMemo(() => ({scope: listScope}), [listScope]);
+  const liveContext = useRef<typeof context | null>(context);
+  liveContext.current = context;
+  const generation = useRef(0);
+  const feedback = useActionNotice(listScope ?? "pending");
+  const [snapshot, setSnapshot] = useState<{scope: string; rows: StaffingDemandRow[]; names: Record<string,string>} | null>(null);
+  const [readState, setReadState] = useState<{scope: string; loading: boolean; error: string | null} | null>(null);
+  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "ready" | "error"} | null>(null);
+  const [companyRetry, setCompanyRetry] = useState(0);
+  const demands = useMemo(() => snapshot?.scope === listScope ? snapshot?.rows ?? [] : [], [snapshot, listScope]);
+  const companyNameById = useMemo(() => snapshot?.scope === listScope ? snapshot?.names ?? {} : {}, [snapshot, listScope]);
+  const loading = readState?.scope !== listScope || readState?.loading !== false;
+  const loadError = readState?.scope === listScope ? readState?.error : null;
+  const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
+  const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
 
   // ---------------------------------------------------------------------------
   // UI state
   // ---------------------------------------------------------------------------
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({
-    durum: "",
-    oncelik: "",
-    firma: "",
-  });
+  const searchControl = useRef<SearchInputHandle>(null);
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("talepler", listScope, LIST_FILTER_DEFAULTS);
   const [newOpen, setNewOpen] = useState(false);
+  const canOpenDailyPlan = role === "yonetici" || role === "operasyon";
+  // The legacy list filters by display name; never guess when two firms share a name.
+  const matchingCompanies = filters.firma ? allCompanies.filter(company => company.name === filters.firma) : [];
+  const dailyPlanHref = matchingCompanies.length === 1 ? `/talepler/gunluk?firma=${matchingCompanies[0].id}` : "/talepler/gunluk";
   const [ownerTarget, setOwnerTarget] = useState<{
     open: boolean;
     talepRef?: string;
     talepId?: string;
+    initialSorumlu?: string;
   }>({ open: false });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const mobileDetailControls = useRef(new Map<string, HTMLButtonElement>());
+  const closeDetail = () => {
+    const id = selectedId;
+    setSelectedId(null);
+    // Reload can replace the original trigger while a detail stays open.
+    requestAnimationFrame(() => {
+      if (liveContext.current !== context) return;
+      const trigger = id ? mobileDetailControls.current.get(id) : null;
+      if (trigger?.isConnected && trigger.getClientRects().length) trigger.focus({preventScroll: true});
+    });
+  };
 
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
 
   // ---------------------------------------------------------------------------
   // Fetch / reload
   // ---------------------------------------------------------------------------
   const reload = useCallback(async () => {
-    setLoadError(null);
+    if (!listScope || liveContext.current !== context) return;
+    const request = ++generation.current;
+    const isCurrent = () => request === generation.current && liveContext.current === context;
+    setReadState({scope: listScope, loading: true, error: null});
     try {
       const rows = await listAllDemands(supabase);
-      setDemands(rows);
-      // Resolve firma display names + legacy ids for the rows we just
-      // fetched. This is a single batched round trip.
-      const uniqueCompanyIds = Array.from(
-        new Set(rows.map((r) => r.company_id)),
-      );
-      const display = await getCompanyDisplayMapByIds(
-        supabase,
-        uniqueCompanyIds,
-      );
-      setCompanyNameById(display.nameById);
-      setCompanyLegacyById(display.legacyById);
+      if (!isCurrent()) return;
+      const display = await getCompanyDisplayMapByIds(supabase, Array.from(new Set(rows.map(row => row.company_id))));
+      if (!isCurrent()) return;
+      setSnapshot({scope: listScope, rows, names: display.nameById});
+      setReadState({scope: listScope, loading: false, error: null});
     } catch (err) {
-      setDemands([]);
-      setCompanyNameById({});
-      setCompanyLegacyById({});
-      setLoadError(
-        err instanceof Error
-          ? err.message
-          : "Talepler yuklenirken bir hata olustu.",
-      );
-    } finally {
-      setLoading(false);
+      if (!isCurrent()) return;
+      setSnapshot(null);
+      setReadState({scope: listScope, loading: false, error: err instanceof Error ? err.message : "Talepler yüklenirken bir hata oluştu."});
     }
-  }, [supabase]);
+  }, [supabase, listScope, context]);
 
   useEffect(() => {
-    setLoading(true);
+    liveContext.current = context;
+    setSnapshot(null); setNewOpen(false); setSelectedId(null); setOwnerTarget({open: false});
+    feedback.clear();
     void reload();
-  }, [reload]);
+    return () => { generation.current++; liveContext.current = null; };
+    // Notice functions are recreated on render; clear only when context changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reload, context]);
 
-  // Companies for the firma filter + New Request modal. Errors fall to
-  // an empty list (honest empty state).
   useEffect(() => {
+    if (!listScope) return;
     let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
+    setCompanySnapshot(null);
+    void selectAllCompanies(supabase).then(rows => {
+      if (active) setCompanySnapshot({scope: listScope, rows, status: "ready"});
+    }).catch(() => {
+      if (active) setCompanySnapshot({scope: listScope, rows: [], status: "error"});
+    });
     return () => { active = false; };
-  }, [supabase]);
+  }, [supabase, listScope, companyRetry]);
 
   // ---------------------------------------------------------------------------
   // Derived / enriched data
@@ -306,14 +313,6 @@ export default function TaleplerPage() {
       open_count: computeOpenCount(d),
     }));
   }, [demands, companyNameById]);
-
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const d of demands) {
-      counts[d.status] = (counts[d.status] ?? 0) + 1;
-    }
-    return counts;
-  }, [demands]);
 
   const totalOpenCount = useMemo(
     () => demands.reduce((sum, d) => sum + computeOpenCount(d), 0),
@@ -360,28 +359,45 @@ export default function TaleplerPage() {
     [allCompanies],
   );
 
+  const openOwner = (row: DemandListRow) => setOwnerTarget({
+    open: true, talepRef: `${row.position} — ${row.firma_name}`,
+    talepId: row.id, initialSorumlu: row.responsible ?? "",
+  });
+
+  const columns = useMemo<ColumnDef<DemandListRow>[]>(() => COLUMNS.map(column => column.key !== "firma_name" ? column : {
+    ...column,
+    render: (_value, row) => <div className="w-56 whitespace-normal break-words sm:w-auto">
+      <span>{row.firma_name}</span>
+      <div className="mt-2 space-y-2 sm:hidden">
+        <p className="font-medium text-slate-900">{row.position}</p>
+        <StatusBadge status={row.status} />
+        <p className="text-xs text-slate-600">{row.requested_count} kişi talep · {row.provided_count} sağlanan · {row.open_count} açık</p>
+        <button type="button" ref={element => {
+          if (element) mobileDetailControls.current.set(row.id, element);
+          else mobileDetailControls.current.delete(row.id);
+        }} onClick={event => { event.stopPropagation(); setSelectedId(row.id); }}
+          aria-label={`${row.position} talebini aç`} className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-blue-700">Talep detayı</button>
+      </div>
+    </div>,
+  }), []);
+
   const rowActions: RowAction<DemandListRow>[] = [
     {
       label: "Sorumlu Ata",
-      onClick: (row) =>
-        setOwnerTarget({
-          open: true,
-          talepRef: `${row.position} — ${row.firma_name}`,
-          talepId: row.id,
-        }),
+      onClick: openOwner,
     },
   ];
 
   // ---------------------------------------------------------------------------
   // Role gate
   // ---------------------------------------------------------------------------
-  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
-  if (authLoading) {
+  if (authLoading || !viewReady) {
     return (
       <>
-        <PageHeader title="Personel Talepleri" subtitle="Talep yonetimi" />
-        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+        <PageHeader title="Personel Talepleri" subtitle="Talep yönetimi" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
       </>
     );
   }
@@ -389,9 +405,9 @@ export default function TaleplerPage() {
   if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
     return (
       <>
-        <PageHeader title="Personel Talepleri" subtitle="Talep yonetimi" />
+        <PageHeader title="Personel Talepleri" subtitle="Talep yönetimi" />
         <EmptyState
-          title="Erisim kisitli"
+          title="Erişim kısıtlı"
           description="Bu ekran erisiminizin disindadir."
           size="page"
         />
@@ -403,8 +419,9 @@ export default function TaleplerPage() {
     <>
       <PageHeader
         title="Personel Talepleri"
-        subtitle="Acik ihtiyaclar ve doluluk durumu"
+        subtitle="Firma bazlı personel ihtiyaçları ve karşılanma durumu"
         actions={[
+          ...(canOpenDailyPlan ? [{ label: "Günlük planı aç", onClick: () => router.push(dailyPlanHref), variant: "secondary" as const }] : []),
           {
             label: "Yeni Talep",
             onClick: () => setNewOpen(true),
@@ -413,55 +430,31 @@ export default function TaleplerPage() {
         ]}
       />
 
+      <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
+        <p>Bu liste genel personel ihtiyaçlarını takip eder. Şube, çalışma günü, personel atama ve yoklama işlemleri Günlük plan ekranındadır. Buradaki talep kaydı kendiliğinden günlük görevlendirme oluşturmaz.</p>
+        {canOpenDailyPlan && <Link href={dailyPlanHref} className="mt-2 inline-flex min-h-11 items-center font-semibold underline">{matchingCompanies.length===1?"Seçili firmanın günlük planını aç":"Günlük personel planını aç"} →</Link>}
+      </div>
+      <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
       <div className="space-y-4">
+        <PickerFeedback id="request-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
+          emptyText="Listede firma yok. Talep formundan yeni firma ekleyebilirsiniz." onRetry={() => setCompanyRetry(value => value + 1)} />
         {loadError && (
           <p
             className={`${TYPE_CAPTION} text-red-600`}
             role="alert"
             aria-live="polite"
           >
-            {loadError}
+            Talep listesi yüklenemedi. Listeyi tekrar yükleyebilirsiniz.
           </p>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KPIStatCard label="Yeni" value={statusCounts["yeni"] ?? 0} />
-          <KPIStatCard
-            label="Degerlendiriliyor"
-            value={statusCounts["degerlendiriliyor"] ?? 0}
-          />
-          <KPIStatCard
-            label="Kismi Doldu"
-            value={statusCounts["kismi_doldu"] ?? 0}
-          />
-          <KPIStatCard label="Toplam Acik Kalan" value={totalOpenCount} />
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {Object.entries(statusCounts)
-            .filter(([, c]) => c > 0)
-            .map(([status, count]) => (
-              <button
-                key={status}
-                onClick={() =>
-                  setFilters((p) => ({
-                    ...p,
-                    durum: p.durum === status ? "" : status,
-                  }))
-                }
-                className={clsx(
-                  CHIP_BASE,
-                  filters.durum === status ? CHIP_ACTIVE : CHIP_INACTIVE,
-                )}
-              >
-                {STATUS_LABELS[status] ?? status} ({count})
-              </button>
-            ))}
-        </div>
-
+        {!loading && !loadError && <p className="text-sm text-slate-600" aria-label="Talep özeti">
+          <strong className="text-slate-900">{demands.length}</strong> talep · <strong className="text-slate-900">{totalOpenCount}</strong> kişilik açık ihtiyaç
+          <span className="ml-2 text-xs text-slate-500">Tüm yüklü talepler</span>
+        </p>}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput
+            <SearchInput ref={searchControl} key={listScope} value={search} maxLength={512}
               placeholder="Firma, pozisyon, sorumlu ara..."
               onChange={handleSearch}
             />
@@ -470,18 +463,25 @@ export default function TaleplerPage() {
         </div>
 
         {loading ? (
-          <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>
-            Yukleniyor...
+          <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>
+            Talepler yükleniyor…
           </p>
+        ) : loadError ? (
+          <button type="button" onClick={() => void reload()} className="min-h-11 rounded-lg border border-slate-200 px-4 text-sm font-medium text-blue-700">Listeyi tekrar yükle</button>
         ) : (
           <DataTable<DemandListRow>
-            columns={COLUMNS}
+            columns={columns}
             data={filteredData}
             rowKey="id"
             onRowClick={(row) => setSelectedId(row.id)}
             rowActions={rowActions}
-            emptyTitle="Talep bulunamadi"
-            emptyDescription="Arama veya filtre kriterlerinizi degistirin."
+            emptyTitle={demands.length === 0 ? "Henüz personel talebi yok" : "Bu filtrelerle eşleşen talep yok"}
+            emptyDescription={demands.length === 0 ? "Yeni Talep ile ilk personel ihtiyacınızı kaydedebilirsiniz." : "Aramayı veya filtreleri değiştirerek yeniden deneyin."}
+            emptyAction={demands.length === 0 ? {
+              label: "İlk talebi oluştur", onClick: () => setNewOpen(true),
+            } : (search !== "" || Object.values(filters).some(Boolean)) ? {
+              label: "Arama ve filtreleri temizle", onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
+            } : undefined}
           />
         )}
       </div>
@@ -489,24 +489,18 @@ export default function TaleplerPage() {
       {/* RequestDetailDrawer */}
       <RightSidePanel
         open={!!selectedTalep}
-        onClose={() => setSelectedId(null)}
-        title="Talep Detay"
+        onClose={closeDetail}
+        title="Talep detayı"
       >
         {selectedTalep && (
           <dl className="space-y-3">
             <div>
               <dt className={DL_LABEL}>Firma</dt>
               <dd className={`${TYPE_BODY} mt-0.5`}>
-                {companyLegacyById[selectedTalep.company_id] ? (
-                  <a
-                    href={`/firmalar/${companyLegacyById[selectedTalep.company_id]}`}
-                    className={`${TEXT_LINK} hover:underline`}
-                  >
-                    {selectedTalep.firma_name}
-                  </a>
-                ) : (
-                  <span className={TEXT_BODY}>{selectedTalep.firma_name}</span>
-                )}
+                <Link href={`/firmalar/${selectedTalep.company_id}`}
+                  className={`${TEXT_LINK} inline-block min-h-11 max-w-full break-words py-2 underline underline-offset-4`}>
+                  {selectedTalep.firma_name === "—" ? "Firma kaydını aç" : selectedTalep.firma_name}
+                </Link>
               </dd>
             </div>
             <div>
@@ -579,7 +573,12 @@ export default function TaleplerPage() {
             <div>
               <dt className={DL_LABEL}>Sorumlu</dt>
               <dd className={DL_VALUE}>
-                {selectedTalep.responsible ?? "—"}
+                {selectedTalep.responsible?.trim() || "Henüz sorumlu atanmadı"}
+              </dd>
+              <dd className="mt-2">
+                <button type="button" onClick={() => openOwner(selectedTalep)} className="min-h-11 rounded-lg border border-slate-200 px-4 text-sm font-medium text-blue-700 hover:bg-blue-50">
+                  {selectedTalep.responsible?.trim() ? "Sorumluyu değiştir" : "Sorumlu ata"}
+                </button>
               </dd>
             </div>
           </dl>
@@ -587,10 +586,14 @@ export default function TaleplerPage() {
       </RightSidePanel>
 
       <NewRequestModal
+        key={listScope}
         open={newOpen}
-        onClose={() => setNewOpen(false)}
+        onClose={() => { if (liveContext.current === context) setNewOpen(false); }}
         firmalar={firmaOptions}
+        firmalarDurum={companiesDurum}
+        onRetryFirmalar={() => setCompanyRetry(value => value + 1)}
         onSubmit={async (p) => {
+          if (liveContext.current !== context) return;
           const payload: DemandCreateInput = {
             legacyCompanyId: p.firmaId,
             position: p.pozisyon,
@@ -601,19 +604,33 @@ export default function TaleplerPage() {
             responsible: p.sorumlu || undefined,
           };
           const result = await createDemandAction(payload);
+          if (liveContext.current !== context) return;
           if (!result.ok) throw new Error(result.error);
+          feedback.show(`${p.pozisyon} için ${p.adet} kişilik personel talebi kaydedildi.`);
           await reload();
+          if (liveContext.current !== context) return;
           router.refresh();
         }}
       />
       <AssignOwnerModal
+        key={`${listScope}:${ownerTarget.talepId ?? "none"}`}
         open={ownerTarget.open}
-        onClose={() => setOwnerTarget({ open: false })}
+        onClose={() => { if (liveContext.current === context) setOwnerTarget({ open: false }); }}
         talepRef={ownerTarget.talepRef}
         talepId={ownerTarget.talepId}
+        initialSorumlu={ownerTarget.initialSorumlu}
         onSubmit={async ({ talepId, sorumlu }) => {
-          await updateDemand(supabase, talepId, { responsible: sorumlu });
+          if (liveContext.current !== context) return;
+          try {
+            await updateDemand(supabase, talepId, { responsible: sorumlu });
+          } catch {
+            if (liveContext.current !== context) return;
+            throw new Error("Sorumlu kaydedilemedi. Lütfen tekrar deneyin.");
+          }
+          if (liveContext.current !== context) return;
+          feedback.show(`${ownerTarget.talepRef ?? "Talep"} için sorumlu ${sorumlu} olarak kaydedildi.`);
           await reload();
+          if (liveContext.current !== context) return;
           router.refresh();
         }}
       />

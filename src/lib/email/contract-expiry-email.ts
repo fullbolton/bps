@@ -1,3 +1,4 @@
+import {readTenantRoleDirectory,tenantCompanyRecipients,sameRecipientMembership,type TenantRoleDirectory} from './tenant-role-recipients';
 /**
  * BPS Katman 2 — Contract Expiry Email Recall V1.
  *
@@ -29,7 +30,7 @@
  *     loudly, because that row would sit as "sent" forever and its mail
  *     would never go out.
  *
- * KNOWN DUPLICATION: this file keeps its own `RecipientRow` and
+ * KNOWN DUPLICATION: this file keeps its own email-based
  * `dedupeRecipients` while `notification-recipients.ts` defines equivalents.
  * They are NOT identical — this one dedupes by e-mail address, the shared one
  * by profile id. Two profiles sharing an address would get one mail here and
@@ -38,9 +39,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, ContractRow } from "@/types/database.types";
-import type { UserRole } from "@/context/AuthContext";
-import { computeRemainingDays } from "@/lib/services/contracts";
+import type { Database } from "@/types/database.types";
+import { computeRemainingDays } from "@/lib/calendar-date";
+import { readNotificationCompanyNames } from "./company-names";
+import { readExpiryContracts, type ExpiryContract } from "./contract-candidates";
 import { sendEmail } from "./resend-transport";
 import { stampNotification, rollbackStamp } from "./notification-log";
 import {
@@ -48,7 +50,8 @@ import {
   NOTIFICATION_RECIPIENTS,
 } from "@/lib/notification-kinds";
 import { loadTenantScope } from "./notification-recipients";
-import { safeDbError, safeSendError } from "./safe-error";
+import { readContractRecipients, type ContractRecipient as RecipientRow } from "./contract-recipients";
+import { safeSendError } from "./safe-error";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -83,15 +86,9 @@ export interface BatchRunResult {
   errors: string[];
 }
 
-interface RecipientRow {
-  id: string;
-  email: string;
-  display_name: string;
-  role: UserRole;
-}
 
 interface ContractWithCompany {
-  contract: ContractRow;
+  contract: ExpiryContract;
   companyName: string;
   remainingDays: number;
 }
@@ -130,26 +127,19 @@ export async function runContractExpiryRecallBatch(
     "",
   );
 
-  // 1. Fetch candidate contracts — active, non-null end_date. The date
-  //    window is filtered client-side because Postgres can't compute
-  //    computeRemainingDays (which has TZ-stable semantics) inside a
-  //    single SQL predicate without duplicating logic. The candidate
-  //    set is tiny in practice (contracts with end_date in the next
-  //    month), so the client-side filter cost is negligible.
-  const { data: contractRows, error: contractError } = await client
-    .from("contracts")
-    .select("*")
-    .eq("status", "aktif")
-    .not("end_date", "is", null);
-
-  if (contractError) {
-    result.errors.push(`contracts fetch failed: ${safeDbError(contractError)}`);
+  // Read every active dated contract before applying the existing TZ-stable
+  // date calculation. A server cap must not hide the final candidate.
+  let contractRows: ExpiryContract[];
+  try {
+    contractRows = await readExpiryContracts(client);
+  } catch {
+    result.errors.push("contracts fetch failed: code=READ_INCOMPLETE");
     return result;
   }
 
   const candidates: ContractWithCompany[] = [];
   const companyIds = new Set<string>();
-  for (const c of contractRows ?? []) {
+  for (const c of contractRows) {
     const remaining = computeRemainingDays(c.end_date, now);
     if (remaining === null) continue;
     if (remaining < 0 || remaining > CONTRACT_EXPIRY_THRESHOLD_DAYS) continue;
@@ -166,100 +156,27 @@ export async function runContractExpiryRecallBatch(
     return result;
   }
 
-  // 2. Resolve company names in one round-trip.
-  const { data: companyRows, error: companyError } = await client
-    .from("companies")
-    .select("id, name")
-    .in("id", Array.from(companyIds));
-
-  if (companyError) {
-    result.errors.push(`companies fetch failed: ${safeDbError(companyError)}`);
+  let companyNameById: Map<string, string>;
+  try {
+    companyNameById = await readNotificationCompanyNames(client, [...companyIds]);
+  } catch {
+    result.errors.push("companies fetch failed: code=READ_INCOMPLETE");
     return result;
   }
+  for (const c of candidates) c.companyName = companyNameById.get(c.contract.company_id)!;
 
-  const companyNameById = new Map<string, string>();
-  for (const row of companyRows ?? []) {
-    companyNameById.set(row.id, row.name);
-  }
-  for (const c of candidates) {
-    c.companyName = companyNameById.get(c.contract.company_id) ?? "—";
-  }
-
-  // 3. Fetch all yonetici profiles once (global recipients, small set).
-  const { data: yoneticiRows, error: yoneticiError } = await client
-    .from("profiles")
-    .select("id, email, display_name, role")
-    .eq("role", "yonetici");
-
-  if (yoneticiError) {
-    result.errors.push(`yonetici fetch failed: ${safeDbError(yoneticiError)}`);
-    return result;
-  }
-  const yoneticiRecipients: RecipientRow[] = (yoneticiRows ?? []).filter(
-    (p): p is RecipientRow => Boolean(p.email),
-  );
-
-  // 4. Pre-fetch partner assignments keyed by company.
-  //
-  //    Partner dahil edilip edilmeyeceği `NOTIFICATION_RECIPIENTS` üzerinden
-  //    OKUNUR, burada sabitlenmez. contract_expiry partner'a giden TEK tiptir
-  //    ve bu yaşayan, kabul edilmiş bir istisnadır — ama istisnanın nerede
-  //    olduğu tek yerden görülmeli. Bayrak `false`'a çekilirse bu sorgular hiç
-  //    koşmaz ve alıcı listesi yalnız yönetici kalır; kod değişikliği gerekmez.
   const ceStrategy = NOTIFICATION_RECIPIENTS.contract_expiry;
-  const includePartners =
-    ceStrategy.mode === "company" ? ceStrategy.includePartners : false;
-
-  const partnerIdsByCompany = new Map<string, Set<string>>();
-  const allPartnerIds = new Set<string>();
-
-  if (includePartners) {
-    const { data: pcaRows, error: pcaError } = await client
-      .from("partner_company_assignments")
-      .select("partner_user_id, company_id")
-      .in("company_id", Array.from(companyIds));
-
-    if (pcaError) {
-      result.errors.push(
-        `partner_company_assignments fetch failed: ${safeDbError(pcaError)}`,
-      );
-      return result;
-    }
-
-    for (const row of pcaRows ?? []) {
-      let set = partnerIdsByCompany.get(row.company_id);
-      if (!set) {
-        set = new Set<string>();
-        partnerIdsByCompany.set(row.company_id, set);
-      }
-      set.add(row.partner_user_id);
-      allPartnerIds.add(row.partner_user_id);
-    }
-  }
-
-  // 5. Resolve partner profiles (filter by role = 'partner' as a
-  //    defense-in-depth check — only profiles currently holding the
-  //    partner role should receive the mail, even if an assignment
-  //    row exists from a prior role change).
-  let partnerProfileById = new Map<string, RecipientRow>();
-  if (allPartnerIds.size > 0) {
-    const { data: partnerRows, error: partnerError } = await client
-      .from("profiles")
-      .select("id, email, display_name, role")
-      .in("id", Array.from(allPartnerIds))
-      .eq("role", "partner");
-
-    if (partnerError) {
-      result.errors.push(
-        `partner profiles fetch failed: ${safeDbError(partnerError)}`,
-      );
-      return result;
-    }
-    partnerProfileById = new Map(
-      (partnerRows ?? [])
-        .filter((p): p is RecipientRow => Boolean(p.email))
-        .map((p) => [p.id, p]),
-    );
+  const includePartners = ceStrategy.mode === "company" ? ceStrategy.includePartners : false;
+  let recipientsByCompany: Map<string, RecipientRow[]>;
+  let directory:TenantRoleDirectory|undefined;
+  try {
+    if(process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'){
+     directory=await readTenantRoleDirectory(client);
+     recipientsByCompany=await tenantCompanyRecipients(client,directory,candidates.map(c=>({companyId:c.contract.company_id,tenantId:c.contract.tenant_id})),includePartners,false);
+    }else recipientsByCompany = await readContractRecipients(client, [...companyIds], includePartners);
+  } catch {
+    result.errors.push("contract recipients fetch failed: code=READ_INCOMPLETE");
+    return result;
   }
 
   // 6. Loop per contract × recipient. Per-recipient idempotency is enforced by
@@ -286,20 +203,21 @@ export async function runContractExpiryRecallBatch(
     return result;
   }
 
+  if(directory){
+   try{const fresh=await readTenantRoleDirectory(client);const original=scope.isMember;scope.isMember=(tenant,id)=>original(tenant,id)&&sameRecipientMembership(directory!,fresh,tenant,id);}
+   catch{result.errors.push('tenant roles unavailable; no email sent');return result;}
+  }
   for (const c of candidates) {
-    const recipients = dedupeRecipients([
-      ...yoneticiRecipients,
-      ...Array.from(partnerIdsByCompany.get(c.contract.company_id) ?? [])
-        .map((pid) => partnerProfileById.get(pid))
-        .filter((r): r is RecipientRow => r !== undefined),
-    ]);
+    // Scope before email deduplication: a same-address profile in another
+    // tenant must not suppress an eligible recipient for this contract.
+    const scopedRecipients = (recipientsByCompany.get(c.contract.company_id) ?? []).filter(recipient => {
+      if (scope.isMember(c.contract.tenant_id, recipient.id)) return true;
+      result.recipientsDroppedCrossTenant++;
+      return false;
+    });
+    const recipients = dedupeRecipients(scopedRecipients);
 
     for (const recipient of recipients) {
-      // Alıcı, sözleşmenin tenant'ında üye değilse bu kayıt ona ait değildir.
-      if (!scope.isMember(c.contract.tenant_id, recipient.id)) {
-        result.recipientsDroppedCrossTenant++;
-        continue;
-      }
       result.recipientsAttempted++;
 
       // Ledger moved to `notification_log` (2026-08-27). Same key shape,
@@ -374,7 +292,7 @@ export async function runContractExpiryRecallBatch(
 
 interface EmailBuildInput {
   recipient: RecipientRow;
-  contract: ContractRow;
+  contract: ExpiryContract;
   companyName: string;
   remainingDays: number;
   appUrl: string;

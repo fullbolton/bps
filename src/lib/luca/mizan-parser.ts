@@ -225,7 +225,7 @@ export function parseMizanExcel(
   }
 
   if (rows.length === 0 && errors.length === 0) {
-    errors.push("120.xxx musteri seviyesinde alacak satiri bulunamadi");
+    errors.push("En az dört seviyeli müşteri hesabı bulunamadı (örnek: 120.01.01.999). Daha kısa kodlar işlenmez.");
   }
 
   const matchedCount = rows.filter((r) => r.matchStatus === "matched").length;

@@ -26,7 +26,7 @@ export const DOT_DANGER = "bg-red-500";
 // Surfaces
 // ---------------------------------------------------------------------------
 
-export const SURFACE_CANVAS = "bg-slate-50";
+export const SURFACE_CANVAS = "bg-[#f4f6fa]";
 export const SURFACE_PRIMARY = "bg-white";
 export const SURFACE_HEADER = "bg-slate-50";
 export const SURFACE_OVERLAY_LIGHT = "bg-black/20";
@@ -39,7 +39,7 @@ export const SURFACE_OVERLAY_DARK = "bg-black/30";
 export const TEXT_PRIMARY = "text-slate-900";
 export const TEXT_BODY = "text-slate-700";
 export const TEXT_SECONDARY = "text-slate-500";
-export const TEXT_MUTED = "text-slate-400";
+export const TEXT_MUTED = "text-slate-500";
 export const TEXT_DISABLED = "text-slate-300";
 export const TEXT_INVERSE = "text-white";
 export const TEXT_LINK = "text-blue-600";
@@ -55,21 +55,21 @@ export const BORDER_SUBTLE = "border-slate-100";
 // Typography composites
 // ---------------------------------------------------------------------------
 
-export const TYPE_PAGE_TITLE = "text-xl font-semibold";
-export const TYPE_SECTION_TITLE = "text-base font-semibold";
-export const TYPE_CARD_TITLE = "text-sm font-medium";
-export const TYPE_BODY = "text-sm";
+export const TYPE_PAGE_TITLE = "text-2xl sm:text-3xl font-semibold tracking-tight";
+export const TYPE_SECTION_TITLE = "text-base font-semibold tracking-tight";
+export const TYPE_CARD_TITLE = "text-sm font-semibold leading-5";
+export const TYPE_BODY = "text-sm leading-6";
 export const TYPE_LABEL = "text-xs font-medium";
 export const TYPE_CAPTION = "text-xs";
-export const TYPE_KPI_VALUE = "text-2xl font-semibold";
+export const TYPE_KPI_VALUE = "text-3xl font-semibold tracking-tight tabular-nums";
 export const TYPE_TABLE_HEADER = "text-xs font-medium uppercase tracking-wider";
 
 // ---------------------------------------------------------------------------
 // Radius
 // ---------------------------------------------------------------------------
 
-export const RADIUS_SM = "rounded-md";
-export const RADIUS_DEFAULT = "rounded-lg";
+export const RADIUS_SM = "rounded-xl";
+export const RADIUS_DEFAULT = "rounded-2xl";
 export const RADIUS_FULL = "rounded-full";
 
 // ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ export const RADIUS_FULL = "rounded-full";
 
 export const SHADOW_NONE = "";
 export const SHADOW_HOVER = "shadow-sm";
-export const SHADOW_DROPDOWN = "shadow-lg";
+export const SHADOW_DROPDOWN = "shadow-xl shadow-slate-900/10";
 export const SHADOW_OVERLAY = "shadow-xl";
 
 // ---------------------------------------------------------------------------
@@ -94,9 +94,9 @@ export const Z_OVERLAY = "z-50";
 // Buttons
 // ---------------------------------------------------------------------------
 
-export const BUTTON_BASE = `flex items-center gap-1.5 px-3 py-2 ${TYPE_BODY} font-medium ${RADIUS_SM} transition-colors`;
-export const BUTTON_PRIMARY = `${TEXT_INVERSE} bg-blue-600 hover:bg-blue-700`;
-export const BUTTON_SECONDARY = `${TEXT_BODY} ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} hover:bg-slate-50`;
+export const BUTTON_BASE = `inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 ${TYPE_BODY} font-medium ${RADIUS_SM} transition-[background-color,border-color,box-shadow] duration-150 disabled:cursor-not-allowed disabled:opacity-50`;
+export const BUTTON_PRIMARY = `${TEXT_INVERSE} bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20`;
+export const BUTTON_SECONDARY = `${TEXT_BODY} ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} hover:bg-slate-50 hover:border-slate-300 shadow-sm`;
 
 // ---------------------------------------------------------------------------
 // Right side panel
@@ -119,24 +119,24 @@ export const TABLE_BODY_TEXT = `${TABLE_CELL_PX} ${TABLE_CELL_PY} ${TYPE_BODY} $
 export const TABLE_DIVIDER_HEAD = "divide-y divide-slate-200";
 export const TABLE_DIVIDER_BODY = "divide-y divide-slate-100";
 export const TABLE_ROW_HOVER = "hover:bg-slate-50";
-export const TABLE_WRAPPER = `border ${BORDER_DEFAULT} ${RADIUS_DEFAULT}`;
+export const TABLE_WRAPPER = `bg-white shadow-sm border ${BORDER_DEFAULT} ${RADIUS_DEFAULT}`;
 export const TABLE_PAGE_SIZE = 20;
 
 // ---------------------------------------------------------------------------
 // Form density
 // ---------------------------------------------------------------------------
 
-export const INPUT_BASE = `w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`;
+export const INPUT_BASE = `w-full min-h-11 px-3.5 py-2.5 ${TYPE_BODY} bg-white border ${BORDER_DEFAULT} ${RADIUS_SM} shadow-sm transition-[border-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60`;
 
 // ---------------------------------------------------------------------------
 // Modal
 // ---------------------------------------------------------------------------
 
 export const MODAL_OVERLAY = `fixed inset-0 ${SURFACE_OVERLAY_DARK} flex items-center justify-center ${Z_OVERLAY}`;
-export const MODAL_CONTAINER = `${SURFACE_PRIMARY} ${RADIUS_DEFAULT} ${SHADOW_OVERLAY} w-full max-w-lg mx-4 flex flex-col max-h-[85vh]`;
+export const MODAL_CONTAINER = `${SURFACE_PRIMARY} ${RADIUS_DEFAULT} ${SHADOW_OVERLAY} w-full max-w-lg mx-4 flex flex-col max-h-[90dvh]`;
 export const MODAL_HEADER = `flex items-center justify-between px-5 py-4 border-b ${BORDER_DEFAULT} flex-shrink-0`;
 export const MODAL_BODY = "flex-1 overflow-y-auto px-5 py-4";
-export const MODAL_FOOTER = `px-5 py-3 border-t ${BORDER_DEFAULT} flex justify-end gap-2 flex-shrink-0`;
+export const MODAL_FOOTER = `px-5 py-4 bg-slate-50 border-t ${BORDER_DEFAULT} flex flex-wrap justify-end gap-2 flex-shrink-0 rounded-b-2xl`;
 
 // ---------------------------------------------------------------------------
 // Tab navigation

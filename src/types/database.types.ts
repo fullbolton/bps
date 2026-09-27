@@ -290,6 +290,7 @@ export interface Database {
       contracts: {
         Row: {
           id: string;
+          revision: number;
           // tenant_id mirrors the companies/documents tenant-scoping;
           // contracts belong to a company and carry the same tenant.
           // Server-set on insert (import server action), never from
@@ -573,9 +574,10 @@ export interface Database {
       // ---------------------------------------------------------------------
       tasks: {
         Row: {
+          revision: number;
           id: string;
           tenant_id: string;
-          company_id: string;
+          company_id: string | null;
           contract_id: string | null;
           appointment_id: string | null;
           title: string;
@@ -604,7 +606,7 @@ export interface Database {
           // how görev creation shipped broken and stayed unnoticed while
           // the table was empty.
           tenant_id: string;
-          company_id: string;
+          company_id: string | null;
           contract_id?: string | null;
           appointment_id?: string | null;
           title: string;
@@ -622,7 +624,7 @@ export interface Database {
         Update: {
           id?: string;
           tenant_id?: string;
-          company_id?: string;
+          company_id?: string | null;
           contract_id?: string | null;
           appointment_id?: string | null;
           title?: string;
@@ -644,6 +646,15 @@ export interface Database {
           { foreignKeyName: "tasks_created_by_fkey"; columns: ["created_by"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "tasks_assigned_to_user_id_fkey"; columns: ["assigned_to_user_id"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
+      };
+      task_assignment_history: {
+        Row: { task_id: string; revision: number; tenant_id: string;
+          kind: "baseline" | "created" | "assigned" | "reassigned" | "unassigned";
+          previous_user_id: string | null; next_user_id: string | null;
+          actor_id: string | null; recorded_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [{foreignKeyName:"task_assignment_history_task_id_fkey";columns:["task_id"];referencedRelation:"tasks";referencedColumns:["id"]}];
       };
       // ---------------------------------------------------------------------
       // workforce_summary — Faz 3D (Aktif İş Gücü, aggregate-only)
@@ -692,12 +703,15 @@ export interface Database {
       documents: {
         Row: {
           id: string;
+          revision: number;
           // tenant_id is `NOT NULL` in production; the documents RLS
           // chain (SELECT/INSERT/DELETE) filters on it. Server-set
           // only — never read from client payloads.
           tenant_id: string;
           company_id: string;
           contract_id: string | null;
+          contract_document_role: "main" | "appendix" | null;
+          contract_document_title: string | null;
           name: string;
           category: DocumentCategory;
           status: EvrakDurumu;
@@ -722,6 +736,8 @@ export interface Database {
           tenant_id: string;
           company_id: string;
           contract_id?: string | null;
+          contract_document_role?: "main" | "appendix" | null;
+          contract_document_title?: string | null;
           name: string;
           category?: DocumentCategory;
           status?: EvrakDurumu;
@@ -737,6 +753,8 @@ export interface Database {
           tenant_id?: string;
           company_id?: string;
           contract_id?: string | null;
+          contract_document_role?: "main" | "appendix" | null;
+          contract_document_title?: string | null;
           name?: string;
           category?: DocumentCategory;
           status?: EvrakDurumu;
@@ -1134,6 +1152,8 @@ export interface Database {
       };
       tenant_memberships: {
         Row: {
+          role: string;
+          version: string;
           id: string;
           user_id: string;
           tenant_id: string;
@@ -1206,6 +1226,102 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      ops_fixed_roster_idp_create:{Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_roster_id:string;p_expected_revision:number;p_start:string;p_end:string;p_dates:Json};Returns:Json};
+      ops_fixed_roster_history:{Args:{p_actor_id:string;p_tenant_id:string;p_id:string;p_offset?:number};Returns:Json};
+      ops_fixed_roster_save:{Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_id:string;p_expected_revision:number;p_company_id:string;p_location_id:string;p_worker_id:string;p_service_line:string;p_position:string;p_starts_on:string;p_ends_on:string|null;p_reason:string;p_cancelled?:boolean};Returns:Json};
+      ops_schedule_save:{Args:{p_actor:string;p_tenant:string;p_command:string;p_id:string|null;p_revision:number;p_plan:Json;p_archived:boolean};Returns:Json};
+      ops_schedule_list:{Args:{p_actor:string;p_tenant:string;p_company:string;p_offset:number};Returns:Json};
+      ops_schedule_preview:{Args:{p_actor:string;p_tenant:string;p_id:string;p_revision:number;p_start:string;p_end:string};Returns:Json};
+      ops_schedule_generate:{Args:{p_actor:string;p_tenant:string;p_command:string;p_id:string;p_revision:number;p_start:string;p_end:string};Returns:Json};
+      ops_create_timed_requests:{Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_payload:Json};Returns:Json};
+      ops_fixed_roster_list:{Args:{p_actor_id:string;p_tenant_id:string;p_company_id:string;p_location_id:string;p_day:string;p_offset?:number;p_history?:boolean};Returns:Json};
+      ops_idp_period_manage:{Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_period_id:string;p_expected_revision:number;p_payload:Json};Returns:Json};
+      ops_idp_period_create:{Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_payload:Json};Returns:Json};
+      ops_idp_period_history:{Args:{p_actor_id:string;p_tenant_id:string;p_period_id:string;p_before_revision?:number};Returns:Json};
+      ops_idp_period_read:{Args:{p_actor_id:string;p_tenant_id:string;p_period_id:string};Returns:Json};
+      ops_idp_read: {Args:{p_actor_id:string;p_tenant_id:string;p_request_id:string};Returns:Json};
+      ops_idp_list: {Args:{p_company_id:string;p_work_date:string};Returns:Json};
+      ops_idp_save: {Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_request_id:string;p_expected_revision:number;p_original_name:string;p_leave_start:string;p_leave_end:string};Returns:Json};
+      talent_prepare_worker: {Args:{p_actor_id:string;p_tenant_id:string;p_person_id:string;p_command_id:string;p_expected_revision:number;p_code:string;p_kind:string};Returns:Json};
+      talent_attachment_cancel: {Args:{p_actor_id:string;p_tenant_id:string;p_id:string;p_finish?:boolean};Returns:boolean};
+      talent_attachment_pending: {Args:{p_actor_id:string;p_tenant_id:string;p_person_id:string};Returns:Json};
+      talent_availability_read: {Args:{p_actor_id:string;p_tenant_id:string;p_person_id:string};Returns:Json};
+      talent_availability_save: {Args:{p_actor_id:string;p_tenant_id:string;p_person_id:string;p_command_id:string;p_expected_revision:number;p_state:string;p_starts_on:string;p_ends_on:string};Returns:Json};
+      talent_conversation_list: {Args:{p_actor_id:string;p_tenant_id:string;p_person_id:string;p_offset?:number};Returns:Json};
+      talent_conversation_save: {Args:{p_actor_id:string;p_tenant_id:string;p_input:Json};Returns:Json};
+      talent_attachment_reserve: {Args:{p_actor_id:string;p_tenant_id:string;p_input:Json};Returns:Json};
+      talent_attachment_finish: {Args:{p_actor_id:string;p_tenant_id:string;p_id:string};Returns:boolean};
+      talent_attachment_list: {Args:{p_actor_id:string;p_tenant_id:string;p_person_id:string};Returns:Json};
+      talent_merge_apply: { Args: { p_actor:string; p_tenant:string; p_command:string; p_left:string; p_right:string; p_primary:string; p_review_token:string; p_fields:Json; p_confirm_same_person:boolean; p_keep_primary_availability:boolean }; Returns:Json };
+      talent_merge_resolve: { Args: { p_actor:string; p_tenant:string; p_command:string }; Returns:Json };
+      talent_contact_summaries: { Args: { p_actor:string; p_tenant:string; p_people:string[] }; Returns:Json };
+      talent_merged_availability: { Args: { p_actor:string; p_tenant:string; p_person:string; p_offset:number }; Returns:Json };
+      talent_merge_review: { Args: { p_actor: string; p_tenant: string; p_left: string; p_right: string }; Returns: Json };
+      talent_import_change_review: { Args: { p_actor: string; p_tenant: string; p_batch: string; p_number: number }; Returns: Json };
+      talent_import_undo_update: { Args: { p_actor: string; p_tenant: string; p_batch: string; p_number: number }; Returns: Json };
+      talent_import_history: { Args: { p_actor: string; p_tenant: string; p_offset?: number }; Returns: Json };
+      talent_import_recover: { Args: { p_actor: string; p_tenant: string; p_batch: string; p_source_hash: string; p_total: number }; Returns: Json };
+      talent_import_close: { Args: { p_actor: string; p_tenant: string; p_batch: string; p_source_hash: string; p_total: number }; Returns: Json };
+      talent_import_prepare: { Args: { p_actor: string; p_tenant: string; p_batch: string; p_source_hash: string; p_rows: Json }; Returns: Json };
+      talent_import_status: { Args: { p_actor: string; p_tenant: string; p_batch: string }; Returns: Json };
+      talent_import_apply_row: { Args: { p_actor: string; p_tenant: string; p_batch: string; p_number: number }; Returns: Json };
+      talent_import_cancel: { Args: { p_actor: string; p_tenant: string; p_batch: string }; Returns: Json };
+      talent_work_copy_page: { Args: { p_actor_id: string; p_tenant_id: string; p_after?: string; p_version?: string }; Returns: Json };
+      talent_match_source: { Args: { p_actor_id: string; p_tenant_id: string; p_rows: Json }; Returns: Json };
+      talent_compare_snapshot: { Args: { p_actor_id: string; p_tenant_id: string }; Returns: Json };
+      admin_workspace_users: {Args:{p_offset:number;p_query:string};Returns:Json};
+      admin_user_memberships: {Args:{p_user_id:string};Returns:Json};
+      admin_manage_membership: {Args:{p_user_id:string;p_tenant_id:string;p_action:string;p_role?:string;p_expected_role?:string;p_expected_version?:string};Returns:Json};
+      my_workspace_choices: { Args: Record<string, never>; Returns: Json };
+      select_workspace: { Args: {p_tenant_id:string;p_membership_version:string;p_command_id:string;p_expected_version:string|null}; Returns: Json };
+      current_workspace_context: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      talent_call_lists_read: {Args:{p_actor:string;p_tenant:string};Returns:Json};
+      talent_call_list_people: {Args:{p_actor:string;p_tenant:string;p_id:string};Returns:Json};
+      talent_call_list_create: {Args:{p_actor:string;p_tenant:string;p_id:string;p_name:string;p_ids:string[]};Returns:string};
+      talent_call_list_archive: {Args:{p_actor:string;p_tenant:string;p_id:string};Returns:string};
+      talent_shared_views_read: {Args:{p_actor:string;p_tenant:string};Returns:Json};
+      talent_shared_view_create: {Args:{p_actor:string;p_tenant:string;p_id:string;p_name:string;p_query:Json};Returns:string};
+      talent_shared_view_archive: {Args:{p_actor:string;p_tenant:string;p_id:string};Returns:string};
+      talent_people_page: {Args:{p_actor_id:string;p_tenant_id:string;p_query:Json};Returns:Json};
+      talent_resolve_person_command: {Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string};Returns:Json};
+      talent_person_detail: {Args:{p_actor_id:string;p_tenant_id:string;p_person_id:string};Returns:Json};
+      talent_save_person: {Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_person_id:string|null;p_expected_revision:number|null;p_input:Json};Returns:Json};
+      write_company_contact: {
+        Args: { p_company_id: string; p_contact_id: string | null; p_full_name: string; p_title: string | null; p_phone: string | null; p_email: string | null; p_is_primary: boolean; p_context_note: string | null };
+        Returns: Database["public"]["Tables"]["contacts"]["Row"][];
+      };
+      ops_start_board: { Args: { p_actor_id:string; p_tenant_id:string; p_day:string; p_offset?:number }; Returns: Json };
+      ops_start_board_filtered: { Args: { p_actor_id:string; p_tenant_id:string; p_day:string; p_offset?:number; p_search?:string; p_only_mine?:boolean; p_only_urgent?:boolean }; Returns: Json };
+      ops_start_execute: { Args: { p_actor_id:string; p_tenant_id:string; p_command_id:string; p_assignment_id:string; p_expected_revision:number; p_action:string; p_payload:Json }; Returns: Json };
+      confirm_mizan_atomic: { Args: { p_id: string; p_tenant_id: string; p_payload: Record<string,unknown> }; Returns: string };
+      daily_dashboard: {Args:{p_actor_id:string;p_tenant_id:string};Returns:Json};
+      invitation_registration_allowed: {Args:{p_id:string;p_token:string;p_email:string};Returns:boolean};
+      prepare_invited_profile: {Args:{p_id:string;p_token:string};Returns:undefined};
+      manage_workspace_invitation: {Args:{p_actor_id:string;p_tenant_id:string;p_id:string;p_action:string;p_email?:string;p_role?:string;p_token?:string};Returns:Json};
+      list_workspace_invitations: {Args:{p_actor_id:string;p_tenant_id:string};Returns:Json};
+      accept_workspace_invitation: {Args:{p_actor_id:string;p_id:string;p_token:string};Returns:Json};
+      workspace_setup: {Args:{p_actor_id:string;p_tenant_id:string};Returns:Json};
+      dashboard_activity: {Args:{p_actor_id:string;p_tenant_id:string};Returns:Json};
+      prepare_contract_document_upload: {Args:{p_actor_id:string;p_tenant_id:string;p_contract_id:string;p_command_id:string;p_document_id:string|null;p_revision:number|null;p_filename:string;p_byte_size:number;p_sha256:string;p_cancel:boolean;p_target_role:string;p_appendix_title:string|null};Returns:Json};
+      contract_appendices: {Args:{p_actor_id:string;p_tenant_id:string;p_contract_id:string;p_after_id?:string|null};Returns:Json};
+      contract_document_history: {Args:{p_actor_id:string;p_tenant_id:string;p_contract_id:string;p_document_id:string};Returns:Json};
+      contract_document_version_path: {Args:{p_actor_id:string;p_tenant_id:string;p_contract_id:string;p_document_id:string;p_version_id:string};Returns:string|null};
+
+      prepare_contract_pdf_upload: {Args:{p_actor_id:string;p_tenant_id:string;p_contract_id:string;p_command_id:string;p_document_id:string|null;p_revision:number|null;p_filename:string;p_byte_size:number;p_sha256:string;p_cancel?:boolean};Returns:Json};
+      finish_contract_pdf_upload: {Args:{p_actor_id:string;p_tenant_id:string;p_contract_id:string;p_command_id:string};Returns:Json};
+      get_contract_pdf_upload: {Args:{p_actor_id:string;p_tenant_id:string;p_contract_id:string;p_command_id:string};Returns:Json};
+
+      contract_pdf_versions: {Args:{p_actor_id:string;p_tenant_id:string;p_contract_id:string};Returns:Json};
+      contract_pdf_version_path: {Args:{p_actor_id:string;p_tenant_id:string;p_version_id:string};Returns:string|null};
+      contract_renewal_snapshot: { Args: {p_actor_id:string;p_tenant_id:string;p_contract_id:string}; Returns: Json };
+      create_contract_renewal_task: { Args: {p_actor_id:string;p_tenant_id:string;p_contract_id:string;p_command_id:string;p_revision:number;p_assignee_id:string;p_due_date:string;p_basis:string}; Returns: Json };
+      task_transfer_directory: { Args: {p_actor_id:string;p_tenant_id:string}; Returns: Json };
+      preview_task_transfer: { Args: {p_actor_id:string;p_tenant_id:string;p_source_id:string}; Returns: Json };
+      transfer_tasks_scoped: { Args: {p_actor_id:string;p_tenant_id:string;p_command_id:string;p_source_id:string;p_target_id:string;p_tasks:Json}; Returns: Json };
+
       // -----------------------------------------------------------------
       // Platform Admin RPC'leri — 20260827000400_platform_admin_rpcs.sql
       // -----------------------------------------------------------------
@@ -1255,6 +1371,71 @@ export interface Database {
       current_user_role: {
         Args: Record<string, never>;
         Returns: string;
+      };
+      // Daily pilot migration 20260909000100 (apply separately before enabling UI).
+      ops_replace_assignment: {
+        Args: { p_actor_id:string; p_tenant_id:string; p_command_id:string; p_assignment_id:string; p_worker_id:string; p_expected_revision:number };
+        Returns: Json;
+      };
+      ops_record_attendance: {
+        Args: { p_actor_id:string; p_tenant_id:string; p_command_id:string; p_assignment_id:string; p_expected_revision:number; p_status:string };
+        Returns: Json;
+      };
+      ops_resize_request: {
+        Args: { p_actor_id: string; p_tenant_id: string; p_command_id: string; p_request_id: string; p_expected_count: number; p_required_count: number };
+        Returns: Json;
+      };
+      ops_create_request_batch: {
+        Args: { p_actor_id: string; p_tenant_id: string; p_command_id: string; p_payload: Json };
+        Returns: Json;
+      };
+      ops_update_location: {
+        Args: {p_actor_id:string;p_tenant_id:string;p_command_id:string;p_company_id:string;p_entity_id:string;p_expected_revision:number;p_name:string;p_city:string};
+        Returns: Json;
+      };
+      ops_set_directory_active: {
+        Args: {p_actor_id:string;p_tenant_id:string;p_command_id:string;p_kind:string;p_entity_id:string;p_expected_revision:number;p_active:boolean};
+        Returns: Json;
+      };
+      ops_directory: {
+        Args: {p_kind:string;p_company_id:string|null;p_search:string;p_status:string;p_offset:number};
+        Returns: Json;
+      };
+      ops_attendance_week: {
+        Args: { p_company_id:string; p_week_start:string };
+        Returns: Json;
+      };
+      ops_week: {
+        Args: { p_company_id: string; p_week_start: string };
+        Returns: Json;
+      };
+      ops_reconcile_commands: {
+        Args: { p_actor_id: string; p_tenant_id: string; p_command_ids: string[]; p_close?: boolean };
+        Returns: Json;
+      };
+      ops_execute_scoped: {
+        Args: { p_actor_id:string; p_tenant_id:string; p_command_id:string; p_kind:string; p_payload:Json };
+        Returns: Json;
+      };
+      ops_import_locations: {
+        Args: { p_command_id: string; p_company_id: string; p_rows: Json };
+        Returns: Json;
+      };
+      ops_mutate: {
+        Args: { p_command_id: string; p_kind: string; p_payload: Json };
+        Returns: Json;
+      };
+      ops_board: {
+        Args: { p_company_id: string; p_work_date: string };
+        Returns: Json;
+      };
+      current_user_verified_tenant: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      complete_appointment_scoped: {
+        Args: {p_actor_id:string;p_tenant_id:string;p_appointment_id:string;p_result:string;p_next_action:string;p_create_task:boolean};
+        Returns: Json;
       };
       current_user_has_company_scope: {
         Args: { target_company_id: string };

@@ -9,7 +9,7 @@
  * Status is DERIVED from deadline_date via `deriveDeadlineStatus` — never stored.
  */
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTR } from "@/lib/format-date";
 import { ArrowLeft, Plus, Pencil, Download } from "lucide-react";
@@ -18,8 +18,10 @@ import { useRole } from "@/context/RoleContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   listAllCriticalDates,
+  getCriticalDateById,
   updateCriticalDateRecord,
 } from "@/lib/services/critical-dates";
+import { CriticalDateConflictError } from "@/lib/supabase/critical-dates";
 import { createCriticalDateAction } from "./actions";
 import {
   CRITICAL_DATE_TYPE_LABELS,
@@ -85,6 +87,33 @@ export default function KurumsalTarihlerPage() {
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [conflict, setConflict] = useState(false);
+  const [currentRecord, setCurrentRecord] = useState<CriticalDateRow | null>(null);
+  const [readingCurrent, setReadingCurrent] = useState(false);
+  const [currentError, setCurrentError] = useState<string | null>(null);
+  const modalGeneration = useRef(0);
+  function resetConflict() {
+    modalGeneration.current++;
+    setConflict(false); setCurrentRecord(null); setCurrentError(null); setReadingCurrent(false);
+  }
+  function closeModal() {
+    if (saving || readingCurrent) return;
+    resetConflict(); setModalOpen(false);
+  }
+  async function readCurrentVersion() {
+    if (!editTarget || readingCurrent || saving) return;
+    const generation = modalGeneration.current;
+    setReadingCurrent(true); setCurrentError(null); setCurrentRecord(null);
+    try {
+      const row = await getCriticalDateById(supabase, editTarget.id);
+      if (generation !== modalGeneration.current) return;
+      if (!row) setCurrentError("Kayıt silinmiş veya artık erişilemiyor. Taslağınızı kopyalayarak saklayabilirsiniz.");
+      else setCurrentRecord(row);
+    } catch {
+      if (generation === modalGeneration.current) setCurrentError("Güncel kayıt okunamadı. Yeniden deneyin; taslağınız değişmedi.");
+    } finally { if (generation === modalGeneration.current) setReadingCurrent(false); }
+  }
+
   // Form fields
   const [formBaslik, setFormBaslik] = useState("");
   const [formTur, setFormTur] = useState<CriticalDateType | "">("");
@@ -94,6 +123,7 @@ export default function KurumsalTarihlerPage() {
   const [formNot, setFormNot] = useState("");
 
   function openCreate() {
+    resetConflict();
     setEditTarget(null);
     setFormBaslik("");
     setFormTur("");
@@ -107,6 +137,7 @@ export default function KurumsalTarihlerPage() {
   }
 
   function openEdit(belge: CriticalDateRow) {
+    resetConflict();
     setEditTarget(belge);
     setFormBaslik(belge.title);
     setFormTur(belge.date_type);
@@ -120,19 +151,20 @@ export default function KurumsalTarihlerPage() {
   }
 
   async function handleSubmit() {
-    if (!formBaslik.trim() || !formTur || !formBitis || saving) return;
+    if (!formBaslik.trim() || !formTur || !formBitis || saving || readingCurrent || conflict) return;
 
     setSaving(true);
     setSubmitError(null);
     try {
       if (editTarget) {
         await updateCriticalDateRecord(supabase, editTarget.id, {
+          expectedUpdatedAt: editTarget.updated_at,
           title: formBaslik.trim(),
           dateType: formTur as CriticalDateType,
           deadlineDate: formBitis,
           priority: formOncelik,
-          responsible: formSorumlu.trim() || undefined,
-          note: formNot.trim() || undefined,
+          responsible: formSorumlu.trim(),
+          note: formNot.trim(),
         });
       } else {
         // Server action: critical_dates.tenant_id must be resolved
@@ -154,6 +186,7 @@ export default function KurumsalTarihlerPage() {
       await reload();
       router.refresh();
     } catch (err) {
+      if (err instanceof CriticalDateConflictError) setConflict(true);
       setSubmitError(err instanceof Error ? err.message : "Islem basarisiz.");
     } finally {
       setSaving(false);
@@ -324,20 +357,35 @@ export default function KurumsalTarihlerPage() {
       {/* Create/Edit Modal — yonetici-only */}
       <ModalShell
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={closeModal}
         title={editTarget ? "Kaydi Duzenle" : "Yeni Kritik Tarih"}
         footer={
           <>
-            <button onClick={() => setModalOpen(false)} disabled={saving} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40">
+            <button onClick={closeModal} disabled={saving || readingCurrent} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40">
               Iptal
             </button>
-            <button onClick={handleSubmit} disabled={!isFormValid || saving} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+            <button onClick={handleSubmit} disabled={!isFormValid || saving || readingCurrent || conflict} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
               {saving ? "Kaydediliyor..." : editTarget ? "Guncelle" : "Ekle"}
             </button>
           </>
         }
       >
         <div className="space-y-4">
+          {conflict && <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3" aria-label="Güncel kayıt karşılaştırması">
+            <p className="text-sm">Formunuz korunuyor. Kaydetmeden önce güncel kaydı okuyup aşağıdaki taslağınızla karşılaştırın.</p>
+            <button type="button" disabled={readingCurrent} onClick={readCurrentVersion} className="min-h-11 text-sm font-medium text-blue-700 underline disabled:opacity-50">{readingCurrent ? "Okunuyor…" : "Güncel kaydı göster"}</button>
+            {currentError && <p role="alert" className="text-sm text-red-700">{currentError}</p>}
+            {currentRecord && <>
+              <dl className="grid gap-2 text-sm">
+                <div><dt className="font-semibold">Güncel başlık</dt><dd>{currentRecord.title}</dd></div>
+                <div><dt className="font-semibold">Tür / son tarih / öncelik</dt><dd>{CRITICAL_DATE_TYPE_LABELS[currentRecord.date_type]} · {formatDateTR(currentRecord.deadline_date)} · {CRITICAL_DATE_PRIORITY_LABELS[currentRecord.priority]}</dd></div>
+                <div><dt className="font-semibold">Sorumlu</dt><dd>{currentRecord.responsible || "Belirtilmemiş"}</dd></div>
+                <div><dt className="font-semibold">Not</dt><dd className="whitespace-pre-wrap break-words">{currentRecord.note || "Not yok"}</dd></div>
+              </dl>
+              <p className="text-xs">Devam edince aşağıdaki form korunur. Sonraki kaydetme, bu formdaki tüm değerleri güncel kayda uygular. Korumak istediğiniz güncel bilgileri önce formunuza alın.</p>
+              <button type="button" className="min-h-11 text-sm font-semibold text-blue-700 underline" onClick={() => {setEditTarget(currentRecord); setConflict(false); setCurrentRecord(null); setSubmitError(null);}}>Karşılaştırdım, taslağımla devam et</button>
+            </>}
+          </section>}
           {submitError && (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{submitError}</div>
           )}

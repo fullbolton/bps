@@ -17,7 +17,7 @@ import type { FirmaAlacakEntry, FirmaKesilmemisEntry } from "@/types/batch5-fina
 interface ReceivablesSummaryCardProps {
   toplamAlacak: string;
   gecikmisAlacak: string;
-  gecikmisFirmaSayisi: number;
+  gecikmisFirmaSayisi: number | null;
   firmaAlacakDagilimi: FirmaAlacakEntry[];
   firmaKesilmemisDagilimi: FirmaKesilmemisEntry[];
 }
@@ -48,7 +48,7 @@ export default function ReceivablesSummaryCard({
         <div>
           <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Gecikmiş Alacak</p>
           <p className={`${TYPE_KPI_VALUE} text-red-600 mt-1`}>{gecikmisAlacak}</p>
-          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5`}>{gecikmisFirmaSayisi} firmada gecikme</p>
+          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5`}>{gecikmisFirmaSayisi === null ? "Gecikmiş firma sayısı bilinmiyor" : `${gecikmisFirmaSayisi} firmada gecikme`}</p>
         </div>
       </div>
 

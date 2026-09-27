@@ -31,6 +31,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
+import {isUuid} from '@/lib/operations/pilot-validation';
 import type { UserRole } from "@/context/AuthContext";
 
 type Client = SupabaseClient<Database>;
@@ -82,11 +83,13 @@ export class PlatformAdminError extends Error {
  */
 function rpcError(error: { code?: string | null } | null): PlatformAdminError {
   const code = error?.code ?? "unknown";
+  if (code === "BP004") return new PlatformAdminError("İşlem güvenli biçimde tamamlanamadı. Sayfayı yenileyip tekrar deneyin.");
+  if (code === "BP001") return new PlatformAdminError("Bu kişinin açık işleri var. İlgili çalışma alanında görevleri devrettikten sonra rol veya kiracı değişikliğini tekrar deneyin.");
   if (code === "42501") return new PlatformAdminError("Bu işlem için yetkiniz yok.");
   if (code === "23503") return new PlatformAdminError("Kullanıcı veya kiracı bulunamadı.");
-  if (code === "23505") return new PlatformAdminError("Bu slug zaten kullanılıyor.");
+  if (code === "23505") return new PlatformAdminError("Bu şirket kodu zaten kullanılıyor.");
   if (code === "23514") return new PlatformAdminError("Geçersiz rol değeri.");
-  if (code === "22023") return new PlatformAdminError("Slug ve ad zorunludur.");
+  if (code === "22023") return new PlatformAdminError("Şirket kodu ve adı zorunludur.");
   return new PlatformAdminError(`İşlem başarısız (kod: ${code}).`);
 }
 
@@ -97,7 +100,16 @@ function rpcError(error: { code?: string | null } | null): PlatformAdminError {
 export async function listTenants(client: Client): Promise<AdminTenantRow[]> {
   const { data, error } = await client.rpc("admin_list_tenants");
   if (error) throw rpcError(error);
-  return (data ?? []) as AdminTenantRow[];
+  if(!Array.isArray(data))throw new PlatformAdminError('Şirket listesi doğrulanamadı. Yeniden yükleyin.');
+  const seen=new Set<string>();
+  for(const row of data){
+    if(!row||typeof row!=='object'||!isUuid(row.tenant_id)||seen.has(row.tenant_id)
+      ||typeof row.slug!=='string'||!row.slug.trim()||typeof row.name!=='string'||!row.name.trim()
+      ||!(['uye_sayisi','firma','sozlesme','gorev'] as const).every(key=>typeof row[key]==='number'&&Number.isSafeInteger(row[key])&&row[key]>=0))
+      throw new PlatformAdminError('Şirket listesi doğrulanamadı. Yeniden yükleyin.');
+    seen.add(row.tenant_id);
+  }
+  return data as AdminTenantRow[];
 }
 
 export async function listUsers(client: Client): Promise<AdminUserRow[]> {
@@ -125,23 +137,23 @@ export async function currentUserIsPlatformAdmin(client: Client): Promise<boolea
  * yazıp üyelikte hata alan bir akış, tam olarak Mek Group kurulumunda üç kez
  * yaşanan sessiz yarım-durumu üretirdi. Atomiklik RPC gövdesinden geliyor.
  *
- * ⚠ Üyelik EKLENMİYOR, DEĞİŞTİRİLİYOR: RPC önce kullanıcının bütün üyeliklerini
- * siler. `custom_access_token_hook` yalnız tek üyelikte claim yazdığı için,
+ * ⚠ Üyelik EKLENMİYOR, DEĞİŞTİRİLİYOR: RPC kullanıcının
+ * hedef dışındaki üyeliklerini kaldırır, hedef üyeliği korur veya ekler. `custom_access_token_hook` yalnız tek üyelikte claim yazdığı için,
  * ikinci bir üyelik kullanıcının erişimini SESSİZCE sıfırlardı.
  *
  * ⚠ OTURUM (Codex P1): tenant bir JWT claim'i; üyelik değişince kullanıcının
  * elindeki token eski tenant'ı taşımaya devam ederdi. RPC, üyelik kümesi
  * değiştiğinde `auth.sessions`'ı siler — refresh imkânsızlaşır, kullanıcı en
  * geç JWT süresi dolunca yeniden girer ve doğru claim'i alır. Yalnız rol
- * düzeltmesinde (aynı tenant) oturum korunur; rol canlı okunur. Kalan pencere
- * yalnız claim'e güvenen 43 policy için; profiles okuması ve görev atanan
- * guard'ı claim'i canlı üyelikle doğrular (20260904000100, KARAR 6).
+ * düzeltmesinde (aynı tenant) oturum korunur; rol canlı okunur.
+ * 20260925000200: current_user_active_tenant() artık canlı üyeliği doğrular;
+ * eski token taşınan şirket için üyelik kaldırılır kaldırılmaz kapsam alamaz.
  *
- * ⚠ BİLİNEN SONUÇ (20260904000100 ile birlikte): kullanıcı başka tenant'a
- * taşınırsa, eski tenant'ta ona atalı görevler "başka kiracının üyesine atalı"
- * duruma düşer ve `tasks_update` WITH CHECK'i o görevlerin HER güncellemesini
- * yeniden atanana kadar reddeder. Sessiz değil (RLS hatası görünür), ama
- * taşımadan önce bilinmeli. Tespit: profiles_tenant_scope_post_apply_verify §6.
+ * 20260909001600: aktif iş bırakacak üyelik/rol değişikliği BP001 ile
+ * transaction içinde reddedilir. Önce toplu devir, sonra admin değişikliği.
+ * Yeni task assignee trigger'ı eşzamanlı INSERT/UPDATE'de canlı üyelik/rolü
+ * profile kilidi sonrası kontrol eder. RLS politikalarının çağırdığı tenant
+ * yardımcısı da canlı üyelik doğrulaması yapar.
  */
 export async function assignRoleAndTenant(
   client: Client,
@@ -159,11 +171,13 @@ export async function createTenant(
   client: Client,
   input: { slug: string; name: string },
 ): Promise<string> {
+  if(!input||typeof input.slug!=='string'||typeof input.name!=='string')throw new PlatformAdminError('Şirket adı ve kodunu kontrol edin.');
   const slug = input.slug.trim().toLowerCase();
   const name = input.name.trim();
-  if (!slug || !name) throw new PlatformAdminError("Slug ve ad zorunludur.");
+  if (slug.length>80||name.length>200||/[\u0000-\u001f\u007f]/.test(name))throw new PlatformAdminError("Şirket kodu en fazla 80, adı en fazla 200 karakter olabilir; kontrol karakteri kullanmayın.");
+  if (!slug || !name) throw new PlatformAdminError("Şirket kodu ve adı zorunludur.");
   if (!/^[a-z0-9-]+$/.test(slug)) {
-    throw new PlatformAdminError("Slug yalnız küçük harf, rakam ve tire içerebilir.");
+    throw new PlatformAdminError("Şirket kodu yalnız küçük harf, rakam ve tire içerebilir.");
   }
 
   const { data, error } = await client.rpc("admin_create_tenant", {
@@ -171,5 +185,6 @@ export async function createTenant(
     p_name: name,
   });
   if (error) throw rpcError(error);
-  return data as string;
+  if(!isUuid(data))throw new PlatformAdminError('İşlem sonucu doğrulanamadı. Yeniden oluşturmadan önce şirket listesini kontrol edin.');
+  return data;
 }

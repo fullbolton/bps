@@ -12,15 +12,17 @@
  * Pattern follows NewContractModal (Faz 2).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useId } from "react";
+import PickerFeedback, {type PickerStatus} from "@/components/ui/PickerFeedback";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import NewCompanyModal from "./NewCompanyModal";
 import type { CreatedCompany } from "./NewCompanyModal";
 import { ModalShell } from "@/components/ui";
 
 const ONCELIK_OPTIONS = [
-  { value: "dusuk", label: "Dusuk" },
+  { value: "dusuk", label: "Düşük" },
   { value: "normal", label: "Normal" },
-  { value: "yuksek", label: "Yuksek" },
+  { value: "yuksek", label: "Yüksek" },
   { value: "kritik", label: "Kritik" },
 ];
 
@@ -44,6 +46,8 @@ const NEW_COMPANY_OPTION = "__new_company__";
 interface NewRequestModalProps {
   open: boolean;
   onClose: () => void;
+  firmalarDurum?: PickerStatus;
+  onRetryFirmalar?: () => void;
   firmalar: { id: string; ad: string }[];
   /**
    * Persistence callback. Awaited by the modal so the parent can throw
@@ -57,8 +61,13 @@ export default function NewRequestModal({
   open,
   onClose,
   firmalar,
+  firmalarDurum = "ready",
+  onRetryFirmalar,
   onSubmit,
 }: NewRequestModalProps) {
+  const submitting = useRef(false);
+  const formId = useId();
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [firmaId, setFirmaId] = useState("");
   const [pozisyon, setPozisyon] = useState("");
   const [adet, setAdet] = useState("");
@@ -68,6 +77,7 @@ export default function NewRequestModal({
   const [sorumlu, setSorumlu] = useState("");
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [companyNotice, setCompanyNotice] = useState<string | null>(null);
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
   // Inline yaratilanlar — select'te aninda gorunsun diye. Parent kendi
   // listesini talep kaydedildikten sonra zaten yeniliyor.
@@ -78,7 +88,8 @@ export default function NewRequestModal({
     ...yeniFirmalar.filter((y) => !firmalar.some((f) => f.id === y.id)),
   ];
 
-  function handleCompanyCreated(company: CreatedCompany) {
+  function handleCompanyCreated(company: CreatedCompany, origin: "created" | "existing") {
+    setCompanyNotice(origin === "created" ? `${company.name} firmalara eklendi ve bu formda seçildi.` : `${company.name} mevcut kayıtlardan seçildi.`);
     setYeniFirmalar((prev) =>
       prev.some((p) => p.id === company.id)
         ? prev
@@ -89,9 +100,9 @@ export default function NewRequestModal({
 
   const requiresOwner = oncelik === "yuksek" || oncelik === "kritik";
   const canSubmit = !!(
-    firmaId &&
+    firmalarDurum === "ready" && tumFirmalar.some((firma) => firma.id === firmaId) &&
     pozisyon.trim() &&
-    adet &&
+    Number.isSafeInteger(Number(adet)) && Number(adet) >= 1 &&
     (!requiresOwner || sorumlu.trim())
   );
 
@@ -105,16 +116,22 @@ export default function NewRequestModal({
     setBaslangic("");
     setOncelik("normal");
     setSorumlu("");
+    submitting.current = false;
     setSaving(false);
     setSubmitError(null);
+    setYeniFirmalar([]);
+    setCompanyNotice(null);
+    setCompanyModalOpen(false);
+    setDiscardOpen(false);
   }, [open]);
 
   async function handleSubmit() {
-    if (!canSubmit || saving) return;
+    if (!canSubmit || submitting.current) return;
+    submitting.current = true;
     setSaving(true);
     setSubmitError(null);
     try {
-      const firma = firmalar.find((f) => f.id === firmaId);
+      const firma = tumFirmalar.find((f) => f.id === firmaId);
       await onSubmit({
         firmaId,
         firmaAdi: firma?.ad ?? "",
@@ -125,18 +142,28 @@ export default function NewRequestModal({
         oncelik,
         sorumlu: sorumlu.trim(),
       });
+      submitting.current = false;
       resetAndClose();
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Beklenmeyen bir hata olustu.",
+        err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu.",
       );
     } finally {
+      submitting.current = false;
       setSaving(false);
     }
   }
 
+  function requestClose() {
+    if (submitting.current) return;
+    if (firmaId || pozisyon || adet || lokasyon || baslangic || oncelik !== "normal" || sorumlu || yeniFirmalar.length) setDiscardOpen(true);
+    else resetAndClose();
+  }
+
   function resetAndClose() {
-    if (saving) return;
+    if (submitting.current) return;
+    setDiscardOpen(false);
+    setCompanyModalOpen(false);
     setFirmaId("");
     setPozisyon("");
     setAdet("");
@@ -146,6 +173,7 @@ export default function NewRequestModal({
     setSorumlu("");
     setSubmitError(null);
     setYeniFirmalar([]);
+    setCompanyNotice(null);
     onClose();
   }
 
@@ -153,33 +181,41 @@ export default function NewRequestModal({
     <>
     <ModalShell
       open={open}
-      onClose={resetAndClose}
+      onClose={requestClose}
+      closeDisabled={saving}
       title="Yeni Personel Talebi"
       footer={
         <>
           <button
-            onClick={resetAndClose}
+            type="button"
+            onClick={requestClose}
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Iptal
+            İptal
           </button>
           <button
-            onClick={handleSubmit}
+            type="submit"
+            form={formId}
             disabled={!canSubmit || saving}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? "Kaydediliyor..." : "Olustur"}
+            {saving ? "Kaydediliyor..." : "Oluştur"}
           </button>
         </>
       }
     >
-      <div className="space-y-4">
+      <form id={formId} className="space-y-4" aria-busy={saving} onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+        {saving && <p role="status" className="text-sm text-slate-600">Talep kaydediliyor, lütfen bekleyin…</p>}
+        {companyNotice && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{companyNotice}</p>}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor={`${formId}-company`} className="block text-sm font-medium text-slate-700 mb-1">
             Firma <span className="text-red-500">*</span>
           </label>
           <select
+            id={`${formId}-company`}
+            data-dialog-initial-focus
+            required
             value={firmaId}
             onChange={(e) => {
               if (e.target.value === NEW_COMPANY_OPTION) {
@@ -188,10 +224,12 @@ export default function NewRequestModal({
               }
               setFirmaId(e.target.value);
             }}
-            disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            disabled={saving || firmalarDurum !== "ready"}
+            aria-describedby={firmalarDurum !== "ready" || tumFirmalar.length === 0 ? `${formId}-companies` : undefined}
+            className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
           >
-            <option value="">Firma secin</option>
+            <option value="">{firmalarDurum === "loading" ? "Firmalar yükleniyor…" : firmalarDurum === "error" ? "Firma listesi yüklenemedi" : "Firma seçin"}</option>
+            {firmaId && !tumFirmalar.some(f => f.id === firmaId) && <option value={firmaId} disabled>{firmalarDurum === "ready" ? "Seçili firma listede yok" : "Seçili firma doğrulanıyor"}</option>}
             {tumFirmalar.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.ad}
@@ -200,72 +238,82 @@ export default function NewRequestModal({
             <option disabled>──────────────</option>
             <option value={NEW_COMPANY_OPTION}>+ Yeni firma ekle</option>
           </select>
+          <PickerFeedback id={`${formId}-companies`} status={firmalarDurum} count={tumFirmalar.length} name="Firma listesi"
+            emptyText="Listede firma yok. Yeni firma ekleyebilirsiniz." onRetry={onRetryFirmalar} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor={`${formId}-position`} className="block text-sm font-medium text-slate-700 mb-1">
               Pozisyon <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
+              id={`${formId}-position`}
+              required
               value={pozisyon}
               onChange={(e) => setPozisyon(e.target.value)}
-              placeholder="Pozisyon adi"
+              placeholder="Pozisyon adı"
               disabled={saving}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor={`${formId}-count`} className="block text-sm font-medium text-slate-700 mb-1">
               Adet <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               min={1}
+              step={1}
+              required
+              id={`${formId}-count`}
               value={adet}
               onChange={(e) => setAdet(e.target.value)}
-              placeholder="Kisi sayisi"
+              placeholder="Kişi sayısı"
               disabled={saving}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor={`${formId}-location`} className="block text-sm font-medium text-slate-700 mb-1">
               Lokasyon
             </label>
             <input
               type="text"
+              id={`${formId}-location`}
               value={lokasyon}
               onChange={(e) => setLokasyon(e.target.value)}
-              placeholder="Sehir / Lokasyon"
+              placeholder="Şehir / Lokasyon"
               disabled={saving}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Baslangic Tarihi
+            <label htmlFor={`${formId}-start`} className="block text-sm font-medium text-slate-700 mb-1">
+              Başlangıç Tarihi
             </label>
             <input
               type="date"
+              id={`${formId}-start`}
               value={baslangic}
               onChange={(e) => setBaslangic(e.target.value)}
               disabled={saving}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
             />
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Oncelik
+          <label htmlFor={`${formId}-priority`} className="block text-sm font-medium text-slate-700 mb-1">
+            Öncelik
           </label>
           <select
+            id={`${formId}-priority`}
             value={oncelik}
             onChange={(e) => setOncelik(e.target.value)}
             disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
           >
             {ONCELIK_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -275,21 +323,24 @@ export default function NewRequestModal({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor={`${formId}-owner`} className="block text-sm font-medium text-slate-700 mb-1">
             Sorumlu{" "}
             {requiresOwner && <span className="text-red-500">*</span>}
           </label>
           <input
             type="text"
+            id={`${formId}-owner`}
+            required={requiresOwner}
+            aria-describedby={requiresOwner ? `${formId}-owner-help` : undefined}
             value={sorumlu}
             onChange={(e) => setSorumlu(e.target.value)}
-            placeholder="Sorumlu kisi"
+            placeholder="Sorumlu kişi"
             disabled={saving}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
           />
-          {requiresOwner && !sorumlu.trim() && (
-            <p className="mt-1 text-xs text-amber-600">
-              Yuksek ve kritik oncelikli talepler sorumlusuz olusturulamaz.
+          {requiresOwner && (
+            <p id={`${formId}-owner-help`} className="mt-1 text-xs text-amber-600">
+              Yüksek ve kritik öncelikli talepler sorumlusuz oluşturulamaz.
             </p>
           )}
         </div>
@@ -298,8 +349,13 @@ export default function NewRequestModal({
             {submitError}
           </p>
         )}
-      </div>
+      </form>
     </ModalShell>
+    {open && discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler"
+      recordName={pozisyon.trim() || "Yeni personel talebi"}
+      description={yeniFirmalar.length ? "Bu talep formundaki kaydedilmemiş bilgiler bırakılacak. Firma kayıtları silinmez." : "Bu talep formundaki kaydedilmemiş bilgiler bırakılacak."}
+      confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)}
+      onConfirm={async () => { resetAndClose(); }} />}
 
     {/* ModalShell'in KARDESI — icine konsaydi modal govdesinin max-h
         kirpmasina takilirdi. */}

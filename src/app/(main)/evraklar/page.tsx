@@ -1,9 +1,17 @@
 "use client";
+import Link from "next/link";
+import {DOCUMENT_FOLDERS,documentFolder} from "@/lib/document-folders";
+import DocumentCategoryEditor from "@/components/modals/DocumentCategoryEditor";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import { useListViewState } from "@/components/ui/useListViewState";
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
+import AsyncSection from "@/components/ui/AsyncSection";
+import { useScopedResource } from "@/components/ui/useScopedResource";
+import { DocumentUploadReviewRequiredError } from "@/lib/company-document-upload";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { formatDateTR } from "@/lib/format-date";
-import { Upload, AlertTriangle } from "lucide-react";
+import { Upload, ClipboardList, Folder } from "lucide-react";
 import {
   PageHeader,
   SearchInput,
@@ -21,15 +29,15 @@ import { createClient } from "@/lib/supabase/client";
 import {
   listAllDocuments,
   updateDocumentValidity,
+  DocumentValidationError,
 } from "@/lib/services/documents";
 import { uploadCompanyDocumentAction } from "../firmalar/[id]/actions";
 import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
 import { selectAllCompanies } from "@/lib/supabase/companies";
-import type { CompanyRow } from "@/types/database.types";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
 import type { DocumentCategory } from "@/lib/document-categories";
 import type { DocumentRow } from "@/types/database.types";
-import type { ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
+import type { ColumnDef, FilterConfig, RowAction } from "@/types/ui";
 import { clsx } from "clsx";
 import {
   TYPE_BODY,
@@ -41,7 +49,6 @@ import {
   TEXT_INVERSE,
   BORDER_SUBTLE,
   RADIUS_FULL,
-  RADIUS_DEFAULT,
 } from "@/styles/tokens";
 
 // ---------------------------------------------------------------------------
@@ -54,7 +61,9 @@ interface DocumentListRow extends DocumentRow {
 }
 
 // Page-local helpers
-const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
+const FOLLOW_UP_STATUSES = ["eksik", "suresi_yaklsiyor", "suresi_doldu"] as const;
+const LIST_FILTER_DEFAULTS = { durum: "", kategori: "", firma: "", klasor: "" };
+const CHIP_BASE = `min-h-11 px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
 const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
 const CHIP_INACTIVE = "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
 const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
@@ -62,8 +71,8 @@ const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
 const STATUS_LABELS: Record<string, string> = {
   tam: "Tam",
   eksik: "Eksik",
-  suresi_yaklsiyor: "Suresi Yaklaiyor",
-  suresi_doldu: "Suresi Doldu",
+  suresi_yaklsiyor: "Süresi Yaklaşıyor",
+  suresi_doldu: "Süresi Doldu",
 };
 
 const FILTER_CONFIG: FilterConfig[] = [
@@ -71,14 +80,14 @@ const FILTER_CONFIG: FilterConfig[] = [
     key: "durum",
     label: "Durum",
     type: "select",
-    placeholder: "Tum durumlar",
+    placeholder: "Tüm durumlar",
     options: Object.entries(STATUS_LABELS).map(([v, l]) => ({ value: v, label: l })),
   },
   {
     key: "kategori",
     label: "Kategori",
     type: "select",
-    placeholder: "Tum kategoriler",
+    placeholder: "Tüm kategoriler",
     options: (Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map((k) => ({ value: k, label: DOCUMENT_CATEGORY_LABELS[k] })),
   },
 ];
@@ -88,7 +97,7 @@ const FILTER_CONFIG: FilterConfig[] = [
  * evrak adi, firma, kategori, gecerlilik tarihi, durum, yukleyen, guncellenme tarihi
  */
 const COLUMNS: ColumnDef<DocumentListRow>[] = [
-  { key: "name", header: "Evrak Adi", sortable: true },
+  { key: "name", header: "Evrak Adı", sortable: true },
   { key: "firma_name", header: "Firma", sortable: true },
   {
     key: "category",
@@ -109,12 +118,12 @@ const COLUMNS: ColumnDef<DocumentListRow>[] = [
   },
   {
     key: "uploaded_by",
-    header: "Yukleyen",
+    header: "Yükleyen",
     render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{(val as string) || "—"}</span>,
   },
   {
     key: "updated_at",
-    header: "Guncellenme",
+    header: "Güncellenme",
     sortable: true,
     render: (val) => formatDateTR((val as string)?.split("T")[0] ?? ""),
   },
@@ -122,118 +131,119 @@ const COLUMNS: ColumnDef<DocumentListRow>[] = [
 
 export default function EvraklarPage() {
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const supabase = createClient();
 
   // ---------------------------------------------------------------------------
   // Data loading
   // ---------------------------------------------------------------------------
-  const [documents, setDocuments] = useState<DocumentListRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // Real companies for the Upload modal's firma dropdown. RLS-scoped;
-  // the modal emits `firmaId` (option id prefers legacy_mock_id, falls
-  // back to the UUID). The submit handler resolves it to the real
-  // company UUID and routes the write through uploadCompanyDocumentAction.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
-
-  const reload = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const allDocs = await listAllDocuments(supabase);
-
-      // Resolve company names
-      const companyIds = [...new Set(allDocs.map((d) => d.company_id))];
-      const { nameById, legacyById } = companyIds.length > 0
-        ? await getCompanyDisplayMapByIds(supabase, companyIds)
-        : { nameById: {} as Record<string, string>, legacyById: {} as Record<string, string> };
-
-      const enriched: DocumentListRow[] = allDocs.map((d) => ({
-        ...d,
-        firma_name: nameById[d.company_id] ?? "Bilinmeyen Firma",
-        firma_legacy_id: legacyById[d.company_id] ?? null,
-      }));
-
-      setDocuments(enriched);
-    } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Evraklar yuklenemedi.");
-    } finally {
-      setLoading(false);
-    }
+  const scope = `${user?.id ?? ""}:${user?.app_metadata?.active_tenant ?? ""}:${role}`;
+  const allowed = !authLoading && !!user && ["yonetici", "operasyon", "ik"].includes(role);
+  const context = useMemo(() => ({ scope: allowed ? scope : null }), [allowed, scope]);
+  const liveContext = useRef<typeof context | null>(context);
+  liveContext.current = context;
+  const notice = useActionNotice(scope);
+  const readDocuments = useCallback(async () => {
+    const allDocs = await listAllDocuments(supabase);
+    const companyIds = [...new Set(allDocs.map(d => d.company_id))];
+    const { nameById, legacyById } = companyIds.length > 0
+      ? await getCompanyDisplayMapByIds(supabase, companyIds)
+      : { nameById: {} as Record<string, string>, legacyById: {} as Record<string, string> };
+    return allDocs.map(d => ({ ...d, firma_name: nameById[d.company_id] ?? "Bilinmeyen Firma", firma_legacy_id: legacyById[d.company_id] ?? null }));
   }, [supabase]);
-
-  useEffect(() => {
-    let active = true;
-    reload().then(() => { if (!active) return; });
-    return () => { active = false; };
-  }, [reload]);
-
-  // Companies for the firma dropdown — loaded once on mount. Errors
-  // degrade to an empty list so the dropdown is honestly empty.
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
-    return () => { active = false; };
-  }, [supabase]);
+  const documentResource = useScopedResource(context.scope, readDocuments);
+  const documents: DocumentListRow[] = documentResource.data ?? [];
+  const reload = documentResource.reload;
+  const readCompanies = useCallback(() => selectAllCompanies(supabase), [supabase]);
+  const companyResource = useScopedResource(context.scope, readCompanies);
+  const allCompanies = companyResource.data ?? [];
 
   // ---------------------------------------------------------------------------
   // UI state
   // ---------------------------------------------------------------------------
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({ durum: "", kategori: "", firma: "" });
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [validityTarget, setValidityTarget] = useState<{ open: boolean; evrakAdi?: string; evrakId?: string; currentDate?: string }>({ open: false });
+  const searchControl = useRef<SearchInputHandle>(null);
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("evraklar", context.scope, LIST_FILTER_DEFAULTS);
+  const [openUploadContext, setOpenUploadContext] = useState<typeof context | null>(null);
+  const [validityTarget, setValidityTarget] = useState<{ context: typeof context; row: DocumentListRow } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Per-row signed-URL failures. A failure here used to flow into the
-  // page-level `loadError` and collapse the whole page; now it stays
-  // item-level so the row remains visible with a degraded "Indir"
-  // action. Cleared on page reload (full mount = new Set).
-  const [signedUrlErrorIds, setSignedUrlErrorIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  type DownloadState = { context: typeof context; row: DocumentListRow; phase: "loading" | "error" | "ready"; href?: string; expiresAt?: number; message?: string };
+  const [download, setDownload] = useState<DownloadState | null>(null);
+  const downloadFlight = useRef<{ context: typeof context } | null>(null);
+  const currentDownload = download?.context === context ? download : null;
+  function dismissDownload() { downloadFlight.current = null; setDownload(null); }
+  useEffect(() => {
+    if (download?.phase !== "ready" || !download.expiresAt) return;
+    const timer = window.setTimeout(() => setDownload(current => current === download
+      ? { context: download.context, row: download.row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." } : current), Math.max(0, download.expiresAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [download]);
 
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
+  useEffect(() => {
+    liveContext.current = context;
+    setOpenUploadContext(null); setSelectedId(null); setValidityTarget(null); downloadFlight.current = null; setDownload(null);
+    notice.clear();
+    return () => { liveContext.current = null; downloadFlight.current = null; };
+    // Notice functions change on render; reset only on authorization context changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context]);
+
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = { tam: 0, eksik: 0, suresi_yaklsiyor: 0, suresi_doldu: 0 };
     for (const e of documents) c[e.status] = (c[e.status] || 0) + 1;
     return c;
   }, [documents]);
 
+  const followUpCompanies = useMemo(() => {
+    const groups = new Map<string, { id: string; name: string; counts: Record<(typeof FOLLOW_UP_STATUSES)[number], number> }>();
+    for (const row of documents) {
+      if (!FOLLOW_UP_STATUSES.some(status => status === row.status)) continue;
+      const group = groups.get(row.company_id) ?? { id: row.company_id, name: row.firma_name, counts: { eksik: 0, suresi_yaklsiyor: 0, suresi_doldu: 0 } };
+      group.counts[row.status as (typeof FOLLOW_UP_STATUSES)[number]]++;
+      groups.set(row.company_id, group);
+    }
+    return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, "tr"));
+  }, [documents]);
+  const searchArea = useRef<HTMLDivElement>(null);
+  function showFollowUp(companyId: string, status: (typeof FOLLOW_UP_STATUSES)[number]) {
+    searchControl.current?.clear();
+    setFilters({ ...LIST_FILTER_DEFAULTS, firma: companyId, durum: status });
+    searchArea.current?.scrollIntoView({ block: "center" });
+  }
+
   // Build firma filter options dynamically from loaded data
   const firmaFilterConfig = useMemo((): FilterConfig[] => {
-    const firmaNames = [...new Set(documents.map((d) => d.firma_name))].sort();
+    const firms = [...new Map(documents.map(d => [d.company_id, d.firma_name])).entries()].sort((a, b) => a[1].localeCompare(b[1], "tr"));
     return [
       ...FILTER_CONFIG,
       {
         key: "firma",
         label: "Firma",
         type: "select" as const,
-        placeholder: "Tum firmalar",
-        options: firmaNames.map((n) => ({ label: n, value: n })),
+        placeholder: "Tüm firmalar",
+        options: firms.map(([id, name]) => ({ label: name, value: id })),
       },
     ];
   }, [documents]);
 
   const filteredData = useMemo(() => {
     return documents.filter((e) => {
-      if (search) {
-        const q = search.toLowerCase();
-        if (!e.name.toLowerCase().includes(q) && !e.firma_name.toLowerCase().includes(q)) return false;
+      if (search.trim()) {
+        const q = search.trim().toLocaleLowerCase("tr-TR");
+        if (!e.name.toLocaleLowerCase("tr-TR").includes(q) && !e.firma_name.toLocaleLowerCase("tr-TR").includes(q)) return false;
       }
       if (filters.durum && e.status !== filters.durum) return false;
+      if (filters.klasor && documentFolder(e.category,e.contract_id) !== filters.klasor) return false;
       if (filters.kategori && e.category !== filters.kategori) return false;
-      if (filters.firma && e.firma_name !== filters.firma) return false;
+      if (filters.firma && e.company_id !== filters.firma) return false;
       return true;
     });
   }, [documents, search, filters]);
+
+  const columns = useMemo<ColumnDef<DocumentListRow>[]>(() => COLUMNS.map(column => column.key !== "name" ? column : {
+    ...column,
+    render: (_value, row) => <button type="button" aria-haspopup="dialog" onClick={event => { event.stopPropagation(); setSelectedId(row.id); }}
+      className="min-h-11 w-52 max-w-full whitespace-normal break-words rounded-lg py-2 text-left font-medium text-blue-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 sm:w-auto sm:max-w-xs">{row.name}</button>,
+  }), []);
 
   const selectedEvrak = useMemo(() => documents.find((e) => e.id === selectedId) ?? null, [documents, selectedId]);
 
@@ -263,98 +273,101 @@ export default function EvraklarPage() {
     [allCompanies],
   );
 
-  // Partner'ın evrak yükleme hakkı ROLE_MATRIX §5.7 ve documents RLS
-  // INSERT policy'sinde "Portföyünde Evet" olarak kayıtlıdır. Mevcut
-  // UI bu hakkı gizliyordu — bu batch'te UI kaynağa hizalandı (raporda
-  // "Partner UI drift correction" olarak belirtildi). Partner scope
-  // zaten RLS + storage.objects INSERT policy'sinde enforce edilir.
-  const canMutateEvrak = ["yonetici", "partner", "operasyon", "ik"].includes(role);
+  const canMutateEvrak = allowed;
 
   async function handleDownload(row: DocumentListRow) {
-    if (!row.storage_path) return;
+    if (!context.scope || liveContext.current !== context || !row.storage_path || downloadFlight.current?.context === context) return;
+    const operation = { context };
+    downloadFlight.current = operation;
+    setDownload({ context, row, phase: "loading" });
+    // Conservative client lifetime measured before requesting the server's 60s URL.
+    const expiresAt = Date.now() + 55_000;
+    const current = () => liveContext.current === context && downloadFlight.current === operation;
     try {
-      const { data, error } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(row.storage_path, 60);
-      if (error || !data?.signedUrl) {
-        throw error ?? new Error("signed URL bos dondu");
+      const { data, error } = await supabase.storage.from("documents").createSignedUrl(row.storage_path, 60);
+      if (!current()) return;
+      if (error || !data?.signedUrl) throw new Error("download unavailable");
+      if (Date.now() >= expiresAt) {
+        setDownload({ context, row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." });
+      } else {
+        setDownload({ context, row, phase: "ready", href: data.signedUrl, expiresAt });
       }
-      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-    } catch (err) {
-      // Per-row failure must NOT collapse the page (was: setLoadError(...)).
-      // Mark the row so its "Indir" action goes disabled and the inline
-      // banner above the table explains the reason. Full error context
-      // stays in the console for ops; UI never surfaces raw messages.
-      console.error(`[evraklar] signed URL failed for row ${row.id}:`, err);
-      setSignedUrlErrorIds((prev) => {
-        if (prev.has(row.id)) return prev;
-        const next = new Set(prev);
-        next.add(row.id);
-        return next;
-      });
+    } catch {
+      if (current()) setDownload({ context, row, phase: "error", message: "Dosya bağlantısı hazırlanamadı. Tekrar deneyin." });
+    } finally {
+      if (current()) downloadFlight.current = null;
     }
   }
 
   const rowActions: RowAction<DocumentListRow>[] = [
     ...(canMutateEvrak ? [{
       label: "Gecerlilik Guncelle",
-      onClick: (row: DocumentListRow) => setValidityTarget({ open: true, evrakAdi: row.name, evrakId: row.id, currentDate: row.validity_date ?? "" }),
+      onClick: (row: DocumentListRow) => setValidityTarget({ context, row }),
+      isDisabled: (row: DocumentListRow) => !!row.contract_id && role !== "yonetici",
     }] : []),
     {
       label: "Indir",
       onClick: (row: DocumentListRow) => { void handleDownload(row); },
-      // Disabled when (a) row has no storage_path (existing behavior)
-      // or (b) a prior signed-URL attempt for this row failed.
-      isDisabled: (row: DocumentListRow) =>
-        !row.storage_path || signedUrlErrorIds.has(row.id),
+      isDisabled: (row: DocumentListRow) => !row.storage_path || currentDownload?.phase === "loading",
     },
   ];
 
-  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
   if (authLoading) {
     return (
       <>
         <PageHeader title="Evraklar" subtitle="Belge takibi" />
-        <EmptyState title="Yukleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
+        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
       </>
     );
   }
 
-  if (["goruntuleyici", "muhasebe"].includes(role)) {
+  if (!allowed) {
     return (
       <>
         <PageHeader title="Evraklar" subtitle="Belge takibi" />
-        <EmptyState title="Erisim kisitli" description="Bu ekran goruntleyici erisiminin disindadir." size="page" />
+        <EmptyState title="Erişim kısıtlı" description="Evrakları görüntüleme yetkiniz yok. Erişim için yöneticinizle görüşün." size="page" />
       </>
     );
   }
 
-  if (loading) {
-    return (
-      <>
-        <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" />
-        <p className={`${TYPE_BODY} ${TEXT_SECONDARY} py-8 text-center`}>Yukleniyor...</p>
-      </>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <>
-        <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" />
-        <div className={`${RADIUS_DEFAULT} border border-red-200 bg-red-50 p-4 text-sm text-red-700`}>{loadError}</div>
-      </>
-    );
-  }
 
   return (
     <>
-      <PageHeader title="Evraklar" subtitle="Belge ve uygunluk gorunurlugu" actions={canMutateEvrak ? [
-        { label: "Evrak Yukle", onClick: () => setUploadOpen(true), icon: <Upload size={16} /> },
+      <PageHeader title="Evraklar" subtitle="Firma evraklarını ve sözleşmeleri klasörlerinden bulun" actions={canMutateEvrak ? [
+        { label: "Evrak Yükle", onClick: () => setOpenUploadContext(context), icon: <Upload size={16} /> },
       ] : []} />
 
+      <ActionNotice message={notice.message} onDismiss={notice.clear} />
+      {currentDownload && <section aria-label="Evrak indirme" className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex items-start justify-between gap-3">
+          <p className="min-w-0 break-words text-sm font-medium text-slate-800">{currentDownload.row.name}</p>
+          <button type="button" onClick={dismissDownload} className="min-h-11 shrink-0 px-3 text-sm text-slate-600">Kapat</button>
+        </div>
+        {currentDownload.phase === "loading" && <p role="status" className="text-sm text-blue-700">Dosya bağlantısı hazırlanıyor…</p>}
+        {currentDownload.phase === "error" && <>
+          <p role="status" className="text-sm text-amber-700">{currentDownload.message}</p>
+          <button type="button" onClick={() => { void handleDownload(currentDownload.row); }} className="min-h-11 mt-2 text-sm text-blue-700 underline">Bağlantıyı yeniden hazırla</button>
+        </>}
+        {currentDownload.phase === "ready" && <>
+          <p role="status" className="text-sm text-slate-600">Bağlantı hazır. Dosyayı yeni sekmede açabilirsiniz.</p>
+          <a href={currentDownload.href} target="_blank" rel="noopener noreferrer" onClick={event => {
+            if (!currentDownload.expiresAt || Date.now() >= currentDownload.expiresAt) {
+              event.preventDefault(); setDownload({ context, row: currentDownload.row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." });
+            }
+          }} className="min-h-11 mt-2 inline-flex items-center text-sm font-medium text-blue-700 underline">Dosyayı aç</a>
+        </>}
+      </section>}
+      <AsyncSection isLoading={documentResource.loading || !viewReady} hasError={documentResource.error} onRetry={() => { void reload(); }}>
       <div className="space-y-4">
+        <section aria-label="Evrak klasörleri" className="space-y-3">
+          <button type="button" aria-pressed={!filters.klasor} className="min-h-11 rounded-lg border px-4 text-sm aria-pressed:bg-blue-50" onClick={()=>setFilters(p=>({...p,klasor:'',kategori:''}))}>Tüm evraklar ({documents.length})</button>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{DOCUMENT_FOLDERS.map(folder=><button type="button" key={folder.id} aria-pressed={filters.klasor===folder.id} onClick={()=>setFilters(p=>({...p,klasor:folder.id,kategori:''}))} className="rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-blue-400 aria-pressed:border-blue-600 aria-pressed:bg-blue-50">
+            <Folder className="mb-3 text-blue-600" size={24} aria-hidden="true"/><span className="block font-semibold">{folder.name} <span className="text-slate-500">({documents.filter(d=>documentFolder(d.category,d.contract_id)===folder.id).length})</span></span><span className="mt-1 block text-sm text-slate-500">{folder.description}</span>
+          </button>)}</div>
+          <p className="text-xs text-slate-500">Klasör sayıları tüm erişilebilir evrakları gösterir. Firma, arama ve durum filtreleri aşağıdaki listeye uygulanır.</p>
+        </section>
         <DocumentsChecklistCard
           tam={statusCounts["tam"] ?? 0}
           eksik={statusCounts["eksik"] ?? 0}
@@ -362,85 +375,72 @@ export default function EvraklarPage() {
           suresiDoldu={statusCounts["suresi_doldu"] ?? 0}
         />
 
-        {/* Operational billing-risk signal -- read-only, driven by document completeness */}
-        {(() => {
-          const riskCount = (statusCounts["eksik"] ?? 0) + (statusCounts["suresi_doldu"] ?? 0);
-          if (riskCount === 0) return null;
-          // group by firma
-          const firmaRisk = new Map<string, string[]>();
-          for (const e of documents) {
-            if (e.status === "eksik" || e.status === "suresi_doldu") {
-              const list = firmaRisk.get(e.firma_name) ?? [];
-              list.push(e.name);
-              firmaRisk.set(e.firma_name, list);
-            }
-          }
-          return (
-            <div className={`${RADIUS_DEFAULT} border border-amber-200 bg-amber-50 p-4`}>
-              <h3 className={`${TYPE_BODY} font-medium text-amber-800 flex items-center gap-1.5 mb-2`}>
-                <AlertTriangle size={14} />
-                Operasyonel Faturalama Riski
-              </h3>
-              <p className={`${TYPE_CAPTION} text-amber-700 mb-2`}>
-                {riskCount} evrak eksik veya suresi dolmus -- ilgili firmalarda faturalama sureci etkilenebilir.
-              </p>
-              <div className="space-y-1">
-                {Array.from(firmaRisk.entries()).map(([firma, evraklar]) => (
-                  <p key={firma} className={`${TYPE_CAPTION} text-amber-600`}>
-                    <span className="font-medium">{firma}</span>: {evraklar.length} sorunlu evrak
-                  </p>
-                ))}
-              </div>
+        {followUpCompanies.length > 0 && (
+          <section aria-label="Takip gerektiren evraklar" className="rounded-xl border border-slate-200 bg-white p-4">
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-800"><ClipboardList size={16} />Takip gerektiren evraklar</h3>
+            <p className="mb-3 text-xs text-slate-500">Yüklenen listedeki kayıtlı durumlar gösterilir. Bir durum seçerek ilgili firmanın evraklarını listeleyin.</p>
+            <div className="divide-y divide-slate-100">
+              {followUpCompanies.map(company => (
+                <section key={company.id} aria-label={`${company.name} evrak takibi`} className="py-3 first:pt-0 last:pb-0">
+                  <h4 className="mb-2 break-words text-sm font-medium text-slate-800">{company.name}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {FOLLOW_UP_STATUSES.filter(status => company.counts[status] > 0).map(status => (
+                      <button type="button" key={status} onClick={() => showFollowUp(company.id, status)}
+                        aria-pressed={filters.firma === company.id && filters.durum === status}
+                        className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm text-blue-700 hover:bg-blue-50 aria-pressed:border-blue-500 aria-pressed:bg-blue-50">
+                        {STATUS_LABELS[status]} ({company.counts[status]})
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
-          );
-        })()}
+          </section>
+        )}
 
         <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(statusCounts).filter(([, c]) => c > 0).map(([status, count]) => (
-            <button key={status} onClick={() => setFilters((p) => ({ ...p, durum: p.durum === status ? "" : status }))} className={clsx(
+            <button type="button" aria-pressed={filters.durum === status} key={status} onClick={() => setFilters((p) => ({ ...p, durum: p.durum === status ? "" : status }))} className={clsx(
               CHIP_BASE,
               filters.durum === status ? CHIP_ACTIVE : CHIP_INACTIVE
             )}>{STATUS_LABELS[status] ?? status} ({count})</button>
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="w-full sm:max-w-xs"><SearchInput placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
+        <div ref={searchArea} className="flex flex-col sm:flex-row gap-3">
+          <div className="w-full sm:max-w-xs"><SearchInput key={context.scope} ref={searchControl} value={search} maxLength={512} placeholder="Evrak, firma ara..." onChange={handleSearch} /></div>
           <FilterBar filters={firmaFilterConfig} values={filters} onChange={setFilters} />
         </div>
 
-        {/* Per-row signed-URL failure banner. Visible only when at least
-            one "Indir" attempt has failed in this session. Item-level UX:
-            those rows' Indir actions are already disabled via isDisabled;
-            this banner explains the reason without page collapse. Matches
-            existing amber visual language used by the operational risk
-            card above. Cleared on full page reload. */}
-        {signedUrlErrorIds.size > 0 && (
-          <div
-            className={`${RADIUS_DEFAULT} border border-amber-200 bg-amber-50 p-3`}
-            role="status"
-            aria-live="polite"
-          >
-            <p className={`${TYPE_CAPTION} text-amber-700 flex items-center gap-1.5`}>
-              <AlertTriangle size={14} />
-              Bazi belgelerin baglantisi olusturulamadi. Sayfayi yenileyerek tekrar deneyin.
-            </p>
-          </div>
-        )}
-
-        <DataTable<DocumentListRow> columns={COLUMNS} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle="Evrak bulunamadi" emptyDescription="Arama veya filtre kriterlerinizi degistirin." />
+        <DataTable<DocumentListRow> columns={columns} data={filteredData} rowKey="id" onRowClick={(row) => setSelectedId(row.id)} rowActions={rowActions} emptyTitle={documents.length === 0 ? "Henüz evrak yok" : "Bu filtrelerle eşleşen evrak yok"}
+          emptyDescription={documents.length === 0 ? "Evrak Yükle ile ilk firma belgenizi ekleyebilirsiniz." : "Aramayı veya filtreleri değiştirerek yeniden deneyin."}
+          emptyAction={documents.length === 0 ? { label: "İlk evrakı yükle", onClick: () => setOpenUploadContext(context) }
+            : (search !== "" || Object.values(filters).some(Boolean)) ? { label: "Arama ve filtreleri temizle", onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); } } : undefined} />
       </div>
 
+      </AsyncSection>
       {/* FirmDocumentChecklistPanel */}
-      <RightSidePanel open={!!selectedEvrak} onClose={() => setSelectedId(null)} title={selectedEvrak ? `${selectedEvrak.firma_name} -- Evrak Durumu` : undefined}>
+      <RightSidePanel open={!!selectedEvrak} onClose={() => setSelectedId(null)} title="Evrak detayı">
         {selectedEvrak && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            <section aria-label="Seçili evrak" className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="break-words text-base font-semibold text-slate-900">{selectedEvrak.name}</h3>
+              <StatusBadge status={selectedEvrak.status} />
+              <dl className="space-y-3 text-sm">
+                <div><dt className="text-slate-500">Firma</dt><dd className="min-w-0"><Link href={`/firmalar/${selectedEvrak.company_id}`} className="inline-flex min-h-11 max-w-full items-center break-words py-2 font-medium text-blue-700 underline">{selectedEvrak.firma_name}</Link></dd></div>
+                <div><dt className="text-slate-500">Kategori</dt><dd>{DOCUMENT_CATEGORY_LABELS[selectedEvrak.category]}</dd></div>
+                <div><dt className="text-slate-500">Geçerlilik tarihi</dt><dd>{selectedEvrak.validity_date ? formatDateTR(selectedEvrak.validity_date) : "Belirtilmemiş"}</dd></div>
+                <div><dt className="text-slate-500">Dosya</dt><dd>{selectedEvrak.storage_path ? "Dosya kayıtlı" : "Henüz dosya yüklenmemiş"}</dd></div>
+              </dl>
+            </section>
+            {canMutateEvrak&&<DocumentCategoryEditor key={`${scope}:${selectedEvrak.id}:${selectedEvrak.updated_at}`} row={selectedEvrak} onSaved={()=>{if(liveContext.current!==context)return;notice.show('Belgenin klasörü ve türü güncellendi.');void reload();}} />}
+            <h3 className="text-sm font-semibold text-slate-800">Firmanın evrakları</h3>
             <DocumentsChecklistCard {...firmaEvrakCounts} />
             <div className="space-y-2">
               {firmaEvraklar.map((e) => (
-                <div key={e.id} className={`flex items-center justify-between py-2 ${LIST_DIVIDER}`}>
+                <div key={e.id} className={`flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between ${LIST_DIVIDER}`}>
                   <div className="min-w-0">
-                    <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{e.name}</p>
+                    <p className={`break-words ${TYPE_BODY} ${TEXT_BODY}`}>{e.name}</p>
                     <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{DOCUMENT_CATEGORY_LABELS[e.category]} {e.validity_date ? `· ${formatDateTR(e.validity_date)}` : ""}</p>
                   </div>
                   <StatusBadge status={e.status} />
@@ -451,15 +451,18 @@ export default function EvraklarPage() {
         )}
       </RightSidePanel>
 
-      <UploadDocumentModal open={uploadOpen} onClose={() => setUploadOpen(false)} firmalar={firmaOptions}
+      {openUploadContext === context && context.scope && <UploadDocumentModal open onClose={() => { if (liveContext.current === context) setOpenUploadContext(null); }} firmalar={firmaOptions}
+        companiesState={companyResource.loading ? "loading" : companyResource.error ? "error" : "ready"}
+        onRetryCompanies={() => { void companyResource.reload(); }}
         onSubmit={async (p) => {
+          if (liveContext.current !== context) return;
           // Resolve real company UUID from the dropdown id (legacy_mock_id
           // when present, else the real UUID). The tenant-aware server
           // action needs the real company UUID.
           const company = allCompanies.find(
             (c) => (c.legacy_mock_id ?? c.id) === p.firmaId,
           );
-          if (!company) {
+          if (companyResource.loading || companyResource.error || !company) {
             throw new Error("Firma bulunamadi veya erisim yetkiniz yok.");
           }
 
@@ -475,21 +478,38 @@ export default function EvraklarPage() {
           if (p.gecerlilikTarihi) fd.set("validity_date", p.gecerlilikTarihi);
           fd.set("file", p.file);
 
-          const result = await uploadCompanyDocumentAction(fd);
+          let result;
+          try { result = await uploadCompanyDocumentAction(fd); }
+          catch {
+            if (liveContext.current !== context) return;
+            throw new DocumentUploadReviewRequiredError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin.");
+          }
+          if (liveContext.current !== context) return;
           if (!result.ok) {
+            if (result.reviewRequired) throw new DocumentUploadReviewRequiredError(result.error);
             throw new Error(result.error);
           }
-          await reload();
-          router.refresh();
+          setOpenUploadContext(null);
+          notice.show(`${p.evrakAdi} evraklara yüklendi.`);
+          void reload();
         }}
-      />
-      <UpdateValidityModal open={validityTarget.open} onClose={() => setValidityTarget({ open: false })} evrakAdi={validityTarget.evrakAdi} evrakId={validityTarget.evrakId} currentDate={validityTarget.currentDate}
+      />}
+      {validityTarget?.context === context && context.scope && <UpdateValidityModal key={validityTarget.row.id} open
+        onClose={() => { if (liveContext.current === context) setValidityTarget(null); }}
+        evrakAdi={validityTarget.row.name} evrakId={validityTarget.row.id} currentDate={validityTarget.row.validity_date ?? ""}
         onSubmit={async ({ evrakId, yeniTarih }) => {
-          await updateDocumentValidity(supabase, evrakId, { validityDate: yeniTarih });
-          await reload();
-          router.refresh();
+          if (liveContext.current !== context || evrakId !== validityTarget.row.id) return;
+          try { await updateDocumentValidity(supabase, evrakId, { validityDate: yeniTarih }); }
+          catch (error) {
+            if (liveContext.current !== context) return;
+            throw new Error(error instanceof DocumentValidationError ? error.message : "Geçerlilik güncellenemedi. Tekrar deneyin.");
+          }
+          if (liveContext.current !== context) return;
+          setValidityTarget(null);
+          notice.show(`${validityTarget.row.name} geçerlilik tarihi güncellendi.`);
+          void reload();
         }}
-      />
+      />}
     </>
   );
 }

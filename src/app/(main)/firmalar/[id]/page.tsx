@@ -1,6 +1,14 @@
 "use client";
+import { formatTry } from "@/lib/display-values";
 
-import { use, useState, useMemo, useEffect, useCallback } from "react";
+import { useScopedResource } from "@/components/ui/useScopedResource";
+import { useListViewState } from "@/components/ui/useListViewState";
+import { appointmentLinkHref } from "@/lib/appointment-link";
+import AsyncSection from "@/components/ui/AsyncSection";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+
+import { use, useId, useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   StickyNote,
@@ -33,15 +41,16 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  ModalShell,
   TabNavigation,
   EmptyState,
   FirmaSummaryHeader,
   CommercialSummaryCard,
   StatusBadge,
-  RiskBadge,
 } from "@/components/ui";
 import DemandTrendChart from "@/components/ui/DemandTrendChart";
-import { QuickNoteModal, AddContactModal } from "@/components/modals";
+import { QuickNoteModal, AddContactModal, NewAppointmentModal } from "@/components/modals";
+import { createAppointmentAction } from "../../randevular/actions";
 import { suggestNote } from "@/lib/suggest";
 import { generatePaymentFollowup } from "@/lib/draft-payment-followup";
 import { generateYenidenTemasDraft } from "@/lib/draft-yeniden-temas";
@@ -70,6 +79,8 @@ import {
 // Mock commercial helpers removed — real financial summary loaded from DB
 import { createClient } from "@/lib/supabase/client";
 import {
+  ContactValidationError,
+  ContactLimitReachedError,
   listContactsByLegacyCompanyId,
   updateContactFull,
   updateContactPhoneEmail,
@@ -101,12 +112,8 @@ import { NOTE_TAG_LABELS } from "@/lib/note-tags";
 import type { NoteTagKey } from "@/lib/note-tags";
 import type {
   ContactRow,
-  ContractRow,
   NoteRow,
-  StaffingDemandRow,
   AppointmentRow,
-  WorkforceSummaryRow,
-  DocumentRow,
 } from "@/types/database.types";
 import type { TabItem } from "@/types/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
@@ -141,7 +148,6 @@ const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
 
 const TABS: TabItem[] = [
   { key: "genel", label: "Genel Bakış" },
-  { key: "zaman-cizgisi", label: "Zaman Çizgisi" },
   { key: "yetkililer", label: "Yetkililer" },
   { key: "sozlesmeler", label: "Sözleşmeler" },
   { key: "talepler", label: "Talepler" },
@@ -150,6 +156,8 @@ const TABS: TabItem[] = [
   { key: "evraklar", label: "Evraklar" },
   { key: "notlar", label: "Notlar" },
 ];
+
+const COMPANY_TAB_DEFAULTS = { tab: "genel" };
 
 const DISABLED_TAB_MESSAGES: Record<string, { title: string; description: string }> = {};
 
@@ -162,9 +170,32 @@ export default function FirmaDetayPage({
   const router = useRouter();
   const { role } = useRole();
   const documentsAccessRestricted = role === "muhasebe" || role === "goruntuleyici";
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("genel");
-  const [noteOpen, setNoteOpen] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  // UI reset identity only; server/RLS remain the authorization authority.
+  const companyScope = `${id}:${user?.id ?? ""}:${user?.app_metadata?.active_tenant ?? ""}:${role}`;
+  const companyScopeRef = useRef(companyScope);
+  companyScopeRef.current = companyScope;
+  const feedback = useActionNotice(companyScope);
+  const [statusAction, setStatusAction] = useState<{ scope: string; next: "aktif" | "pasif" } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ scope: string; kind: "contact" | "document"; id: string; name: string } | null>(null);
+  const [deletionNotice, setDeletionNotice] = useState<{ scope: string; text: string } | null>(null);
+  function requestDelete(kind: "contact" | "document", recordId: string, name: string) {
+    feedback.clear();
+    setDeletionNotice(null);
+    setDeleteTarget({ scope: companyScope, kind, id: recordId, name });
+  }
+  const visibleTabs = useMemo(() => role === "goruntuleyici"
+    ? TABS.filter(tab => tab.key === "genel")
+    : role === "ik" ? TABS.filter(tab => ["genel", "evraklar", "talepler", "aktif-isgucu", "notlar"].includes(tab.key))
+    : role === "muhasebe" ? TABS.filter(tab => ["genel", "sozlesmeler"].includes(tab.key)) : TABS, [role]);
+  const tabView = useListViewState("firma-sekme", !authLoading && user ? companyScope : null, COMPANY_TAB_DEFAULTS);
+  // Stored preferences cannot reveal a tab outside this role's visible set.
+  const activeTab = visibleTabs.some(tab => tab.key === tabView.filters.tab) ? tabView.filters.tab : "genel";
+  const setTabFilters = tabView.setFilters;
+  const setActiveTab = useCallback((key: string) => {
+    if (visibleTabs.some(tab => tab.key === key)) setTabFilters({ tab: key });
+  }, [visibleTabs, setTabFilters]);
+  const [openNoteContext, setOpenNoteContext] = useState<{ scope: string | null } | null>(null);
   const [noteDefaultIcerik, setNoteDefaultIcerik] = useState("");
   // Note suggestion flow state
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -179,9 +210,6 @@ export default function FirmaDetayPage({
   // chronological) and the Genel Bakış > Son Notlar card (top 3 slice).
   // The service resolves legacy id → companies row → RLS-scoped note
   // rows, so partner scope is re-verified at every read.
-  const [notlar, setNotlar] = useState<NoteRow[]>([]);
-  const [notlarLoading, setNotlarLoading] = useState(true);
-  const [notlarError, setNotlarError] = useState<string | null>(null);
   const [notEditTarget, setNotEditTarget] = useState<NoteRow | null>(null);
   const [notTagFilter, setNotTagFilter] = useState<NoteTagKey | "">("");
   // Yetkili kişiler — Faz 1A: real Supabase truth via service layer.
@@ -189,88 +217,87 @@ export default function FirmaDetayPage({
   // (RLS-checked) → contacts query. Out-of-scope/missing firmas surface as
   // a CompanyNotFoundOrOutOfScopeError, which we map to an inline message.
   const supabase = useMemo(() => createClient(), []);
-  const [yetkililer, setYetkililer] = useState<ContactRow[]>([]);
-  const [yetkililerLoading, setYetkililerLoading] = useState(true);
-  const [yetkililerError, setYetkililerError] = useState<string | null>(null);
-  const reloadYetkililer = useCallback(async () => {
-    setYetkililerError(null);
-    try {
-      const rows = await listContactsByLegacyCompanyId(supabase, id);
-      setYetkililer(rows);
-    } catch (err) {
-      setYetkililer([]);
-      setYetkililerError(
-        err instanceof Error
-          ? err.message
-          : "Yetkili kişiler yüklenirken bir hata oluştu.",
-      );
-    } finally {
-      setYetkililerLoading(false);
-    }
-  }, [supabase, id]);
+  const contactScope = !authLoading && user && ["yonetici", "operasyon"].includes(role) ? companyScope : null;
+  const readContacts = useCallback(() => listContactsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const contactsResource = useScopedResource(contactScope, readContacts);
+  const yetkililer = contactsResource.data ?? [];
+  const contactsReady = !!contactScope && !contactsResource.loading && !contactsResource.error;
+  const reloadYetkililer = contactsResource.reload;
+  const notesScope = !authLoading && user && !["goruntuleyici", "muhasebe"].includes(role) ? companyScope : null;
+  const readNotes = useCallback(() => listNotesByLegacyCompanyId(supabase, id), [supabase, id]);
+  const notesResource = useScopedResource(notesScope, readNotes);
+  const notlar = notesResource.data ?? [];
+  const reloadNotlar = notesResource.reload;
+  // Pin failures are action failures; they must not replace a readable note list.
+  const noteContext = useMemo(() => ({ scope: notesScope }), [notesScope]);
+  const liveNoteContext = useRef<typeof noteContext | null>(noteContext);
+  liveNoteContext.current = noteContext;
+  const [notePinError, setNotePinError] = useState<typeof noteContext | null>(null);
+  type NotePinOperation = { context: typeof noteContext; id: string; next: boolean };
+  const notePinFlight = useRef<NotePinOperation | null>(null);
+  const [notePinPending, setNotePinPending] = useState<NotePinOperation | null>(null);
+  const pinBusy = notePinPending?.context === noteContext;
   useEffect(() => {
-    setYetkililerLoading(true);
-    void reloadYetkililer();
-  }, [reloadYetkililer]);
-  const reloadNotlar = useCallback(async () => {
-    setNotlarError(null);
-    try {
-      const rows = await listNotesByLegacyCompanyId(supabase, id);
-      setNotlar(rows);
-    } catch (err) {
-      setNotlar([]);
-      setNotlarError(
-        err instanceof Error
-          ? err.message
-          : "Notlar yüklenirken bir hata oluştu.",
-      );
-    } finally {
-      setNotlarLoading(false);
-    }
-  }, [supabase, id]);
-  useEffect(() => {
-    setNotlarLoading(true);
-    void reloadNotlar();
-  }, [reloadNotlar]);
+    liveNoteContext.current = noteContext;
+    setOpenNoteContext(null);
+    setNotEditTarget(null);
+    setNoteDefaultIcerik("");
+    setNotTagFilter("");
+    setSuggestOpen(false);
+    setSuggestPrompt("");
+    setSuggestResult(null);
+    return () => { liveNoteContext.current = null; };
+  }, [noteContext]);
   // Phase 3 state: Talepler, Randevular, İş Gücü — real Supabase truth.
-  const [firmaTalepler, setFirmaTalepler] = useState<StaffingDemandRow[]>([]);
-  const [firmaRandevular, setFirmaRandevular] = useState<AppointmentRow[]>([]);
-  const [firmaIsGucu, setFirmaIsGucu] = useState<WorkforceSummaryRow | null>(null);
+  const staffingScope = !authLoading && user ? companyScope : null;
+  const readDemands = useCallback(() => listDemandsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const readWorkforce = useCallback(() => getWorkforceSummaryByLegacyCompanyId(supabase, id), [supabase, id]);
+  const demandResource = useScopedResource(staffingScope, readDemands);
+  const workforceResource = useScopedResource(staffingScope, readWorkforce);
+  const firmaTalepler = demandResource.data ?? [];
+  const firmaIsGucu = workforceResource.data;
+  const [appointmentOpen, setAppointmentOpen] = useState(false);
+  const appointmentsEnabled = !authLoading && !!user;
+  const appointmentContext = useMemo(() => ({ scope: companyScope, enabled: appointmentsEnabled }), [companyScope, appointmentsEnabled]);
+  const liveAppointmentContext = useRef<typeof appointmentContext | null>(appointmentContext);
+  liveAppointmentContext.current = appointmentContext;
+  const appointmentsGeneration = useRef(0);
+  const [appointmentsSnapshot, setAppointmentsSnapshot] = useState<{ context: typeof appointmentContext; rows: AppointmentRow[]; loading: boolean; error: boolean } | null>(null);
+  const firmaRandevular = appointmentsSnapshot?.context === appointmentContext ? appointmentsSnapshot.rows : [];
+  const appointmentsLoading = appointmentsSnapshot?.context !== appointmentContext || appointmentsSnapshot.loading;
+  const appointmentsError = appointmentsSnapshot?.context === appointmentContext && appointmentsSnapshot.error;
+  const reloadAppointments = useCallback(async () => {
+    if (!appointmentContext.enabled || liveAppointmentContext.current !== appointmentContext) return;
+    const generation = ++appointmentsGeneration.current;
+    const current = () => liveAppointmentContext.current === appointmentContext && generation === appointmentsGeneration.current;
+    setAppointmentsSnapshot({ context: appointmentContext, rows: [], loading: true, error: false });
+    try {
+      const rows = await listAppointmentsByLegacyCompanyId(supabase, id);
+      if (current()) setAppointmentsSnapshot({ context: appointmentContext, rows, loading: false, error: false });
+    } catch {
+      if (current()) setAppointmentsSnapshot({ context: appointmentContext, rows: [], loading: false, error: true });
+    }
+  }, [supabase, id, appointmentContext]);
   useEffect(() => {
-    void listDemandsByLegacyCompanyId(supabase, id)
-      .then(setFirmaTalepler).catch(() => setFirmaTalepler([]));
-    void listAppointmentsByLegacyCompanyId(supabase, id)
-      .then(setFirmaRandevular).catch(() => setFirmaRandevular([]));
-    void getWorkforceSummaryByLegacyCompanyId(supabase, id)
-      .then(setFirmaIsGucu).catch(() => setFirmaIsGucu(null));
-  }, [supabase, id]);
-  const [contactModalOpen, setContactModalOpen] = useState(false);
+    liveAppointmentContext.current = appointmentContext;
+    setAppointmentOpen(false);
+    feedback.clear();
+    void reloadAppointments();
+    return () => { liveAppointmentContext.current = null; ++appointmentsGeneration.current; };
+    // Clear only on context changes; notice helpers are recreated each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointmentContext, reloadAppointments]);
+  const contactContext = useMemo(() => ({ scope: contactScope }), [contactScope]);
+  const liveContactContext = useRef<typeof contactContext | null>(contactContext);
+  liveContactContext.current = contactContext;
+  const [openContactContext, setOpenContactContext] = useState<typeof contactContext | null>(null);
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [editPhoneEmailOnly, setEditPhoneEmailOnly] = useState(false);
-  // Contact hard-delete (yonetici-only) — busy flag per row; errors
-  // surface on the existing Yetkililer inline error line.
-  const [contactDeletingId, setContactDeletingId] = useState<string | null>(null);
-
-  async function handleContactDelete(ytk: ContactRow) {
-    if (!window.confirm("Bu yetkili kişiyi kalıcı olarak silmek üzeresiniz. Bu işlem geri alınamaz.")) {
-      return;
-    }
-    setYetkililerError(null);
-    setContactDeletingId(ytk.id);
-    try {
-      const result = await deleteContactAction(ytk.id);
-      if (result.ok) {
-        await reloadYetkililer();
-        router.refresh();
-      } else {
-        setYetkililerError(result.error);
-      }
-    } catch (err) {
-      setYetkililerError(err instanceof Error ? err.message : "Yetkili silinemedi.");
-    } finally {
-      setContactDeletingId(null);
-    }
-  }
+  useEffect(() => {
+    liveContactContext.current = contactContext;
+    setOpenContactContext(null); setEditingContact(null); setEditPhoneEmailOnly(false);
+    return () => { liveContactContext.current = null; };
+  }, [contactContext]);
   // Ticari Temas — outbound draft helpers
   const [temasType, setTemasType] = useState<"yeniden_temas" | "odeme_takibi" | null>(null);
   const [temasDraftText, setTemasDraftText] = useState<string | null>(null);
@@ -288,69 +315,30 @@ export default function FirmaDetayPage({
   // Real company shell — loaded from DB, handles both legacy IDs and UUIDs
   const [companyShell, setCompanyShell] = useState<CompanyRow | null>(null);
   const [companyLoading, setCompanyLoading] = useState(true);
+  const [loadedCompanyScope, setLoadedCompanyScope] = useState("");
   useEffect(() => {
+    let current = true;
+    setCompanyLoading(true);
+    setCompanyShell(null);
     resolveCompanyByIdOrLegacy(supabase, id)
-      .then(setCompanyShell)
-      .catch(() => setCompanyShell(null))
-      .finally(() => setCompanyLoading(false));
-  }, [supabase, id]);
+      .then((company) => { if (current) setCompanyShell(company); })
+      .catch(() => { if (current) setCompanyShell(null); })
+      .finally(() => {
+        if (current) { setCompanyLoading(false); setLoadedCompanyScope(companyScope); }
+      });
+    return () => { current = false; };
+  }, [supabase, id, companyScope]);
 
-  // Company passivate (yonetici-only). Error surfaces inline below the
-  // summary header; success re-fetches the shell so the Pasif badge shows.
-  const [passivating, setPassivating] = useState(false);
-  const [passivateError, setPassivateError] = useState<string | null>(null);
-
-  async function handlePassivate() {
-    if (!companyShell) return;
-    if (!window.confirm("Bu firmayı pasife almak üzeresiniz. Pasif firmalar aktif listede görünmez.")) {
-      return;
-    }
-    setPassivateError(null);
-    setPassivating(true);
-    try {
-      // Pass the REAL company UUID (companyShell.id), never the route
-      // param (which may be a legacy_mock_id).
-      const result = await passivateCompanyAction(companyShell.id);
-      if (result.ok) {
-        const updated = await resolveCompanyByIdOrLegacy(supabase, id).catch(() => null);
-        if (updated) setCompanyShell(updated);
-        router.refresh();
-      } else {
-        setPassivateError(result.error);
-      }
-    } catch (err) {
-      setPassivateError(err instanceof Error ? err.message : "Firma pasife alınamadı.");
-    } finally {
-      setPassivating(false);
-    }
-  }
-
-  // Reactivate (yonetici-only) — the mirror of passivate. Completes the
-  // aktif↔pasif lifecycle; success lifts the passive UI guard automatically.
-  const [reactivating, setReactivating] = useState(false);
-  const [reactivateError, setReactivateError] = useState<string | null>(null);
-
-  async function handleReactivate() {
-    if (!companyShell) return;
-    if (!window.confirm("Bu firmayı tekrar aktife almak üzeresiniz. Aktif firmalarda yeni işlemler yeniden oluşturulabilir.")) {
-      return;
-    }
-    setReactivateError(null);
-    setReactivating(true);
-    try {
-      const result = await reactivateCompanyAction(companyShell.id);
-      if (result.ok) {
-        const updated = await resolveCompanyByIdOrLegacy(supabase, id).catch(() => null);
-        if (updated) setCompanyShell(updated);
-        router.refresh();
-      } else {
-        setReactivateError(result.error);
-      }
-    } catch (err) {
-      setReactivateError(err instanceof Error ? err.message : "Firma aktife alınamadı.");
-    } finally {
-      setReactivating(false);
-    }
+  async function changeCompanyStatus(next: "aktif" | "pasif") {
+    if (!companyShell || companyScopeRef.current !== companyScope) throw new Error("Firma bilgisi değişti. Sayfayı yenileyin.");
+    const result = await (next === "pasif" ? passivateCompanyAction(companyShell.id) : reactivateCompanyAction(companyShell.id));
+    if (!result.ok) throw new Error(result.error);
+    // These actions return a name only when UPDATE RETURNING affected a row.
+    if (result.name === undefined) throw new Error("Firma durumu değiştirilemedi veya kayda erişim değişti. Sayfayı yenileyin.");
+    if (companyScopeRef.current !== companyScope) return;
+    setCompanyShell({ ...companyShell, status: next });
+    feedback.show(`${result.name} ${next === "pasif" ? "pasife" : "aktife"} alındı.`);
+    router.refresh();
   }
 
   // Build firma-compatible object from real company shell for downstream consumers
@@ -430,30 +418,15 @@ export default function FirmaDetayPage({
   // One fetch feeds both the Sözleşmeler tab (full list) and the
   // Genel Bakış > Aktif Sözleşmeler card (filtered to status='aktif').
   // Resolution path: legacy mock id → companies row (RLS-checked) →
-  // contracts query, so partner scope is re-verified at every read.
-  const [firmaSozlesmeler, setFirmaSozlesmeler] = useState<ContractRow[]>([]);
-  const [sozlesmelerLoading, setSozlesmelerLoading] = useState(true);
-  const [sozlesmelerError, setSozlesmelerError] = useState<string | null>(null);
-  const reloadSozlesmeler = useCallback(async () => {
-    setSozlesmelerError(null);
-    try {
-      const rows = await listContractsByLegacyCompanyId(supabase, id);
-      setFirmaSozlesmeler(rows);
-    } catch (err) {
-      setFirmaSozlesmeler([]);
-      setSozlesmelerError(
-        err instanceof Error
-          ? err.message
-          : "Sözleşmeler yüklenirken bir hata oluştu.",
-      );
-    } finally {
-      setSozlesmelerLoading(false);
-    }
-  }, [supabase, id]);
-  useEffect(() => {
-    setSozlesmelerLoading(true);
-    void reloadSozlesmeler();
-  }, [reloadSozlesmeler]);
+  // contracts query. UI roles follow the existing contract SELECT policy.
+  const contractsAllowed = ["yonetici", "operasyon"].includes(role);
+  const readContracts = useCallback(() => listContractsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const contractsResource = useScopedResource(
+    !authLoading && user && contractsAllowed ? companyScope : null,
+    readContracts,
+  );
+  const firmaSozlesmeler = contractsResource.data ?? [];
+  const reloadSozlesmeler = contractsResource.reload;
   const aktifSozlesmeler = useMemo(
     () => firmaSozlesmeler.filter((s) => s.status === "aktif"),
     [firmaSozlesmeler]
@@ -462,31 +435,89 @@ export default function FirmaDetayPage({
   // -------------------------------------------------------------------------
   // Phase 4A — Firma Evraklar (real Supabase truth)
   // -------------------------------------------------------------------------
-  const [firmaDocs, setFirmaDocs] = useState<DocumentRow[]>([]);
-  const reloadDocs = useCallback(async () => {
-    try {
-      const rows = await listDocumentsByLegacyCompanyId(supabase, id);
-      setFirmaDocs(rows);
-    } catch {
-      setFirmaDocs([]);
+  const readDocuments = useCallback(() => listDocumentsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const documentResource = useScopedResource(!authLoading && user && !documentsAccessRestricted ? companyScope : null, readDocuments);
+  const firmaDocs = documentResource.data ?? [];
+  const docsLoading = documentResource.loading;
+  const docsError = documentResource.error;
+  const reloadDocs = documentResource.reload;
+
+  async function confirmRecordDelete(target: NonNullable<typeof deleteTarget>) {
+    if (target.scope !== companyScopeRef.current) throw new Error("Firma bilgisi değişti. Sayfayı yenileyin.");
+    if (target.kind === "contact") {
+      const result = await deleteContactAction(target.id);
+      if (!result.ok) throw new Error(result.error);
+      if (target.scope !== companyScopeRef.current) return;
+      if (result.deletedName !== undefined) feedback.show(`${result.deletedName} yetkili kişilerden silindi.`);
+      else setDeletionNotice({ scope: companyScope, text: "Silinen yetkili kaydı doğrulanamadı. Kayıt daha önce kaldırılmış veya silme erişiminiz değişmiş olabilir." });
+      await reloadYetkililer();
+    } else {
+      const result = await deleteCompanyDocumentAction(target.id);
+      if (!result.ok) throw new Error(result.error);
+      if (target.scope !== companyScopeRef.current) return;
+      if (result.warning) setDeletionNotice({ scope: companyScope, text: `${target.name}: Belge kaydı silindi, dosyanın temizlenmesi tamamlanamadı. Yönetici kontrolü gerekiyor.` });
+      else if (result.deleted) feedback.show(`${target.name} belge kaydı silindi.`);
+      else setDeletionNotice({ scope: companyScope, text: "Silinen belge kaydı doğrulanamadı. Kayıt daha önce kaldırılmış veya silme erişiminiz değişmiş olabilir." });
+      await reloadDocs();
     }
-  }, [supabase, id]);
+    if (target.scope === companyScopeRef.current) router.refresh();
+  }
+
+  // Document upload draft is isolated from authorization/context changes.
+  const uploadAllowed = !authLoading && !!user && ["yonetici", "operasyon", "ik"].includes(role);
+  const uploadContext = useMemo(() => ({ scope: uploadAllowed ? companyScope : null }), [uploadAllowed, companyScope]);
+  const liveUploadContext = useRef<typeof uploadContext | null>(uploadContext);
+  liveUploadContext.current = uploadContext;
+  const [openUploadContext, setOpenUploadContext] = useState<typeof uploadContext | null>(null);
   useEffect(() => {
-    void reloadDocs();
-  }, [reloadDocs]);
-
-  // Document upload modal + per-row download error (item-level — never
-  // collapses the tab; matches the Evraklar page resilience pattern).
-  const [evrakUploadOpen, setEvrakUploadOpen] = useState(false);
+    liveUploadContext.current = uploadContext;
+    setOpenUploadContext(null); setEvrakUploadError(null);
+    return () => { liveUploadContext.current = null; };
+  }, [uploadContext]);
   const [evrakUploadError, setEvrakUploadError] = useState<string | null>(null);
-  const [evrakDownloadError, setEvrakDownloadError] = useState<string | null>(null);
-  // Delete feedback (error or orphan warning) — surfaced inline above
-  // the table, never collapses the tab.
-  const [evrakDeleteMessage, setEvrakDeleteMessage] = useState<string | null>(null);
-  const [evrakDeletingId, setEvrakDeletingId] = useState<string | null>(null);
-
-  if (companyLoading) {
-    return <p className="text-sm text-slate-500 py-12 text-center">Yukleniyor...</p>;
+  const downloadEnabled = !authLoading && !!user && !documentsAccessRestricted && activeTab === "evraklar";
+  const downloadContext = useMemo(() => ({ scope: downloadEnabled ? companyScope : null }), [downloadEnabled, companyScope]);
+  const liveDownloadContext = useRef<typeof downloadContext | null>(downloadContext);
+  liveDownloadContext.current = downloadContext;
+  type DownloadState = { context: typeof downloadContext; row: (typeof firmaDocs)[number]; phase: "loading" | "error" | "ready"; href?: string; expiresAt?: number; message?: string };
+  const [download, setDownload] = useState<DownloadState | null>(null);
+  const downloadFlight = useRef<{ context: typeof downloadContext } | null>(null);
+  const currentDownload = download?.context === downloadContext ? download : null;
+  function dismissDownload() { downloadFlight.current = null; setDownload(null); }
+  useEffect(() => {
+    liveDownloadContext.current = downloadContext;
+    downloadFlight.current = null; setDownload(null);
+    return () => { liveDownloadContext.current = null; downloadFlight.current = null; };
+  }, [downloadContext]);
+  useEffect(() => {
+    if (download?.phase !== "ready" || !download.expiresAt) return;
+    const timer = window.setTimeout(() => setDownload(current => current === download
+      ? { context: download.context, row: download.row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." } : current), Math.max(0, download.expiresAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [download]);
+  async function handleEvrakDownload(row: (typeof firmaDocs)[number]) {
+    if (!downloadContext.scope || liveDownloadContext.current !== downloadContext || !row.storage_path || downloadFlight.current?.context === downloadContext) return;
+    const operation = { context: downloadContext };
+    downloadFlight.current = operation;
+    setDownload({ context: downloadContext, row, phase: "loading" });
+    // Server URL TTL is 60 seconds. Include action latency in the shorter UI lifetime.
+    const expiresAt = Date.now() + 55_000;
+    const current = () => liveDownloadContext.current === downloadContext && downloadFlight.current === operation;
+    try {
+      const result = await getCompanyDocumentDownloadUrlAction(row.id);
+      if (!current()) return;
+      if (!result.ok) { setDownload({ context: downloadContext, row, phase: "error", message: result.error }); return; }
+      setDownload(Date.now() >= expiresAt
+        ? { context: downloadContext, row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." }
+        : { context: downloadContext, row, phase: "ready", href: result.url, expiresAt });
+    } catch {
+      if (current()) setDownload({ context: downloadContext, row, phase: "error", message: "Dosya bağlantısı hazırlanamadı. Tekrar deneyin." });
+    } finally {
+      if (current()) downloadFlight.current = null;
+    }
+  }
+  if (companyLoading || loadedCompanyScope !== companyScope) {
+    return <p className="text-sm text-slate-500 py-12 text-center">Yükleniyor...</p>;
   }
 
   if (!firma) {
@@ -509,7 +540,7 @@ export default function FirmaDetayPage({
     ...(canCreateNotes ? [
     {
       label: "Not Ekle",
-      onClick: () => { setNoteDefaultIcerik(""); setNoteOpen(true); },
+      onClick: () => { setNotEditTarget(null); setNoteDefaultIcerik(""); setOpenNoteContext(noteContext); },
       icon: <StickyNote size={16} />,
     },
       {
@@ -518,19 +549,18 @@ export default function FirmaDetayPage({
         icon: <Lightbulb size={16} />,
       },
     ] : []),
-    {
+    ...(["yonetici", "operasyon"].includes(role) ? [{
       label: "Randevu Planla",
-      onClick: () => {},
+      onClick: () => setAppointmentOpen(true),
       icon: <CalendarCheck size={16} />,
-      disabled: true,
-    },
+      disabled: firma.durum === "pasif",
+    }] : []),
     // Passivate — yonetici-only, only on an aktif/aday firma.
     ...(role === "yonetici" && firma && firma.durum !== "pasif" ? [
       {
-        label: passivating ? "Pasife alınıyor…" : "Pasife Al",
-        onClick: () => { void handlePassivate(); },
+        label: "Pasife Al",
+        onClick: () => { feedback.clear(); setStatusAction({ scope: companyScope, next: "pasif" }); },
         icon: <Archive size={16} />,
-        disabled: passivating,
       },
     ] : []),
     // Reactivate — yonetici-only, on any firma that is not already aktif.
@@ -552,10 +582,9 @@ export default function FirmaDetayPage({
     // ön koşulu hiç yoktu, yalnız düğmenin görünürlük koşulu dardı.
     ...(role === "yonetici" && firma && firma.durum !== "aktif" ? [
       {
-        label: reactivating ? "Aktife alınıyor…" : "Aktife Al",
-        onClick: () => { void handleReactivate(); },
+        label: "Aktife Al",
+        onClick: () => { feedback.clear(); setStatusAction({ scope: companyScope, next: "aktif" }); },
         icon: <ArchiveRestore size={16} />,
-        disabled: reactivating,
       },
     ] : []),
   ];
@@ -581,33 +610,45 @@ export default function FirmaDetayPage({
         actions={headerActions}
       />
 
-      {passivateError && (
-        <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-          {passivateError}
-        </p>
+      {companyShell && (role === "yonetici" || role === "operasyon") && (
+        <button className="mb-5 inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" onClick={() => router.push(`/talepler/gunluk?firma=${companyShell.id}`)}>
+          Günlük personel planını aç
+        </button>
       )}
 
-      {reactivateError && (
-        <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-          {reactivateError}
-        </p>
+      <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
+      {deletionNotice?.scope === companyScope && <p role="alert" className="mb-5 break-words rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{deletionNotice.text}</p>}
+      {deleteTarget?.scope === companyScope && role === "yonetici" && (
+        <ConfirmActionDialog key={`${companyScope}:${deleteTarget.kind}:${deleteTarget.id}`}
+          title={deleteTarget.kind === "contact" ? "Yetkili kişiyi kalıcı olarak sil" : "Belgeyi kalıcı olarak sil"}
+          recordName={deleteTarget.name}
+          description={deleteTarget.kind === "contact"
+            ? "Bu kişinin firma içindeki yetkili kaydı kalıcı olarak kaldırılır. Bu işlem geri alınamaz. Firma ve diğer yetkililer korunur."
+            : "Belge kaydı kalıcı olarak kaldırılır; bağlı dosya varsa temizlenmesi de denenir. Bu işlem geri alınamaz. Sürüm geçmişine bağlı belgeler sistem tarafından korunur."}
+          confirmLabel="Kalıcı olarak sil" destructive onConfirm={() => confirmRecordDelete(deleteTarget)}
+          onClose={() => { if (companyScopeRef.current === companyScope) setDeleteTarget(null); }}
+        />
+      )}
+      {statusAction?.scope === companyScope && role === "yonetici" && (
+        <ConfirmActionDialog key={`${companyScope}:${statusAction.next}`}
+          title={statusAction.next === "pasif" ? "Firmayı pasife al" : "Firmayı aktife al"}
+          recordName={firma.firmaAdi}
+          description={statusAction.next === "pasif"
+            ? "Firma kaydı ve geçmişi korunur. Pasif firmaya yeni operasyonel kayıt eklenemez. Daha sonra yeniden aktife alabilirsiniz."
+            : "Firma aktif duruma geçer. Yetkili kullanıcılar firma için yeniden işlem oluşturabilir."}
+          confirmLabel={statusAction.next === "pasif" ? "Pasife al" : "Aktife al"}
+          onConfirm={() => changeCompanyStatus(statusAction.next)}
+          onClose={() => { if (companyScopeRef.current === companyScope) setStatusAction(null); }}
+        />
       )}
 
       <TabNavigation
-        tabs={
-          role === "goruntuleyici"
-            ? TABS.filter((t) => t.key === "genel")
-            : role === "ik"
-              ? TABS.filter((t) => ["genel", "evraklar", "talepler", "aktif-isgucu", "notlar"].includes(t.key))
-              : role === "muhasebe"
-                ? TABS.filter((t) => ["genel", "sozlesmeler"].includes(t.key))
-                : TABS
-        }
+        tabs={visibleTabs.map(tab => ({ ...tab, disabled: tab.disabled || !tabView.ready }))}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
 
-      <div className="mt-4">
+      <div className="mt-6 min-w-0">
         {/* ────────────────────────────────────────────────
             Genel Bakış — 8 documented overview cards
             ──────────────────────────────────────────────── */}
@@ -620,51 +661,55 @@ export default function FirmaDetayPage({
                 <FileText size={14} className={TEXT_MUTED} />
                 Aktif Sözleşmeler
               </h3>
-              {sozlesmelerError ? (
-                <p className={`${TYPE_CAPTION} text-red-600 py-2`} role="alert">{sozlesmelerError}</p>
-              ) : sozlesmelerLoading ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>Yükleniyor…</p>
-              ) : aktifSozlesmeler.length === 0 ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
-                  Aktif sözleşme yok.
-                </p>
+              {!contractsAllowed ? (
+                <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Bu rolde sözleşmeler görüntülenemez.</p>
               ) : (
-                <div className="space-y-2">
-                  {aktifSozlesmeler.map((s) => {
-                    const kalanGun = computeRemainingDays(s.end_date);
-                    return (
-                      <div
-                        key={s.id}
-                        className="flex items-center justify-between py-1.5"
-                      >
-                        <span className={`${TYPE_BODY} ${TEXT_BODY} truncate mr-3`}>
-                          {s.name}
-                        </span>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {kalanGun !== null && kalanGun <= 30 && (
-                            <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
-                              {kalanGun} gün
+                <AsyncSection isLoading={contractsResource.loading} hasError={contractsResource.error} onRetry={() => { void reloadSozlesmeler(); }}>
+                  {aktifSozlesmeler.length === 0 ? (
+                    <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
+                      {firmaSozlesmeler.length === 0 ? "Bu firmaya ait sözleşme kaydı yok." : "Aktif sözleşme yok."}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {aktifSozlesmeler.map((s) => {
+                        const kalanGun = computeRemainingDays(s.end_date);
+                        return (
+                          <a
+                            href={`/sozlesmeler/${s.id}`}
+                            aria-label={`${s.name} — sözleşmeyi aç`}
+                            key={s.id}
+                            className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-slate-50"
+                          >
+                            <span className={`${TYPE_BODY} ${TEXT_BODY} min-w-0 break-words`}>
+                              {s.name}
                             </span>
-                          )}
-                          <StatusBadge status={s.status} />
-                        </div>
-                      </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {kalanGun !== null && kalanGun <= 30 && (
+                                <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
+                                  {kalanGun} gün
+                                </span>
+                              )}
+                              <StatusBadge status={s.status} />
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Preparation in-flight count — derived from real lifecycle status */}
+                  {(() => {
+                    const hazirlikta = firmaSozlesmeler.filter(
+                      (s) => s.status === "taslak" || s.status === "imza_bekliyor"
+                    ).length;
+                    if (hazirlikta === 0) return null;
+                    return (
+                      <p className={`${TYPE_CAPTION} text-amber-600 mt-2`}>
+                        {hazirlikta} sözleşme hazırlık aşamasında
+                      </p>
                     );
-                  })}
-                </div>
+                  })()}
+                </AsyncSection>
               )}
-              {/* Preparation in-flight count — derived from real lifecycle status */}
-              {(() => {
-                const hazirlikta = firmaSozlesmeler.filter(
-                  (s) => s.status === "taslak" || s.status === "imza_bekliyor"
-                ).length;
-                if (hazirlikta === 0) return null;
-                return (
-                  <p className={`${TYPE_CAPTION} text-amber-600 mt-2`}>
-                    {hazirlikta} sözleşme hazırlık aşamasında
-                  </p>
-                );
-              })()}
             </div>}
 
             {/* 2. Açık Talepler — hidden for muhasebe */}
@@ -676,12 +721,13 @@ export default function FirmaDetayPage({
                     <Users size={14} className={TEXT_MUTED} />
                     Açık Talepler
                   </h3>
+                  <AsyncSection isLoading={demandResource.loading} hasError={demandResource.error} onRetry={() => { void demandResource.reload(); }}>
                   <div className="flex items-baseline gap-2 py-2">
                     <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{acikKalanToplam}</span>
                     <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>açık pozisyon</span>
                   </div>
                   {firmaTalepler.filter((t) => computeOpenCount(t) > 0).length === 0 ? (
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Tüm talepler karşılanmış.</p>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{firmaTalepler.length === 0 ? "Bu firmaya ait talep kaydı yok." : "Açık personel ihtiyacı görünmüyor."}</p>
                   ) : (
                     <div className="space-y-1.5 mt-2">
                       {firmaTalepler.filter((t) => computeOpenCount(t) > 0).map((t) => (
@@ -692,6 +738,7 @@ export default function FirmaDetayPage({
                       ))}
                     </div>
                   )}
+                  </AsyncSection>
                 </div>
               );
             })()}
@@ -702,8 +749,11 @@ export default function FirmaDetayPage({
                 <div className={CARD}>
                   <h3 className={CARD_TITLE}>
                     <Briefcase size={14} className={TEXT_MUTED} />
-                    Aktif İş Gücü Özeti
+                    Önceki Kadro Özeti
                   </h3>
+                  <p className="mt-2 text-xs text-slate-500">Eski kadro kayıtları gösterilir. Günlük görevlendirmeler için günlük personel planını açın.</p>
+                  {companyShell && <a className="my-2 inline-flex min-h-11 items-center text-sm text-blue-700 underline" href={`/talepler/gunluk?firma=${companyShell.id}`}>Firmanın günlük planını aç</a>}
+                  <AsyncSection isLoading={workforceResource.loading} hasError={workforceResource.error} onRetry={() => { void workforceResource.reload(); }}>
                   {firmaIsGucu ? (
                     <div className="space-y-2">
                       <div className="flex items-baseline gap-2">
@@ -719,11 +769,9 @@ export default function FirmaDetayPage({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-baseline gap-2 py-3">
-                      <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>{firma.aktifIsGucu}</span>
-                      <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>aktif personel</span>
-                    </div>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Bu firma için önceki kadro özeti yok. Günlük atamalar ayrı takip edilir.</p>
                   )}
+                  </AsyncSection>
                 </div>
               );
             })()}
@@ -737,6 +785,7 @@ export default function FirmaDetayPage({
                     <CalendarCheck size={14} className={TEXT_MUTED} />
                     Yaklaşan Randevular
                   </h3>
+                  <AsyncSection isLoading={appointmentsLoading} hasError={appointmentsError} onRetry={() => { void reloadAppointments(); }}>
                   <div className="flex items-baseline gap-2 py-3">
                     <span className={`${TYPE_KPI_VALUE} ${TEXT_PRIMARY}`}>
                       {planliRandevuSayisi}
@@ -750,64 +799,69 @@ export default function FirmaDetayPage({
                       Detaylar Randevular sekmesinde.
                     </p>
                   )}
+                  </AsyncSection>
                 </div>
               );
             })()}
 
-            {/* 5. Eksik Evraklar — hidden for muhasebe */}
+            {/* 5. Evrak takibi — stored status, only after a successful read */}
             {role !== "muhasebe" && (() => {
               const eksikler = firmaDocs.filter((e) => e.status !== "tam");
               return (
                 <div className={CARD}>
                   <h3 className={CARD_TITLE}>
                     <FolderOpen size={14} className={TEXT_MUTED} />
-                    Eksik Evraklar
+                    Evrak Takibi
                   </h3>
-                  <div className="flex items-baseline gap-2 py-2">
-                    <span className={`${TYPE_KPI_VALUE} font-semibold ${eksikler.length > 0 ? "text-amber-600" : TEXT_PRIMARY}`}>
-                      {eksikler.length}
-                    </span>
-                    <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>eksik / suresi dolan evrak</span>
-                  </div>
                   {documentsAccessRestricted ? (
                     <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Erişim kısıtlı — bu rolde evrak görüntülenemez.</p>
-                  ) : eksikler.length === 0 ? (
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Tum evraklar tamam.</p>
                   ) : (
-                    <div className="space-y-1.5 mt-2">
-                      {eksikler.map((e) => (
-                        <div key={e.id} className={`flex items-center justify-between ${TYPE_CAPTION}`}>
-                          <span className="text-slate-600 truncate mr-2">{e.name}</span>
-                          <StatusBadge status={e.status} />
+                    <AsyncSection isLoading={docsLoading} hasError={docsError} onRetry={() => { void reloadDocs(); }}>
+                      <div className="flex items-baseline gap-2 py-2">
+                        <span className={`${TYPE_KPI_VALUE} font-semibold ${eksikler.length > 0 ? "text-amber-600" : TEXT_PRIMARY}`}>
+                          {eksikler.length}
+                        </span>
+                        <span className={`${TYPE_BODY} ${TEXT_SECONDARY}`}>takip gerektiren belge</span>
+                      </div>
+                      {eksikler.length === 0 ? (
+                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{firmaDocs.length === 0 ? "Bu firmaya ait belge kaydı yok." : "Kayıtlı belgelerde takip gerektiren durum yok."}</p>
+                      ) : (
+                        <div className="space-y-1.5 mt-2">
+                          {eksikler.map((e) => (
+                            <div key={e.id} className={`flex items-center justify-between ${TYPE_CAPTION}`}>
+                              <span className="text-slate-600 truncate mr-2">{e.name}</span>
+                              <StatusBadge status={e.status} />
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </AsyncSection>
                   )}
                 </div>
               );
             })()}
 
-            {/* 6. Ticari Ozet — real financial data or honest absence */}
+            {/* 6. Ticari Özet — real financial data or honest absence */}
             {!["goruntuleyici", "ik"].includes(role) && (() => {
               if (!firmaFinancial) {
                 return (
                   <div className={CARD}>
                     <h3 className={CARD_TITLE}>
                       <BarChart3 size={14} className={TEXT_MUTED} />
-                      Ticari Ozet
+                      Ticari Özet
                     </h3>
                     <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
-                      Ticari ozet verisi henuz mevcut degil.
+                      Ticari özet verisi henüz yok.
                     </p>
                   </div>
                 );
               }
               return (
                 <CommercialSummaryCard
-                  acikBakiye={firmaFinancial.open_receivable ?? "—"}
+                  acikBakiye={formatTry(firmaFinancial.open_receivable)}
                   sonFaturaTarihi={"—"}
                   sonFaturaTutari={"—"}
-                  kesilmemisBekleyen={firmaFinancial.unbilled_amount ?? "—"}
+                  kesilmemisBekleyen={formatTry(firmaFinancial.unbilled_amount)}
                   ticariRisk={firmaFinancial.is_overdue ? "yuksek" : "dusuk"}
                   kaynak={firmaFinancial.last_source}
                 />
@@ -820,11 +874,8 @@ export default function FirmaDetayPage({
                 <StickyNote size={14} className={TEXT_MUTED} />
                 Son Notlar
               </h3>
-              {notlarError ? (
-                <p className={`${TYPE_CAPTION} text-red-600 py-2`} role="alert">{notlarError}</p>
-              ) : notlarLoading ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>Yükleniyor…</p>
-              ) : notlar.length === 0 ? (
+              <AsyncSection isLoading={notesResource.loading} hasError={notesResource.error} onRetry={() => { void reloadNotlar(); }}>
+              {notlar.length === 0 ? (
                 <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-3`}>
                   Henüz not yok.
                 </p>
@@ -832,22 +883,23 @@ export default function FirmaDetayPage({
                 <div className="space-y-2">
                   {notlar.slice(0, 3).map((n) => (
                     <div key={n.id} className={`py-1.5 ${LIST_DIVIDER}`}>
-                      <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
+                      <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>{n.content}</p>
                       <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{n.author_name} · {formatDateTR(n.created_at.slice(0, 10))}</p>
                     </div>
                   ))}
                 </div>
               )}
+              </AsyncSection>
             </div>}
 
-            {/* 8. Risk Sinyalleri — hidden for görüntüleyici + ik + muhasebe */}
+            {/* 8. Ödeme takibi — hidden for görüntüleyici + ik + muhasebe */}
             {!["goruntuleyici", "ik", "muhasebe"].includes(role) && <div className={CARD}>
               <h3 className={CARD_TITLE}>
                 <AlertTriangle size={14} className="text-amber-500" />
-                Risk Sinyalleri
+                Ödeme takibi
               </h3>
               <div className="flex items-center gap-2 mb-3">
-                <RiskBadge risk={firma.risk} size="md" />
+                
               </div>
               {(() => {
                 // Real risk signals from financial summary
@@ -861,7 +913,7 @@ export default function FirmaDetayPage({
                 const allSignals = ticariBullets.length === 0;
 
                 if (allSignals) {
-                  return <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Aktif risk sinyali yok.</p>;
+                  return <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Takip bekleyen ödeme kaydı yok.</p>;
                 }
 
                 const canDraftPayment = ticariBullets.length > 0 && (role === "yonetici" || role === "partner");
@@ -1043,38 +1095,7 @@ export default function FirmaDetayPage({
             </div>
           )}
 
-          {/* Son Bahsetmeler — hidden for görüntüleyici + muhasebe */}
-          {!["goruntuleyici", "muhasebe"].includes(role) && (
-            <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
-                <AtSign size={12} />
-                Son Bahsetmeler
-              </h3>
-              <EmptyState title="Bahsetme akışı henüz aktif değil." size="card" />
-            </div>
-          )}
-
-          {/* Bekleyen Yönlendirmeler — cross-unit routing signals */}
-          {role !== "goruntuleyici" && (
-            <div className={`${SURFACE_PRIMARY} border border-dashed ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
-              <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5 mb-3`}>
-                <ArrowRightLeft size={12} />
-                Bekleyen Yönlendirmeler
-              </h3>
-              <EmptyState title="Yönlendirme akışı henüz aktif değil." size="card" />
-            </div>
-          )}
           </>
-        )}
-
-        {/* Zaman Çizgisi tab */}
-        {activeTab === "zaman-cizgisi" && (
-          <div className={CARD_LG}>
-            <EmptyState
-              title="Firma zaman çizgisi henüz aktif değil."
-              size="tab"
-            />
-          </div>
         )}
 
         {/* Yetkililer tab — firm contacts, max 5 */}
@@ -1089,34 +1110,22 @@ export default function FirmaDetayPage({
                 {role === "yonetici" && yetkililer.length < 5 && (
                   <button
                     type="button"
-                    onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setContactModalOpen(true); }}
-                    disabled={isPassiveCompany}
+                    onClick={() => { setEditingContact(null); setEditPhoneEmailOnly(false); setOpenContactContext(contactContext); }}
+                    disabled={isPassiveCompany || !contactsReady}
                     title={isPassiveCompany ? PASSIVE_BLOCK_TITLE : undefined}
-                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 ${TYPE_CAPTION} font-medium ${TEXT_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
+                    className={`min-h-11 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 ${TYPE_CAPTION} font-medium ${TEXT_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SURFACE_PRIMARY} hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
                   >
                     <UserPlus size={14} strokeWidth={1.8} />
                     Yetkili Ekle
                   </button>
                 )}
-                {yetkililer.length >= 5 && (
+                {contactsReady && yetkililer.length >= 5 && (
                   <span className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Maksimum 5 yetkili</span>
                 )}
               </div>
             </div>
-            {yetkililerError && (
-              <p
-                className={`${TYPE_CAPTION} text-red-600 mb-3`}
-                role="alert"
-                aria-live="polite"
-              >
-                {yetkililerError}
-              </p>
-            )}
-            {yetkililerLoading ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>
-                Yetkili kişiler yükleniyor…
-              </p>
-            ) : yetkililer.length === 0 ? (
+            <AsyncSection isLoading={contactsResource.loading} hasError={contactsResource.error} onRetry={() => { void reloadYetkililer(); }}>
+            {yetkililer.length === 0 ? (
               <div className="py-2 -mx-1">
                 <EmptyState
                   title="Yetkili kişi yok"
@@ -1130,8 +1139,8 @@ export default function FirmaDetayPage({
                   <div key={ytk.id} className={`py-3 ${idx < yetkililer.length - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY}`}>{ytk.full_name}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className={`${TYPE_BODY} font-medium ${TEXT_PRIMARY} break-words min-w-0`}>{ytk.full_name}</p>
                           {ytk.is_primary && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
                               <Star size={8} />
@@ -1140,7 +1149,7 @@ export default function FirmaDetayPage({
                           )}
                         </div>
                         {ytk.title && (
-                          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5`}>{ytk.title}</p>
+                          <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5 break-words`}>{ytk.title}</p>
                         )}
                         <div className="flex flex-col gap-1.5 mt-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
                           {ytk.phone && (
@@ -1157,22 +1166,22 @@ export default function FirmaDetayPage({
                           )}
                         </div>
                         {ytk.context_note && (
-                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>{ytk.context_note}</p>
+                          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1 whitespace-pre-wrap break-words`}>{ytk.context_note}</p>
                         )}
                       </div>
                       {/* Edit + delete actions — role-gated. Edit:
                           yonetici/partner/operasyon. Delete: yonetici-only
                           (hard delete; mirrors the contacts DELETE app guard). */}
-                      <div className="flex-shrink-0 ml-3 flex items-center">
+                      <div className="flex-shrink-0 ml-2 flex flex-col sm:flex-row items-center">
                         {(role === "yonetici" || role === "partner" || role === "operasyon") && (
                           <button
                             type="button"
                             onClick={() => {
                               setEditingContact(ytk);
                               setEditPhoneEmailOnly(role === "operasyon");
-                              setContactModalOpen(true);
+                              setOpenContactContext(contactContext);
                             }}
-                            className={`p-1.5 ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
+                            className={`min-h-11 min-w-11 inline-flex items-center justify-center ${TEXT_MUTED} hover:text-slate-600 hover:bg-slate-100 ${RADIUS_SM} transition-colors`}
                             aria-label={`${ytk.full_name} — düzenle`}
                           >
                             <Pencil size={13} aria-hidden />
@@ -1181,9 +1190,8 @@ export default function FirmaDetayPage({
                         {role === "yonetici" && (
                           <button
                             type="button"
-                            onClick={() => { void handleContactDelete(ytk); }}
-                            disabled={contactDeletingId === ytk.id}
-                            className={`p-1.5 ${TEXT_MUTED} hover:text-red-600 hover:bg-red-50 ${RADIUS_SM} transition-colors disabled:opacity-40 disabled:cursor-not-allowed`}
+                            onClick={() => requestDelete("contact", ytk.id, ytk.full_name)}
+                            className={`min-h-11 min-w-11 inline-flex items-center justify-center ${TEXT_MUTED} hover:text-red-600 hover:bg-red-50 ${RADIUS_SM} transition-colors disabled:opacity-40 disabled:cursor-not-allowed`}
                             aria-label={`${ytk.full_name} — kalıcı olarak sil`}
                             title="Yetkili kişiyi kalıcı olarak sil"
                           >
@@ -1196,6 +1204,7 @@ export default function FirmaDetayPage({
                 ))}
               </div>
             )}
+            </AsyncSection>
           </div>
         )}
 
@@ -1205,50 +1214,45 @@ export default function FirmaDetayPage({
             <h3 className={CARD_TITLE_PLAIN}>
               Firma Sözleşmeleri
             </h3>
-            {sozlesmelerError && (
-              <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-                {sozlesmelerError}
-              </p>
-            )}
-            {sozlesmelerLoading ? (
-              <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-            ) : firmaSozlesmeler.length === 0 ? (
-              <EmptyState title="Sözleşme yok" description="Bu firmaya ait sözleşme bulunamadı." size="tab" />
+            {!contractsAllowed ? (
+              <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Bu rolde sözleşmeler görüntülenemez.</p>
             ) : (
-              <div className="space-y-2">
-                {firmaSozlesmeler.map((s) => {
-                  const kalanGun = computeRemainingDays(s.end_date);
-                  return (
-                    <div
-                      key={s.id}
-                      {...(role !== "muhasebe" ? { onClick: () => router.push(`/sozlesmeler/${s.id}`) } : {})}
-                      className={`flex items-center justify-between py-2.5 ${LIST_DIVIDER} ${role !== "muhasebe" ? `cursor-pointer ${TABLE_ROW_HOVER}` : ""} -mx-2 px-2 rounded`}
-                    >
-                      <div className="min-w-0">
-                        <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{s.name}</p>
-                        <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
-                          {s.contract_type ?? "—"} · {s.responsible ?? "—"}
-                          {s.last_action_label ? ` · ${s.last_action_label}` : ""}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                        {(role === "yonetici" || role === "partner") && (() => {
-                          // ticari kalite still reads from the static mock id
-                          // index — that mock keys by the legacy "s1".."s12"
-                          // Ticari kalite / margin band: no real data source yet
-                          return null;
-                        })()}
-                        {kalanGun !== null && kalanGun <= 30 && (
-                          <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
-                            {kalanGun} gün
-                          </span>
-                        )}
-                        <StatusBadge status={s.status} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <AsyncSection isLoading={contractsResource.loading} hasError={contractsResource.error} onRetry={() => { void reloadSozlesmeler(); }}>
+                {firmaSozlesmeler.length === 0 ? (
+                  <EmptyState title="Sözleşme yok" description="Bu firmaya ait sözleşme bulunamadı." size="tab" />
+                ) : (
+                  <div className="space-y-2">
+                    {firmaSozlesmeler.map((s) => {
+                      const kalanGun = computeRemainingDays(s.end_date);
+                      return (
+                        <a
+                          href={`/sozlesmeler/${s.id}`}
+                          aria-label={`${s.name} — sözleşmeyi aç`}
+                          key={s.id}
+                          className={`flex min-h-11 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-3 ${LIST_DIVIDER} ${TABLE_ROW_HOVER} -mx-2 px-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+                        >
+                          <div className="min-w-0 flex-1 break-words">
+                            <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>{s.name}</p>
+                            <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>
+                              {s.contract_type ?? "—"} · {s.responsible ?? "—"}
+                              {s.last_action_label ? ` · ${s.last_action_label}` : ""}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
+                            {kalanGun !== null && kalanGun <= 30 && (
+                              <span className={`${TYPE_CAPTION} font-medium ${kalanGun <= 15 ? "text-red-600" : "text-amber-600"}`}>
+                                {kalanGun} gün
+                              </span>
+                            )}
+                            <StatusBadge status={s.status} />
+                            <span className={`${TYPE_CAPTION} text-blue-700`}>Sözleşmeyi aç</span>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </AsyncSection>
             )}
           </div>
         )}
@@ -1260,16 +1264,15 @@ export default function FirmaDetayPage({
               <h3 className={CARD_TITLE_PLAIN}>
                 Firma Randevuları
               </h3>
+              <AsyncSection isLoading={appointmentsLoading} hasError={appointmentsError} onRetry={() => { void reloadAppointments(); }}>
               {firmaRandevular.length === 0 ? (
                 <EmptyState title="Randevu yok" description="Bu firmaya ait randevu bulunamadı." size="tab" />
               ) : (
                 <div className="space-y-2">
                   {firmaRandevular.map((r) => (
-                    <div
-                      key={r.id}
-                      className={`flex items-center justify-between py-2.5 ${LIST_DIVIDER}`}
-                    >
-                      <div className="min-w-0">
+                    <a key={r.id} href={appointmentLinkHref(r.id)} aria-label={`${formatDateTR(r.meeting_date)} ${r.attendee || APPOINTMENT_TYPE_LABELS[r.meeting_type]} randevusunu aç`}
+                      className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                      <div className="min-w-0 flex-1 break-words">
                         <p className={`${TYPE_BODY} font-medium ${TEXT_BODY}`}>
                           {formatDateTR(r.meeting_date)} {r.meeting_time ?? ""} — {APPOINTMENT_TYPE_LABELS[r.meeting_type as AppointmentMeetingType] ?? r.meeting_type}
                         </p>
@@ -1277,12 +1280,14 @@ export default function FirmaDetayPage({
                         {r.result && (
                           <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mt-0.5 truncate max-w-md`}>{r.result}</p>
                         )}
+                        <span className="mt-1 block text-xs text-blue-700">Randevuyu aç →</span>
                       </div>
-                      <StatusBadge status={r.status} />
-                    </div>
+                      <span className="shrink-0"><StatusBadge status={r.status} /></span>
+                    </a>
                   ))}
                 </div>
               )}
+              </AsyncSection>
             </div>
           );
         })()}
@@ -1291,9 +1296,10 @@ export default function FirmaDetayPage({
         {activeTab === "talepler" && (() => {
           return (
             <>
-            <DemandTrendChart talepler={firmaTalepler} />
+            {!demandResource.loading && !demandResource.error && <DemandTrendChart talepler={firmaTalepler} />}
             <div className={CARD_LG}>
               <h3 className={CARD_TITLE_PLAIN}>Firma Talepleri</h3>
+              <AsyncSection isLoading={demandResource.loading} hasError={demandResource.error} onRetry={() => { void demandResource.reload(); }}>
               {firmaTalepler.length === 0 ? (
                 <EmptyState title="Talep yok" description="Bu firmaya ait personel talebi bulunamadı." size="tab" />
               ) : (
@@ -1309,6 +1315,7 @@ export default function FirmaDetayPage({
                   ))}
                 </div>
               )}
+              </AsyncSection>
             </div>
             </>
           );
@@ -1318,7 +1325,10 @@ export default function FirmaDetayPage({
         {activeTab === "aktif-isgucu" && (() => {
           return (
             <div className={CARD_LG}>
-              <h3 className={CARD_TITLE_PLAIN}>Aktif İş Gücü</h3>
+              <h3 className={CARD_TITLE_PLAIN}>Önceki Kadro Özeti</h3>
+              <p className="mt-2 text-sm text-slate-600">Bu bölüm kayıtlı kadro bilgisini gösterir. Günlük görevlendirmeleri ve yoklamaları personel planından takip edin.</p>
+              {companyShell && <a className="my-3 inline-flex min-h-11 items-center text-sm text-blue-700 underline" href={`/talepler/gunluk?firma=${companyShell.id}`}>Firmanın günlük planını aç</a>}
+              <AsyncSection isLoading={workforceResource.loading} hasError={workforceResource.error} onRetry={() => { void workforceResource.reload(); }}>
               {firmaIsGucu ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className={`text-center p-3 ${SURFACE_HEADER} rounded`}>
@@ -1343,8 +1353,9 @@ export default function FirmaDetayPage({
                   </div>
                 </div>
               ) : (
-                <EmptyState title="İş gücü verisi yok" description="Bu firma için iş gücü kaydı bulunamadı." size="tab" />
+                <EmptyState title="Önceki kadro özeti yok" description="Güncel ihtiyaç, yerleştirme ve katılım için firmanın günlük planını açın." size="tab" />
               )}
+              </AsyncSection>
             </div>
           );
         })()}
@@ -1369,41 +1380,37 @@ export default function FirmaDetayPage({
           const canDeleteDocs = role === "yonetici";
           const contractLabelById = new Map(firmaSozlesmeler.map((c) => [c.id, c.name]));
 
-          async function handleEvrakDownload(documentId: string) {
-            setEvrakDownloadError(null);
-            const result = await getCompanyDocumentDownloadUrlAction(documentId);
-            if (result.ok) {
-              window.open(result.url, "_blank", "noopener,noreferrer");
-              return;
-            }
-            // Per-row failure stays item-level — page chrome unaffected.
-            setEvrakDownloadError(result.error);
-          }
-
-          async function handleEvrakDelete(documentId: string) {
-            // Hard delete (Faz 1). Mandatory confirm — no delete without it.
-            if (!window.confirm("Bu belgeyi kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
-              return;
-            }
-            setEvrakDeleteMessage(null);
-            setEvrakDeletingId(documentId);
-            try {
-              const result = await deleteCompanyDocumentAction(documentId);
-              if (result.ok) {
-                // Orphan warning (DB gone, storage remove failed) is still
-                // a success for the row — surface it but refresh the list.
-                if (result.warning) setEvrakDeleteMessage(result.warning);
-                await reloadDocs();
-                router.refresh();
-              } else {
-                setEvrakDeleteMessage(result.error);
-              }
-            } catch (err) {
-              setEvrakDeleteMessage(err instanceof Error ? err.message : "Belge silinemedi.");
-            } finally {
-              setEvrakDeletingId(null);
-            }
-          }
+          const renderDocumentActions = (d: (typeof firmaDocs)[number]) => (
+            <div className="inline-flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => { void handleEvrakDownload(d); }}
+                disabled={!d.storage_path || currentDownload?.phase === "loading"}
+                className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
+              >
+                <Download size={12} />
+                İndir
+              </button>
+              {canDeleteDocs && !d.contract_id && (
+                <button
+                  type="button"
+                  onClick={() => requestDelete("document", d.id, d.name)}
+                  aria-label={`${d.name} — kalıcı olarak sil`}
+                  className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
+                  title="Belgeyi kalıcı olarak sil"
+                >
+                  <Trash2 size={12} />
+                  Sil
+                </button>
+              )}
+            </div>
+          );
+          const renderContractLink = (d: (typeof firmaDocs)[number]) => d.contract_id
+            ? (["yonetici", "operasyon"].includes(role)
+              ? <a href={`/sozlesmeler/${d.contract_id}`} className="inline-flex min-h-11 max-w-full items-center break-words py-2 text-blue-700 underline">{contractLabelById.get(d.contract_id) ?? "Sözleşme dosyaları"}</a>
+              : contractLabelById.get(d.contract_id) ?? "Sözleşmeye bağlı belge")
+            : "—";
 
           return (
             <div className={CARD_LG}>
@@ -1412,10 +1419,10 @@ export default function FirmaDetayPage({
                 {canMutateDocs && firma && (
                   <button
                     type="button"
-                    onClick={() => { setEvrakUploadError(null); setEvrakUploadOpen(true); }}
+                    onClick={() => { setEvrakUploadError(null); setOpenUploadContext(uploadContext); }}
                     disabled={isPassiveCompany}
                     title={isPassiveCompany ? PASSIVE_BLOCK_TITLE : undefined}
-                    className={`flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline`}
+                    className={`flex min-h-11 items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline`}
                   >
                     <Upload size={13} />
                     Belge Yükle
@@ -1423,70 +1430,65 @@ export default function FirmaDetayPage({
                 )}
               </div>
 
-              {evrakDownloadError && (
-                <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-                  {evrakDownloadError}
-                </p>
-              )}
+              {currentDownload && <section aria-label="Evrak indirme" className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 break-words text-sm font-medium text-slate-800">{currentDownload.row.name}</p>
+                  <button type="button" onClick={dismissDownload} className="min-h-11 shrink-0 px-3 text-sm text-slate-600">Kapat</button>
+                </div>
+                {currentDownload.phase === "loading" && <p role="status" className="text-sm text-blue-700">Dosya bağlantısı hazırlanıyor…</p>}
+                {currentDownload.phase === "error" && <>
+                  <p role="status" className="text-sm text-amber-700">{currentDownload.message}</p>
+                  <button type="button" onClick={() => { void handleEvrakDownload(currentDownload.row); }} className="min-h-11 mt-2 text-sm text-blue-700 underline">Bağlantıyı yeniden hazırla</button>
+                </>}
+                {currentDownload.phase === "ready" && <>
+                  <p role="status" className="text-sm text-slate-600">Bağlantı hazır. Dosyayı yeni sekmede açabilirsiniz.</p>
+                  <a href={currentDownload.href} target="_blank" rel="noopener noreferrer" onClick={event => {
+                    if (!currentDownload.expiresAt || Date.now() >= currentDownload.expiresAt) {
+                      event.preventDefault(); setDownload({ context: downloadContext, row: currentDownload.row, phase: "error", message: "Bağlantının süresi doldu. Yeniden hazırlayın." });
+                    }
+                  }} className="min-h-11 mt-2 inline-flex items-center text-sm font-medium text-blue-700 underline">Dosyayı aç</a>
+                </>}
+              </section>}
 
-              {evrakDeleteMessage && (
-                <p className={`${TYPE_CAPTION} text-amber-700 mb-3`} role="alert" aria-live="polite">
-                  {evrakDeleteMessage}
-                </p>
-              )}
-
+              <AsyncSection isLoading={docsLoading} hasError={docsError} onRetry={() => void reloadDocs()}>
               {firmaDocs.length === 0 ? (
                 <EmptyState title="Belge yok" description="Bu firmaya ait belge bulunmuyor." size="tab" />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                <div role="region" aria-label="Firma evrak listesi" tabIndex={0} className="overflow-x-auto">
+                  <table className="w-full table-fixed text-sm sm:table-auto">
                     <thead className={`bg-slate-50 ${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium">Belge</th>
-                        <th className="px-3 py-2 text-left font-medium">Kategori</th>
-                        <th className="px-3 py-2 text-left font-medium">Durum</th>
-                        <th className="px-3 py-2 text-left font-medium">Geçerlilik</th>
-                        <th className="px-3 py-2 text-left font-medium">Sözleşme</th>
-                        <th className="px-3 py-2 text-left font-medium">Yükleyen</th>
-                        <th className="px-3 py-2 text-left font-medium">Güncellenme</th>
-                        <th className="px-3 py-2 text-right font-medium" aria-label="aksiyon"></th>
+                        <th scope="col" className="px-3 py-2 text-left font-medium">Belge</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Kategori</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Durum</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Geçerlilik</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Sözleşme</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Yükleyen</th>
+                        <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Güncellenme</th>
+                        <th scope="col" className="hidden px-3 py-2 text-right font-medium sm:table-cell" aria-label="aksiyon"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {firmaDocs.map((d) => (
                         <tr key={d.id} className={`border-t ${BORDER_SUBTLE}`}>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[220px] truncate`}>{d.name}</td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{DOCUMENT_CATEGORY_LABELS[d.category]}</td>
-                          <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{d.validity_date ? formatDateTR(d.validity_date) : "—"}</td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[180px] truncate`}>{d.contract_id ? (contractLabelById.get(d.contract_id) ?? "—") : "—"}</td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[160px] truncate`}>{d.uploaded_by ?? "—"}</td>
-                          <td className={`px-3 py-2 ${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(d.updated_at.slice(0, 10))}</td>
-                          <td className="px-3 py-2 text-right">
-                            <div className="inline-flex items-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() => { void handleEvrakDownload(d.id); }}
-                                disabled={!d.storage_path}
-                                className={`inline-flex items-center gap-1 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
-                                title={d.storage_path ? "İndir" : "Bu belge için dosya yok"}
-                              >
-                                <Download size={12} />
-                                İndir
-                              </button>
-                              {canDeleteDocs && (
-                                <button
-                                  type="button"
-                                  onClick={() => { void handleEvrakDelete(d.id); }}
-                                  disabled={evrakDeletingId === d.id}
-                                  className={`inline-flex items-center gap-1 ${TYPE_CAPTION} text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
-                                  title="Belgeyi kalıcı olarak sil"
-                                >
-                                  <Trash2 size={12} />
-                                  {evrakDeletingId === d.id ? "Siliniyor..." : "Sil"}
-                                </button>
-                              )}
+                          <td className={`px-3 py-3 ${TYPE_BODY} ${TEXT_BODY} align-top sm:max-w-[260px]`}>
+                            {d.contract_document_title && <p className="break-words font-medium">{d.contract_document_title}</p>}
+                            <p className="break-words sm:max-w-[260px]">{d.name}</p>
+                            <div className="mt-3 space-y-2 sm:hidden">
+                              <StatusBadge status={d.status} />
+                              <p className="break-words text-xs text-slate-500">{DOCUMENT_CATEGORY_LABELS[d.category]} · {d.validity_date ? `Geçerlilik: ${formatDateTR(d.validity_date)}` : "Geçerlilik tarihi belirtilmemiş"}</p>
+                              {d.contract_id && <div className="text-sm">{renderContractLink(d)}</div>}
+                              {renderDocumentActions(d)}
                             </div>
+                          </td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} sm:table-cell`}>{DOCUMENT_CATEGORY_LABELS[d.category]}</td>
+                          <td className="hidden px-3 py-2 sm:table-cell"><StatusBadge status={d.status} /></td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} sm:table-cell`}>{d.validity_date ? formatDateTR(d.validity_date) : "—"}</td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[180px] sm:table-cell`}>{renderContractLink(d)}</td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} max-w-[160px] truncate sm:table-cell`}>{d.uploaded_by ?? "—"}</td>
+                          <td className={`hidden px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} sm:table-cell`}>{formatDateTR(d.updated_at.slice(0, 10))}</td>
+                          <td className="hidden px-3 py-2 text-right sm:table-cell">
+                            {renderDocumentActions(d)}
                           </td>
                         </tr>
                       ))}
@@ -1494,6 +1496,7 @@ export default function FirmaDetayPage({
                   </table>
                 </div>
               )}
+              </AsyncSection>
             </div>
           );
         })()}
@@ -1526,25 +1529,36 @@ export default function FirmaDetayPage({
           ] as NoteTagKey[];
 
           async function handlePinToggle(n: NoteRow, next: boolean) {
+            if (liveNoteContext.current !== noteContext || !noteContext.scope || notePinFlight.current?.context === noteContext) return;
+            const operation: NotePinOperation = { context: noteContext, id: n.id, next };
+            notePinFlight.current = operation;
+            setNotePinPending(operation);
+            setNotePinError(null);
+            const current = () => liveNoteContext.current === noteContext && notePinFlight.current === operation;
             try {
               if (next) await pinNote(supabase, id, n.id);
               else await unpinNote(supabase, id, n.id);
+              if (!current()) return;
+              feedback.show(next ? "Not sabitlendi." : "Notun sabitlemesi kaldırıldı.");
               await reloadNotlar();
-              router.refresh();
-            } catch (err) {
-              setNotlarError(
-                err instanceof Error ? err.message : "Sabitleme işlemi başarısız.",
-              );
+              if (current()) router.refresh();
+            } catch {
+              if (current()) setNotePinError(noteContext);
+            } finally {
+              // A late operation must never unlock a newer context's pending write.
+              if (notePinFlight.current === operation) notePinFlight.current = null;
+              if (liveNoteContext.current === noteContext) setNotePinPending(value => value === operation ? null : value);
             }
           }
 
           return (
             <div className={CARD_LG}>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <h3 className={CARD_TITLE_PLAIN}>Firma Notları</h3>
                 <div className="flex items-center gap-3">
                   {mevcutEtiketler.length > 0 && (
                     <select
+                      aria-label="Not etiketi"
                       value={notTagFilter}
                       onChange={(e) => setNotTagFilter(e.target.value as NoteTagKey | "")}
                       className={`px-2 py-1 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
@@ -1557,8 +1571,8 @@ export default function FirmaDetayPage({
                   )}
                   {canCreateNotes && (
                     <button
-                      onClick={() => { setNotEditTarget(null); setNoteDefaultIcerik(""); setNoteOpen(true); }}
-                      className={`flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
+                      onClick={() => { setNotEditTarget(null); setNoteDefaultIcerik(""); setOpenNoteContext(noteContext); }}
+                      className={`min-h-11 flex items-center gap-1.5 ${TYPE_CAPTION} ${TEXT_LINK} hover:underline`}
                     >
                       <Plus size={13} />
                       Yeni Not
@@ -1567,15 +1581,15 @@ export default function FirmaDetayPage({
                 </div>
               </div>
 
-              {notlarError && (
+              {pinBusy && <p role="status" className={`${TYPE_BODY} text-blue-700 mb-3`}>Notun sabitleme durumu kaydediliyor…</p>}
+              {notePinError === noteContext && (
                 <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
-                  {notlarError}
+                  Notun sabitleme durumu değiştirilemedi. Tekrar deneyin.
                 </p>
               )}
 
-              {notlarLoading ? (
-                <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-6`}>Yükleniyor…</p>
-              ) : notlar.length === 0 ? (
+              <AsyncSection isLoading={notesResource.loading} hasError={notesResource.error} onRetry={() => { void reloadNotlar(); }}>
+              {notlar.length === 0 ? (
                 <EmptyState title="Not yok" description="Bu firma için henüz not eklenmemiş." size="tab" />
               ) : (
                 <div className="space-y-0">
@@ -1590,8 +1604,8 @@ export default function FirmaDetayPage({
                         <div key={n.id} className={`py-3 ${idx < sabitlenenler.length - 1 ? `border-b ${BORDER_SUBTLE}` : `border-b ${BORDER_DEFAULT} mb-3 pb-3`}`}>
                           <div className="flex items-start justify-between">
                             <div className="min-w-0 flex-1">
-                              <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
-                              <div className={`flex items-center gap-2 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
+                              <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>{n.content}</p>
+                              <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
                                 <span>{n.author_name}</span>
                                 <span>·</span>
                                 <span>{formatDateTR(n.created_at.slice(0, 10))}</span>
@@ -1604,20 +1618,23 @@ export default function FirmaDetayPage({
                                 <span className="text-blue-500 flex items-center gap-0.5"><Pin size={9} /> Sabit</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-1 flex-shrink-0 ml-2">
                               {canPin(n) && (
                                 <button
+                                  disabled={pinBusy}
                                   onClick={() => { void handlePinToggle(n, false); }}
-                                  className={`p-1 ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                                  className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed`}
                                   title="Sabitlemeyi kaldır"
+                                  aria-busy={pinBusy && notePinPending?.id === n.id}
                                 >
                                   <Pin size={12} />
                                 </button>
                               )}
                               {canEditNote(n) && (
                                 <button
-                                  onClick={() => { setNotEditTarget(n); setNoteOpen(true); }}
-                                  className={`p-1 ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                                  aria-label="Notu düzenle"
+                                  onClick={() => { setNotEditTarget(n); setOpenNoteContext(noteContext); }}
+                                  className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed`}
                                 >
                                   <Pencil size={12} />
                                 </button>
@@ -1637,8 +1654,8 @@ export default function FirmaDetayPage({
                     <div key={n.id} className={`py-3 ${idx < filtrelenmis.length - 1 ? `border-b ${BORDER_SUBTLE}` : ""}`}>
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
-                          <p className={`${TYPE_BODY} ${TEXT_BODY}`}>{n.content}</p>
-                          <div className={`flex items-center gap-2 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
+                          <p className={`${TYPE_BODY} ${TEXT_BODY} whitespace-pre-wrap break-words`}>{n.content}</p>
+                          <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 ${TYPE_CAPTION} ${TEXT_MUTED}`}>
                             <span>{n.author_name}</span>
                             <span>·</span>
                             <span>{formatDateTR(n.created_at.slice(0, 10))}</span>
@@ -1650,20 +1667,23 @@ export default function FirmaDetayPage({
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                        <div className="flex flex-col sm:flex-row items-center gap-1 flex-shrink-0 ml-2">
                           {canPin(n) && (
                             <button
+                              disabled={pinBusy}
                               onClick={() => { void handlePinToggle(n, true); }}
-                              className={`p-1 ${TEXT_MUTED} hover:text-blue-500 ${RADIUS_SM} hover:bg-slate-100`}
+                              className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-blue-500 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed`}
                               title="Sabitle"
+                              aria-busy={pinBusy && notePinPending?.id === n.id}
                             >
                               <Pin size={12} />
                             </button>
                           )}
                           {canEditNote(n) && (
                             <button
-                              onClick={() => { setNotEditTarget(n); setNoteOpen(true); }}
-                              className={`p-1 ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100`}
+                              aria-label="Notu düzenle"
+                                  onClick={() => { setNotEditTarget(n); setOpenNoteContext(noteContext); }}
+                              className={`flex h-11 w-11 items-center justify-center ${TEXT_MUTED} hover:text-slate-600 ${RADIUS_SM} hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed`}
                             >
                               <Pencil size={12} />
                             </button>
@@ -1674,6 +1694,7 @@ export default function FirmaDetayPage({
                   ))}
                 </div>
               )}
+              </AsyncSection>
             </div>
           );
         })()}
@@ -1688,114 +1709,110 @@ export default function FirmaDetayPage({
         )}
       </div>
 
-      <QuickNoteModal
-        open={noteOpen}
-        onClose={() => { setNoteOpen(false); setNoteDefaultIcerik(""); setNotEditTarget(null); }}
+      {appointmentOpen && companyShell && ["yonetici", "operasyon"].includes(role) && (
+        <NewAppointmentModal
+          key={companyScope}
+          open={appointmentOpen}
+          onClose={() => { if (liveAppointmentContext.current === appointmentContext) setAppointmentOpen(false); }}
+          defaultFirmaId={companyShell.id}
+          firmalar={[{ id: companyShell.id, ad: companyShell.name }]}
+          allowNewCompany={false}
+          onSubmit={async ({ firmaId, tarih, saat, gorusmeTipi, katilimci }) => {
+            if (liveAppointmentContext.current !== appointmentContext || firmaId !== companyShell.id) throw new Error("Firma bilgisi değişti. Randevu formunu yeniden açın.");
+            const result = await createAppointmentAction({
+              legacyCompanyId: firmaId,
+              meetingDate: tarih,
+              meetingTime: saat || undefined,
+              meetingType: gorusmeTipi,
+              attendee: katilimci || undefined,
+            });
+            if (liveAppointmentContext.current !== appointmentContext) return;
+            if (!result.ok) throw new Error(result.error);
+            // Creation succeeded: a subsequent list refresh failure must not
+            // keep a retryable create form open and invite a duplicate insert.
+            setAppointmentOpen(false);
+            setActiveTab("randevular");
+            feedback.show("Randevu oluşturuldu. Durumu: planlandı.");
+            void reloadAppointments();
+            router.refresh();
+          }}
+        />
+      )}
+
+      {openNoteContext === noteContext && notesScope && <QuickNoteModal
+        key={`${companyScope}:${notEditTarget?.id ?? "new"}`}
+        open
+        onClose={() => {
+          if (liveNoteContext.current !== noteContext) return;
+          setOpenNoteContext(null); setNoteDefaultIcerik(""); setNotEditTarget(null);
+        }}
         firmaAdi={firma.firmaAdi}
         defaultIcerik={notEditTarget ? notEditTarget.content : noteDefaultIcerik}
         defaultEtiket={notEditTarget?.tag ?? ""}
         editMode={!!notEditTarget}
         onSubmit={async ({ icerik, etiket }) => {
-          // Faz 1B: persist via service layer. The service re-verifies
-          // partner scope, enforces ownership (author_id based) for the
-          // self-edit path, trims content, whitelists the tag, and
-          // stamps author_id/author_name from the authenticated session.
-          // Errors (validation, ownership, scope, DB) bubble up so the
-          // modal can render them inline; only on resolve do we refetch.
-          // router.refresh() is called for the same reason as the
-          // Yetkililer cutover — the Firmalar list is a cached static
-          // page and its RSC payload must be invalidated for downstream
-          // readers to re-fetch.
-          if (notEditTarget) {
-            await updateNoteContent(supabase, id, notEditTarget.id, {
-              content: icerik,
-              tag: etiket,
-            });
-          } else {
-            // Server action: notes.tenant_id must be resolved server-side
-            // via current_user_active_tenant(), which the browser client
-            // cannot do. Same shape as createContactAction below.
-            const result = await createNoteAction(id, {
-              content: icerik,
-              tag: etiket,
-            });
-            if (!result.ok) {
-              throw new Error(result.error);
+          if (liveNoteContext.current !== noteContext || !noteContext.scope) return;
+          try {
+            if (notEditTarget) {
+              await updateNoteContent(supabase, id, notEditTarget.id, { content: icerik, tag: etiket });
+            } else {
+              const result = await createNoteAction(id, { content: icerik, tag: etiket });
+              if (!result.ok) throw new Error("Not kaydedilemedi.");
             }
+          } catch {
+            if (liveNoteContext.current !== noteContext) return;
+            throw new Error("Not kaydedilemedi. Bilgileriniz korundu; tekrar deneyin.");
           }
+          if (liveNoteContext.current !== noteContext) return;
+          // A committed save is complete even if the subsequent list read fails.
+          setOpenNoteContext(null);
+          setNoteDefaultIcerik("");
           setNotEditTarget(null);
-          await reloadNotlar();
+          setNotTagFilter("");
+          setActiveTab("notlar");
+          feedback.show(notEditTarget ? "Not güncellendi." : "Not firmaya eklendi.");
+          void reloadNotlar();
           router.refresh();
         }}
-      />
+      />}
 
-      <AddContactModal
-        open={contactModalOpen}
-        onClose={() => { setContactModalOpen(false); setEditingContact(null); setEditPhoneEmailOnly(false); }}
+      {openContactContext === contactContext && contactScope && <AddContactModal
+        key={`${companyScope}:${editingContact?.id ?? "new"}`}
+        open
+        onClose={() => {
+          if (liveContactContext.current !== contactContext) return;
+          setOpenContactContext(null); setEditingContact(null); setEditPhoneEmailOnly(false);
+        }}
         editData={editingContact}
         phoneEmailOnly={editPhoneEmailOnly}
         currentAnaYetkiliAdi={yetkililer.find((y) => y.is_primary)?.full_name}
         onSubmit={async (data) => {
-          // Faz 1A: persist via service layer. The service re-verifies
-          // partner scope, enforces max-5 / phone-or-email / single-primary,
-          // and narrows the operasyon patch to {phone, email}. Errors
-          // (validation, scope, DB) bubble up so the modal can render
-          // them inline; only on resolve do we refetch and close.
-          //
-          // Faz 1A closeout fix: after a successful mutation we MUST also
-          // call router.refresh() so the Firmalar list page sees the new
-          // truth on its next visit. Without this, Next.js 15's client
-          // Router Cache (staleTimes.static = 300s) restores the cached
-          // tree of /firmalar when we router.push back to it, preserving
-          // the stale `primaryNames` state — its useEffect never re-runs
-          // and the Ana Yetkili column shows the static mock fallback.
-          // router.refresh() is the only client API that invalidates the
-          // entire prefetch cache (see refresh-reducer.js: prefetchCache
-          // = new Map()).
-          if (editingContact) {
-            if (editPhoneEmailOnly) {
-              await updateContactPhoneEmail(supabase, id, editingContact.id, {
-                phone: data.phone,
-                email: data.email,
-              });
+          if (liveContactContext.current !== contactContext || !contactContext.scope) return;
+          try {
+            if (editingContact) {
+              if (editPhoneEmailOnly) await updateContactPhoneEmail(supabase, id, editingContact.id, { phone: data.phone, email: data.email });
+              else await updateContactFull(supabase, id, editingContact.id, data);
             } else {
-              await updateContactFull(supabase, id, editingContact.id, {
-                fullName: data.fullName,
-                title: data.title,
-                phone: data.phone,
-                email: data.email,
-                isPrimary: data.isPrimary,
-                contextNote: data.contextNote,
-              });
+              if (!companyShell) throw new Error("Firma yüklenmedi.");
+              const result = await createContactAction(companyShell.id, data);
+              if (!result.ok) {
+                if (result.error === new ContactLimitReachedError().message) throw new ContactLimitReachedError();
+                throw new Error(result.error);
+              }
             }
-          } else {
-            // Create runs through the server action (Patch 2): cookie-auth,
-            // role + tenant + passive-company guard, then delegates to the
-            // contacts service. The real company UUID (companyShell.id) is
-            // required — never the route param, which may be a legacy id.
-            if (!companyShell) {
-              throw new Error("Firma yüklenmedi.");
-            }
-            const result = await createContactAction(companyShell.id, {
-              fullName: data.fullName,
-              title: data.title,
-              phone: data.phone,
-              email: data.email,
-              isPrimary: data.isPrimary,
-              contextNote: data.contextNote,
-            });
-            if (!result.ok) {
-              throw new Error(result.error);
-            }
+          } catch (error) {
+            if (liveContactContext.current !== contactContext) return;
+            if (error instanceof ContactValidationError) throw error;
+            throw new Error("Yetkili kaydedilemedi. Bilgileriniz korundu; tekrar deneyin.");
           }
-          await reloadYetkililer();
-          // Invalidate the entire client Router Cache so /firmalar
-          // (cached as a static page with staleTimes.static = 300s)
-          // re-fetches its primaryNames on next visit instead of
-          // restoring the cached tree with stale state.
+          if (liveContactContext.current !== contactContext) return;
+          setOpenContactContext(null); setEditingContact(null); setEditPhoneEmailOnly(false);
+          setActiveTab("yetkililer");
+          feedback.show(editingContact ? "Yetkili bilgileri güncellendi." : "Yetkili firmaya eklendi.");
+          void reloadYetkililer();
           router.refresh();
         }}
-      />
+      />}
 
       {/* Note Suggestion Flow — prompt → preview → confirm into QuickNoteModal */}
       {suggestOpen && (
@@ -1848,7 +1865,7 @@ export default function FirmaDetayPage({
                       setNoteDefaultIcerik(suggestResult);
                       setSuggestOpen(false);
                       setSuggestResult(null);
-                      setNoteOpen(true);
+                      setOpenNoteContext(noteContext);
                     }}
                     className={`px-3 py-2 ${TYPE_BODY} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700`}
                   >
@@ -1994,19 +2011,27 @@ export default function FirmaDetayPage({
           companyId here is the REAL DB UUID from `companyShell`, never
           the route param (which may be a legacy_mock_id). The storage
           policy parses the first path segment as a company UUID. */}
-      {evrakUploadOpen && companyShell && (
+      {openUploadContext === uploadContext && uploadContext.scope && companyShell && (
         <EvrakUploadModal
           companyId={companyShell.id}
           companyName={companyShell.name}
           contracts={firmaSozlesmeler.map((c) => ({ id: c.id, name: c.name }))}
+          contractsState={role !== "yonetici" ? "restricted" : contractsResource.loading ? "loading" : contractsResource.error ? "error" : "ready"}
+          onRetryContracts={() => { void reloadSozlesmeler(); }}
           submitError={evrakUploadError}
-          onClose={() => { setEvrakUploadOpen(false); setEvrakUploadError(null); }}
-          onSubmitError={setEvrakUploadError}
-          onSuccess={async () => {
-            setEvrakUploadOpen(false);
-            setEvrakUploadError(null);
-            await reloadDocs();
-            router.refresh();
+          onClose={() => {
+            if (liveUploadContext.current !== uploadContext) return;
+            setOpenUploadContext(null); setEvrakUploadError(null);
+          }}
+          onSubmitError={error => {
+            if (liveUploadContext.current === uploadContext) setEvrakUploadError(error);
+          }}
+          onSuccess={documentName => {
+            if (liveUploadContext.current !== uploadContext) return;
+            setOpenUploadContext(null); setEvrakUploadError(null);
+            setActiveTab("evraklar");
+            feedback.show(`${documentName} firmaya yüklendi.`);
+            void reloadDocs();
           }}
         />
       )}
@@ -2029,21 +2054,16 @@ interface EvrakUploadModalProps {
   companyId: string;
   companyName: string;
   contracts: { id: string; name: string }[];
+  contractsState: "loading" | "error" | "restricted" | "ready";
+  onRetryContracts: () => void;
   submitError: string | null;
   onClose: () => void;
   onSubmitError: (err: string) => void;
-  onSuccess: () => Promise<void> | void;
+  onSuccess: (name: string) => void;
 }
 
-function EvrakUploadModal({
-  companyId,
-  companyName,
-  contracts,
-  submitError,
-  onClose,
-  onSubmitError,
-  onSuccess,
-}: EvrakUploadModalProps) {
+function EvrakUploadModal({companyId, companyName, contracts, contractsState, onRetryContracts, submitError, onClose, onSubmitError, onSuccess}: EvrakUploadModalProps) {
+  const formId = useId();
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -2051,116 +2071,107 @@ function EvrakUploadModal({
   const [contractId, setContractId] = useState("");
   const [validityDate, setValidityDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const MAX_BYTES = 10 * 1024 * 1024;
-  const canSubmit = !!file && name.trim().length > 0 && !submitting;
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = e.target.files?.[0] ?? null;
-    if (!picked) { setFile(null); setFileError(null); return; }
-    if (picked.type !== "application/pdf") {
-      setFile(null); setFileError("Sadece PDF dosyası yüklenebilir."); return;
-    }
-    if (picked.size > MAX_BYTES) {
-      setFile(null); setFileError("Dosya boyutu 10 MB'dan büyük olamaz."); return;
-    }
-    setFile(picked); setFileError(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [reviewRequired, setReviewRequired] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (submitError) { errorRef.current?.focus({ preventScroll: true }); errorRef.current?.scrollIntoView({ block: "nearest" }); }
+  }, [submitError]);
+  const saving = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const contractVerified = contractsState === "ready" && contracts.some(c => c.id === contractId);
+  const canSubmit = !!file && name.trim().length > 0 && !submitting && !contractId && !reviewRequired;
+  const dirty = !!file || !!fileError || name !== "" || category !== "diger" || contractId !== "" || validityDate !== "";
+  function requestClose() {
+    if (saving.current) return;
+    if (dirty) setDiscardOpen(true);
+    else onClose();
   }
-
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const picked = event.target.files?.[0] ?? null;
+    setFile(null); setFileError(null);
+    if (!picked) return;
+    const error = picked.type !== "application/pdf" ? "Sadece PDF dosyası yüklenebilir."
+      : picked.size === 0 ? "Boş dosya yüklenemez."
+      : picked.size > 10 * 1024 * 1024 ? "Dosya boyutu 10 MB'dan büyük olamaz." : null;
+    if (error) { setFileError(error); event.target.value = ""; return; }
+    setFile(picked);
+  }
   async function handleSubmit() {
-    if (!canSubmit || !file) return;
-    setSubmitting(true);
+    if (!canSubmit || !file || saving.current) return;
+    saving.current = true; setSubmitting(true); onSubmitError("");
     const fd = new FormData();
-    fd.set("company_id", companyId);
-    fd.set("name", name.trim());
-    fd.set("category", category);
+    fd.set("company_id", companyId); fd.set("name", name.trim()); fd.set("category", category);
     if (contractId) fd.set("contract_id", contractId);
     if (validityDate) fd.set("validity_date", validityDate);
     fd.set("file", file);
-
     try {
       const result = await uploadCompanyDocumentAction(fd);
-      if (result.ok) {
-        await onSuccess();
-      } else {
-        onSubmitError(result.error);
-      }
-    } catch (err) {
-      onSubmitError(err instanceof Error ? err.message : "Belge yüklenemedi.");
+      if (!mounted.current) return;
+      if (result.ok) onSuccess(name.trim());
+      else { setReviewRequired(result.reviewRequired === true); onSubmitError(result.error); }
+    } catch {
+      if (mounted.current) { setReviewRequired(true); onSubmitError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin."); }
     } finally {
-      setSubmitting(false);
+      saving.current = false;
+      if (mounted.current) setSubmitting(false);
     }
   }
-
-  return (
-    <div className={`fixed inset-0 ${Z_OVERLAY} flex items-center justify-center p-4 ${SURFACE_OVERLAY_DARK}`} role="dialog" aria-modal="true">
-      <div className={`${SURFACE_PRIMARY} ${RADIUS_DEFAULT} shadow-xl w-full max-w-md p-5 space-y-4`}>
-        <div>
-          <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>Belge Yükle</h3>
-          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{companyName}</p>
-        </div>
-
-        <div className="space-y-3">
+  const fieldClass = "min-h-11 w-full min-w-0 px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50";
+  const labelClass = "block text-sm font-medium text-slate-700 mb-1";
+  return <>
+    <ModalShell open onClose={requestClose} closeDisabled={submitting} title="Belge Yükle" footer={<>
+      <button type="button" onClick={requestClose} disabled={submitting} className="min-h-11 px-4 py-2 text-sm border border-slate-200 rounded-md disabled:opacity-40">İptal</button>
+      <button type="submit" form={formId} disabled={!canSubmit} className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40">{submitting ? "Yükleniyor…" : "Yükle"}</button>
+    </>}>
+      <p className="mb-4 break-words text-sm text-slate-500">{companyName}</p>
+      <form id={formId} onSubmit={event => { event.preventDefault(); void handleSubmit(); }} aria-busy={submitting}>
+        <fieldset disabled={submitting} className="space-y-4 min-w-0">
           <div>
-            <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Dosya (PDF) <span className="text-red-500">*</span></label>
-            <input type="file" accept="application/pdf" onChange={handleFileChange} disabled={submitting}
-              className={`w-full ${TYPE_CAPTION} file:mr-3 file:px-3 file:py-1.5 file:text-sm file:font-medium file:bg-slate-50 file:border file:border-slate-200 file:rounded-md file:text-slate-700 hover:file:bg-slate-100 disabled:opacity-40`} />
-            {file && !fileError && (
-              <p className={`mt-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</p>
-            )}
-            {fileError && (<p className={`mt-1 ${TYPE_CAPTION} text-red-600`}>{fileError}</p>)}
-            <p className={`mt-1 ${TYPE_CAPTION} ${TEXT_MUTED}`}>Maksimum 10 MB, sadece PDF.</p>
+            <label htmlFor={`${formId}-name`} className={labelClass}>Belge Adı *</label>
+            <input id={`${formId}-name`} data-dialog-initial-focus required value={name} onChange={e => setName(e.target.value)} placeholder="Belge adını girin" className={fieldClass} />
           </div>
-
           <div>
-            <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Belge Adı <span className="text-red-500">*</span></label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={submitting}
-              placeholder="Belge adını girin"
-              className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+            <label htmlFor={`${formId}-file`} className={labelClass}>Dosya (PDF) *</label>
+            <input id={`${formId}-file`} type="file" accept="application/pdf" required onChange={handleFileChange} aria-describedby={`${formId}-file-hint`} className="min-h-11 w-full min-w-0 text-sm file:mr-2 file:min-h-11 file:rounded-md file:border file:border-slate-200 file:bg-slate-50" />
+            <p id={`${formId}-file-hint`} className="mt-1 text-xs text-slate-500">Maksimum 10 MB, sadece PDF.</p>
+            {file && <p className="mt-1 break-words text-xs text-slate-500">Seçilen: {file.name}</p>}
+            {fileError && <p role="alert" className="mt-1 text-sm text-red-600">{fileError}</p>}
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Kategori</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value as DocumentCategory)} disabled={submitting}
-                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} bg-white focus:outline-none focus:ring-2 focus:ring-blue-500`}>
-                {(Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map((k) => (
-                  <option key={k} value={k}>{DOCUMENT_CATEGORY_LABELS[k]}</option>
-                ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label htmlFor={`${formId}-category`} className={labelClass}>Kategori</label>
+              <select id={`${formId}-category`} value={category} onChange={e => setCategory(e.target.value as DocumentCategory)} className={fieldClass}>
+                {(Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map(k => <option key={k} value={k}>{DOCUMENT_CATEGORY_LABELS[k]}</option>)}
               </select>
             </div>
-            <div>
-              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Geçerlilik (ops.)</label>
-              <input type="date" value={validityDate} onChange={(e) => setValidityDate(e.target.value)} disabled={submitting}
-                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-2 focus:ring-blue-500`} />
+            <div><label htmlFor={`${formId}-date`} className={labelClass}>Geçerlilik (opsiyonel)</label>
+              <input id={`${formId}-date`} type="date" value={validityDate} onChange={e => setValidityDate(e.target.value)} className={fieldClass} />
             </div>
           </div>
-
-          {contracts.length > 0 && (
-            <div>
-              <label className={`block ${TYPE_CAPTION} ${TEXT_SECONDARY} mb-1`}>Bağlı Sözleşme (ops.)</label>
-              <select value={contractId} onChange={(e) => setContractId(e.target.value)} disabled={submitting}
-                className={`w-full px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} bg-white focus:outline-none focus:ring-2 focus:ring-blue-500`}>
-                <option value="">— bağlama —</option>
-                {contracts.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-              </select>
-            </div>
-          )}
-        </div>
-
-        {submitError && (<p className={`${TYPE_CAPTION} text-red-600`} role="alert" aria-live="polite">{submitError}</p>)}
-
-        <div className="flex items-center justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} disabled={submitting}
-            className={`px-4 py-2 ${TYPE_CAPTION} font-medium ${TEXT_BODY} bg-white border ${BORDER_DEFAULT} ${RADIUS_SM} hover:bg-slate-50 disabled:opacity-40`}>
-            İptal
-          </button>
-          <button type="button" onClick={handleSubmit} disabled={!canSubmit}
-            className={`px-4 py-2 ${TYPE_CAPTION} font-medium text-white bg-blue-600 ${RADIUS_SM} hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed`}>
-            {submitting ? "Yükleniyor..." : "Yükle"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+          <div>
+            <label htmlFor={`${formId}-contract`} className={labelClass}>Sözleşme dosyaları</label>
+            <select id={`${formId}-contract`} value={contractId} onChange={e => setContractId(e.target.value)} disabled={contractsState !== "ready"} className={fieldClass}>
+              <option value="">Firma belgesi yükle</option>
+              {contractId && !contractVerified && <option value={contractId}>Önceki seçim doğrulanamadı</option>}
+              {contractsState === "ready" && contracts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            {contractsState === "loading" && <p role="status" className="mt-2 text-sm text-slate-500">Sözleşmeler yükleniyor. Sözleşmeye bağlamadan yükleyebilirsiniz.</p>}
+            {contractsState === "error" && <div className="mt-2 text-sm"><p role="status">Sözleşmeler yüklenemedi. Sözleşmeye bağlamadan yükleyebilir veya yeniden deneyebilirsiniz.</p><button type="button" onClick={onRetryContracts} className="min-h-11 text-blue-700 underline">Sözleşmeleri yeniden dene</button></div>}
+            {contractsState === "restricted" && <p className="mt-2 text-sm text-slate-500">Bu rolde sözleşme seçilemez. Belge firmaya yüklenir.</p>}
+            {contractsState === "ready" && contracts.length === 0 && <p className="mt-2 text-sm text-slate-500">Bu firmaya ait sözleşme kaydı yok. Belge firmaya yüklenir.</p>}
+            {contractId && contractVerified && <div className="mt-2 space-y-2 text-sm">
+              <p>Sözleşmenin ana PDF ve eklerini sözleşme sayfasından yönetin. Seçilen dosya bu formda korunur; dosyayı açılan sayfada yeniden seçmeniz gerekir.</p>
+              <a href={`/sozlesmeler/${contractId}#belgeler`} target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center text-blue-700 underline">Sözleşme dosyalarını aç (yeni sekme)</a>
+              <button type="button" onClick={() => setContractId("")} className="min-h-11 block text-blue-700 underline">Firma belgesi olarak devam et</button>
+            </div>}
+            {contractId && !contractVerified && <div className="mt-2 text-sm"><p role="status">Seçilen sözleşme doğrulanmadan yükleme yapılamaz.</p><button type="button" onClick={() => setContractId("")} className="min-h-11 text-blue-700 underline">Sözleşme seçimini kaldır</button></div>}
+          </div>
+        </fieldset>
+        {submitting && <p role="status" className="mt-4 text-sm text-blue-700">Belge yükleniyor, lütfen bekleyin…</p>}
+        {submitError && <p ref={errorRef} tabIndex={-1} role="alert" className="mt-4 break-words text-sm text-red-600">{submitError}</p>}
+      </form>
+    </ModalShell>
+    {discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler" recordName="Belge yükleme taslağı" description="Seçilen dosya ve form bilgileri bırakılacak." confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)} onConfirm={async () => { if (!saving.current) onClose(); }} />}
+  </>;
 }

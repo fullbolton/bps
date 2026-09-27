@@ -1,15 +1,19 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
+import AsyncSection from "@/components/ui/AsyncSection";
+import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
+
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { appointmentLinkHref } from "@/lib/appointment-link";
+import { taskLinkHref } from "@/lib/task-link";
 import { formatDateTR } from "@/lib/format-date";
 import { formatTRY } from "@/lib/format-currency";
 import {
   EmptyState,
-  PageHeader,
   ContractSummaryHeader,
-  RenewalTrackingCard,
   StatusBadge,
 } from "@/components/ui";
 import { NewContractModal } from "@/components/modals";
@@ -20,8 +24,6 @@ import { useAuth } from "@/context/AuthContext";
 // removed in this slice — see the cutover report's "what was
 // implemented" + "unresolved items" sections.
 import { createClient } from "@/lib/supabase/client";
-import { selectAllCompanies } from "@/lib/supabase/companies";
-import type { CompanyRow } from "@/types/database.types";
 import {
   getContractById,
   updateContractContent,
@@ -36,9 +38,11 @@ import { listTasksByContractId } from "@/lib/services/tasks";
 import { listAppointmentsByContractId } from "@/lib/services/appointments";
 import {
   getActiveContractDocument,
-  updateContractDocumentFile,
 } from "@/lib/services/documents";
-import { uploadCompanyDocumentAction } from "../../firmalar/[id]/actions";
+import PdfUploadPanel from "./PdfUploadPanel";
+import RenewalTaskPanel from "./RenewalTaskPanel";
+import ContractAppendices from "./ContractAppendices";
+import PdfVersionHistory from "./PdfVersionHistory";
 import { deleteContractAction } from "./actions";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { ContractRow, TaskRow, AppointmentRow, DocumentRow } from "@/types/database.types";
@@ -78,117 +82,160 @@ export default function SozlesmeDetayPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { role } = useRole();
+  const { loading, user } = useAuth();
+  if (loading) return <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />;
+  if (!user || !["yonetici", "partner", "operasyon"].includes(role)) {
+    return <EmptyState title="Erişim kısıtlı" description="Bu ekran erişiminizin dışındadır." size="page" />;
+  }
+  // A fresh instance also protects A → B → A: old callbacks stay unmounted.
+  const scope = JSON.stringify([id, user.id, user.app_metadata?.active_tenant, role]);
+  return <ContractWorkspace key={scope} id={id} />;
+}
+
+function ContractWorkspace({ id }: { id: string }) {
   const router = useRouter();
   const { role } = useRole();
-  const { loading: authLoading } = useAuth();
-
+  const { user } = useAuth();
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  const writePending = useRef(false);
+  const [saving, setSaving] = useState(false);
   const supabase = useMemo(() => createClient(), []);
   const [contract, setContract] = useState<ContractRow | null>(null);
   const [firmaName, setFirmaName] = useState<string>("");
-  const [firmaLegacyId, setFirmaLegacyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
-  // Contract hard-delete (yonetici-only). Errors surface on actionError.
-  const [contractDeleting, setContractDeleting] = useState(false);
+  const contractScope = JSON.stringify([id, user?.id, user?.app_metadata?.active_tenant, role]);
+  const notice = useActionNotice(contractScope);
+  const contractScopeRef = useRef(contractScope);
+  contractScopeRef.current = contractScope;
+  const [deleteScope, setDeleteScope] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState<{ scope: string; name?: string } | null>(null);
+  const deletionResultHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (deleted?.scope === contractScope) deletionResultHeading.current?.focus({ preventScroll: true });
+  }, [deleted, contractScope]);
   // Faz 3: linked tasks and appointments for this contract
   const [linkedTasks, setLinkedTasks] = useState<TaskRow[]>([]);
   const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRow[]>([]);
   // Hafta 2: single active contract PDF document (null when none yet).
   const [contractDoc, setContractDoc] = useState<DocumentRow | null>(null);
-  const [pdfBusy, setPdfBusy] = useState(false);
+  const readGeneration = useRef(0);
+  const [tasksState, setTasksState] = useState({ loading: true, error: false });
+  const [appointmentsState, setAppointmentsState] = useState({ loading: true, error: false });
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [pdfReadError, setPdfReadError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  // Real companies for the edit-modal firma dropdown (partner-scoped
-  // via RLS). Empty on error → honest empty picker.
-  const [allCompanies, setAllCompanies] = useState<CompanyRow[]>([]);
+  // Editing cannot move a contract. Use its already loaded company UUID/name.
+  const firmaOptions = useMemo(() => contract ? [{id: contract.company_id, ad: firmaName || "Sözleşmenin kayıtlı firması"}] : [], [contract, firmaName]);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (active) setAllCompanies(rows);
-      } catch {
-        if (active) setAllCompanies([]);
-      }
-    })();
-    return () => { active = false; };
-  }, [supabase]);
-
-  const firmaOptions = useMemo(
-    () =>
-      allCompanies.map((c) => ({
-        id: c.legacy_mock_id ?? c.id,
-        ad: c.name,
-      })),
-    [allCompanies],
-  );
-
-  const reload = useCallback(async () => {
-    setLoadError(null);
+  // Retrying one linked section must not remount PDF upload/form state elsewhere.
+  const tasksGeneration = useRef(0);
+  const appointmentsGeneration = useRef(0);
+  const reloadTasks = useCallback(async () => {
+    if (!active.current) return;
+    const generation = ++tasksGeneration.current, parent = readGeneration.current;
+    const current = () => active.current && parent === readGeneration.current && generation === tasksGeneration.current;
+    setTasksState({ loading: true, error: false }); setLinkedTasks([]);
     try {
-      const row = await getContractById(supabase, id);
-      setContract(row);
-      if (row) {
-        const display = await getCompanyDisplayMapByIds(supabase, [row.company_id]);
-        setFirmaName(display.nameById[row.company_id] ?? "—");
-        setFirmaLegacyId(display.legacyById[row.company_id] ?? null);
-        // Faz 3: load linked tasks and appointments for this contract
-        void listTasksByContractId(supabase, row.id)
-          .then(setLinkedTasks).catch(() => setLinkedTasks([]));
-        void listAppointmentsByContractId(supabase, row.id)
-          .then(setLinkedAppointments).catch(() => setLinkedAppointments([]));
-        void getActiveContractDocument(supabase, row.id)
-          .then(setContractDoc).catch(() => setContractDoc(null));
-      } else {
-        setFirmaName("");
-        setFirmaLegacyId(null);
-        setLinkedTasks([]);
-        setLinkedAppointments([]);
-        setContractDoc(null);
-      }
-    } catch (err) {
-      setContract(null);
-      setLoadError(
-        err instanceof Error ? err.message : "Sözleşme yüklenirken bir hata oluştu.",
-      );
+      const rows = await listTasksByContractId(supabase, id);
+      if (current()) setLinkedTasks(rows);
+    } catch {
+      if (current()) setTasksState({ loading: false, error: true });
     } finally {
-      setLoading(false);
+      if (current()) setTasksState(state => ({ ...state, loading: false }));
+    }
+  }, [supabase, id]);
+  const reloadAppointments = useCallback(async () => {
+    if (!active.current) return;
+    const generation = ++appointmentsGeneration.current, parent = readGeneration.current;
+    const current = () => active.current && parent === readGeneration.current && generation === appointmentsGeneration.current;
+    setAppointmentsState({ loading: true, error: false }); setLinkedAppointments([]);
+    try {
+      const rows = await listAppointmentsByContractId(supabase, id);
+      if (current()) setLinkedAppointments(rows);
+    } catch {
+      if (current()) setAppointmentsState({ loading: false, error: true });
+    } finally {
+      if (current()) setAppointmentsState(state => ({ ...state, loading: false }));
     }
   }, [supabase, id]);
 
+  const reload = useCallback(async () => {
+    if (!active.current) return;
+    const generation = ++readGeneration.current;
+    const current = () => active.current && generation === readGeneration.current;
+    setLoading(true); setLoadError(null);
+    setPdfLoading(true); setPdfReadError(null); setContractDoc(null);
+    setTasksState({ loading: true, error: false }); setLinkedTasks([]);
+    setAppointmentsState({ loading: true, error: false }); setLinkedAppointments([]);
+    try {
+      const row = await getContractById(supabase, id);
+      if (!current()) return;
+      const display = row ? await getCompanyDisplayMapByIds(supabase, [row.company_id]) : null;
+      if (!current()) return;
+      setContract(row);
+      setFirmaName(row ? display?.nameById[row.company_id] ?? "—" : "");
+      if (row) {
+        void reloadTasks();
+        void reloadAppointments();
+        void getActiveContractDocument(supabase, row.id)
+          .then(doc => { if (current()) setContractDoc(doc); })
+          .catch(() => { if (current()) setPdfReadError("PDF bilgisi yüklenemedi. Belgenin yokluğu doğrulanamadı."); })
+          .finally(() => { if (current()) setPdfLoading(false); });
+      }
+    } catch (err) {
+      if (!current()) return;
+      setContract(null);
+      setLoadError(err instanceof Error ? err.message : "Sözleşme yüklenirken bir hata oluştu.");
+    } finally {
+      if (current()) setLoading(false);
+    }
+  }, [supabase, id, reloadTasks, reloadAppointments]);
+
   useEffect(() => {
-    setLoading(true);
     void reload();
+    return () => { ++readGeneration.current; };
   }, [reload]);
+
+  async function write(action: () => Promise<unknown>, message: string) {
+    if (!active.current || writePending.current) throw new Error("İşlem sürüyor veya sözleşme bilgisi değişti.");
+    writePending.current = true; setSaving(true); setActionError(null); notice.clear();
+    try {
+      await action();
+      if (!active.current) return;
+      setEditOpen(false);
+      notice.show(message);
+      await reload();
+      if (active.current) router.refresh();
+    } finally {
+      writePending.current = false;
+      if (active.current) setSaving(false);
+    }
+  }
 
   const canEdit = role === "yonetici" || role === "partner";
 
-  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
-  // "goruntuleyici" while AuthContext is loading). Wait, then decide.
-  if (authLoading) {
-    return (
-      <>
-        <PageHeader title="Sözleşme Detay" subtitle="Sözleşme yaşam döngüsü" />
-        <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
-      </>
-    );
-  }
-
-  if (["goruntuleyici", "ik", "muhasebe"].includes(role)) {
-    return (
-      <>
-        <PageHeader title="Sözleşme Detay" subtitle="Sözleşme yaşam döngüsü" />
-        <EmptyState title="Erişim kısıtlı" description="Bu ekran erişiminizin dışındadır." size="page" />
-      </>
-    );
+  if (deleted?.scope === contractScope) {
+    return <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div role="status">
+        <h1 ref={deletionResultHeading} tabIndex={-1} className="mb-2 text-xl font-semibold text-slate-900">{deleted.name !== undefined ? "Sözleşme silindi" : "Silinen kayıt doğrulanamadı"}</h1>
+        <p className="mb-5 break-words text-sm text-slate-600">{deleted.name !== undefined
+          ? `${deleted.name} kalıcı olarak silindi.`
+          : "Bu işlemde silinen bir kayıt doğrulanmadı. Sözleşme daha önce kaldırılmış veya silme erişiminiz değişmiş olabilir."}</p>
+      </div>
+      <button type="button" onClick={() => router.push("/sozlesmeler")} className="min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white">Sözleşmelere dön</button>
+    </section>;
   }
 
   if (loading) {
     return (
       <div className="py-12">
-        <p className={`${TYPE_BODY} ${TEXT_MUTED} text-center`}>Yükleniyor…</p>
+        <ActionNotice message={notice.message} onDismiss={notice.clear} />
+        <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center`}>Yükleniyor…</p>
       </div>
     );
   }
@@ -196,11 +243,12 @@ export default function SozlesmeDetayPage({
   if (!contract) {
     return (
       <div className="py-12">
+        <ActionNotice message={notice.message} onDismiss={notice.clear} />
         <EmptyState
-          title="Sözleşme bulunamadı"
+          title={loadError ? "Sözleşme yüklenemedi" : "Sözleşme bulunamadı"}
           description={loadError ?? "Bu ID ile eşleşen bir sözleşme bulunamadı veya erişim yetkiniz yok."}
           size="page"
-          action={{ label: "Sözleşmelere Dön", onClick: () => router.push("/sozlesmeler") }}
+          action={loadError ? { label: "Tekrar dene", onClick: () => { void reload(); } } : { label: "Sözleşmelere Dön", onClick: () => router.push("/sozlesmeler") }}
         />
       </div>
     );
@@ -209,14 +257,13 @@ export default function SozlesmeDetayPage({
   const kalanGun = computeRemainingDays(contract.end_date);
 
   async function handleStatusChange(next: SozlesmeDurumu) {
-    if (!contract) return;
+    if (!contract || !active.current || writePending.current) return;
     if (next === contract.status) return;
     setActionError(null);
     try {
-      await updateContractStatus(supabase, contract.id, next);
-      await reload();
-      router.refresh();
+      await write(() => updateContractStatus(supabase, contract.id, next), "Sözleşme durumu güncellendi.");
     } catch (err) {
+      if (!active.current) return;
       setActionError(
         err instanceof Error ? err.message : "Durum değiştirilemedi.",
       );
@@ -224,130 +271,35 @@ export default function SozlesmeDetayPage({
   }
 
   async function handleContractDelete() {
-    if (!contract) return;
-    // Strong confirm — hard delete affects operational/commercial history.
-    if (!window.confirm("Bu sözleşmeyi kalıcı olarak silmek üzeresiniz. Bu işlem geri alınamaz ve operasyonel/ticari geçmiş görünürlüğünü etkileyebilir.")) {
-      return;
-    }
-    setActionError(null);
-    setContractDeleting(true);
+    if (!contract || !active.current || writePending.current) throw new Error("İşlem sürüyor veya sözleşme bilgisi değişti.");
+    writePending.current = true; setSaving(true);
     try {
       const result = await deleteContractAction(contract.id);
-      if (result.ok) {
-        // Row gone (or already absent) — leave the detail page.
-        router.push("/sozlesmeler");
-        router.refresh();
-      } else {
-        setActionError(result.error);
-        setContractDeleting(false);
-      }
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Sözleşme silinemedi.");
-      setContractDeleting(false);
+      if (!active.current) return;
+      if (!result.ok) throw new Error(result.error);
+      ++readGeneration.current;
+      setDeleted({ scope: contractScope, name: result.deletedName });
+      router.refresh();
+    } finally {
+      writePending.current = false;
+      if (active.current) setSaving(false);
     }
   }
 
   async function handleRenewalToggle(
-    field:
-      | "renewalDiscussionOpened"
-      | "renewalResponsibleSet"
-      | "renewalTaskCreated",
+    field: "renewalDiscussionOpened",
     next: boolean,
   ) {
-    if (!contract) return;
+    if (!contract || !active.current || writePending.current) return;
     setActionError(null);
     try {
-      await updateContractRenewal(supabase, contract.id, { [field]: next });
-      await reload();
-      router.refresh();
+      await write(() => updateContractRenewal(supabase, contract.id, { [field]: next }), "Yenileme görüşmesi bilgisi güncellendi.");
     } catch (err) {
+      if (!active.current) return;
       setActionError(
         err instanceof Error ? err.message : "Yenileme takibi güncellenemedi.",
       );
     }
-  }
-
-  // Hafta 2: Sözleşme PDF upload / replace orchestration.
-  // Storage-first → DB-second; replace path updates the existing
-  // documents row in place (single-active truth enforced by partial
-  // unique index). Old storage object is intentionally not deleted —
-  // see closeout report's orphan-risk note.
-  async function handlePdfFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = e.target.files?.[0] ?? null;
-    // Reset so the same file can be re-picked after a failure.
-    e.target.value = "";
-    if (!picked || !contract) return;
-
-    if (picked.type !== "application/pdf") {
-      setPdfError("Sadece PDF dosyası yüklenebilir.");
-      return;
-    }
-    if (picked.size > 10 * 1024 * 1024) {
-      setPdfError("Dosya boyutu 10 MB'dan büyük olamaz.");
-      return;
-    }
-
-    setPdfBusy(true);
-    setPdfError(null);
-    try {
-      if (contractDoc) {
-        // Replace: browser storage upload + UPDATE of the existing row.
-        // An UPDATE does not insert tenant_id (the row already carries
-        // it), so this path is not the Codex tenant-less-insert blocker.
-        const path = `${contract.company_id}/${crypto.randomUUID()}.pdf`;
-        const up = await supabase.storage
-          .from("documents")
-          .upload(path, picked, { contentType: "application/pdf", upsert: false });
-        if (up.error) {
-          throw new Error(`Dosya yüklenemedi: ${up.error.message}`);
-        }
-        const { data: { user } } = await supabase.auth.getUser();
-        const uploadedBy =
-          (user?.user_metadata?.display_name as string | undefined) ??
-          user?.email ??
-          null;
-        await updateContractDocumentFile(supabase, contractDoc.id, {
-          name: picked.name,
-          storagePath: path,
-          uploadedBy,
-        });
-      } else {
-        // First-time create: route through the tenant-aware server
-        // action. It sets tenant_id (RPC) / company_id / created_by /
-        // uploaded_by / storage_path server-side, role-guards, and
-        // verifies contract↔company binding. Replaces the previous
-        // browser-context storage upload + tenant-less createDocument
-        // (Codex must-fix).
-        const fd = new FormData();
-        fd.set("company_id", contract.company_id);
-        fd.set("name", picked.name);
-        fd.set("category", "cerceve_sozlesme");
-        fd.set("contract_id", contract.id);
-        fd.set("file", picked);
-        const result = await uploadCompanyDocumentAction(fd);
-        if (!result.ok) {
-          throw new Error(result.error);
-        }
-      }
-
-      const next = await getActiveContractDocument(supabase, contract.id);
-      setContractDoc(next);
-      router.refresh();
-    } catch (err) {
-      setPdfError(err instanceof Error ? err.message : "PDF işlenemedi.");
-    } finally {
-      setPdfBusy(false);
-    }
-  }
-
-  function triggerPdfUpload() {
-    setPdfError(null);
-    document.getElementById("contract-pdf-input")?.click();
-  }
-
-  function triggerPdfReplace() {
-    if (!confirm("Mevcut PDF değiştirilecek. Devam edilsin mi?")) return;
-    triggerPdfUpload();
   }
 
   async function handlePdfDownload() {
@@ -356,6 +308,7 @@ export default function SozlesmeDetayPage({
     const { data, error } = await supabase.storage
       .from("documents")
       .createSignedUrl(contractDoc.storage_path, 60);
+    if (!active.current) return;
     if (error || !data?.signedUrl) {
       setPdfError(`İndirme bağlantısı oluşturulamadı: ${error?.message ?? "bilinmeyen hata"}`);
       return;
@@ -365,6 +318,7 @@ export default function SozlesmeDetayPage({
 
   return (
     <>
+      <ActionNotice message={notice.message} onDismiss={notice.clear} />
       {/* Back navigation */}
       <button
         onClick={() => router.push("/sozlesmeler")}
@@ -378,7 +332,7 @@ export default function SozlesmeDetayPage({
         sozlesmeAdi={contract.name}
         durum={contract.status}
         firmaAdi={firmaName}
-        firmaHref={firmaLegacyId ? `/firmalar/${firmaLegacyId}` : "#"}
+        firmaHref={`/firmalar/${contract.company_id}`}
         tur={contract.contract_type ?? "—"}
         baslangic={contract.start_date ? formatDateTR(contract.start_date.slice(0, 10)) : ""}
         bitis={contract.end_date ? formatDateTR(contract.end_date.slice(0, 10)) : ""}
@@ -389,15 +343,17 @@ export default function SozlesmeDetayPage({
 
       {/* Contract-owned write actions — yonetici / partner only */}
       {canEdit && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 rounded-xl border border-slate-200 bg-white p-3">
           <div className="flex items-center gap-2">
             <label className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>
               Durum:
             </label>
             <select
+              disabled={saving}
+              aria-label="Sözleşme durumu"
               value={contract.status}
               onChange={(e) => { void handleStatusChange(e.target.value as SozlesmeDurumu); }}
-              className={`px-2 py-1 ${TYPE_CAPTION} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
+              className={`min-h-11 px-3 py-2 ${TYPE_BODY} border ${BORDER_DEFAULT} ${RADIUS_SM} focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white`}
             >
               {CONTRACT_STATUSES.map((s) => (
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -406,6 +362,7 @@ export default function SozlesmeDetayPage({
           </div>
           <button
             type="button"
+            disabled={saving}
             onClick={() => setEditOpen(true)}
             className={`${BUTTON_BASE} ${BUTTON_SECONDARY} inline-flex items-center gap-1.5`}
           >
@@ -415,27 +372,22 @@ export default function SozlesmeDetayPage({
         </div>
       )}
 
+      {saving && <p role="status" className="mb-3 text-sm text-slate-600">Sözleşme güncelleniyor…</p>}
       {actionError && (
         <p className={`${TYPE_CAPTION} text-red-600 mb-3`} role="alert" aria-live="polite">
           {actionError}
         </p>
       )}
 
-      <div className="space-y-6">
-        {/* Sözleşme PDF'i — Hafta 2: imzalı PDF artefaktı bu sözleşmede yaşar.
-            Tek aktif PDF (DB-level partial unique on contract_id). Upload/replace
-            sadece canEdit (yonetici + partner). Operasyon görür ve indirir. */}
-        <section className={SECTION}>
+      <nav aria-label="Sözleşme bölümleri" className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        {[["belgeler", "PDF ve ekler"], ["maddeler", "Kritik maddeler"], ["yenileme", "Yenileme"], ["isler", "Bağlı işler"]].map(([key,label]) => <a key={key} href={`#${key}`} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-4 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800">{label}</a>)}
+      </nav>
+      <div className="grid grid-cols-1 xl:grid-cols-2 items-start gap-5 [&>*]:min-w-0">
+        {/* One current PDF with version history. Upload/resume/cancel is manager-only;
+            a uploaded file is not an attestation that the contract was signed. */}
+        <section id="belgeler" className={`${SECTION} xl:col-span-2 scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Sözleşme PDF&apos;i</h2>
-          <input
-            id="contract-pdf-input"
-            type="file"
-            accept="application/pdf"
-            onChange={handlePdfFileChange}
-            disabled={pdfBusy}
-            hidden
-          />
-          {contractDoc ? (
+          {pdfLoading ? <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>PDF bilgisi yükleniyor…</p> : pdfReadError ? <p role="alert" className="text-sm text-red-700">{pdfReadError}</p> : contractDoc ? (
             <div className="space-y-2">
               <dl className="space-y-1.5">
                 <div className="flex items-baseline gap-2">
@@ -457,36 +409,15 @@ export default function SozlesmeDetayPage({
                 <button
                   type="button"
                   onClick={() => { void handlePdfDownload(); }}
-                  disabled={pdfBusy}
                   className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
                 >
                   İndir
                 </button>
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={triggerPdfReplace}
-                    disabled={pdfBusy}
-                    className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
-                  >
-                    {pdfBusy ? "İşleniyor…" : "Değiştir"}
-                  </button>
-                )}
               </div>
             </div>
           ) : (
             <div className="space-y-2">
               <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>PDF yüklenmemiş.</p>
-              {canEdit && (
-                <button
-                  type="button"
-                  onClick={triggerPdfUpload}
-                  disabled={pdfBusy}
-                  className={`${BUTTON_BASE} ${BUTTON_SECONDARY}`}
-                >
-                  {pdfBusy ? "Yükleniyor…" : "PDF Yükle"}
-                </button>
-              )}
             </div>
           )}
           {pdfError && (
@@ -494,10 +425,15 @@ export default function SozlesmeDetayPage({
               {pdfError}
             </p>
           )}
+          <button type="button" disabled={pdfLoading} onClick={() => { void reload(); }} className="mt-3 min-h-11 rounded-lg border px-4 text-sm text-blue-700 disabled:opacity-50">PDF kaydını yeniden yükle</button>
+          {user && role === "yonetici" && !pdfLoading && !pdfReadError && typeof user.app_metadata?.active_tenant === "string" && <PdfUploadPanel key={`${user.id}:${user.app_metadata.active_tenant}:${id}`} actorId={user.id} tenantId={user.app_metadata.active_tenant} contractId={id} document={contractDoc} onPublished={() => { if (active.current) { void reload(); router.refresh(); } }} />}
+          {user && <PdfVersionHistory key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${id}:${contractDoc?.revision}`} actorId={user.id} contractId={id} />}
         </section>
 
+        <div className="xl:col-span-2">{user && typeof user.app_metadata?.active_tenant === "string" && <ContractAppendices key={`${user.id}:${user.app_metadata.active_tenant}:${id}:${role}`} actorId={user.id} tenantId={user.app_metadata.active_tenant} contractId={id} canUpload={role === 'yonetici'} />}</div>
+
         {/* Kritik Maddeler Özeti — real DB column */}
-        <section className={SECTION}>
+        <section id="maddeler" className={`${SECTION} scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Kritik Maddeler Özeti</h2>
           {contract.critical_clauses.length === 0 ? (
             <EmptyState title="Kritik madde tanımlanmamış" size="card" />
@@ -517,51 +453,23 @@ export default function SozlesmeDetayPage({
         </section>
 
         {/* Yenileme Takibi — bounded renewal-tracking truth (scope item 5) */}
-        <section className="space-y-2">
-          <RenewalTrackingCard
-            bitisTarihi={
-              contract.renewal_target_date
-                ? formatDateTR(contract.renewal_target_date.slice(0, 10))
-                : contract.end_date
-                  ? formatDateTR(contract.end_date.slice(0, 10))
-                  : "—"
-            }
-            gorusmeAcildiMi={contract.renewal_discussion_opened}
-            sorumluVar={contract.renewal_responsible_set}
-            gorevUretildi={contract.renewal_task_created}
-          />
+        <section id="yenileme" className="space-y-2 scroll-mt-24">
+          {user && <RenewalTaskPanel key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${contract.id}:${contract.updated_at}`} actorId={user.id} contractId={contract.id} onCreated={() => { void reload(); }} />}
           {canEdit && (
             <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
               <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-2`}>
-                Yenileme takibi sinyallerini güncelle
+                Görüşme beyanı
               </p>
               <div className="space-y-2">
                 <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
                   <input
+                    disabled={saving}
                     type="checkbox"
                     checked={contract.renewal_discussion_opened}
                     onChange={(e) => { void handleRenewalToggle("renewalDiscussionOpened", e.target.checked); }}
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                   Yenileme görüşmesi açıldı
-                </label>
-                <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
-                  <input
-                    type="checkbox"
-                    checked={contract.renewal_responsible_set}
-                    onChange={(e) => { void handleRenewalToggle("renewalResponsibleSet", e.target.checked); }}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  Sorumlu kişi atandı
-                </label>
-                <label className={`flex items-center gap-2 ${TYPE_BODY} ${TEXT_BODY}`}>
-                  <input
-                    type="checkbox"
-                    checked={contract.renewal_task_created}
-                    onChange={(e) => { void handleRenewalToggle("renewalTaskCreated", e.target.checked); }}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  İlgili görev üretildi
                 </label>
               </div>
             </div>
@@ -598,68 +506,87 @@ export default function SozlesmeDetayPage({
         )}
 
         {/* Bağlı Görevler — Faz 3 real truth via tasks service */}
-        <section className={SECTION}>
+        <section id="isler" className={`${SECTION} scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Bağlı Görevler</h2>
+          <AsyncSection isLoading={tasksState.loading} hasError={tasksState.error} onRetry={() => { void reloadTasks(); }}>
           {linkedTasks.length === 0 ? (
             <EmptyState title="Bağlı görev yok" size="card" />
           ) : (
             <div className="space-y-2">
               {linkedTasks.map((g) => (
-                <a key={g.id} href="/gorevler" className={`flex items-center justify-between py-2 border-b ${BORDER_SUBTLE} last:border-0`}>
-                  <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{g.title}</span>
-                  <StatusBadge status={g.status} />
+                <a key={g.id} href={taskLinkHref(g.id)} aria-label={`${g.title} görevini aç`}
+                  className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                  <span className="min-w-0 flex-1">
+                    <span className={`block break-words ${TYPE_BODY} ${TEXT_BODY}`}>{g.title}</span>
+                    <span className="mt-1 block text-xs text-blue-700">Görevi aç →</span>
+                  </span>
+                  <span className="shrink-0"><StatusBadge status={g.status} /></span>
                 </a>
               ))}
             </div>
           )}
+          </AsyncSection>
         </section>
 
         {/* Bağlı Randevular — Faz 3 real truth via appointments service */}
         <section className={SECTION}>
           <h2 className={SECTION_TITLE}>Bağlı Randevular</h2>
+          <AsyncSection isLoading={appointmentsState.loading} hasError={appointmentsState.error} onRetry={() => { void reloadAppointments(); }}>
           {linkedAppointments.length === 0 ? (
             <EmptyState title="Bağlı randevu yok" size="card" />
           ) : (
             <div className="space-y-2">
               {linkedAppointments.map((r) => (
-                <a key={r.id} href="/randevular" className={`flex items-center justify-between py-2 border-b ${BORDER_SUBTLE} last:border-0`}>
-                  <div>
+                <a key={r.id} href={appointmentLinkHref(r.id)} aria-label={`${formatDateTR(r.meeting_date)} ${r.attendee || APPOINTMENT_TYPE_LABELS[r.meeting_type]} randevusunu aç`}
+                  className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                  <div className="min-w-0 flex-1 break-words">
                     <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{formatDateTR(r.meeting_date)} — {APPOINTMENT_TYPE_LABELS[r.meeting_type] ?? r.meeting_type}</span>
+                    {r.attendee && <p className="mt-1 text-sm text-slate-600">{r.attendee}</p>}
                     {r.result && (
                       <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-0.5`}>{r.result}</p>
                     )}
+                    <span className="mt-1 block text-xs text-blue-700">Randevuyu aç →</span>
                   </div>
-                  <StatusBadge status={r.status} />
+                  <span className="shrink-0"><StatusBadge status={r.status} /></span>
                 </a>
               ))}
             </div>
           )}
+          </AsyncSection>
         </section>
 
         {/* Kalıcı silme — yonetici-only. Hard delete (Faz 1), güçlü
             onay zorunlu. contracts DELETE RLS de yonetici-only. */}
         {role === "yonetici" && (
-          <section className={`${SURFACE_PRIMARY} border border-red-200 ${RADIUS_DEFAULT} p-5`}>
+          <section className={`${SURFACE_PRIMARY} border border-red-200 ${RADIUS_DEFAULT} p-5 xl:col-span-2`}>
             <h2 className={`${TYPE_CARD_TITLE} text-red-700 mb-1`}>Sözleşmeyi Sil</h2>
             <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mb-3`}>
               Bu işlem geri alınamaz. Sözleşme ve onunla ilişkili görünürlük kalıcı olarak kaldırılır.
             </p>
             <button
               type="button"
-              onClick={() => { void handleContractDelete(); }}
-              disabled={contractDeleting}
+              disabled={saving}
+              onClick={() => setDeleteScope(contractScope)}
               className={`${BUTTON_BASE} inline-flex items-center gap-1.5 text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               <Trash2 size={14} />
-              {contractDeleting ? "Siliniyor…" : "Sözleşmeyi Kalıcı Olarak Sil"}
+              Sözleşmeyi Kalıcı Olarak Sil
             </button>
           </section>
         )}
       </div>
 
+      {deleteScope === contractScope && role === "yonetici" && (
+        <ConfirmActionDialog key={contractScope} title="Sözleşmeyi kalıcı olarak sil" recordName={contract.name}
+          description="Bu işlem geri alınamaz. Sözleşme kaydı kalıcı olarak kaldırılır. PDF sürümü veya yenileme geçmişi gibi bağlı kayıtlar varsa sistem silmeyi engelleyebilir."
+          confirmLabel="Kalıcı olarak sil" destructive onConfirm={handleContractDelete}
+          onClose={() => { if (active.current && contractScopeRef.current === contractScope) setDeleteScope(null); }}
+        />
+      )}
+
       <NewContractModal
         open={editOpen}
-        onClose={() => setEditOpen(false)}
+        onClose={() => { if (active.current) setEditOpen(false); }}
         firmalar={firmaOptions}
         editData={contract}
         onSubmit={async (data) => {
@@ -677,9 +604,7 @@ export default function SozlesmeDetayPage({
             contractValue: data.tutar || null,
             responsible: data.sorumlu || null,
           };
-          await updateContractContent(supabase, contract.id, patch);
-          await reload();
-          router.refresh();
+          await write(() => updateContractContent(supabase, contract.id, patch), "Sözleşme bilgileri güncellendi.");
         }}
       />
     </>

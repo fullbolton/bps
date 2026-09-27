@@ -1,5 +1,4 @@
 import type { RiskSeviyesi } from "@/types/ui";
-import RiskBadge from "./RiskBadge";
 import {
   SURFACE_PRIMARY,
   BORDER_DEFAULT,
@@ -52,7 +51,6 @@ export default function CommercialSummaryCard({
   sonFaturaTarihi,
   sonFaturaTutari,
   kesilmemisBekleyen,
-  ticariRisk,
   kaynak,
 }: CommercialSummaryCardProps) {
   return (
@@ -75,12 +73,7 @@ export default function CommercialSummaryCard({
           <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Kesilmemiş Bekleyen</dt>
           <dd className={`${TYPE_BODY} ${TEXT_BODY}`}>{kesilmemisBekleyen ?? "—"}</dd>
         </div>
-        <div className={`flex justify-between items-center pt-1 border-t ${BORDER_SUBTLE}`}>
-          <dt className={`${TYPE_CAPTION} ${TEXT_SECONDARY}`}>Ticari Risk</dt>
-          <dd>
-            <RiskBadge risk={ticariRisk} size="sm" />
-          </dd>
-        </div>
+
       </dl>
       {kaynak && (
         <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-3`}>

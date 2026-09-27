@@ -1,4 +1,8 @@
 "use client";
+import { cityLabel } from "@/lib/display-values";
+
+import type { SearchInputHandle } from "@/components/ui/SearchInput";
+import { useListViewState } from "@/components/ui/useListViewState";
 
 /**
  * Firmalar list — reads company shell from real Supabase truth.
@@ -43,8 +47,9 @@
  *      garanti edilir, "oldu mu olmadı mı" belirsizliği bırakılmaz.
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { formatDateTR } from "@/lib/format-date";
 import {
@@ -53,16 +58,18 @@ import {
   FilterBar,
   DataTable,
   StatusBadge,
-  RiskBadge,
 } from "@/components/ui";
+import AsyncSection from "@/components/ui/AsyncSection";
+import { useScopedResource } from "@/components/ui/useScopedResource";
 import NewCompanyModal from "@/components/modals/NewCompanyModal";
 import type { CreatedCompany } from "@/components/modals/NewCompanyModal";
+import { useAuth } from "@/context/AuthContext";
 import { useRole } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
+import { selectPrimaryContactNames, selectActiveContractCounts } from "@/lib/supabase/company-summaries";
 import { SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
-import type { CompanyRow } from "@/types/database.types";
 import type { FirmaDurumu, RiskSeviyesi, ColumnDef, FilterConfig, FilterValues, RowAction } from "@/types/ui";
 
 // ---------------------------------------------------------------------------
@@ -73,9 +80,10 @@ interface FirmaListRow {
   id: string;
   firmaAdi: string;
   sektor: string;
+  sektorKodu: string | null;
   sehir: string;
   anaYetkili: string;
-  aktifSozlesme: number;
+  aktifSozlesme: number | null;
   risk: RiskSeviyesi;
   durum: FirmaDurumu;
 }
@@ -94,21 +102,34 @@ function sectorLabel(code: string | null): string {
 // ---------------------------------------------------------------------------
 
 const COLUMNS: ColumnDef<FirmaListRow>[] = [
-  { key: "firmaAdi", header: "Firma Adi", sortable: true },
+  {
+    key: "firmaAdi", header: "Firma Adı", sortable: true,
+    render: (_value, row) => <div className="whitespace-normal break-words sm:w-64">
+      <Link href={`/firmalar/${row.id}`} onClick={event => event.stopPropagation()}
+        className="flex min-h-11 items-center rounded-lg py-2 font-medium text-blue-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [overflow-wrap:anywhere]">
+        {row.firmaAdi}
+      </Link>
+      <div className="mt-2 space-y-3 sm:hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={row.durum} />
+          
+        </div>
+        <dl className="space-y-2 text-sm">
+          <div><dt className="text-xs text-slate-500">Şehir · Sektör</dt><dd className="[overflow-wrap:anywhere]">{row.sehir} · {row.sektor}</dd></div>
+          <div><dt className="text-xs text-slate-500">Ana yetkili</dt><dd className="[overflow-wrap:anywhere]">{row.anaYetkili}</dd></div>
+          <div><dt className="text-xs text-slate-500">Aktif sözleşme</dt><dd>{row.aktifSozlesme === null ? "Okunamadı" : row.aktifSozlesme}</dd></div>
+        </dl>
+      </div>
+    </div>,
+  },
   {
     key: "sektor",
-    header: "Sektor",
+    header: "Sektör",
     sortable: true,
   },
-  { key: "sehir", header: "Sehir", sortable: true },
-  { key: "anaYetkili", header: "Ana Yetkili" },
-  { key: "aktifSozlesme", header: "Aktif Sozlesme", sortable: true },
-  {
-    key: "risk",
-    header: "Risk Etiketi",
-    sortable: true,
-    render: (val) => <RiskBadge risk={val as RiskSeviyesi} />,
-  },
+  { key: "sehir", header: "Şehir", sortable: true },
+  { key: "anaYetkili", header: "Ana Yetkili", render: value => <span className="inline-block w-48 whitespace-normal [overflow-wrap:anywhere]">{String(value)}</span> },
+  { key: "aktifSozlesme", header: "Aktif Sözleşme", sortable: true, render: value => value === null ? "Okunamadı" : String(value) },
   {
     key: "durum",
     header: "Durum",
@@ -117,76 +138,58 @@ const COLUMNS: ColumnDef<FirmaListRow>[] = [
   },
 ];
 
+const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", sektor: "", sehir: "" };
+const normalizeCompanySearch = (value: string) => value.normalize("NFC").trim().toLocaleLowerCase("tr");
+
 export default function FirmalarPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const { role } = useRole();
+  const { user, loading: authLoading } = useAuth();
   const isYonetici = role === "yonetici";
 
   const [newOpen, setNewOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<FilterValues>({ durum: "", risk: "", sektor: "", sehir: "" });
-  const handleSearch = useCallback((val: string) => setSearch(val), []);
+  const searchControl = useRef<SearchInputHandle>(null);
+  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("firmalar", listScope, LIST_FILTER_DEFAULTS);
+
 
   // ---------------------------------------------------------------------------
   // Data loading — UUID-keyed enrichment for ALL companies
   // ---------------------------------------------------------------------------
-  const [companies, setCompanies] = useState<CompanyRow[]>([]);
-  const [primaryNameById, setPrimaryNameById] = useState<Record<string, string>>({});
-  const [activeContractById, setActiveContractById] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  // Yeniden yükleme, mevcut effect'i TEKRAR çalıştırarak yapılıyor. Yükleyiciyi
-  // dışarı almak, effect'in `active` iptal guard'ını her çağrı için ayrı ayrı
-  // kurma özelliğini kaybettirirdi.
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const rows = await selectAllCompanies(supabase);
-        if (!active) return;
-        setCompanies(rows);
-
-        const companyIds = rows.map((r) => r.id);
-        if (companyIds.length === 0) { setLoading(false); return; }
-
-        // Enrich via UUID — direct queries, works for all companies
-        const [contactsResult, contractsResult] = await Promise.all([
-          supabase.from("contacts").select("company_id, full_name, is_primary").eq("is_primary", true).in("company_id", companyIds),
-          supabase.from("contracts").select("company_id").eq("status", "aktif").in("company_id", companyIds),
-        ]);
-
-        if (!active) return;
-
-        // Primary contact name by company UUID
-        const nameMap: Record<string, string> = {};
-        for (const c of contactsResult.data ?? []) {
-          nameMap[c.company_id] = c.full_name;
-        }
-        setPrimaryNameById(nameMap);
-
-        // Active contract count by company UUID
-        const countMap: Record<string, number> = {};
-        for (const c of contractsResult.data ?? []) {
-          countMap[c.company_id] = (countMap[c.company_id] ?? 0) + 1;
-        }
-        setActiveContractById(countMap);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [supabase, reloadKey]);
+  const readDirectory = useCallback(async () => {
+    const rows = await selectAllCompanies(supabase);
+    const companyIds = rows.map(row => row.id);
+    const [contacts, contracts] = await Promise.allSettled([
+      selectPrimaryContactNames(supabase, companyIds),
+      selectActiveContractCounts(supabase, companyIds),
+    ]);
+    return {
+      rows,
+      nameMap: contacts.status === "fulfilled" ? contacts.value : {},
+      countMap: contracts.status === "fulfilled" ? contracts.value : {},
+      contactsError: contacts.status === "rejected",
+      contractsError: contracts.status === "rejected",
+    };
+  }, [supabase]);
+  const directory = useScopedResource(listScope, readDirectory);
+  const companies = directory.data?.rows ?? [];
+  const primaryNameById = directory.data?.nameMap ?? {};
+  const activeContractById = directory.data?.countMap ?? {};
+  const contactsError = directory.data?.contactsError ?? false;
+  const contractsError = directory.data?.contractsError ?? false;
+  const viewContext = useMemo(() => ({ scope: listScope }), [listScope]);
+  const liveView = useRef(viewContext); liveView.current = viewContext;
+  useEffect(() => { setNotice(null); setNewOpen(false); }, [viewContext]);
 
   // ---------------------------------------------------------------------------
   // Dynamic filter config — no mock dependency
   // ---------------------------------------------------------------------------
   const filterConfig: FilterConfig[] = useMemo(() => [
     {
-      key: "durum", label: "Durum", type: "select" as const, placeholder: "Tum durumlar",
+      key: "durum", label: "Durum", type: "select" as const, placeholder: "Tüm durumlar",
       options: [
         { label: "Aday", value: "aday" },
         { label: "Aktif", value: "aktif" },
@@ -194,23 +197,15 @@ export default function FirmalarPage() {
       ],
     },
     {
-      key: "risk", label: "Risk", type: "select" as const, placeholder: "Tum riskler",
-      options: [
-        { label: "Dusuk", value: "dusuk" },
-        { label: "Orta", value: "orta" },
-        { label: "Yuksek", value: "yuksek" },
-      ],
-    },
-    {
-      key: "sektor", label: "Sektor", type: "select" as const, placeholder: "Tum sektorler",
+      key: "sektor", label: "Sektör", type: "select" as const, placeholder: "Tüm sektörler",
       options: [...new Set(companies.map((c) => c.sector).filter(Boolean))].sort().map((s) => ({
         label: sectorLabel(s!),
         value: s!,
       })),
     },
     {
-      key: "sehir", label: "Sehir", type: "select" as const, placeholder: "Tum sehirler",
-      options: [...new Set(companies.map((c) => c.city).filter(Boolean))].sort().map((s) => ({ label: s!, value: s! })),
+      key: "sehir", label: "Şehir", type: "select" as const, placeholder: "Tüm şehirler",
+      options: [...new Set(companies.map((c) => cityLabel(c.city)).filter(Boolean))].sort().map((s) => ({ label: s!, value: s! })),
     },
   ], [companies]);
 
@@ -218,37 +213,30 @@ export default function FirmalarPage() {
   // Enriched + filtered rows
   // ---------------------------------------------------------------------------
   const filteredData = useMemo(() => {
+    const query = normalizeCompanySearch(search);
     const enriched: FirmaListRow[] = companies.map((c) => {
-      const rowId = c.legacy_mock_id ?? c.id;
       return {
-        id: rowId,
+        id: c.id,
         firmaAdi: c.name,
         sektor: sectorLabel(c.sector),
-        sehir: c.city ?? "—",
-        anaYetkili: primaryNameById[c.id] ?? "—",
-        aktifSozlesme: activeContractById[c.id] ?? 0,
+        sektorKodu: c.sector,
+        sehir: cityLabel(c.city) || "—",
+        anaYetkili: contactsError ? "Okunamadı" : primaryNameById[c.id] ?? "—",
+        aktifSozlesme: contractsError ? null : activeContractById[c.id] ?? 0,
         risk: c.risk,
         durum: c.status,
       };
     });
 
     return enriched.filter((f) => {
-      if (search) {
-        const q = search.toLowerCase();
-        if (
-          !f.firmaAdi.toLowerCase().includes(q) &&
-          !f.anaYetkili.toLowerCase().includes(q) &&
-          !f.sektor.toLowerCase().includes(q) &&
-          !f.sehir.toLowerCase().includes(q)
-        ) return false;
-      }
+      const searchable = [f.firmaAdi, f.sektor, f.sehir, contactsError ? "" : f.anaYetkili];
+      if (query && !searchable.some(value => normalizeCompanySearch(value).includes(query))) return false;
       if (filters.durum && f.durum !== filters.durum) return false;
-      if (filters.risk && f.risk !== filters.risk) return false;
-      if (filters.sektor && f.sektor !== filters.sektor) return false;
-      if (filters.sehir && f.sehir !== filters.sehir) return false;
+      if (filters.sektor && f.sektorKodu !== filters.sektor) return false;
+      if (filters.sehir && f.sehir !== cityLabel(filters.sehir)) return false;
       return true;
     });
-  }, [search, filters, companies, primaryNameById, activeContractById]);
+  }, [search, filters, companies, primaryNameById, activeContractById, contactsError, contractsError]);
 
   /**
    * Modal kapandığında: kayıt GÖRÜNÜR olmalı, yoksa "oldu mu" belirsizliği
@@ -260,36 +248,29 @@ export default function FirmalarPage() {
    */
   const handleCompanyCreated = useCallback(
     (company: CreatedCompany, origin: "created" | "existing") => {
-      setSearch("");
-      setFilters({ durum: "", risk: "", sektor: "", sehir: "" });
-      setReloadKey((k) => k + 1);
+      if (liveView.current !== viewContext) return;
+      handleSearch("");
+      setFilters({ durum: "", sektor: "", sehir: "" });
+      void directory.reload();
       setNotice(
         origin === "created"
-          ? `${company.name} eklendi — durumu "aday". Aktife almak için firma detayına girin.`
+          ? `${company.name} firmalara eklendi. Durumu: aday.`
           : `${company.name} zaten kayıtlı — listede.`,
       );
     },
-    [],
+    [handleSearch, setFilters, directory.reload, viewContext],
   );
 
   const rowActions: RowAction<FirmaListRow>[] = [
     { label: "Detaya Git", onClick: (row) => router.push(`/firmalar/${row.id}`) },
   ];
 
-  if (loading) {
-    return (
-      <>
-        <PageHeader title="Firmalar" subtitle="Firma portfoyu" />
-        <p className="text-sm text-slate-500 py-8 text-center">Yukleniyor...</p>
-      </>
-    );
-  }
 
   return (
     <>
       <PageHeader
         title="Firmalar"
-        subtitle="Firma portfoyu"
+        subtitle="Firma portföyü"
         actions={
           isYonetici
             ? [
@@ -307,7 +288,7 @@ export default function FirmalarPage() {
       />
       <div className="space-y-4">
         {notice && (
-          <div className="flex items-start justify-between gap-3 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+          <div role="status" aria-live="polite" className="flex items-start justify-between gap-3 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
             <span>{notice}</span>
             <button
               type="button"
@@ -318,32 +299,44 @@ export default function FirmalarPage() {
             </button>
           </div>
         )}
+        <AsyncSection isLoading={directory.loading || !viewReady} hasError={directory.error} onRetry={() => { void directory.reload(); }}>
+        {(contactsError || contractsError) && <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p>Firma listesi yüklendi; bazı yetkili veya sözleşme özetleri okunamadı.</p>
+          <button type="button" onClick={() => { void directory.reload(); }} className="min-h-11 text-blue-700 underline">Özetleri yeniden dene</button>
+        </div>}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:max-w-xs">
-            <SearchInput placeholder="Firma, yetkili, sektor ara..." onChange={handleSearch} />
+            <SearchInput ref={searchControl} key={listScope} maxLength={512} value={search} placeholder="Firma, yetkili, sektör ara…" onChange={handleSearch} />
           </div>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </div>
+        <div aria-label="Firma listesi" role="region" className="max-sm:[&_table]:w-full max-sm:[&_table]:table-fixed max-sm:[&_th:not(:first-child)]:hidden max-sm:[&_td:not(:first-child)]:hidden">
         <DataTable<FirmaListRow>
           columns={COLUMNS}
           data={filteredData}
           rowKey="id"
           rowActions={rowActions}
           onRowClick={(row) => router.push(`/firmalar/${row.id}`)}
+          emptyAction={companies.length === 0 && isYonetici ? {
+            label: "İlk firmayı ekle",
+            onClick: () => { setNotice(null); setNewOpen(true); },
+          } : (companies.length > 0 && (normalizeCompanySearch(search) !== "" || Object.values(filters).some(Boolean))) ? {
+            label: "Arama ve filtreleri temizle",
+            onClick: () => { searchControl.current?.clear(); setFilters(LIST_FILTER_DEFAULTS); },
+          } : undefined}
           emptyTitle={
-            companies.length === 0 ? "Portfoyde firma yok" : "Firma bulunamadi"
+            companies.length === 0 ? "Firma listeniz boş" : "Bu arama ve filtrelerle eşleşen firma yok"
           }
           emptyDescription={
-            // İKİ AYRI DURUM, İKİ AYRI CÜMLE. Kiracıda hiç firma yokken
-            // "filtrelerinizi degistirin" demek, kullanıcıyı olmayan bir
-            // filtreyi aramaya gönderir — Mek Group'ta görülen tam olarak buydu.
             companies.length === 0
               ? isYonetici
-                ? "Bu kiracida henuz firma yok. Yukaridaki \u201cYeni Firma\u201d ile ekleyebilirsiniz."
-                : "Bu kiracida henuz firma yok."
-              : "Arama veya filtre kriterlerinizi degistirin."
+                ? "İlk firmanızı ekleyerek müşteri ve operasyon kayıtlarını takip etmeye başlayın."
+                : "Erişebildiğiniz firmalar burada listelenir."
+              : "Farklı bir arama deneyin veya filtreleri temizleyin."
           }
         />
+        </div>
+        </AsyncSection>
       </div>
 
       {/* yonetici-only: RLS ve server action zaten kapatıyor, bu üçüncü katman. */}

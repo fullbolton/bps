@@ -1,3 +1,4 @@
+import {readCurrentRole as getCurrentUserRole} from './current-role';
 /**
  * BPS service layer — tasks (Faz 3C "Gorevler" slice).
  *
@@ -29,6 +30,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireRelatedCompanyRecord } from "@/lib/services/related-company-record";
 import type { GorevDurumu, OncelikSeviyesi } from "@/types/ui";
 import type { UserRole } from "@/context/AuthContext";
 import type {
@@ -39,12 +41,15 @@ import type {
 } from "@/types/database.types";
 import type { TaskSourceType } from "@/lib/task-sources";
 import {
+  completeScopedTask,
+  claimUnassignedTask,
   selectTasksByCompanyId,
   selectAllTasks,
   selectTasksByContractId,
   selectTasksByAppointmentId,
   insertTask,
   updateTask as updateTaskRaw,
+  selectTaskAssignmentHistory,
 } from "@/lib/supabase/tasks";
 import { requireCompanyByLegacyMockId } from "@/lib/services/companies";
 import {
@@ -66,9 +71,9 @@ export class TaskValidationError extends Error {
 }
 
 export class TaskReassignPermissionError extends Error {
-  constructor() {
+  constructor(message?: string) {
     super(
-      "Bu rol ile görev atama değişikliği yapılamaz. Yalnızca yönetici veya partner atama değiştirebilir.",
+      message ?? "Bu rol ile görev atama değişikliği yapılamaz. Yalnızca yönetici veya partner atama değiştirebilir.",
     );
     this.name = "TaskReassignPermissionError";
   }
@@ -109,7 +114,7 @@ const REASSIGN_BLOCKED_ROLES: ReadonlySet<UserRole> = new Set([
 // ---------------------------------------------------------------------------
 
 export interface TaskCreateInput {
-  legacyCompanyId: string;
+  legacyCompanyId: string | null;
   title: string;
   /**
    * Assignee identity (profiles.id), or null to leave unassigned. This is the
@@ -128,6 +133,7 @@ export interface TaskCreateInput {
 }
 
 export interface TaskUpdateInput {
+  expectedRevision: number;
   title?: string;
   /** Assignee identity (profiles.id), or null to unassign. Sole assignee input
    *  — the display name is derived server-side; see TaskCreateInput. */
@@ -225,28 +231,6 @@ async function resolveAssignee(
   return { id: profile.id, name: profile.display_name };
 }
 
-/**
- * Resolve the calling user's role from `profiles`. Used to gate the
- * service-layer reassign writer. The DB RLS UPDATE policy already
- * covers the broader case; this check exists so the UI can show a
- * clean Turkish error before the SQL fires.
- */
-async function getCurrentUserRole(client: Client): Promise<UserRole | null> {
-  const {
-    data: { user },
-    error: userError,
-  } = await client.auth.getUser();
-  if (userError || !user) return null;
-
-  const { data: profile } = await client
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return (profile?.role as UserRole) ?? null;
-}
-
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -323,12 +307,18 @@ export async function createTask(
   input: TaskCreateInput,
   options: { tenantId: string },
 ): Promise<TaskRow> {
-  const company = await requireCompanyByLegacyMockId(
-    client,
-    input.legacyCompanyId,
-  );
-
+  const companyId = nullableTrim(input.legacyCompanyId);
+  const company = companyId ? await requireCompanyByLegacyMockId(client, companyId) : null;
   const title = ensureTitle(input.title);
+  const contractId = nullableTrim(input.contractId);
+  const appointmentId = nullableTrim(input.appointmentId);
+  if (!company && (contractId || appointmentId || nullableTrim(input.sourceRef) || (input.sourceType && input.sourceType !== 'manuel'))) {
+    throw new Error('Firma dışı görev bir sözleşme veya randevuya bağlanamaz. Kaynak olarak Manuel seçin.');
+  }
+  if (company) {
+    await requireRelatedCompanyRecord(client, "contracts", contractId, company, options.tenantId);
+    await requireRelatedCompanyRecord(client, "appointments", appointmentId, company, options.tenantId);
+  }
 
   // The id is the sole assignee input; both columns are derived from it.
   const assignee = await resolveAssignee(client, input.assignedToUserId);
@@ -339,15 +329,15 @@ export async function createTask(
 
   const payload: TaskInsert = {
     tenant_id: options.tenantId,
-    company_id: company.id,
+    company_id: company?.id ?? null,
     title,
     assigned_to: assignee.name,
     assigned_to_user_id: assignee.id,
     due_date: nullableTrim(input.dueDate),
     source_type: (input.sourceType as TaskSourceType) ?? "manuel",
     source_ref: nullableTrim(input.sourceRef),
-    contract_id: nullableTrim(input.contractId),
-    appointment_id: nullableTrim(input.appointmentId),
+    contract_id: contractId,
+    appointment_id: appointmentId,
     priority: (input.priority as OncelikSeviyesi) ?? "normal",
     status: "acik",
     created_by: user?.id ?? null,
@@ -368,9 +358,10 @@ export async function updateTaskStatus(
   client: Client,
   taskId: string,
   nextStatus: GorevDurumu,
+  expectedRevision: number,
 ): Promise<TaskRow> {
   const validatedStatus = ensureStatus(nextStatus);
-  return updateTaskRaw(client, taskId, { status: validatedStatus });
+  return updateTaskRaw(client, taskId, { status: validatedStatus }, expectedRevision);
 }
 
 // ---------------------------------------------------------------------------
@@ -393,8 +384,7 @@ export async function updateTask(
   input: TaskUpdateInput,
 ): Promise<TaskRow> {
   // Gate: if the assignee is being changed, check the caller's role.
-  // Fail closed: an unresolved role (profiles read failure / missing
-  // row) must NOT skip the block — the tasks RLS UPDATE policy is
+  // Fail closed: an unresolved company role (RPC failure / missing membership) must NOT skip the block — the tasks RLS UPDATE policy is
   // deliberately broader, so this service gate is the only enforcement
   // of the ROLE_MATRIX reassign rule.
   // `assignedToUserId` is now the only way to change the assignee, so gating
@@ -438,5 +428,33 @@ export async function updateTask(
     patch.status = ensureStatus(input.status);
   }
 
-  return updateTaskRaw(client, taskId, patch);
+  return updateTaskRaw(client, taskId, patch, input.expectedRevision);
+}
+
+export async function listTaskAssignmentHistory(client: Client, taskId: string) {
+  if (!UUID_SHAPE.test(taskId)) throw new TaskValidationError("Görev kimliği geçersiz.");
+  return selectTaskAssignmentHistory(client, taskId);
+}
+
+export async function claimTask(client:Client,id:string,revision:number,actorId:string,tenantId:string):Promise<TaskRow>{
+  const {data:{user},error}=await client.auth.getUser();
+  if(error||!user||user.id!==actorId)throw new Error('Oturum değişti. Sayfayı yenileyin.');
+  const role=await getCurrentUserRole(client);
+  if(role!=='yonetici'&&role!=='operasyon')throw new TaskReassignPermissionError('İşi yalnızca yönetici veya operasyon kullanıcısı üstlenebilir.');
+  const {data:tenant,error:tenantError}=await client.rpc('current_user_verified_tenant');
+  if(tenantError||!tenant||tenant!==tenantId)throw new Error('Çalışma alanı değişti. Sayfayı yenileyin.');
+  const assignee=await resolveAssignee(client,user.id);
+  return claimUnassignedTask(client,id,tenantId,revision,user.id,assignee.name);
+}
+
+/** Mobile quick completion; does not close a staffing request or confirm attendance. */
+export async function completeOperationTask(client: Client, id: string, revision: number, actorId: string, tenantId: string): Promise<TaskRow> {
+  if (![id, actorId, tenantId].every(value => typeof value === 'string' && UUID_SHAPE.test(value))) throw new TaskValidationError('Görev veya oturum bilgisi geçersiz.');
+  const { data: { user }, error } = await client.auth.getUser();
+  if (error || !user || user.id !== actorId) throw new Error('Oturum değişti. Sayfayı yenileyin.');
+  const role = await getCurrentUserRole(client);
+  if (!role || !['yonetici', 'operasyon', 'ik'].includes(role)) throw new Error('Bu işlemi yapma yetkiniz yok.');
+  const { data: tenant, error: tenantError } = await client.rpc('current_user_verified_tenant');
+  if (tenantError || !tenant || tenant !== tenantId) throw new Error('Çalışma alanı değişti. Sayfayı yenileyin.');
+  return completeScopedTask(client, id, tenantId, revision, role === 'yonetici' ? null : actorId);
 }
