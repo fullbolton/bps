@@ -1279,6 +1279,7 @@ export interface Database {
         Returns: Json;
       };
       talent_call_lists_read: {Args:{p_actor:string;p_tenant:string};Returns:Json};
+      talent_call_list_edit: {Args:{p_actor:string;p_tenant:string;p_id:string;p_command:string;p_revision:number;p_operation:string;p_name:string|null;p_ids:string[]};Returns:number};
       talent_call_list_people: {Args:{p_actor:string;p_tenant:string;p_id:string};Returns:Json};
       talent_call_list_create: {Args:{p_actor:string;p_tenant:string;p_id:string;p_name:string;p_ids:string[]};Returns:string};
       talent_call_list_archive: {Args:{p_actor:string;p_tenant:string;p_id:string};Returns:string};

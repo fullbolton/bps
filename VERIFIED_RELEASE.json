@@ -1,5 +1,5 @@
 {
-  "deployment": "dpl_AheRGmwqKjgtSwsA9qqF8fHGvNiU",
+  "deployment": "dpl_6tTRopesdKDnVQiyK1HzVmqHagfR",
   "date": "2026-09-27",
   "url": "https://www.bpsys.net",
   "files": {
@@ -46,7 +46,7 @@
     "src/app/(main)/kurumsal-tarihler/page.tsx": "44610b710ceabed78655395ad7783f8fb3657cbb69dccee8f4f2e0dc272642ae",
     "src/app/(main)/layout.tsx": "8d7e26c1260481d985618baa0975b37295ca53ceee878558f867088f157bef0d",
     "src/app/(main)/luca-import/page.tsx": "7b067b889db04bc85d565f1fed444593255811c92edd82f2e36758ac481ad799",
-    "src/app/(main)/personel-havuzu/actions.ts": "cc8281a945c76248dcf2c52f7b11fc5ccc50d41bb5736573691469cf580e0577",
+    "src/app/(main)/personel-havuzu/actions.ts": "0f920416f35200a23d328ebd42478c53413d2f543e089853a8894906216550f4",
     "src/app/(main)/personel-havuzu/aktarim/ImportChangeReview.tsx": "c9f7bfc9e86296f9e8d54d2d99203833eef9c779f0dd149e0af8402bbd5d047a",
     "src/app/(main)/personel-havuzu/aktarim/ImportHistory.tsx": "ce7ec5c5cb6c48aba595312d0e93cf539e5aaa0458cf5d78019182853faf8c29",
     "src/app/(main)/personel-havuzu/aktarim/ImportPreview.tsx": "ca1404e6433f243e7efb9b95148bb0e850d3eb9025349196799d8eba79f79782",
@@ -56,15 +56,16 @@
     "src/app/(main)/personel-havuzu/aktarim/PoolComparison.tsx": "38e868a9b615a9b7d0922faf4f44242ff1dbd327c745d6bf1f3278d201b5c2a9",
     "src/app/(main)/personel-havuzu/aktarim/PreviewReport.tsx": "2bad8cf20f0b32ba0e77b1a4efc3435a832105f8cbae6bee9390fd2ac3d7c4cf",
     "src/app/(main)/personel-havuzu/aktarim/RowDecision.tsx": "b190e717b0df08c56b3959cfcfb914a5c34fe913e5d59379e6e4e3ab2bb0abd5",
-    "src/app/(main)/personel-havuzu/CallListCreate.tsx": "5f834b3db120677fe4752c4579f65c78d2b6a67df59e6093b3026c5404168a08",
-    "src/app/(main)/personel-havuzu/listeler/CallLists.tsx": "179a1fd6209585a4a6a96c89367ea3408bf092d278b6e530e141fba41300481c",
+    "src/app/(main)/personel-havuzu/CallListCreate.tsx": "d308b2bf615ea0fa2087f975f7fa49c7c7fdeee7d22e05ae70de05d77d0d75f1",
+    "src/app/(main)/personel-havuzu/listeler/CallListEditor.tsx": "67c096f798635da4d1d30dd03fe68f6d37c193d3555aba921c03f5bf54f798c3",
+    "src/app/(main)/personel-havuzu/listeler/CallLists.tsx": "88aee781fd28e6b08289ddc26207f3ed184d2c643716d9d25df5d26c190c8ff0",
     "src/app/(main)/personel-havuzu/listeler/page.tsx": "a3b1bdae9cbc45eaed2bf17592493090b82f0ea44378070cd4f950c66fcd5144",
     "src/app/(main)/personel-havuzu/MergedAvailability.tsx": "51d61080ca4e941e98ee5a6e2d998c0b67436aa4c6236f87ef24dcce41047bcf",
     "src/app/(main)/personel-havuzu/page.tsx": "ef7e42442f2b687a5f90d037a400dfcff867cbf05218926684df661abf7b8f4c",
     "src/app/(main)/personel-havuzu/PersonAttachments.tsx": "1176e0716d9643f942c75885fe3f0c6de8c9bd9d79993712744301c29d127a1a",
     "src/app/(main)/personel-havuzu/PersonAvailability.tsx": "9df76bab5128288642fe51910e94b49316c56c8247b9f73a6fbcd4eb8f1cdc90",
     "src/app/(main)/personel-havuzu/PersonCard.tsx": "6ce59e1caac124cb19c2d2d1011b0194285f350c96908adb8e2ee58bc02fe2fc",
-    "src/app/(main)/personel-havuzu/PersonConversations.tsx": "d1be4159ac186fad6f749e5a28050926e622ede413738be11a2bd5ce473bd572",
+    "src/app/(main)/personel-havuzu/PersonConversations.tsx": "5846cf1669c862140031174598e8e5f84ee529fb367c3a79178a0abe473428a9",
     "src/app/(main)/personel-havuzu/PersonDetailPanel.tsx": "56d8bcd5a620223dadcdbf2f985095de8f6c3d5a1e2d48925d03ea69f4e94dfd",
     "src/app/(main)/personel-havuzu/PersonEditor.tsx": "de477b761838e65b5d4ead9674ccfc36a8b5d668500cf83809e7ddda78d1ab95",
     "src/app/(main)/personel-havuzu/PersonList.tsx": "5bce8833d1da13a2190ad222670836e9967fcc8d1dfe822d098745cf76e8f8a3",
@@ -371,9 +372,9 @@
     "src/lib/talent/attachment-upload.ts": "a97ea375f00b7331a27434c8d1dca139456f659e76b65c72ecfee3663ffa053e",
     "src/lib/talent/attachments.ts": "1a5768202e5f8247fe41bd3bf89c23cde2e66ba4c82c0316b95edb157119b484",
     "src/lib/talent/availability.ts": "551d4d5c77823cb1afd8d3b551909d35508d3d7ba2070265e8af40263a237841",
-    "src/lib/talent/call-lists.ts": "a695d1b44f8b8f80ccd5c2cbfb91390dc9ec76e49d75a3aa7eaa2e1ffb54a2c1",
+    "src/lib/talent/call-lists.ts": "f2df8b0d4161b6c539681444b4217b73dcd578a3bd5e518fca874fd4e22c4046",
     "src/lib/talent/contact-summary.ts": "070fd631c1f856dfe79dc38bb451ad4f30c66042b8f9128f0e6ad88a9dea2478",
-    "src/lib/talent/conversations.ts": "398aba890049f714fbe06a9614e90f5f066038ae4f7297f34b53466ad5d28e9f",
+    "src/lib/talent/conversations.ts": "fe6126e06fc30a6ca069712e8f3c89fa691f56e50948aab3b8d26b1ed1c772f9",
     "src/lib/talent/import-batches.ts": "f9a48626ce713e02ae5c6f36bc75dc47a0562c13732741e82e6dafbc9aa5de44",
     "src/lib/talent/import-compare.ts": "59c084f7a375994430cbe68136312a05cb69c6ac0f198b07f2510c3aa1368c80",
     "src/lib/talent/import-contacts.ts": "7fdfd78c1a41e49e18cca21e1eed990a3473fbcd9048681e3ef117ee2c0d9f38",
@@ -420,7 +421,7 @@
     "src/types/batch4.ts": "27eaf0fe44283b617b9297876b12e4b20020d9a6943950c785514aa667582b63",
     "src/types/batch5-finansal.ts": "1d02e34610d82513663a938e75b116a14a160e861eedffddbcab410e75e549a7",
     "src/types/batch6.ts": "0fa2b52c39783a9007f34d1ac62aeb0505959d632ed4bf0c80901a918c739356",
-    "src/types/database.types.ts": "0b82e0d5c9fe774aee1098d8c1512fa15fd6fdf617e21346536a1d56bdd50f9a",
+    "src/types/database.types.ts": "a8017b37e0f0ded2d2bc5d8791fc42edbe7ee9a32fe9b31db714a596dc8f1d36",
     "src/types/inisiyatif.ts": "f837949551bd93e6e489c1b093e442faf20e06b1ab6d6fd304e46d02e7f11486",
     "src/types/ticari-kalite.ts": "445020e2feedb32621dfc53fa4a7c28ab1c3d923d10d2cf4f3d80bf5f474d3d3",
     "src/types/ui.ts": "c9a79bfb63818bc3523f1be17d1aa271603582b033f69d8d7003c40b3ad216fe",
@@ -428,5 +429,10 @@
     "tsconfig.json": "1b12f56ab16430b64622ff8512cb05b06cf633060dbec6ebad6f9e792a6dc2a0",
     "vercel.json": "40657d8f809da0d3ba7d91f5e762c465c711ecdd2f3d23a8798c918ab4a05545"
   },
-  "note": "Verified published application sources. Environment files and private business data excluded. No unpublished root changes included."
+  "note": "Verified published application sources. Environment files and private business data excluded. No unpublished root changes included.",
+  "migration": {
+    "version": "20260927000900",
+    "sha256": "698a4570d18cf0c02162f7adf881739d797aeebc56df2e8f624164bd02c9cec2",
+    "ledger": "qa/call-list-edit-20260927/ledger.log"
+  }
 }

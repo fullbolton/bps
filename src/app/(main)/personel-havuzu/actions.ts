@@ -217,3 +217,11 @@ export async function talentPlacementContextAction(scope:TalentScope,hint:import
   return {ok:true as const,data:buildPoolPlacementContext(hint,companies,board)};
  }catch{return {ok:false as const,message:'Talep açılamadı. Talep kapanmış, dolmuş veya erişiminiz değişmiş olabilir. Günlük taleplere dönüp yeniden seçin.'};}
 }
+
+export async function talentCallListEditAction(scope:TalentScope,input:import('@/lib/talent/call-lists').CallListEdit){
+ try{
+  const {c}=await context(scope);const {validateCallListEdit}=await import('@/lib/talent/call-lists');const v=validateCallListEdit(input);
+  const r=await c.rpc('talent_call_list_edit',{p_actor:scope.actorId,p_tenant:scope.tenantId,p_id:v.id,p_command:v.commandId,p_revision:v.revision,p_operation:v.operation,p_name:v.name,p_ids:v.ids});
+  if(r.error)throw r.error;if(!Number.isSafeInteger(r.data)||Number(r.data)<1)throw Error('CALL_LIST_RESPONSE');return {ok:true as const};
+ }catch(e){const m=e&&typeof e==='object'&&'message'in e?String(e.message):'';return {ok:false as const,message:m.includes('CALL_LIST_CONFLICT')?'Liste başka bir işlemle değişti. Güncel listeyi açıp tekrar düzenleyin.':m.includes('CALL_LIST_NAME')?'Bu isimde başka bir liste var.':m.includes('CALL_LIST_SIZE')?'Listede 1–50 kişi bulunmalı. Son kişiyi çıkarmak yerine listeyi kaldırabilirsiniz.':'Liste değişikliği doğrulanamadı. Aynı işlemi yeniden deneyebilirsiniz.'};}
+}
