@@ -1,5 +1,5 @@
 {
-  "deployment": "dpl_33hkuJbFYdUq3YjFWXxkbQFtq7vn",
+  "deployment": "dpl_BHPwxioRxD89Y9nwBBCrHfQrvrox",
   "date": "2026-09-28",
   "url": "https://www.bpsys.net",
   "files": {
@@ -79,7 +79,7 @@
     "src/app/(main)/randevular/actions.ts": "efa7ac6681f846df8ddf2894b03592e93e6e5df35787dcd346448966d0bc10be",
     "src/app/(main)/randevular/AppointmentLinkOpener.tsx": "5922f85d4cd44396bd45a085aaa7182ba0dbacb0a89d864c9e3e85da4e82bbf0",
     "src/app/(main)/randevular/AppointmentTasks.tsx": "ad95daf33c159d2df0a582b11518e4184dbee969b8fcb5570fd2dfe32117995d",
-    "src/app/(main)/randevular/page.tsx": "2f994fc3b4be9ce354766ef3f0981fa620c0746b76b5b182ace9126a8aa9913b",
+    "src/app/(main)/randevular/page.tsx": "a010c8d4cecad72d110d18d774fbfc57651e435267c8286aebb78af72dff064f",
     "src/app/(main)/raporlar/page.tsx": "fd3d4b7bb3e5828c4e370e65851e8fc306b4728f6615b8faacd2580297f06ce6",
     "src/app/(main)/raporlar/ReportsClient.tsx": "6849398e59bd01ac5192197c72445eff10fb53dbb0f0f4efe25929b696e0ff61",
     "src/app/(main)/sozlesmeler/[id]/actions.ts": "177df6ff95c0cd220b35251dfaa7fc1e096d62ac53cd905b40a8593122167ec2",
@@ -92,7 +92,7 @@
     "src/app/(main)/sozlesmeler/[id]/renewal-actions.ts": "bb08427ba85be92a63e0bfbba3ba1be9432a689bdc58b35ca9e23c29a8cfa433",
     "src/app/(main)/sozlesmeler/[id]/RenewalTaskPanel.tsx": "41b78b921dd240d8c7812f3f7b96eb8c1a47d6b4d03ae0897748e3d9ed78cefd",
     "src/app/(main)/sozlesmeler/actions.ts": "30311e0bda32f95cbf9157c9b542e6462a9b344259bec87e300d3efac3af5735",
-    "src/app/(main)/sozlesmeler/page.tsx": "ac664d0b3737173a2ce2fef1f1e41e801508ad3fc396f92af5c00b712b4db54a",
+    "src/app/(main)/sozlesmeler/page.tsx": "7177089e3ccdca8d9d4885f95f3a941e603e40bd84a3883acc400c87eab29464",
     "src/app/(main)/talepler/actions.ts": "7aa0b8c222a89a16636bdad31767e327e589ab300062a1ddc3b0a261c46b9747",
     "src/app/(main)/talepler/dizin/DirectoryActivation.tsx": "148d07696259c96919cb6d3f3a46c873e99390bebb50a6207f9b9afaff9f4e62",
     "src/app/(main)/talepler/dizin/LocationEditor.tsx": "6788130a578227b8db8797b2fb6875e468e41188f2612e73cb5862dd1e412391",

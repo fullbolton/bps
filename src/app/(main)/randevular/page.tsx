@@ -1,4 +1,5 @@
 "use client";
+import ListToolbar from "@/components/ui/ListToolbar";
 
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
@@ -83,7 +84,7 @@ import {
 } from "@/styles/tokens";
 
 // Page-local helpers
-const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
+const CHIP_BASE = `min-h-11 px-3 py-2 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
 const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
 const CHIP_INACTIVE = "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
 const DL_LABEL = `${TYPE_CAPTION} ${TEXT_SECONDARY}`;
@@ -120,7 +121,7 @@ const FILTER_CONFIG: FilterConfig[] = [
   },
   {
     key: "tip",
-    label: "Tip",
+    label: "Görüşme türü",
     type: "select",
     placeholder: "Tüm tipler",
     options: (Object.keys(APPOINTMENT_TYPE_LABELS) as AppointmentMeetingType[]).map((t) => ({
@@ -171,7 +172,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
   },
   {
     key: "next_action",
-    header: "Sonraki Aksiyon",
+    header: "Takip işlemi",
     render: (val) => (
       <span className={COL_TRUNCATED}>
         {(val as string) || "—"}
@@ -355,7 +356,7 @@ export default function RandevularPage() {
       isDisabled: (row) => row.status === "tamamlandi" || row.status === "iptal",
     },
     {
-      label: "Gorev Olustur",
+      label: "Görev oluştur",
       onClick: (row) => {
         // Find the legacy mock id for this company so NewTaskModal can
         // work with the still-mock firmalar dictionary.
@@ -369,7 +370,7 @@ export default function RandevularPage() {
   // Role gate
   // ------------------------------------------------------------------
 
-  // Auth not resolved yet — don't flash "Erisim kisitli" (role defaults to
+  // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.
   if (authLoading || !viewReady) {
     return (
@@ -384,7 +385,7 @@ export default function RandevularPage() {
     return (
       <>
         <PageHeader title="Randevular" subtitle="Görüşme takibi" />
-        <EmptyState title="Erisim kisitli" description="Bu ekran erisiminizin disindadir." size="page" />
+        <EmptyState title="Erişim kısıtlı" description="Bu ekrana erişim yetkiniz yok." size="page" />
       </>
     );
   }
@@ -393,7 +394,7 @@ export default function RandevularPage() {
     <>
       <PageHeader
         title="Randevular"
-        subtitle="Görüşme sonuclari ve takip aksiyonlari"
+        subtitle="Görüşme sonuçlarını ve takip işlerini yönetin."
         actions={[
           {
             label: "Yeni Randevu",
@@ -428,6 +429,8 @@ export default function RandevularPage() {
           {Object.entries(statusCounts).map(([status, count]) => (
             <button
               key={status}
+              type="button"
+              aria-pressed={filters.durum === status}
               onClick={() =>
                 setFilters((prev) => ({
                   ...prev,
@@ -444,17 +447,14 @@ export default function RandevularPage() {
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="w-full sm:max-w-xs">
-            <SearchInput ref={searchControl} key={listScope} value={search} maxLength={512} placeholder="Firma, katilimci ara..." onChange={handleSearch} />
-          </div>
+        <ListToolbar label="Randevularda ara" search={<SearchInput ref={searchControl} key={listScope} value={search} maxLength={512} placeholder="Firma, katılımcı ara…" onChange={handleSearch} />}>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
-          <button type="button" disabled={loading} onClick={() => { void reload(); }}
+          <div className="mt-3 flex justify-end"><button type="button" disabled={loading} onClick={() => { void reload(); }}
             className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40">
             <RefreshCw size={16} aria-hidden="true" className={loading ? "animate-spin" : undefined} />
             Listeyi yenile
-          </button>
-        </div>
+          </button></div>
+        </ListToolbar>
 
         {loading ? (
           <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Randevular yükleniyor…</p>
@@ -478,7 +478,7 @@ export default function RandevularPage() {
       <RightSidePanel
         open={!!selectedRandevu}
         onClose={() => setSelectedId(null)}
-        title="Randevu Detay"
+        title="Randevu detayı"
       >
         {selectedRandevu && (
           <dl className="space-y-3">

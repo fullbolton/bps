@@ -1,4 +1,5 @@
 "use client";
+import ListToolbar from "@/components/ui/ListToolbar";
 
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
 import { useListViewState } from "@/components/ui/useListViewState";
@@ -55,7 +56,7 @@ import {
 import { computeRemainingDays } from "@/lib/services/contracts";
 
 // Page-local helpers
-const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
+const CHIP_BASE = `min-h-11 px-3 py-2 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
 const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
 const CHIP_INACTIVE = `bg-white text-slate-600 border-slate-200 hover:bg-slate-50`;
 const DL_LABEL = `${TYPE_CAPTION} ${TEXT_SECONDARY}`;
@@ -346,6 +347,8 @@ export default function SozlesmelerPage() {
           {Object.entries(statusCounts).map(([status, count]) => (
             <button
               key={status}
+              type="button"
+              aria-pressed={filters.durum === status}
               onClick={() =>
                 setFilters((prev) => ({
                   ...prev,
@@ -362,23 +365,20 @@ export default function SozlesmelerPage() {
           ))}
         </div>}
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="w-full sm:max-w-xs">
-            <SearchInput ref={searchControl}
+        <ListToolbar label="Sözleşmelerde ara" search={<SearchInput ref={searchControl}
               key={listScope}
               maxLength={512}
               value={search}
               placeholder="Sözleşme, firma ara..."
               onChange={handleSearch}
-            />
-          </div>
-          <button type="button" disabled={loading} onClick={() => void reload()} className="min-h-11 shrink-0 self-start rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-blue-700 disabled:opacity-40">Listeyi yenile</button>
+            />}>
           <FilterBar
             filters={filterConfig}
             values={filters}
             onChange={setFilters}
           />
-        </div>
+          <div className="mt-3 flex justify-end"><button type="button" disabled={loading} onClick={() => void reload()} className="min-h-11 shrink-0 self-start rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-blue-700 disabled:opacity-40">Listeyi yenile</button></div>
+        </ListToolbar>
 
         {loading ? (
           <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Sözleşmeler yükleniyor…</p>
