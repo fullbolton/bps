@@ -4,6 +4,7 @@ import {Button} from '@/components/ui/button';import {useScopedResource} from '@
 import {useWorkspace} from '@/context/WorkspaceContext';import {matchesWorkspace} from '@/lib/workspace-context';
 import {useNavigationGuard} from '@/context/NavigationGuardContext';import type {TalentScope} from '@/lib/talent/people';
 import CallListEditor from './CallListEditor';
+import PageHeader from '@/components/ui/PageHeader';
 import PersonConversations from '../PersonConversations';
 import {talentCallListsAction,talentCallListPeopleAction,talentCallListArchiveAction} from '../actions';
 export default function CallLists({scope}:{scope:TalentScope}){
@@ -17,15 +18,16 @@ export default function CallLists({scope}:{scope:TalentScope}){
  const person=contents.data?.people[index];
  async function archive(id:string){if(busy||dirty||!confirmed)return;setBusy(true);try{const r=await talentCallListArchiveAction(scope,id);if(!r.ok){setMessage(r.message);return;}if(active===id)setActive(null);setRemove(null);setMessage('Liste kaldırıldı. Kişiler ve görüşmeleri korunuyor.');await catalog.reload();}catch{setMessage('Sonuç alınamadı. Yeniden deneyin.');}finally{setBusy(false);}}
  return <div className="space-y-5">
-  <div><Link href="/personel-havuzu" onClick={guard.handle} className="inline-flex min-h-11 items-center text-sm text-blue-700 underline">Personel havuzuna dön</Link><h1 className="text-2xl font-semibold">Arama listeleri</h1><p className="mt-2 text-sm text-slate-600">Havuzdan seçilen kişiler. Yeni liste için havuzdaki kişi kutularını işaretleyin. Listeler şirket ekibiyle paylaşılır.</p></div>
+  <div><Link href="/personel-havuzu" onClick={guard.handle} className="inline-flex min-h-11 items-center text-sm text-blue-700 underline">Personel havuzuna dön</Link><PageHeader title="Arama listeleri" subtitle="Listenizi seçin, kişileri sırayla arayın ve görüşme sonucunu kaydedin."/></div>
   {message&&<p role="status">{message}</p>}
-  {!confirmed?<p role="status">Şirket yetkisi doğrulanıyor…</p>:catalog.error?<div role="alert">Listeler okunamadı. <Button onClick={()=>void catalog.reload()}>Yeniden dene</Button></div>:catalog.loading?<p role="status">Listeler yükleniyor…</p>:<section aria-label="Kayıtlı arama listeleri" className="space-y-3">
-   {!catalog.data?.length&&<p>Henüz arama listesi yok.</p>}
-   <ul className="flex flex-wrap gap-2">{catalog.data?.map(row=><li key={row.id} className="flex max-w-full items-center rounded-xl border bg-white p-1"><button disabled={dirty||busy} className="min-h-11 min-w-0 break-words px-3 text-left text-sm aria-pressed:bg-blue-50" aria-pressed={active===row.id} onClick={()=>{setActive(row.id);setIndex(0);setMessage('');}}>{row.name}<span className="block text-xs text-slate-500">{row.selectedCount} kişi seçilmiş</span></button>{row.canRemove&&<button disabled={dirty||busy} className="min-h-11 shrink-0 px-3 text-sm text-slate-500" aria-label={`${row.name} listesini kaldır`} onClick={()=>setRemove(row.id)}>Kaldır</button>}</li>)}</ul>
+  <div className="grid items-start gap-5 xl:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
+  {!confirmed?<p role="status">Şirket yetkisi doğrulanıyor…</p>:catalog.error?<div role="alert">Listeler okunamadı. <Button onClick={()=>void catalog.reload()}>Yeniden dene</Button></div>:catalog.loading?<p role="status">Listeler yükleniyor…</p>:<section aria-label="Kayıtlı arama listeleri" className="min-w-0 space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+   <h2 className="text-sm font-semibold text-slate-900">Ekip listeleri</h2>{!catalog.data?.length&&<div className="space-y-2 py-4"><p className="text-sm text-slate-600">Henüz arama listesi yok.</p><Link href="/personel-havuzu" onClick={guard.handle} className="inline-flex min-h-11 items-center text-sm font-medium text-blue-700 underline">Havuzdan kişi seç</Link></div>}
+   <ul className="space-y-2">{catalog.data?.map(row=><li key={row.id} className="flex w-full min-w-0 items-center rounded-xl border border-slate-200 p-1"><button disabled={dirty||busy} className="min-h-11 min-w-0 flex-1 rounded-lg break-words px-3 py-2 text-left text-sm font-medium hover:bg-slate-50 aria-pressed:bg-blue-50 aria-pressed:text-blue-800" aria-pressed={active===row.id} onClick={()=>{setActive(row.id);setIndex(0);setMessage('');}}>{row.name}<span className="block text-xs text-slate-500">{row.selectedCount} kişi seçilmiş</span></button>{row.canRemove&&<button disabled={dirty||busy} className="min-h-11 shrink-0 px-3 text-sm text-slate-500" aria-label={`${row.name} listesini kaldır`} onClick={()=>setRemove(row.id)}>Kaldır</button>}</li>)}</ul>
    <Button variant="outline" disabled={dirty||busy} onClick={()=>{void catalog.reload();if(active){setIndex(0);void contents.reload();}}}>Listeleri yenile</Button>
    {remove&&<div className="rounded-xl border border-amber-200 p-3" role="group" aria-label="Listeyi kaldırma onayı"><p>Bu liste tüm ekipten kaldırılacak. Kişiler ve görüşmeleri korunur.</p><Button disabled={busy||dirty} onClick={()=>void archive(remove)}>Listeyi kaldır</Button><Button variant="ghost" disabled={busy} onClick={()=>setRemove(null)}>Vazgeç</Button></div>}
   </section>}
-  {confirmed&&active&&(contents.error?<div role="alert">Liste açılamadı. Kaldırılmış veya kişi kayıtları değişmiş olabilir. <Button onClick={()=>{setIndex(0);void contents.reload();}}>Yeniden dene</Button></div>:contents.loading?<p role="status">Listedeki kişiler yükleniyor…</p>:contents.data&&person&&<section className="rounded-2xl border bg-white p-4 sm:p-6" aria-label="Arama turu">
+  {confirmed&&active&&(contents.error?<div role="alert">Liste açılamadı. Kaldırılmış veya kişi kayıtları değişmiş olabilir. <Button onClick={()=>{setIndex(0);void contents.reload();}}>Yeniden dene</Button></div>:contents.loading?<p role="status">Listedeki kişiler yükleniyor…</p>:contents.data&&person&&<section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6" aria-label="Arama turu">
    {!conversationDirty&&<CallListEditor key={`${contents.data.id}:${contents.data.revision}`} scope={scope} list={contents.data} onDirty={setEditDirty} onSaved={()=>{setIndex(0);void contents.reload();void catalog.reload();}}/>}
    <h2 className="break-words text-xl font-semibold">{contents.data.name}</h2>
    {contents.data.people.length<contents.data.selectedCount&&<p className="mt-2 text-sm text-slate-600">Birleştirilmiş kişi kartları bir kez gösteriliyor: {contents.data.people.length} kişi.</p>}
@@ -35,5 +37,7 @@ export default function CallLists({scope}:{scope:TalentScope}){
    <p className="mb-4 text-xs text-slate-500">Telefonu açmak görüşme kaydı oluşturmaz. Sonucu aşağıdan kaydedin; ardından sonraki kişiye geçin.</p>
    <PersonConversations key={person.id} scope={scope} personId={person.id} canWrite={confirmed&&!editDirty} onDirty={setDirty}/>
   </section>)}
+  {confirmed&&!active&&!!catalog.data?.length&&<section className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-6 sm:p-10"><h2 className="text-lg font-semibold text-slate-900">Aramaya başlayın</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-600">Bir liste seçtiğinizde kişi bilgileri ve görüşme geçmişi burada açılır.</p></section>}
+  </div>
  </div>;
 }
