@@ -127,7 +127,11 @@ function UsersTab() {
   if (resource.loading) return <p role="status" className="p-6 text-sm text-slate-600">Şirket ekibi yükleniyor…</p>;
   if (resource.error) return <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4"><p>Şirket ekibi yüklenemedi.</p><button type="button" onClick={() => void resource.reload()} className="mt-2 min-h-11 text-sm font-medium text-blue-700 underline">Yeniden dene</button></div>;
   if (!resource.data) return <p role="status" className="p-6 text-sm text-slate-600">Şirket erişimi doğrulanıyor…</p>;
-  return <DataTable<AyarUserEntry> columns={COLUMNS_USERS} data={resource.data} rowKey="id" emptyTitle="Şirket ekibinde kullanıcı bulunamadı" emptyDescription="Şirket erişimini kontrol edin. Yeni ekip üyeleri için Ekip davetleri bağlantısını kullanabilirsiniz." />;
+  if (!resource.data.length) return <EmptyState title="Şirket ekibinde kullanıcı bulunamadı" description="Şirket erişimini kontrol edin. Yeni ekip üyeleri için Ekip davetleri bağlantısını kullanabilirsiniz." />;
+  return <>
+    <ul aria-label="Şirket ekibi" className="space-y-3 sm:hidden">{resource.data.map(person => <li key={person.id} className="min-w-0 rounded-xl border border-slate-200 bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><p className="min-w-0 break-words font-semibold text-slate-900">{person.ad}</p><span className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-700">{person.rol}</span></div><p className="mt-2 break-all text-sm text-slate-600">{person.eposta}</p></li>)}</ul>
+    <div className="hidden sm:block"><DataTable<AyarUserEntry> columns={COLUMNS_USERS} data={resource.data} rowKey="id" /></div>
+  </>;
 }
 
 // ---------------------------------------------------------------------------
