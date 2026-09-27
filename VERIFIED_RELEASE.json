@@ -1,5 +1,5 @@
 {
-  "deployment": "dpl_6zkcuMCqACmoi1bQuU81yzvC4bjz",
+  "deployment": "dpl_Gv9EFAosP1HGoGBGhHZBD22AXKga",
   "date": "2026-09-28",
   "url": "https://www.bpsys.net",
   "files": {
@@ -136,7 +136,7 @@
     "src/app/(main)/talepler/planlar/ScheduleEditor.tsx": "89288f37c7ed3c1c09d0d99b8d14d48a751f2641fce19d29ec271cdc40bc81d6",
     "src/app/(main)/talepler/planlar/Schedules.tsx": "88818ae8af0a4342a90f407fdf39b315cf0ab6a81a93fe94331409d2d567b3ef",
     "src/app/(main)/yonetim/actions.ts": "bb0b605f215b9ac54366245129905bab76f605d8452feb1b62beae0428b9b76d",
-    "src/app/(main)/yonetim/ManagementBoard.tsx": "5b90553f8efd952f0b0b08913918cf6a7d0c34a835a4d735e0d790056b7c5ad6",
+    "src/app/(main)/yonetim/ManagementBoard.tsx": "1293d46fe87da1220eb8870d156b2441868b6ca4653018db905cebace809648f",
     "src/app/(main)/yonetim/page.tsx": "fcaf905d18ce079fc10be094c8e38437ed7b089be1499b0b1e0adc2265f702ed",
     "src/app/admin/actions.ts": "2190bc501a172e84320a803a58985cb033e5d8d6aa864570bbec1bfee469b033",
     "src/app/admin/AdminClient.tsx": "f7c912b1e025ad7997225df82855c370116996d17c03298eafe66375c83a5ac1",
