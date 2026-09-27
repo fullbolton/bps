@@ -80,15 +80,6 @@ const COLUMNS_USERS: ColumnDef<AyarUserEntry>[] = [
   { key: "eposta", header: "E-posta" },
 ];
 
-const COLUMNS_ROLES: ColumnDef<AyarRolEntry>[] = [
-  { key: "rolAdi", header: "Rol Adı", sortable: true },
-  {
-    key: "aciklama",
-    header: "Açıklama",
-    render: (val) => <span className={`${TYPE_BODY} ${TEXT_BODY}`}>{val as string}</span>,
-  },
-];
-
 // ---------------------------------------------------------------------------
 // Access request types
 // ---------------------------------------------------------------------------
@@ -368,7 +359,7 @@ export default function AyarlarPage() {
           <details className="rounded-xl border border-slate-200 bg-white p-4">
             <summary className="min-h-11 cursor-pointer font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600">Roller hakkında</summary>
             <p className="mb-3 text-sm text-slate-500">Genel rol açıklamalarıdır; bu bölüm yetki değiştirmez. Erişim, şirket üyeliği ve ilgili ekranın yetki kurallarına bağlıdır.</p>
-            <DataTable<AyarRolEntry> columns={COLUMNS_ROLES} data={ROLLER} rowKey="id" />
+            <dl className="grid gap-3 sm:grid-cols-2">{ROLLER.map(item => <div key={item.id} className="min-w-0 rounded-xl bg-slate-50 p-4"><dt className="font-semibold text-slate-900">{item.rolAdi}</dt><dd className="mt-1 text-sm leading-relaxed text-slate-600">{item.aciklama}</dd></div>)}</dl>
           </details>
         </>}
         {activeTab === "erisim-talepleri" && <>

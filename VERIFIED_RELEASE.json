@@ -1,5 +1,5 @@
 {
-  "deployment": "dpl_Gv9EFAosP1HGoGBGhHZBD22AXKga",
+  "deployment": "dpl_CGibjAcTjdDNnku5cbt1p9MTh4fn",
   "date": "2026-09-28",
   "url": "https://www.bpsys.net",
   "files": {
@@ -15,7 +15,7 @@
     "public/THIRD_PARTY_NOTICES.txt": "d2b507ac23a0171a47840fab0796e1e92c64ca48f4324f123909e1e7784d4e7a",
     "src/app/_landing-fonts.ts": "c0c85e774382a337a4cdcb1f9323addb96d5a72659778cfcd52477d437184031",
     "src/app/(main)/aktif-isgucu/page.tsx": "ede509b77d1bcc35e54f7ddea5c80397def3b28152d9b4cce42c14fcc0de0e94",
-    "src/app/(main)/ayarlar/page.tsx": "27adae4bb74c0bccc7757eff736b27e9e8b990a51b5dde4b960c6ac81d7388af",
+    "src/app/(main)/ayarlar/page.tsx": "903bb1dc4d4cb019c5ab72808388480f43e6d647fc4a1eba7ab9f7269c0813b4",
     "src/app/(main)/dashboard/actions.ts": "5030c724eba2a2d53cb80cf7092f06bf5f6d174308d2de80245683703fb92385",
     "src/app/(main)/dashboard/DailyOverview.tsx": "35062683eb75321af0abe5e2424b111d9046851385944268c2c6858b8cd701ee",
     "src/app/(main)/dashboard/DashboardClient.tsx": "684e45e6178d80e2a9a2158f84e99734de4eb20e759c290d86784ba6017854bc",
@@ -83,7 +83,7 @@
     "src/app/(main)/randevular/AppointmentTasks.tsx": "ad95daf33c159d2df0a582b11518e4184dbee969b8fcb5570fd2dfe32117995d",
     "src/app/(main)/randevular/page.tsx": "633068c23812e5bb5edaedee88826f82ac0d66a2967423eb70961340d30314e9",
     "src/app/(main)/raporlar/page.tsx": "fd3d4b7bb3e5828c4e370e65851e8fc306b4728f6615b8faacd2580297f06ce6",
-    "src/app/(main)/raporlar/ReportsClient.tsx": "6849398e59bd01ac5192197c72445eff10fb53dbb0f0f4efe25929b696e0ff61",
+    "src/app/(main)/raporlar/ReportsClient.tsx": "440ecda88b63c236cd3d52d1f2c49da8c930071097a1ffe63a474b912f3908d2",
     "src/app/(main)/sozlesmeler/[id]/actions.ts": "177df6ff95c0cd220b35251dfaa7fc1e096d62ac53cd905b40a8593122167ec2",
     "src/app/(main)/sozlesmeler/[id]/ContractAppendices.tsx": "c8f0cd0d6c84fd5a17cffd53f4d17ed649ac20f89d1ed67a6d371403d977443d",
     "src/app/(main)/sozlesmeler/[id]/page.tsx": "7f7f6f4c9f1795de2ac2eb65efdb20b6678010184cfb20d4ae88bbd4ef686dcc",
@@ -207,7 +207,7 @@
     "src/components/ui/PickerFeedback.tsx": "20a486cd9bf6004783fbab446b2e02db50d562aeaf91d43bb2564f92c300323d",
     "src/components/ui/PriorityBadge.tsx": "6cc840bc553db0d8f3502a3ecf1a3c58d25dc3904ec28c8c8455ab8af26cd12a",
     "src/components/ui/ReceivablesSummaryCard.tsx": "05ba32b0da4c4442ec87c73c98b405aa7680d3fde95d8985d89ca0395aadf66b",
-    "src/components/ui/ReportSwitcher.tsx": "09c31f7a4e92dab60af535b55b638cdfee525fc9383286af414eace26008d1c6",
+    "src/components/ui/ReportSwitcher.tsx": "d1ec704d1e249861667db18170d6c90e7cf5a5919db8f973ad70db96da1a0502",
     "src/components/ui/RightSidePanel.tsx": "5165edfd0fef7b763cd77fb1ab094814533d594ef346ee70dfc4e2485682bb57",
     "src/components/ui/RiskBadge.tsx": "9f5418b3268147fdc048bfa7b2866a1efad38014509639f8952562323f870fc2",
     "src/components/ui/SearchInput.tsx": "6477ed777076b48ddc74284ff55a33a175c1e289009fc29adbc3bafa2a8587bf",

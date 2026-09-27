@@ -1,51 +1,8 @@
 "use client";
-
-import { clsx } from "clsx";
-import {
-  TYPE_LABEL,
-  TEXT_INVERSE,
-  RADIUS_FULL,
-} from "@/styles/tokens";
-
-export interface ReportOption {
-  key: string;
-  label: string;
-}
-
-interface ReportSwitcherProps {
-  reports: ReportOption[];
-  activeKey: string;
-  onSwitch: (key: string) => void;
-}
-
-const CHIP_BASE = `px-3 py-1 ${TYPE_LABEL} ${RADIUS_FULL} border transition-colors`;
-const CHIP_ACTIVE = `bg-slate-900 ${TEXT_INVERSE} border-slate-900`;
-const CHIP_INACTIVE = "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
-
-/**
- * Lightweight chip-row for switching between fixed reports.
- * Receives only the reports the current role is allowed to see.
- * No role logic inside — filtering happens at page level.
- */
-export default function ReportSwitcher({
-  reports,
-  activeKey,
-  onSwitch,
-}: ReportSwitcherProps) {
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {reports.map((r) => (
-        <button
-          key={r.key}
-          onClick={() => onSwitch(r.key)}
-          className={clsx(
-            CHIP_BASE,
-            r.key === activeKey ? CHIP_ACTIVE : CHIP_INACTIVE
-          )}
-        >
-          {r.label}
-        </button>
-      ))}
-    </div>
-  );
+import {clsx} from "clsx";
+export interface ReportOption {key:string;label:string;description?:string;}
+interface ReportSwitcherProps {reports:ReportOption[];activeKey:string;onSwitch:(key:string)=>void;}
+/** Selection only; the page supplies the reports allowed for the current role. */
+export default function ReportSwitcher({reports,activeKey,onSwitch}:ReportSwitcherProps){
+ return <div role="group" aria-label="Rapor seçimi" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{reports.map(report=><button type="button" key={report.key} aria-pressed={report.key===activeKey} onClick={()=>onSwitch(report.key)} className={clsx("min-h-11 min-w-0 rounded-xl border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-blue-600",report.key===activeKey?"border-blue-600 bg-blue-50 text-blue-900":"border-slate-200 bg-white text-slate-700 hover:border-blue-300")}><span className="block text-sm font-semibold">{report.label}</span>{report.description&&<span className="mt-1 block text-sm leading-relaxed text-slate-600">{report.description}</span>}</button>)}</div>;
 }

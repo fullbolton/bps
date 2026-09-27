@@ -97,11 +97,11 @@ import {
 // ---------------------------------------------------------------------------
 
 const ALL_REPORTS: ReportOption[] = [
-  { key: "is-gucu", label: "Önceki İş Gücü Kayıtları" },
-  { key: "sozlesme-bitis", label: "Yaklaşan Sözleşme Bitişleri" },
-  { key: "talep-analizi", label: "Önceki Talep Kayıtları" },
-  { key: "randevu-sonuc", label: "Randevu Hacmi ve Sonuçlar" },
-  { key: "partner-ozet", label: "Partner Özeti (kullanıma kapalı)" },
+  { key: "is-gucu", label: "Önceki İş Gücü Kayıtları", description: "Önceki kayıtlardan firma bazında personel özeti." },
+  { key: "sozlesme-bitis", label: "Yaklaşan Sözleşme Bitişleri", description: "Süresi dolan ve 90 gün içinde bitecek sözleşmeler." },
+  { key: "talep-analizi", label: "Önceki Talep Kayıtları", description: "Önceki taleplerin pozisyona göre dağılımı." },
+  { key: "randevu-sonuc", label: "Randevu Hacmi ve Sonuçlar", description: "Kaydedilen görüşmeler ve sonuçları." },
+  { key: "partner-ozet", label: "Partner Özeti (kullanıma kapalı)", description: "Bu rapor henüz kullanıma açık değil." },
 ];
 
 const REPORT_ROLE_ACCESS: Record<UserRole, string[]> = {
@@ -477,6 +477,7 @@ export default function ReportsClient({operationsEnabled}:{operationsEnabled:boo
           </section>
         </>}
 
+        <h2 className="text-lg font-semibold">İncelemek istediğiniz raporu seçin</h2>
         <ReportSwitcher
           reports={visibleReports}
           activeKey={selectedKey}
