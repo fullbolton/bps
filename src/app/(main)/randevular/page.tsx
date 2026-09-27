@@ -7,6 +7,10 @@ import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import PickerFeedback from "@/components/ui/PickerFeedback";
 import AppointmentLinkOpener from "./AppointmentLinkOpener";
 import AppointmentTasks from "./AppointmentTasks";
+import dynamic from "next/dynamic";
+const AppointmentCalendar = dynamic(() => import("./AppointmentCalendar"), {
+  loading: () => <p role="status" className="p-5 text-sm text-slate-500">Takvim hazırlanıyor…</p>,
+});
 import AsyncSection from "@/components/ui/AsyncSection";
 
 /**
@@ -151,7 +155,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
   { key: "firma_name", header: "Firma", sortable: true },
   {
     key: "meeting_type",
-    header: "Görüşme Tipi",
+    header: "Görüşme türü",
     render: (val) => <span>{APPOINTMENT_TYPE_LABELS[val as AppointmentMeetingType] ?? String(val)}</span>,
   },
   { key: "attendee", header: "Katılımcı", render: (val) => <span>{(val as string) || "—"}</span> },
@@ -214,6 +218,7 @@ export default function RandevularPage() {
   const allProfiles = useMemo(() => profileSnapshot?.scope === listScope ? profileSnapshot?.rows ?? [] : [], [profileSnapshot, listScope]);
   const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
   const profilesDurum = profileSnapshot?.scope === listScope ? profileSnapshot?.status ?? "loading" : "loading";
+  const [view, setView] = useState<"list" | "calendar">("list");
   const [newOpen, setNewOpen] = useState(false);
   const [resultTarget, setResultTarget] = useState<{ open: boolean; randevuId?: string }>({ open: false });
   // Info (not error): set when a completion succeeds but the follow-up
@@ -394,7 +399,7 @@ export default function RandevularPage() {
     <>
       <PageHeader
         title="Randevular"
-        subtitle="Görüşme sonuçlarını ve takip işlerini yönetin."
+        subtitle="Görüşmeleri takvimde planlayın, sonuç ve takip işlerini yönetin."
         actions={[
           {
             label: "Yeni Randevu",
@@ -456,7 +461,10 @@ export default function RandevularPage() {
           </button></div>
         </ListToolbar>
 
-        {loading ? (
+        <div role="group" aria-label="Randevu görünümü" className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1">
+          {([{value:"list",label:"Liste"},{value:"calendar",label:"Takvim"}] as const).map(option => <button key={option.value} type="button" aria-pressed={view===option.value} onClick={()=>setView(option.value)} className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm aria-pressed:border-blue-600 aria-pressed:bg-blue-50 aria-pressed:text-blue-800">{option.label}</button>)}
+        </div>
+        {view === "calendar" ? <AppointmentCalendar key={listScope} rows={loading || loadError ? [] : filteredData} loading={loading} hasError={!!loadError} onOpen={setSelectedId}/> : loading ? (
           <p role="status" className={`${TYPE_BODY} ${TEXT_MUTED} text-center py-8`}>Randevular yükleniyor…</p>
         ) : !loadError ? (
           <DataTable<AppointmentListRow>
@@ -498,7 +506,7 @@ export default function RandevularPage() {
               </dd>
             </div>
             <div>
-              <dt className={DL_LABEL}>Görüşme Tipi</dt>
+              <dt className={DL_LABEL}>Görüşme türü</dt>
               <dd className={DL_VALUE}>{APPOINTMENT_TYPE_LABELS[selectedRandevu.meeting_type]}</dd>
             </div>
             <div>

@@ -64,15 +64,18 @@ export async function selectAppointmentsByCompanyId(
 export async function selectAllAppointments(
   client: Client,
 ): Promise<AppointmentRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("appointments")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("meeting_date", { ascending: false });
 
   if (error) {
     throw new Error(`appointments select-all failed: ${error.message}`);
   }
-  return data ?? [];
+  if (!Array.isArray(data) || count !== data.length) {
+    throw new Error("Randevuların tamamı alınamadı. Listeyi yenileyerek tekrar deneyin.");
+  }
+  return data;
 }
 
 /**
