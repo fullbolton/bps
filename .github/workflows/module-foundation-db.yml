@@ -11,6 +11,7 @@ on:
       - 'scripts/company-commands-db.test.mjs'
       - 'scripts/customer-notes-db.test.mjs'
       - 'scripts/contact-commands-db.test.mjs'
+      - 'scripts/customer-notifications-db.test.mjs'
       - 'scripts/fixtures/module-database.mjs'
       - 'scripts/module-catalog-sql.mjs'
       - 'src/lib/modules/**'
@@ -26,6 +27,7 @@ on:
       - 'scripts/company-commands-db.test.mjs'
       - 'scripts/customer-notes-db.test.mjs'
       - 'scripts/contact-commands-db.test.mjs'
+      - 'scripts/customer-notifications-db.test.mjs'
       - 'scripts/fixtures/module-database.mjs'
       - 'scripts/module-catalog-sql.mjs'
       - 'src/lib/modules/**'
@@ -60,4 +62,4 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: node scripts/module-catalog-sql.mjs --check
-      - run: node --test --test-concurrency=1 scripts/tenant-modules-db.test.mjs scripts/task-module-gateway-db.test.mjs scripts/finance-module-db.test.mjs scripts/customer-module-db.test.mjs scripts/company-commands-db.test.mjs scripts/customer-notes-db.test.mjs scripts/contact-commands-db.test.mjs
+      - run: node --test --test-concurrency=1 scripts/tenant-modules-db.test.mjs scripts/task-module-gateway-db.test.mjs scripts/finance-module-db.test.mjs scripts/customer-module-db.test.mjs scripts/company-commands-db.test.mjs scripts/customer-notes-db.test.mjs scripts/contact-commands-db.test.mjs scripts/customer-notifications-db.test.mjs

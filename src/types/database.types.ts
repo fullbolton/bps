@@ -1226,6 +1226,8 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      customer_notification_modules_v1: {Args: {p_tenant_ids:string[];p_module:string};Returns:{tenant_id:string;enabled:boolean}[]};
+      notification_company_names_v1: {Args: {p_company_ids:string[];p_tenant_ids:string[];p_module:string};Returns:{id:string;tenant_id:string;name:string}[]};
       contact_execute_v1: {
         Args: {p_action:string;p_contact_id:string|null;p_company_id:string;p_tenant_id:string;p_actor_id:string;p_input:Json};
         Returns: Database["public"]["Tables"]["contacts"]["Row"][];

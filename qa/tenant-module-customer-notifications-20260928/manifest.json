@@ -1,0 +1,31 @@
+{
+  "baseCommit": "47dc8fea144779f57a2d8f78a212c7c9877dfd60",
+  "status": "local-not-deployed",
+  "releaseExitCode": 0,
+  "databaseExitCode": 0,
+  "applicationTests": 598,
+  "databaseTests": 113,
+  "newApplicationTests": 7,
+  "newDatabaseTests": 8,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "browserSmokeRun": false,
+  "productionMigrationApplied": false,
+  "realEmailsSent": false,
+  "serviceRawCandidateReadsRemoved": false,
+  "files": {
+    ".github/workflows/module-foundation-db.yml": "20270ab5ad74be1b3b1e2539a42994be53ded42c75f198b2981a89be515539ab",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "f48eea146b3b2ca1c822e83f5ed51af50003fe882621831da62b6403b185d80c",
+    "scripts/notification-batch-integration.test.mjs": "e381587915770ae518f991f8df99c58b1efa8fa51f5199e260f2bf83b31adcfb",
+    "scripts/notification-companies.test.mjs": "447e9f3461a98b0c83b5d759c4267cdcbf053e57310590923ac2d7ae3a485d6e",
+    "scripts/notification-contract-integration.test.mjs": "1661ec2d1532da02b5cad6ff7625ec36098ae7747ae94cfcfb8fbb41950319ee",
+    "scripts/test-inventory.json": "05fe453a8f426490ae7ae895c13ef9938e3833cbfd9f2cf36ac44d241390a402",
+    "src/lib/email/company-names.ts": "4694714aa61d7a2a2b5df199c2bfa4d52294668cb3baf56c073952fc771e9f0b",
+    "src/lib/email/contract-expiry-email.ts": "f9520c6b3567a3176a2ab51467be92986188a2a7cbf630330cc1f9386d1e7567",
+    "src/lib/email/notification-batches.ts": "dd13c4cd6f39def9e981d4e2f99b171487dd5ff8699c19d8c32356a939a94fcb",
+    "src/lib/email/task-module-access.ts": "3795a8c3dd4580fe1bcfe37ceea64a3b580b90778f218b067806480fc5cd5f2f",
+    "src/types/database.types.ts": "df768205ea49ce7f1be17156cebf3d2ba728ffa5f59a7ba5704dd7315fa4a6ab",
+    "scripts/customer-notifications-db.test.mjs": "f4fab0ce871615483da74f30851af466e231789d56ecc0943ba5b92d6740a93f",
+    "supabase/migrations/20260928002400_customer_notification_modules.sql": "e914465f1188f7734559048f46811dedfce2759fdb43221bf0f14b79eb1753c7"
+  }
+}

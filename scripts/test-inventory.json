@@ -532,5 +532,9 @@
   {
     "file": "scripts/contact-commands-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/customer-notifications-db.test.mjs",
+    "suite": "database"
   }
 ]

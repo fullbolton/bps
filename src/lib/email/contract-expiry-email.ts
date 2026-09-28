@@ -1,3 +1,4 @@
+import { enabledNotificationTenants } from "./task-module-access";
 import {readTenantRoleDirectory,tenantCompanyRecipients,sameRecipientMembership,type TenantRoleDirectory} from './tenant-role-recipients';
 /**
  * BPS Katman 2 — Contract Expiry Email Recall V1.
@@ -132,6 +133,8 @@ export async function runContractExpiryRecallBatch(
   let contractRows: ExpiryContract[];
   try {
     contractRows = await readExpiryContracts(client);
+    const enabled = await enabledNotificationTenants(client, contractRows.map(row => row.tenant_id), "contracts");
+    contractRows = contractRows.filter(row => enabled.has(row.tenant_id));
   } catch {
     result.errors.push("contracts fetch failed: code=READ_INCOMPLETE");
     return result;
@@ -158,7 +161,7 @@ export async function runContractExpiryRecallBatch(
 
   let companyNameById: Map<string, string>;
   try {
-    companyNameById = await readNotificationCompanyNames(client, [...companyIds]);
+    companyNameById = await readNotificationCompanyNames(client, candidates.map(c => ({companyId: c.contract.company_id, tenantId: c.contract.tenant_id})), "contracts");
   } catch {
     result.errors.push("companies fetch failed: code=READ_INCOMPLETE");
     return result;
@@ -230,6 +233,9 @@ export async function runContractExpiryRecallBatch(
         thresholdKey: NOTIFICATION_THRESHOLDS.contract_expiry,
         tenantId: c.contract.tenant_id,
       };
+      try {
+        if (!(await enabledNotificationTenants(client, [c.contract.tenant_id], "contracts")).has(c.contract.tenant_id)) continue;
+      } catch { result.errors.push("contract modules unavailable before stamp; no email sent"); continue; }
       const stamp = await stampNotification(client, stampKey);
       if (stamp.status === "already_sent") {
         result.recipientsSkippedIdempotent++;
@@ -241,6 +247,16 @@ export async function runContractExpiryRecallBatch(
           result,
           `stamp insert failed for contract ${c.contract.id} / recipient ${recipient.id}: ${stamp.error}`,
         );
+        continue;
+      }
+
+      // Delivery cannot share a SQL lock; do not promise recall of in-flight email.
+      let enabled = false;
+      try { enabled = (await enabledNotificationTenants(client, [c.contract.tenant_id], "contracts")).has(c.contract.tenant_id); }
+      catch { result.errors.push("contract modules unavailable before send; no email sent"); }
+      if (!enabled) {
+        const rollback = await rollbackStamp(client, stampKey);
+        if (!rollback.ok) result.errors.push(`ROLLBACK FAILED (contract module/${c.contract.id}/${recipient.id}): ${rollback.error ?? "unknown"}`);
         continue;
       }
 

@@ -9,7 +9,7 @@ const code=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{target:
 const modules=new Map();
 for(const [,spec]of code.matchAll(/require\("([^"]+)"\)/g))if(!spec.endsWith('resend-transport'))modules.set(spec,await importActualTypeScript(spec.startsWith('@/')?new URL('../src/'+spec.slice(2)+'.ts',import.meta.url):new URL(spec+'.ts',url)));
 function runner(sent,multi=false){const exports={};vm.runInNewContext(code,{exports,Date,Map,Set,process:{env:{NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:String(multi),BPS_EMAIL_FROM:'synthetic@example.invalid',BPS_APP_URL:'https://example.invalid'}},require:spec=>spec.endsWith('resend-transport')?{sendEmail:async input=>{sent.push(input);return {ok:true,id:'synthetic'};}}:modules.get(spec)});return exports.runContractExpiryRecallBatch;}
-function fixture({failTable=null,missingCompany=false,small=false,sharedEmail=false}={}){
+function fixture({failTable=null,missingCompany=false,small=false,sharedEmail=false,moduleStates={A:true,B:true},moduleFailure=false,afterStamp=null,rollbackFailure=false}={}){
  const contract=(id,tenant_id,company_id,name)=>({id,tenant_id,company_id,name,status:'aktif',end_date:'2026-10-15',responsible:null});
  const contracts=small?[contract('a0','A','ca','A-CONTRACT')]:Array.from({length:601},(_,i)=>contract('a'+String(i).padStart(4,'0'),'A','ca','A-CONTRACT-'+i));
  if(!small)contracts.push(contract('z-contract','B','cb','B-PRIVATE-CONTRACT'));
@@ -19,13 +19,17 @@ function fixture({failTable=null,missingCompany=false,small=false,sharedEmail=fa
  tenant_memberships.push({tenant_id:'A',user_id:'alice'},{tenant_id:'B',user_id:'bob'},{tenant_id:'B',user_id:'partner'});
  if(sharedEmail)tenant_memberships.push({tenant_id:'A',user_id:'alice-twin'});
  const tables={contracts,profiles,tenant_memberships,companies:missingCompany?[]:[{id:'ca',name:'A-COMPANY'},{id:'cb',name:'B-COMPANY'}],partner_company_assignments:[{company_id:'cb',partner_user_id:'partner'}]};
- const stamps=[],ranges=[];
- const client={from(table){let filters=[],orders=[],payload;
+ const stamps=[],ranges=[],deletes=[];
+ const client={rpc(name,args){
+ if(name==='notification_company_names_v1')return Promise.resolve({data:tables.companies.filter(c=>args.p_company_ids.includes(c.id)).map(c=>({...c,tenant_id:c.id==='ca'?'A':'B'})),error:null});
+ assert.equal(name,'customer_notification_modules_v1');assert.equal(args.p_module,'contracts');
+ return Promise.resolve(moduleFailure?{data:null,error:{code:'55000'}}:{data:args.p_tenant_ids.map(tenant_id=>({tenant_id,enabled:moduleStates[tenant_id]})),error:null});
+ },from(table){let filters=[],orders=[],payload;
   const read=(from=0,paged=false)=>{const data=tables[table].filter(r=>filters.every(f=>f(r))).sort((a,b)=>{for(const k of orders){const c=a[k].localeCompare(b[k]);if(c)return c;}return 0;});if(table===failTable&&from>0)return {data:null,count:null,error:{code:'42501'}};return {data:paged?data.slice(from,from+200):data,count:data.length,error:null};};
-  const q={select(_fields,opts){if(table!=='notification_log')assert.equal(opts.count,'exact');return q;},eq(k,v){filters.push(r=>r[k]===v);return q;},in(k,v){assert.ok(v.length<=100);filters.push(r=>v.includes(r[k]));return q;},not(k,_op,v){filters.push(r=>r[k]!==v);return q;},order(k){orders.push(k);return q;},range:async(from,to)=>{assert.equal(to-from,499);ranges.push([table,from]);return read(from,true);},then(resolve,reject){return Promise.resolve(read()).then(resolve,reject);},insert(v){payload=v;return q;},maybeSingle:async()=>{stamps.push(payload);return {data:{kind:payload.kind},error:null};}};
+  const q={select(_fields,opts){if(table!=='notification_log')assert.equal(opts.count,'exact');return q;},eq(k,v){filters.push(r=>r[k]===v);return q;},in(k,v){assert.ok(v.length<=100);filters.push(r=>v.includes(r[k]));return q;},not(k,_op,v){filters.push(r=>r[k]!==v);return q;},order(k){orders.push(k);return q;},range:async(from,to)=>{assert.equal(to-from,499);ranges.push([table,from]);return read(from,true);},delete(){payload='delete';deletes.push(table);return q;},then(resolve,reject){return Promise.resolve(payload==='delete'?{error:rollbackFailure?{message:'synthetic failure'}:null}:read()).then(resolve,reject);},insert(v){payload=v;return q;},maybeSingle:async()=>{stamps.push(payload);afterStamp?.(moduleStates);return {data:{kind:payload.kind},error:null};}};
   return q;
  }};
- return {client,stamps,ranges,tables};
+ return {client,stamps,ranges,tables,deletes};
 }
 test('contract batch reads past limits and sends each contract only to its tenant and assigned partner',async()=>{
  const sent=[],f=fixture();const result=await runner(sent)(f.client,new Date('2026-09-14T21:00:00Z'));
@@ -66,4 +70,17 @@ test('multi-workspace contracts use tenant roles for managers and assigned partn
  assert.equal(sent.filter(m=>m.to==='partner@example.invalid').length,0);
  assert.ok(sent.filter(m=>m.to==='alice@example.invalid').every(m=>!m.text.includes('B-PRIVATE-CONTRACT')));
  assert.equal(sent.filter(m=>m.to==='bob@example.invalid').length,1);
+});
+
+test('contract module off filters candidates before names and reservations',async()=>{
+ const sent=[],f=fixture({small:true,moduleStates:{A:false,B:true}});const result=await runner(sent)(f.client,new Date('2026-09-15T09:00:00Z'));
+ assert.equal(sent.length,0);assert.equal(f.stamps.length,0);assert.equal(result.contractsEvaluated,0);assert.equal(result.errors.length,0);
+});
+test('missing contract config sends nothing and never consumes a stamp',async()=>{
+ const sent=[],f=fixture({small:true,moduleFailure:true});const result=await runner(sent)(f.client,new Date('2026-09-15T09:00:00Z'));
+ assert.ok(result.errors.length);assert.equal(sent.length,0);assert.equal(f.stamps.length,0);
+});
+for(const broken of [false,true])test(`contract closure after stamp releases reservation; rollback failure=${broken}`,async()=>{
+ const sent=[],f=fixture({small:true,afterStamp:states=>{states.A=false;},rollbackFailure:broken});const result=await runner(sent)(f.client,new Date('2026-09-15T09:00:00Z'));
+ assert.equal(sent.length,0);assert.equal(f.stamps.length,1);assert.deepEqual(f.deletes,['notification_log']);assert.equal(result.errors.some(e=>e.includes('ROLLBACK FAILED')),broken);
 });

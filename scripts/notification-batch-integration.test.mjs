@@ -25,7 +25,8 @@ function fixture({failTable=null,missingStamp=false,tasks=[],appointments=[],com
  const tables={documents,profiles,tasks,appointments,companies,tenant_memberships:memberships},stamps=[],ranges=[];
  const client={rpc(name,args,opts){
   if(name==='task_notification_candidates_v1')return this.from('tasks').select('id',opts).in('status',['acik','devam_ediyor','gecikti']).in('tenant_id',Object.keys(moduleStates).filter(k=>moduleStates[k]===true));
-  assert.equal(name,'task_notification_modules_v1');
+  if(name==='notification_company_names_v1')return Promise.resolve({data:companies.filter(c=>args.p_company_ids.includes(c.id)).map(c=>({...c,tenant_id:c.tenant_id??'A'})),error:null});
+  assert.ok(['task_notification_modules_v1','customer_notification_modules_v1'].includes(name));
   return Promise.resolve(moduleFailure?{data:null,error:{code:'55000'}}:{data:args.p_tenant_ids.map(tenant_id=>({tenant_id,enabled:moduleStates[tenant_id]})),error:null});
  },from(table){let filters=[],orders=[],payload;
   const q={select(_fields,opts){if(table!=='notification_log')assert.equal(opts.count,'exact');return q;},eq(k,value){filters.push(r=>r[k]===value);return q;},in(k,values){filters.push(r=>values.includes(r[k]));return q;},not(k,_op,v){filters.push(r=>r[k]!==v);return q;},lte(k,v){filters.push(r=>r[k]<=v);return q;},order(k){orders.push(k);return q;},range:async(from,to)=>{
@@ -123,4 +124,11 @@ test('unverifiable post-stamp module state releases the reservation and sends no
  f.client.from=table=>{const q=original(table),remove=q.delete;q.delete=()=>{deletes.push(table);return remove();};return q;};
  const result=await batch(sent)(f.client,'task_overdue',new Date('2026-09-15T09:00:00Z'),config);
  assert.ok(result.errors.some(e=>e.includes('before send')));assert.equal(sent.length,0);assert.deepEqual(deletes,['notification_log']);
+});
+
+for(const after of [false,true])test(`calendar off ${after?'after stamp':'before collection'} prevents sends`,async()=>{
+ const appointments=[{id:'appt',meeting_type:'ziyaret',meeting_date:'2026-09-16',company_id:'c1',tenant_id:'A',status:'planlandi'}];
+ const sent=[],f=fixture({appointments,companies:[{id:'c1',name:'Synthetic'}],moduleStates:{A:!after?false:true,B:true},afterStamp:after?states=>{states.A=false;}:null});
+ const result=await batch(sent)(f.client,'appointment_reminder',new Date('2026-09-15T09:00:00Z'),config);
+ assert.equal(result.errors.length,0);assert.equal(sent.length,0);assert.equal(f.stamps.length,after?1:0);
 });

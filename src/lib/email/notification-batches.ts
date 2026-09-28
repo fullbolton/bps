@@ -1,4 +1,4 @@
-import { enabledTaskTenants } from './task-module-access';
+import { enabledNotificationTenants } from './task-module-access';
 import {readTenantRoleDirectory,tenantCompanyRecipients,sameRecipientMembership,type TenantRoleDirectory} from './tenant-role-recipients';
 /**
  * BPS — üç yeni e-posta bildirim tipinin toplayıcısı ve göndericisi.
@@ -304,6 +304,8 @@ async function collectAppointmentReminder(
   let rows: Awaited<ReturnType<typeof readAppointmentNotificationCandidates>>;
   try {
     rows = await readAppointmentNotificationCandidates(client, target);
+    const enabled = await enabledNotificationTenants(client, rows.map(row => row.tenant_id), "calendar");
+    rows = rows.filter(row => enabled.has(row.tenant_id));
   } catch {
     errors.push("appointments fetch failed: code=READ_INCOMPLETE");
     return { byRecipient, found: 0, errors };
@@ -321,7 +323,7 @@ async function collectAppointmentReminder(
 
   let companyNameById: Map<string, string>;
   try {
-    companyNameById = await readNotificationCompanyNames(client, companyIds);
+    companyNameById = await readNotificationCompanyNames(client, rows.map(row => ({companyId: row.company_id, tenantId: row.tenant_id})), "calendar");
   } catch {
     errors.push("appointment companies fetch failed: code=READ_INCOMPLETE");
     return { byRecipient, found: rows?.length ?? 0, errors };
@@ -406,12 +408,12 @@ async function sendGrouped(
       result.itemsDroppedCrossTenant += droppedByTenant;
     }
     if (scopedItems.length === 0) continue;
-    if (kind === 'task_overdue') {
+    if (kind === 'task_overdue' || kind === 'appointment_reminder') {
       try {
-        const enabled = await enabledTaskTenants(client, scopedItems.map(i => i.tenantId));
+        const enabled = await enabledNotificationTenants(client, scopedItems.map(i => i.tenantId), kind === "task_overdue" ? "tasks" : "calendar");
         scopedItems = scopedItems.filter(i => enabled.has(i.tenantId));
       } catch {
-        result.errors.push('task modules unavailable before stamp; no email sent');
+        result.errors.push('notification modules unavailable before stamp; no email sent');
         continue;
       }
       if (scopedItems.length === 0) continue;
@@ -444,15 +446,15 @@ async function sendGrouped(
 
     // Recheck after reservations, immediately before building/sending the email.
     // HTTP transport is outside the SQL transaction; an in-flight send is not recallable.
-    if (kind === 'task_overdue') {
+    if (kind === 'task_overdue' || kind === 'appointment_reminder') {
       let enabled = new Set<string>();
-      try { enabled = await enabledTaskTenants(client, stamped.map(i => i.tenantId)); }
-      catch { result.errors.push('task modules unavailable before send; no email sent'); }
+      try { enabled = await enabledNotificationTenants(client, stamped.map(i => i.tenantId), kind === "task_overdue" ? "tasks" : "calendar"); }
+      catch { result.errors.push('notification modules unavailable before send; no email sent'); }
       const removed = stamped.filter(i => !enabled.has(i.tenantId));
       for (const item of removed) {
         const rollback = await rollbackStamp(client, { kind, entityId: item.entityId,
           recipientProfileId: recipient.id, thresholdKey, tenantId: item.tenantId });
-        if (!rollback.ok) result.errors.push(`ROLLBACK FAILED (task module/${item.entityId}/${recipient.id}): ${rollback.error ?? 'unknown'}`);
+        if (!rollback.ok) result.errors.push(`ROLLBACK FAILED (notification module/${item.entityId}/${recipient.id}): ${rollback.error ?? 'unknown'}`);
       }
       stamped = stamped.filter(i => enabled.has(i.tenantId));
       if (stamped.length === 0) continue;

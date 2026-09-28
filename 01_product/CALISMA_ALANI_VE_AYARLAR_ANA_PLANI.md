@@ -298,3 +298,11 @@ Yetkili kişinin telefon/e-posta düzenleme, silme ve CSV ekleme yolları tenant
 002200 expand ve 002300 kişi direct-DML contract dosyaları hazır. Contract yalnız yeni frontend ve kimlikli smoke sonrası; eski 002100/001100 kabul sıraları korunur. 13 yeni DB ve 8 uygulama testi; kesin sonuçlar `qa/tenant-module-contact-commands-20260928/manifest.json` içinde.
 
 **Yerel; üretim SQL/push/deploy yok.** Müşteri uygulama yazma yolları tamamlandı; service/definer/FK etkileri, diğer modüller, açık iş/bağımlılık ve ayar mutasyonu/cache işleri açık. Genel modül kapatma UI'si hâlâ açılmadı. CSV idempotency/tek dosya atomikliği yok; ağ belirsizliğinde otomatik tekrar yapılmaz. Eşleme 10.000 firma sınırını aşarsa eksik veriyle ilerlemez.
+
+## Uygulama kaydı — 28 Eylül 2026, müşteri bildirimleri M2k
+
+Randevu/sözleşme bildirimleri ilgili tenant modülünü hazırlıkta, gönderim kaydı öncesinde ve gönderim öncesinde doğruluyor. Arada kapanan modülün ayrılan gönderim kaydı geri alınıyor; geri alma hatası ayrıca raporlanıyor. Firma isimleri service-only, tenant/firma eşleşmesini kontrol eden dar RPC'den geliyor. Görevler mevcut RPC'sini koruyarak ortak istemci doğrulamasını kullanıyor. 002400 expand migration hazır.
+
+Sekiz yeni PostgreSQL ve yedi yeni uygulama senaryosu; nihai ölçümler `qa/tenant-module-customer-notifications-20260928/manifest.json`. Gerçek e-posta gönderilmedi. HTTP taşıma SQL ile atomik değil; yola çıkmış mail geri çağrılamaz. Aday randevu/sözleşme kayıtlarının ham servis okuması, evrak bildirimlerinin bağlı sözleşme ayrımı ve servis ham SELECT kesimi hâlâ sırada.
+
+**Yerel; üretim SQL/push/deploy yok.** Genel modül kapatma UI'si açılmadı. Parent-FK/açık iş/diğer modül/ayar mutasyonu/cache işleri sürüyor. Yeni 002400 ortak foundation ve 001300 snapshot sonrası, bildirim uygulama kodundan önce; önceki direct-DML cutover kabul sıraları değişmedi.
