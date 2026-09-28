@@ -504,5 +504,17 @@
   {
     "file": "scripts/customer-directory-modules.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/company-commands-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/company-commands.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/company-status-contract.test.mjs",
+    "suite": "application"
   }
 ]

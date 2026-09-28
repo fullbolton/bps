@@ -12,6 +12,8 @@ import type { SozlesmeDurumu, FirmaDurumu, RiskSeviyesi } from "@/types/ui";
 import type { ParsedRow } from "./csv-parser";
 import { parseBooleanish, convertDateForDB } from "./csv-parser";
 
+import { insertCompany } from "@/lib/supabase/companies";
+
 type Client = SupabaseClient<Database>;
 
 export interface ImportResult {
@@ -75,21 +77,23 @@ export async function importCompanies(
     }
     const d = row.data;
 
-    const { error } = await client.from("companies").insert({
-      // tenant_id is server-set by the action; never read from row.data.
-      tenant_id: options.tenantId,
-      name: d.name.trim(),
-      sector: d.sector?.trim() || null,
-      city: d.city?.trim() || null,
-      status: (d.status?.trim() || "aktif") as FirmaDurumu,
-      risk: (d.risk?.trim() || "dusuk") as RiskSeviyesi,
-      created_by: user?.id ?? null,
-    });
+    try {
+      await insertCompany(client, {
+        // tenant_id is server-set by the action; never read from row.data.
+        tenant_id: options.tenantId,
+        name: d.name.trim(),
+        sector: d.sector?.trim() || null,
+        city: d.city?.trim() || null,
+        status: (d.status?.trim() || "aktif") as FirmaDurumu,
+        risk: (d.risk?.trim() || "dusuk") as RiskSeviyesi,
+        created_by: user?.id ?? null,
+      });
 
-    if (error) {
-      errors.push(`Satir ${row.rowIndex}: ${error.message}`);
-    } else {
       imported++;
+    } catch (error) {
+      errors.push(`Satır ${row.rowIndex}: ${error instanceof Error ? error.message : "Firma kaydı doğrulanamadı."}`);
+      errors.push("Aktarım durduruldu. Kalan satırlar işlenmedi; yeniden aktarmadan önce kaydedilen firmaları kontrol edin.");
+      break;
     }
   }
 

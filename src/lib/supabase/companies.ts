@@ -25,6 +25,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, CompanyRow, CompanyInsert } from "@/types/database.types";
 
+import { createCompanyRecord } from "./company-commands";
+
 type Client = SupabaseClient<Database>;
 
 // ---------------------------------------------------------------------------
@@ -144,30 +146,14 @@ export async function selectCompaniesByExactName(
   return data ?? [];
 }
 
-/**
- * Insert one company row and return it.
- *
- * Raw CRUD: the caller supplies the whole payload, including the
- * server-resolved `tenant_id`. No defaulting and no role check here — the
- * service layer owns those, RLS (`companies_insert_yonetici`) is the
- * database boundary.
+/** Create via the scoped command. Identity is supplied by the authenticated service;
+ * the database verifies it, checks the module, and allows only company business fields.
  */
 export async function insertCompany(
   client: Client,
   payload: CompanyInsert,
 ): Promise<CompanyRow> {
-  const { data, error } = await client
-    .from("companies")
-    .insert(payload)
-    .select()
-    .single();
-
-  if (error || !data) {
-    throw new Error(
-      `companies insert failed: ${error?.message ?? "no row returned"}`,
-    );
-  }
-  return data;
+  return createCompanyRecord(client, payload);
 }
 
 export async function selectCompaniesByIds(

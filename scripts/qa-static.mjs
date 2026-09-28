@@ -4,7 +4,7 @@
  *
  * Custom static guard checks over the repo text. Node built-in only — no
  * dependencies, no DB, no network, no credential reads — with one stated
- * exception: R14 parses source with the project's `typescript` devDependency
+ * exception: status command checks and R14 parse source with the project's `typescript` devDependency
  * and FAILS if it cannot be loaded. Complements (does NOT run) `tsc --noEmit`
  * and `next build`; run those separately.
  *
@@ -75,10 +75,11 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "node:path";
 import { createRequire } from "node:module";
+import { companyStatusContract } from "./helpers/company-status-contract.mjs";
 
 // R14 parses TypeScript with the project's own `typescript` package (the one
 // `tsc` runs). It is loaded lazily inside the rule and the rule fails closed
-// if it is missing. Everything else stays Node built-in only.
+// if it is missing. Status command checks use the same parser; other rules stay Node built-in only.
 const require = createRequire(import.meta.url);
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -287,25 +288,15 @@ const FAIL = "FAIL";
   }
 })();
 
-// R4 — passivateCompanyAction update payload is exactly { status: "pasif" }.
+// R4 — status-only action -> shared helper -> RPC command payload.
+// Actual SQL allow-list and role/module gates are covered by the DB suite.
+function checkCompanyStatus(action,status) {
+  try { return companyStatusContract(require("typescript"),read(FIRMA_ACTIONS),read("src/lib/supabase/company-commands.ts"),action,status); }
+  catch { return false; }
+}
 (() => {
-  const body = extractFn(read(FIRMA_ACTIONS), "passivateCompanyAction");
-  if (!body) {
-    record(FAIL, "passivate-status-only", FAIL, "passivateCompanyAction not found");
-    return;
-  }
-  const m = body.match(/\.update\(\s*\{([^}]*)\}\s*\)/);
-  if (!m) {
-    record(FAIL, "passivate-status-only", FAIL, "no .update({...}) found");
-    return;
-  }
-  const keys = m[1].split(",").map((s) => s.split(":")[0].trim()).filter(Boolean);
-  const statusOnly = keys.length === 1 && keys[0] === "status" && /status:\s*"pasif"/.test(m[1]);
-  if (statusOnly) {
-    record(FAIL, "passivate-status-only", PASS, 'payload = { status: "pasif" }');
-  } else {
-    record(FAIL, "passivate-status-only", FAIL, `payload keys: [${keys.join(", ")}]`);
-  }
+  const ok=checkCompanyStatus("passivateCompanyAction","pasif");
+  record(FAIL,"passivate-status-only",ok?PASS:FAIL,ok?"scoped command; status-only payload":"status command route missing, malformed or widened");
 })();
 
 // R5 — package / migration drift visibility (WARN, not FAIL per V1).
@@ -356,12 +347,10 @@ const FAIL = "FAIL";
   }
 })();
 
-// W3 — reactivate update payload status-only (regex heuristic).
+// W3 — same source contract for reactivation.
 (() => {
-  const body = extractFn(read(FIRMA_ACTIONS), "reactivateCompanyAction");
-  const ok = body && /\.update\(\s*\{\s*status:\s*"aktif"\s*\}\s*\)/.test(body);
-  record(WARN, "reactivate-status-only", ok ? PASS : WARN,
-    ok ? 'payload = { status: "aktif" }' : "reactivate payload not a clean status-only literal");
+  const ok=checkCompanyStatus("reactivateCompanyAction","aktif");
+  record(WARN,"reactivate-status-only",ok?PASS:WARN,ok?"scoped command; status-only payload":"status command route missing, malformed or widened");
 })();
 
 // W4 — stale partner-scope CREATE comment reintroduced (comment-grep).

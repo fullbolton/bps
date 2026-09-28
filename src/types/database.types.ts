@@ -1226,6 +1226,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      company_execute_v1: {
+        Args: { p_action: string; p_company_id: string | null; p_tenant_id: string; p_actor_id: string; p_input: Json };
+        Returns: Database["public"]["Tables"]["companies"]["Row"][];
+      };
       reporting_import_people:{Args:{p_actor:string;p_tenant:string;p_project:string;p_source:string;p_codes:string[];p_search:string};Returns:Json};
       reporting_person_code_set:{Args:{p_actor:string;p_tenant:string;p_project:string;p_revision:number;p_source:string;p_code:string;p_person:string};Returns:number};
       reporting_import_prepare:{Args:{p_actor:string;p_tenant:string;p_project:string;p_command:string;p_month:string;p_source:string;p_rows:Json};Returns:Json};

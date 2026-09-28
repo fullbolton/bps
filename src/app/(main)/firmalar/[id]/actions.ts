@@ -1,50 +1,13 @@
 "use server";
 
+import { setCompanyStatus } from "@/lib/supabase/company-commands";
 import { documentStatusForFile, isDocumentValidityDate } from "@/lib/document-validity";
 import { recoverCompanyDocumentInsert } from "@/lib/services/company-document-recovery";
 
-/**
- * BPS Company Detail — Server Actions
- *
- * Server-side entry points reached from the firma detail surface. Every
- * action runs in server context: the Supabase client is always built via
- * `createServerSupabaseClient()` (anon key + cookie session) — there is
- * NO service_role usage anywhere in this file — and authorization comes
- * from the same DB source RLS uses (`current_user_role()`), with
- * `current_user_active_tenant()` resolving the tenant where needed.
- *
- *   1. `uploadCompanyDocumentAction(formData)` — upload a PDF for a firma.
- *      Client inputs `{company_id, file, name, category, validity_date?}`;
- *      server resolves tenant / author and checks company scope. A supplied
- *      contract_id is rejected before upload: contract PDFs use the dedicated
- *      versioned workflow. Storage first → DB row second; recovery checks
- *      the server-generated document ID before considering bounded cleanup.
- *      Unverified outcomes require review rather than a blind retry.
- *
- *   2. `getCompanyDocumentDownloadUrlAction(documentId)` — short-lived
- *      (60s) signed URL for an existing document. RLS-bounded lookup; no
- *      public URL, `storage_path` never exposed.
- *
- *   3. `deleteCompanyDocumentAction(documentId)` — hard delete a document
- *      (yonetici-only). DB-first delete + RETURNING guard, then storage
- *      remove of the actually-deleted row's path.
- *
- *   4. `deleteContactAction(contactId)` — hard delete a contact
- *      (yonetici-only; app guard narrower than the partner-capable
- *      contacts DELETE RLS). DB-first delete + RETURNING guard, no storage.
- *
- *   5. `passivateCompanyAction(companyId)` — set company status='pasif'
- *      and NOTHING else (yonetici-only). The update payload is the literal
- *      `{ status: "pasif" }`; the only client input is companyId (WHERE).
- *      See that action's own header for the field-discipline rationale.
- *
- * Guards shared by the mutating actions: yonetici-only role check, and a
- * RETURNING/returned-row guard so a zero-row outcome is an idempotent
- * no-op rather than a misleading success. RLS is the final boundary in
- * every case.
- *
- * Not in scope: reactivate, company delete, bulk operations, storage
- * backfill/cleanup, DB migration or policy change.
+/** Company detail actions use the authenticated cookie client; no service role.
+ * Company status changes use the scoped company command and reject missing targets.
+ * Document, contact and note actions retain their existing storage/RLS and role checks;
+ * their module write gateways are a separate cutover.
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -497,152 +460,27 @@ export async function deleteContactAction(
   return { ok: true, deletedName: deletedRows[0].full_name };
 }
 
-/**
- * Passivate a single company — set status='pasif' and NOTHING else.
- *
- * The companies_update_yonetici RLS policy lets a yonetici update ANY
- * company column. The policy is NOT a column allow-list. The field
- * discipline that makes this action a "passivate-only" capability lives
- * ENTIRELY HERE: the update payload is the literal `{ status: "pasif" }`
- * and the only client input is `companyId`, used solely in the WHERE.
- *
- * The payload NEVER contains name / risk / sector / city / tenant_id /
- * id / created_by / legacy_mock_id / created_at / updated_at or any
- * other field. No FormData, no client-provided company fields beyond
- * the id. The single effect is: target company's status becomes 'pasif'.
- *
- * Guards:
- *   - yonetici-only via current_user_role() (RLS also enforces yonetici).
- *   - active tenant via current_user_active_tenant(), used as an extra
- *     `.eq("tenant_id", …)` WHERE so the update can only touch a row in
- *     the caller's tenant (RLS enforces the same).
- *   - DB-first .update(...).select() with a returned-row guard; zero
- *     rows (wrong tenant / absent / RLS-filtered) is an idempotent
- *     no-op success.
- *
- * Not in scope: no reactivate, no hard delete, no other status value.
- * service_role is never used.
- */
-export async function passivateCompanyAction(
-  companyId: string,
-): Promise<PassivateResult> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
-  }
-
-  if (!companyId || typeof companyId !== "string") {
-    return { ok: false, error: "Firma kimliği geçersiz." };
-  }
-
-  const { data: roleData, error: roleError } = await supabase.rpc(
-    "current_user_role",
-  );
-  if (roleError || roleData !== "yonetici") {
-    return {
-      ok: false,
-      error: "Yetkisiz: firma pasife alma yalnızca yöneticiye açıktır.",
-    };
-  }
-
-  const { data: tenantId, error: tenantError } = await supabase.rpc(
-    "current_user_active_tenant",
-  );
-  if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
-    return { ok: false, error: "Aktif kiracı çözümlenemedi." };
-  }
-
-  // FIELD DISCIPLINE — payload is EXACTLY { status: "pasif" }. Do not
-  // add any other key to this object.
-  const upd = await supabase
-    .from("companies")
-    .update({ status: "pasif" })
-    .eq("id", companyId)
-    .eq("tenant_id", tenantId)
-    .select("id, name, status");
-  if (upd.error) {
-    return { ok: false, error: `Firma pasife alınamadı: ${upd.error.message}` };
-  }
-
-  const rows = upd.data ?? [];
-  if (rows.length === 0) {
-    // No row matched id+tenant (absent / wrong tenant / RLS-filtered).
-    // Idempotent no-op — nothing was changed.
-    return { ok: true };
-  }
-
-  return { ok: true, name: rows[0].name };
+/** Both actions use the same scoped database command; status is the only writable field. */
+export async function passivateCompanyAction(companyId: string): Promise<PassivateResult> {
+  return changeCompanyStatus(companyId, "pasif");
 }
 
-/**
- * Reactivate a company — set status='aktif' and NOTHING else. The exact
- * mirror of `passivateCompanyAction`; completes the aktif↔pasif
- * lifecycle. No new DB policy/grant is needed — the existing
- * companies_update_yonetici policy + GRANT UPDATE(status) already cover
- * a status flip in either direction.
- *
- * Same field discipline: the update payload is the literal
- * `{ status: "aktif" }`; the only client input is companyId (WHERE).
- * name / risk / sector / city / tenant_id / id / created_by /
- * legacy_mock_id are never written. yonetici-only, tenant-guarded,
- * RETURNING/returned-row guard, zero-row idempotent no-op. service_role
- * is never used.
- */
-export async function reactivateCompanyAction(
-  companyId: string,
-): Promise<PassivateResult> {
+export async function reactivateCompanyAction(companyId: string): Promise<PassivateResult> {
+  return changeCompanyStatus(companyId, "aktif");
+}
+
+async function changeCompanyStatus(companyId: string, status: "aktif" | "pasif"): Promise<PassivateResult> {
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
+  const identity = await supabase.auth.getUser();
+  if (identity.error || !identity.data.user) return {ok:false,error:"Oturum geçersiz: lütfen tekrar giriş yapın."};
+  const tenant = await supabase.rpc("current_user_verified_tenant");
+  if (tenant.error || typeof tenant.data !== "string") return {ok:false,error:"Çalışma alanı doğrulanamadı."};
+  try {
+    const company = await setCompanyStatus(supabase,companyId,tenant.data,identity.data.user.id,status);
+    return {ok:true,name:company.name};
+  } catch (error) {
+    return {ok:false,error:error instanceof Error ? error.message : "Firma durumu değiştirilemedi."};
   }
-
-  if (!companyId || typeof companyId !== "string") {
-    return { ok: false, error: "Firma kimliği geçersiz." };
-  }
-
-  const { data: roleData, error: roleError } = await supabase.rpc(
-    "current_user_role",
-  );
-  if (roleError || roleData !== "yonetici") {
-    return {
-      ok: false,
-      error: "Yetkisiz: firma aktife alma yalnızca yöneticiye açıktır.",
-    };
-  }
-
-  const { data: tenantId, error: tenantError } = await supabase.rpc(
-    "current_user_active_tenant",
-  );
-  if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
-    return { ok: false, error: "Aktif kiracı çözümlenemedi." };
-  }
-
-  // FIELD DISCIPLINE — payload is EXACTLY { status: "aktif" }. Do not
-  // add any other key to this object.
-  const upd = await supabase
-    .from("companies")
-    .update({ status: "aktif" })
-    .eq("id", companyId)
-    .eq("tenant_id", tenantId)
-    .select("id, name, status");
-  if (upd.error) {
-    return { ok: false, error: `Firma aktife alınamadı: ${upd.error.message}` };
-  }
-
-  const rows = upd.data ?? [];
-  if (rows.length === 0) {
-    // No row matched id+tenant (absent / wrong tenant / RLS-filtered).
-    // Idempotent no-op — nothing was changed.
-    return { ok: true };
-  }
-
-  return { ok: true, name: rows[0].name };
 }
 
 export type ContactCreateResult =

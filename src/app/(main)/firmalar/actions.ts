@@ -1,30 +1,8 @@
 "use server";
 
-/**
- * BPS Firmalar — Server Actions (firma seviyesi)
- *
- * `firmalar/[id]/actions.ts` tek bir firmanın içindeki işleri taşır
- * (yetkili, evrak, not). Bu dosya firmanın KENDİSİNİ yaratan yolu taşır,
- * o yüzden bir üst seviyede.
- *
- * `createCompanyAction`, B batch'inin inline firma yaratma yolu: randevu ve
- * talep formlarından çağrılır — yani ilişkinin BAŞLADIĞI yerlerden.
- * Sözleşme ve görev formlarında bilerek yok: sözleşme ilişkinin olgunlaştığı
- * yer (oraya gelmiş firma zaten portföyde olmalı), görev ise firmasız da
- * olabilecek iç işleri kapsıyor.
- *
- * Bugüne kadar firma yaratmanın tek yolu Excel import'uydu ve o servis
- * katmanını atlayıp doğrudan yazıyordu (lib/import/import-service.ts). Bu
- * eylem aynı payload şeklini servis katmanına taşıyor; tek fark `status`,
- * import'taki `aktif` yerine `aday`.
- *
- * Rol guard'ı BURADA var ve RLS ile hizalı: prod'da
- * `companies_insert_yonetici` INSERT policy'si rolü ve tenant'ı kontrol
- * ediyor, partner dalı yok (ROLE_MATRIX Partner HOLD ile tutarlı). Yani iki
- * kapı aynı şeyi söylüyor — access_requests'te düzelttiğimiz "uygulama bir
- * şey sanır, RLS başka şey yapar" durumu burada yok.
- *
- * service_role hiç kullanılmıyor.
+/** Company creation entry point for the directory and inline forms.
+ * Server-resolved identity/tenant; the scoped database command enforces role/module.
+ * Duplicate names are a warning, not a uniqueness rule. No service-role client.
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -91,7 +69,7 @@ export async function createCompanyAction(
   }
 
   const { data: tenantId, error: tenantError } = await supabase.rpc(
-    "current_user_active_tenant",
+    "current_user_verified_tenant",
   );
   if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
     return { ok: false, reason: "error", error: "Aktif kiracı çözümlenemedi." };

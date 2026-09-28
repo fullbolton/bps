@@ -1,0 +1,33 @@
+{
+  "baseCommit": "c1a9b23ff5a951135d78fe3c3d84c0d14914241b",
+  "status": "local-not-deployed",
+  "releaseExitCode": 0,
+  "databaseExitCode": 0,
+  "applicationTests": 576,
+  "databaseTests": 74,
+  "newApplicationTests": 12,
+  "newDatabaseTests": 11,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "browserSmokeRun": false,
+  "productionMigrationApplied": false,
+  "directCompanyDmlRevoked": false,
+  "files": {
+    ".github/workflows/module-foundation-db.yml": "3371626959b088a15a75a08410b98088fd50afd86d67c84131a9f2562290c2ef",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "6d5b51ebb9ece00238a57522d167dd39ba1eb07a5a27e3a2e8d87b09cdcb4e1b",
+    "scripts/qa-static.mjs": "f1429100f22af8032a2529deaa862658160f2b43a979888d74acb607a71a95ab",
+    "scripts/test-inventory.json": "264890c1b45a78309ac64549c6a6e5631cd4117ef434fce81f74833faac865d3",
+    "src/app/(main)/firmalar/[id]/actions.ts": "ba6e8a98fbbe5fb3ea2abf8937f163e6138337b5de2438cc711171ce077d66a1",
+    "src/app/(main)/firmalar/actions.ts": "69b53bda9731f91d3d5ced4041fc0b8234508512f0a628d891ce2fe395db84a1",
+    "src/app/(main)/import/actions.ts": "d71a1e8557925c713179f3ad3074a292dc935b357e93198a125122877b9e31b9",
+    "src/lib/import/import-service.ts": "ea1bd0d9f524f35de56e18a2ff0c1e7b7fac79f325a5e64777aa7d3a5017897c",
+    "src/lib/supabase/companies.ts": "d1125844c5d95b899b93339e847479feff73bf9c11c6a6e2afa45e2b7931d0ee",
+    "src/types/database.types.ts": "2ef03fbf5504181683c4dc44f18e515fd9ccd95ce692058c4a42492caad51af2",
+    "scripts/company-commands-db.test.mjs": "e536ebdb244a8eab7b5660f3c0d7947528ca8e94d62dd0c16aa8d19358c8ff0c",
+    "scripts/company-commands.test.mjs": "08b385723bfb652c0171fb78e5ab246fe8453d88f8a75a5839ad7ce2addde342",
+    "scripts/company-status-contract.test.mjs": "3a70632b9aa5495477743d0c8a818381a2ee1b8a31795caeaa253f4f646cfd12",
+    "scripts/helpers/company-status-contract.mjs": "e408f9b582b87620dc1542a10b341c4b4e31d1386ed7c5895c47fa6d24a10c93",
+    "src/lib/supabase/company-commands.ts": "48943fb61168babb4c1872030655b0d360c9e6d160a689f6059e88492a599697",
+    "supabase/migrations/20260928001800_company_commands.sql": "8cc6c7b0c3e9c96019364946dcf541a8481d89f2b15e3b02d14188426c68d976"
+  }
+}

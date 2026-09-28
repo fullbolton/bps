@@ -274,3 +274,11 @@ Firmalar listesi doğrulanmış modül bağlamına taşındı. Yetkili/sözleşm
 Yerel 001700 migration companies/contacts/notes için restrictive authenticated SELECT filtrelerini ekliyor; mevcut rol izinleri korunuyor. Contacts tenant'ı görünür firmasından alıyor. Şema/RLS sapmasında işlem geri alınıyor. Sekiz yeni PostgreSQL ve dört gerçek TSX/hook testi eklendi. Son ölçümler ve sonraki yazma bloğunun somut giriş noktaları: `qa/tenant-module-customer-reads-20260928/README.md` / `manifest.json`.
 
 **Yerel; push/deploy/üretim SQL yok.** Bu bir okuma bloğudur; müşteri/kişi/not yazımları, import, service/definer projeksiyonları ve parent-FK etkileri henüz modül kapanmasına tam bağlanmadı. Dolayısıyla modül kapatma UI'si açılmadı. 001700 ortak 000900/001000 sonrasında; önceki görev cutover sırası değişmedi. Canlı katalog/izin ön kontrolü ve kimlikli tarayıcı/PostgREST kabulü açık.
+
+## Uygulama kaydı — 28 Eylül 2026, firma yazma komutu M2h
+
+Yerel 001800 ile firma oluşturma ve aktif/pasif durum değişimi doğrulanmış tenant/aktör, config→profil→firma kilidi ve bekleme sonrası yönetici kontrolüne bağlandı. Inline oluşturma ve firma CSV aynı komutu kullanıyor. Durum action'ları ortaklaştırıldı; yok/başka tenant kaydı başarılı sayılmıyor, aynı duruma tekrar UPDATE tetiklemiyor. CSV ilk doğrulanamayan yazmada duruyor; önceden doğrulanmış satırlar korunuyor ve kalan satırların işlenmediği bildiriliyor. Oluşturmada kalıcı idempotency makbuzu henüz yok; ağ belirsizliğinde otomatik tekrar yapılmaz.
+
+11 yeni PostgreSQL + 8 gerçek servis/action + 4 statik yol sözleşmesi testi; tam ölçümler `qa/tenant-module-company-commands-20260928/manifest.json`. Rapor aynı dizinde.
+
+**Yerel expand, üretim SQL/push/deploy yok.** Direct-DML yetkileri henüz kaldırılmadı: mevcut invoker `write_company_contact` firma FOR UPDATE için UPDATE iznine ihtiyaç duyuyor. Sırada kişi/not/import-yetkili komutları, ardından uygun frontend smoke sonrası direct-write cutover; ayrıca service/definer/FK/açık iş kontrolleri. Modül kapatma UI'si hâlâ açılmadı. 001800 ortak 000900/001000 sonrası ve yeni frontend öncesi; eski görev cutover planı değişmedi.
