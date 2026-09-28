@@ -484,5 +484,9 @@
   {
     "file": "scripts/task-workspace.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/shared-module-screens.test.mjs",
+    "suite": "application"
   }
 ]

@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceModuleBoundary from '@/components/modules/WorkspaceModuleBoundary';
+import type { WorkspaceModuleContext } from '@/lib/modules/context';
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 import AsyncSection from "@/components/ui/AsyncSection";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
@@ -90,10 +92,12 @@ export default function SozlesmeDetayPage({
   }
   // A fresh instance also protects A → B → A: old callbacks stay unmounted.
   const scope = JSON.stringify([id, user.id, user.app_metadata?.active_tenant, role]);
-  return <ContractWorkspace key={scope} id={id} />;
+  return <WorkspaceModuleBoundary requiredModule="contracts" allowedRoles={["yonetici", "partner", "operasyon"]}>{workspace => <ContractWorkspace key={scope} id={id} workspace={workspace} />}</WorkspaceModuleBoundary>;
 }
 
-function ContractWorkspace({ id }: { id: string }) {
+function ContractWorkspace({ id, workspace }: { id: string; workspace: WorkspaceModuleContext }) {
+  const tasksEnabled = workspace.modules.tasks && ["yonetici", "operasyon"].includes(workspace.role);
+  const calendarEnabled = workspace.modules.calendar;
   const router = useRouter();
   const { role } = useRole();
   const { user } = useAuth();
@@ -136,7 +140,7 @@ function ContractWorkspace({ id }: { id: string }) {
   const tasksGeneration = useRef(0);
   const appointmentsGeneration = useRef(0);
   const reloadTasks = useCallback(async () => {
-    if (!active.current) return;
+    if (!tasksEnabled || !active.current) return;
     const generation = ++tasksGeneration.current, parent = readGeneration.current;
     const current = () => active.current && parent === readGeneration.current && generation === tasksGeneration.current;
     setTasksState({ loading: true, error: false }); setLinkedTasks([]);
@@ -148,9 +152,9 @@ function ContractWorkspace({ id }: { id: string }) {
     } finally {
       if (current()) setTasksState(state => ({ ...state, loading: false }));
     }
-  }, [supabase, id]);
+  }, [supabase, id, tasksEnabled]);
   const reloadAppointments = useCallback(async () => {
-    if (!active.current) return;
+    if (!calendarEnabled || !active.current) return;
     const generation = ++appointmentsGeneration.current, parent = readGeneration.current;
     const current = () => active.current && parent === readGeneration.current && generation === appointmentsGeneration.current;
     setAppointmentsState({ loading: true, error: false }); setLinkedAppointments([]);
@@ -162,7 +166,7 @@ function ContractWorkspace({ id }: { id: string }) {
     } finally {
       if (current()) setAppointmentsState(state => ({ ...state, loading: false }));
     }
-  }, [supabase, id]);
+  }, [supabase, id, calendarEnabled]);
 
   const reload = useCallback(async () => {
     if (!active.current) return;
@@ -380,7 +384,7 @@ function ContractWorkspace({ id }: { id: string }) {
       )}
 
       <nav aria-label="Sözleşme bölümleri" className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-        {[["belgeler", "PDF ve ekler"], ["maddeler", "Kritik maddeler"], ["yenileme", "Yenileme"], ["isler", "Bağlı işler"]].map(([key,label]) => <a key={key} href={`#${key}`} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-4 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800">{label}</a>)}
+        {[["belgeler", "PDF ve ekler"], ["maddeler", "Kritik maddeler"], ...(tasksEnabled || canEdit ? [["yenileme", "Yenileme"]] : []), ...(tasksEnabled ? [["isler", "Bağlı işler"]] : [])].map(([key,label]) => <a key={key} href={`#${key}`} className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-4 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-800">{label}</a>)}
       </nav>
       <div className="grid grid-cols-1 xl:grid-cols-2 items-start gap-5 [&>*]:min-w-0">
         {/* One current PDF with version history. Upload/resume/cancel is manager-only;
@@ -453,8 +457,8 @@ function ContractWorkspace({ id }: { id: string }) {
         </section>
 
         {/* Yenileme Takibi — bounded renewal-tracking truth (scope item 5) */}
-        <section id="yenileme" className="space-y-2 scroll-mt-24">
-          {user && <RenewalTaskPanel key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${contract.id}:${contract.updated_at}`} actorId={user.id} contractId={contract.id} onCreated={() => { void reload(); }} />}
+        {(tasksEnabled || canEdit) && <section id="yenileme" className="space-y-2 scroll-mt-24">
+          {tasksEnabled && user && <RenewalTaskPanel key={`${user.id}:${user.app_metadata?.active_tenant}:${role}:${contract.id}:${contract.updated_at}`} actorId={user.id} contractId={contract.id} onCreated={() => { void reload(); }} />}
           {canEdit && (
             <div className={`${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_DEFAULT} p-4`}>
               <p className={`${TYPE_CAPTION} ${TEXT_SECONDARY} mb-2`}>
@@ -474,7 +478,7 @@ function ContractWorkspace({ id }: { id: string }) {
               </div>
             </div>
           )}
-        </section>
+        </section>}
 
         {/* Kapsam ve Tutar — display-only secondary info */}
         {(contract.scope || contract.contract_value) && (
@@ -506,7 +510,7 @@ function ContractWorkspace({ id }: { id: string }) {
         )}
 
         {/* Bağlı Görevler — Faz 3 real truth via tasks service */}
-        <section id="isler" className={`${SECTION} scroll-mt-24`}>
+        {tasksEnabled && <section id="isler" className={`${SECTION} scroll-mt-24`}>
           <h2 className={SECTION_TITLE}>Bağlı Görevler</h2>
           <AsyncSection isLoading={tasksState.loading} hasError={tasksState.error} onRetry={() => { void reloadTasks(); }}>
           {linkedTasks.length === 0 ? (
@@ -526,10 +530,10 @@ function ContractWorkspace({ id }: { id: string }) {
             </div>
           )}
           </AsyncSection>
-        </section>
+        </section>}
 
         {/* Bağlı Randevular — Faz 3 real truth via appointments service */}
-        <section className={SECTION}>
+        {calendarEnabled && <section className={SECTION}>
           <h2 className={SECTION_TITLE}>Bağlı Randevular</h2>
           <AsyncSection isLoading={appointmentsState.loading} hasError={appointmentsState.error} onRetry={() => { void reloadAppointments(); }}>
           {linkedAppointments.length === 0 ? (
@@ -553,7 +557,7 @@ function ContractWorkspace({ id }: { id: string }) {
             </div>
           )}
           </AsyncSection>
-        </section>
+        </section>}
 
         {/* Kalıcı silme — yonetici-only. Hard delete (Faz 1), güçlü
             onay zorunlu. contracts DELETE RLS de yonetici-only. */}

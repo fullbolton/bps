@@ -240,3 +240,11 @@ Beş task-parent FK'nin CASCADE/SET NULL davranışı RESTRICT'e çevrilen yerel
 541 genel uygulama testi + 4 odaklı servis/form testi (üçü ortak), 42 PostgreSQL 17.10 testi geçti. Rapor: `qa/tenant-module-task-context-20260928/README.md`; son tip/derleme kanıtı aynı dizinde.
 
 **Yerel, yayın yok.** Yeni adaylar 001400 dar firma projeksiyonu ve 001500 ilişki koruması. 001400 frontend'den önce; eski 001100 doğrudan görev yazma cutover'ı frontend smoke sonrasında. Bekleyen bütün SQL'leri tek seferde uygulamayın. Genel modül kapatma mutasyonu/UI hâlâ açılmadı.
+
+## Uygulama kaydı — 28 Eylül 2026, ortak ekranların modül bağlamı M2d
+
+Ana ekran, randevular ve sözleşme detayı ortak doğrulanmış sayfa girişine bağlandı. Modül kapalı/hata/rol reddi boş veri gibi gösterilmiyor. Ana ekran modül ve role göre yalnız ilgili sorguları çalıştırıyor; Firma kapalıyken bağımsız görevler çalışıyor. Randevuyu görev oluşturmadan tamamlama seçeneği eklendi; bağlı görev ve yenileme panelleri kendi modül/rol koşuluyla çalışıyor. Partner için sunucunun reddettiği görev ve randevu tamamlama düğmeleri kaldırıldı. Form hatalarında metinler korunuyor.
+
+550/550 uygulama testi, statik 0 FAIL/1 WARN, TypeScript ve üretim derlemesi geçti. Sekiz yeni test gerçek bileşen fonksiyonları/effect/callback'lerini sentetik hook/ağ sürücüsüyle çalıştırır; kimlikli tarayıcı/PostgREST smoke değildir. SQL değişmedi, DB testleri bu tur tekrarlanmadı. Rapor: `qa/tenant-module-shared-screens-20260928/README.md`.
+
+**Yerel; push/deploy veya üretim migration yok.** Modül kapatma hâlâ açılmadı. Sayfa giriş snapshot'ı canlı değişiklik yayını değildir; UI kapıları DB güvenliğinin yerini tutmaz. Firma detayında ayrı görev bölümü yok; buradaki diğer alanların modül kapıları, genel gezinme/cache yenileme ve diğer modüllerin DB/storage/export/cron erişimleri sıradaki işlerdir. M2c'nin kontrollü yayın sırası değişmedi.

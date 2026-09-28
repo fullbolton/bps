@@ -1,4 +1,7 @@
 "use client";
+import WorkspaceModuleBoundary from '@/components/modules/WorkspaceModuleBoundary';
+import type { WorkspaceModuleContext } from '@/lib/modules/context';
+import { dashboardModuleAccess } from '@/lib/modules/dashboard-access';
 import { countedResult } from "@/lib/supabase/complete-result";
 import { hasCompleteCompanyReferences } from "@/lib/supabase/company-references";
 import { useIstanbulDay } from "@/components/ui/useIstanbulDay";
@@ -73,6 +76,11 @@ const CARD_TITLE_ICON = `${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-3 flex items-cent
 const LIST_DIVIDER = `border-b ${BORDER_SUBTLE}`;
 
 export default function DashboardClient({operationsEnabled}:{operationsEnabled:boolean}) {
+  return <WorkspaceModuleBoundary>{workspace => <DashboardWorkspace operationsEnabled={operationsEnabled} workspace={workspace} />}</WorkspaceModuleBoundary>;
+}
+
+function DashboardWorkspace({operationsEnabled, workspace}:{operationsEnabled:boolean;workspace:WorkspaceModuleContext}) {
+  const access = useMemo(() => dashboardModuleAccess(workspace), [workspace]);
   const { role } = useRole();
   // KPI top-row — real Supabase truth. Partner scope is enforced by RLS
   // on each underlying table; no application-level scoping added here.
@@ -198,8 +206,8 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
       const {
         data: { user: currentUser }, error: authError,
       } = await supabase.auth.getUser();
-      if(authError||!currentUser)throw new Error("Dashboard session unavailable");
-      if (!cancelled) {setCurrentUserId(currentUser?.id ?? null);setTaskTenant(currentUser?.app_metadata?.active_tenant??null);}
+      if(authError||!currentUser||currentUser.id!==workspace.actorId)throw new Error("Dashboard session unavailable");
+      if (!cancelled) {setCurrentUserId(currentUser?.id ?? null);setTaskTenant(workspace.tenantId);}
       const [
         companiesRes,
         contractsRes,
@@ -211,38 +219,38 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
         recentAnnouncements,
       ] = await Promise.all([
         // Count only; names are fetched for the displayed references below.
-        supabase
+        access.customers ? supabase
           .from("companies")
-          .select("id", { count: "exact", head: true }),
-        supabase
+          .select("id", { count: "exact", head: true }) : {data:null, count:null, error:null},
+        access.contracts ? supabase
           .from("contracts")
           .select("id", { count: "exact", head: true })
-          .eq("status", "aktif"),
+          .eq("status", "aktif") : {data:null, count:null, error:null},
         // tasks: exact count feeds the KPI; only a complete row set feeds
         // the task card. Same
         // filter as the KPI — status IN ('acik','devam_ediyor','gecikti').
-        supabase
+        access.tasks ? supabase
           .from("tasks")
           .select("id, title, company_id, status, due_date, assigned_to_user_id, assigned_to, revision", { count: "exact" })
-          .in("status", ["acik", "devam_ediyor", "gecikti"]),
-        supabase
+          .in("status", ["acik", "devam_ediyor", "gecikti"]) : {data:null, count:null, error:null},
+        access.calendar ? supabase
           .from("appointments")
           .select("id", { count: "exact", head: true })
-          .eq("status", "planlandi"),
+          .eq("status", "planlandi") : {data:null, count:null, error:null},
         // Filter and cap on the server before transferring card rows.
         // Reader failures used to degrade silently to empty; now we
         // capture the failure so the JSX can show a real error state.
-        selectDashboardContracts(supabase, signalDay).catch((err) => {
+        access.contracts ? selectDashboardContracts(supabase, signalDay).catch((err) => {
           console.error("[dashboard] contracts card:", err);
           contractsCatchError = true;
           return [] as DashboardContract[];
-        }),
+        }) : [],
         // Calendar-derived document predicates are applied before the cap.
-        selectDashboardDocuments(supabase, signalDay).catch((err) => {
+        access.documents ? selectDashboardDocuments(supabase, signalDay).catch((err) => {
           console.error("[dashboard] documents card:", err);
           documentsCatchError = true;
           return [] as DashboardDocument[];
-        }),
+        }) : [],
         // Only the four earliest due/approaching dates are transferred.
         // Broad-read under RLS; reader failure surfaces as the
         // "Veri yüklenemedi" branch on the Kritik Tarihler card.
@@ -254,11 +262,11 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
         // Duyurular — tenant-scoped under RLS, newest first. Same explicit
         // failure capture as the readers above: an unreadable strip must not
         // render as "no announcements".
-        listRecentAnnouncements(supabase).catch((err) => {
+        access.announcements ? listRecentAnnouncements(supabase).catch((err) => {
           console.error("[dashboard] listRecentAnnouncements:", err);
           announcementsCatchError = true;
           return [] as AnnouncementRow[];
-        }),
+        }) : [],
       ]);
       if (cancelled) return;
 
@@ -273,14 +281,14 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
       // --- Signal-card derivations ---
       let companyNameById: Map<string,string>;
       try {
-        companyNameById = await selectDashboardCompanyNames(supabase, [
+        companyNameById = !access.customers ? new Map() : await selectDashboardCompanyNames(supabase, [
           ...(tasksResult.rows ?? []), ...allContractRows, ...allDocumentRows,
         ].flatMap(row => row.company_id ? [row.company_id] : []));
       } catch { companyNameById = new Map(); }
       if (cancelled) return;
       const companyIds = new Set(companyNameById.keys());
       const linkedTasks = tasksResult.rows?.filter((task): task is typeof task & {company_id:string} => task.company_id !== null) ?? null;
-      const tasksReady = linkedTasks !== null && (linkedTasks.length === 0 || hasCompleteCompanyReferences(linkedTasks, companyIds));
+      const tasksReady = linkedTasks !== null && (!access.customers || linkedTasks.length === 0 || hasCompleteCompanyReferences(linkedTasks, companyIds));
       const contractsReady = !contractsCatchError && hasCompleteCompanyReferences(allContractRows, companyIds);
       const documentsReady = !documentsCatchError && hasCompleteCompanyReferences(allDocumentRows, companyIds);
 
@@ -306,7 +314,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
             .map((t) => ({
               id: t.id,
               baslik: t.title,
-              firma: t.company_id ? companyNameById.get(t.company_id) ?? "—" : "Firma dışı görev",
+              firma: t.company_id ? (access.customers ? companyNameById.get(t.company_id) ?? "—" : "Firma modülü kapalı") : "Firma dışı görev",
               gecikme: t.status === "gecikti",
               assignedToUserId: t.assigned_to_user_id ?? null,
               assignedName: t.assigned_to ?? null,
@@ -355,7 +363,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
     return () => {
       cancelled = true;
     };
-  }, [refreshKey, signalDay]);
+  }, [refreshKey, signalDay, access, workspace]);
 
   // Single retry handler shared by every signal card's error branch.
   // Re-fires the load `useEffect` by bumping the dependency. Cheap and
@@ -405,33 +413,33 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
       />
 
       <div className="space-y-7">
-        <section aria-label="Hızlı erişim" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 text-slate-900">
+        {(access.tasks || (operationsEnabled && access.staffing) || access.finance || access.reporting) && <section aria-label="Hızlı erişim" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 text-slate-900">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div className="max-w-md">
               
               <h2 className="text-base font-semibold tracking-tight">Hızlı erişim</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">Plan, işe başlama takibi ve ekip işleri.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-500">Çalışma alanınızda kullanabildiğiniz bölümler.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              {operationsEnabled && ["yonetici", "operasyon"].includes(role) && <>
+              {operationsEnabled && access.staffing && <>
                 <a href="/talepler/gunluk" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"><CalendarDays size={18}/>Günlük plan<ArrowUpRight size={16}/></a>
                 <a href="/talepler/ise-baslama" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium hover:bg-slate-50"><UserCheck size={18}/>İşe başlama takibi<ArrowUpRight size={16}/></a>
               </>}
-              {!['muhasebe','goruntuleyici'].includes(role) && <a href="/gorevler" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium hover:bg-slate-50"><ListChecks size={18}/>Görevler<ArrowUpRight size={16}/></a>}
-              {role==='muhasebe' && <a href="/finansal-ozet" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900">Finansal özet<ArrowUpRight size={16}/></a>}
-              {role==='goruntuleyici' && <a href="/raporlar" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900">Raporlar<ArrowUpRight size={16}/></a>}
+              {access.tasks && <a href="/gorevler" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium hover:bg-slate-50"><ListChecks size={18}/>Görevler<ArrowUpRight size={16}/></a>}
+              {access.finance && <a href="/finansal-ozet" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900">Finansal özet<ArrowUpRight size={16}/></a>}
+              {access.reporting && <a href="/raporlar" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900">Raporlar<ArrowUpRight size={16}/></a>}
             </div>
           </div>
-        </section>
+        </section>}
         {/* KPI Cards — filtered by role; görüntüleyici sees values but no nav to blocked pages */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <KPIStatCard
+          {access.customers && <KPIStatCard
             label="Toplam Firma"
             value={kpis.toplamFirma ?? "—"}
             icon={<Building2 size={18} />}
             href="/firmalar"
-          />
-          {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
+          />}
+          {access.contracts && (
             <KPIStatCard
               label="Aktif Sözleşme"
               value={kpis.aktifSozlesme ?? "—"}
@@ -439,7 +447,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
               href="/sozlesmeler"
             />
           )}
-          {!["muhasebe", "goruntuleyici"].includes(role) && (
+          {access.tasks && (
             <KPIStatCard
               label="Bekleyen Görev"
               value={kpis.bekleyenGorev ?? "—"}
@@ -447,7 +455,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
               href="/gorevler"
             />
           )}
-          {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
+          {access.calendar && (
             <KPIStatCard
               label="Yaklaşan Randevu"
               value={kpis.yaklasanRandevu ?? "—"}
@@ -457,13 +465,13 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
           )}
         </div>
 
-        {operationsEnabled && <DailyOverview />}
+        {operationsEnabled && access.staffing && <DailyOverview />}
 
-        {!["muhasebe", "goruntuleyici"].includes(role) && <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-slate-900">Takip masası</h2><p className="mt-1 text-sm text-slate-500">Bekleyen görevler, sözleşmeler ve evraklar.</p></div>{role === "yonetici" && <a href="/kurulum" className="text-sm text-blue-700 hover:underline">Çalışma alanı kurulumu →</a>}</div>}
+        {(access.tasks || access.contracts || access.documents) && <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-slate-900">Takip masası</h2><p className="mt-1 text-sm text-slate-500">Bekleyen görevler, sözleşmeler ve evraklar.</p></div>{role === "yonetici" && <a href="/kurulum" className="text-sm text-blue-700 hover:underline">Çalışma alanı kurulumu →</a>}</div>}
         {/* Signal cards row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Bugünün Görevleri — hidden for muhasebe */}
-          {!["muhasebe", "goruntuleyici"].includes(role) && <div className={CARD}>
+          {access.tasks && <div className={CARD}>
             <div className="flex items-center justify-between gap-2">
               <h3 className={CARD_TITLE}>
                 Açık işler ve sorumlular
@@ -528,7 +536,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
               empty state would read as "no data" which is misleading
               during pre-load, so a wrapper card shows "Yükleniyor…"
               until the fetch resolves. */}
-          {!["ik", "muhasebe", "goruntuleyici"].includes(role) && (
+          {access.contracts && (
             signalsLoading || signalErrors.contracts ? (
               <div className={CARD}>
                 <h3 className={CARD_TITLE}>Yaklaşan Sözleşme Bitişleri</h3>
@@ -551,7 +559,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
           {/* Eksik / Süresi Dolan Evraklar — hidden for muhasebe.
               Real documents under RLS, filtered to status != "tam"
               (identical to the prior mock filter). */}
-          {!["muhasebe", "goruntuleyici"].includes(role) && (
+          {access.documents && (
             <div className={CARD}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className={`${TYPE_CARD_TITLE} ${TEXT_PRIMARY}`}>
@@ -666,7 +674,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
             scoped to the financial surface. Product decision, not a security
             one: if it is ever reversed, this condition goes away and no policy
             changes. See ROLE_MATRIX.md for the layer-by-layer rule. */}
-        {role !== "muhasebe" && (
+        {access.announcements && (
           <div className={CARD}>
             <div className="flex items-center justify-between mb-3">
               <h3 className={`${TYPE_CAPTION} ${TEXT_SECONDARY} flex items-center gap-1.5`}>

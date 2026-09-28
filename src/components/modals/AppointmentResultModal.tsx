@@ -22,6 +22,7 @@ export interface AppointmentCompletionPayload {
   sonuc: string;
   sonrakiAksiyon: string;
   actorId: string;
+  createTask: boolean;
 }
 
 interface AppointmentResultModalProps {
@@ -29,6 +30,7 @@ interface AppointmentResultModalProps {
   onClose: () => void;
   randevuId?: string;
   actorId: string;
+  allowTaskCreation: boolean;
   onComplete?: (payload: AppointmentCompletionPayload) => Promise<void> | void;
 }
 
@@ -38,17 +40,19 @@ export default function AppointmentResultModal({
   randevuId,
   actorId,
   onComplete,
+  allowTaskCreation,
 }: AppointmentResultModalProps) {
   const formId = useId();
   const [discardOpen, setDiscardOpen] = useState(false);
   const [sonuc, setSonuc] = useState("");
   const [sonrakiAksiyon, setSonrakiAksiyon] = useState("");
+  const [createTask, setCreateTask] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const submitting = useRef(false);
   useEffect(() => {
     setDiscardOpen(false);
-    if (open) {setSonuc("");setSonrakiAksiyon("");setSubmitError(null);}
+    if (open) {setCreateTask(true);setSonuc("");setSonrakiAksiyon("");setSubmitError(null);}
   }, [open,randevuId,actorId]);
 
   const canSubmit = sonuc.trim().length > 0 && sonrakiAksiyon.trim().length > 0;
@@ -61,6 +65,7 @@ export default function AppointmentResultModal({
       sonuc: sonuc.trim(),
       sonrakiAksiyon: sonrakiAksiyon.trim(),
       actorId,
+      createTask: allowTaskCreation && createTask,
     };
     setSaving(true);
     setSubmitError(null);
@@ -164,6 +169,10 @@ export default function AppointmentResultModal({
           />
           <p id={`${formId}-next-limit`} className="text-xs text-slate-500">{sonrakiAksiyon.length} / 1000 karakter</p>
         </div>
+        {allowTaskCreation ? <label className="flex min-h-11 items-center gap-3 text-sm text-slate-700">
+          <input type="checkbox" checked={createTask} disabled={saving} onChange={event => setCreateTask(event.target.checked)} />
+          Sonraki aksiyon için takip görevi oluştur
+        </label> : <p className="text-sm text-slate-500">Randevu sonucu ve sonraki aksiyon kaydedilecek. Bu ekranda takip görevi oluşturma kullanılamıyor.</p>}
         {!canSubmit && (sonuc.trim() || sonrakiAksiyon.trim()) && (
           <p className="text-xs text-amber-600">
             Her iki alan da doldurulmadan randevu tamamlanamaz.

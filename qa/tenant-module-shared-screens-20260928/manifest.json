@@ -1,0 +1,24 @@
+{
+  "baseCommit": "774bc0c732cdd35639d33b337a7defd16ee41c7a",
+  "status": "local-not-deployed",
+  "sqlChanged": false,
+  "releaseExitCode": 0,
+  "applicationTests": 550,
+  "newTests": 8,
+  "staticFailures": 0,
+  "staticWarnings": 1,
+  "browserSmokeRun": false,
+  "databaseTestsRerun": false,
+  "files": {
+    "src/components/modules/WorkspaceModuleBoundary.tsx": "dcf38155825a345b857df4ab19351fdcde41d903500c11787621fb1b36250ed1",
+    "src/lib/modules/dashboard-access.ts": "49af7bfcf954c8623a12ab68d4214be0266787305e673b8c9607802f62150c06",
+    "src/lib/services/workspace-modules.ts": "1d8418806e2dc04ccc5c025cf116ba54ac210eb4d99c39590cbb3dd75b6fb0b6",
+    "src/lib/services/task-workspace.ts": "7c2c82a0aaffa84bf3f7979a5a567f347cbcc4a3bb844c9cb842487bae2b4db2",
+    "src/app/(main)/dashboard/DashboardClient.tsx": "ebf321ee1b766179a1b1327e10175379b48bece6b02c961afc8c0138f7c59993",
+    "src/app/(main)/randevular/page.tsx": "3b9ec65e5a235ef2b906e5e7ac76672e05ed0617d66123cd4737764dc2143688",
+    "src/app/(main)/sozlesmeler/[id]/page.tsx": "327d3cf2d1d596d7ff5883ea8157e8ea2e8dadfa6333e00a2080d328993037e9",
+    "src/components/modals/AppointmentResultModal.tsx": "e7844360e0cf1ffe280f586640eecfe74e1dcf874907e3287a548ee8f8293789",
+    "scripts/shared-module-screens.test.mjs": "f025fa92d97978e0135ed2599b6e3ba4f7adb3dce5cef71fc4f1f15b29a2ebc8",
+    "scripts/test-inventory.json": "0ff9977384a0ed4165b907f5dc5e00c075d11132d71bfa8ebc038212ee541133"
+  }
+}

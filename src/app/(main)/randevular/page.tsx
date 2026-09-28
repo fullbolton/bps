@@ -1,4 +1,6 @@
 "use client";
+import WorkspaceModuleBoundary from '@/components/modules/WorkspaceModuleBoundary';
+import type { WorkspaceModuleContext } from '@/lib/modules/context';
 import ListToolbar from "@/components/ui/ListToolbar";
 
 import type { SearchInputHandle } from "@/components/ui/SearchInput";
@@ -188,6 +190,11 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
 const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", firma: "", tip: "" };
 
 export default function RandevularPage() {
+  return <WorkspaceModuleBoundary requiredModule="calendar" allowedRoles={["yonetici", "partner", "operasyon"]}>{workspace => <AppointmentWorkspace workspace={workspace} />}</WorkspaceModuleBoundary>;
+}
+
+function AppointmentWorkspace({workspace}:{workspace:WorkspaceModuleContext}) {
+  const tasksEnabled = workspace.modules.tasks && ["yonetici", "operasyon"].includes(workspace.role);
   const { role } = useRole();
   const { loading: authLoading, user } = useAuth();
   const feedback = useActionNotice(JSON.stringify([user?.id, user?.app_metadata?.active_tenant, role]));
@@ -280,7 +287,7 @@ export default function RandevularPage() {
   }, [supabase, listScope, companyRetry]);
 
   useEffect(() => {
-    if (!listScope) return;
+    if (!listScope || !tasksEnabled) return;
     let active = true;
     setProfileSnapshot(null);
     void listActiveTenantProfiles(supabase).then(rows => {
@@ -289,7 +296,7 @@ export default function RandevularPage() {
       if (active) setProfileSnapshot({scope: listScope, rows: [], status: "error"});
     });
     return () => { active = false; };
-  }, [supabase, listScope, profileRetry]);
+  }, [supabase, listScope, profileRetry, tasksEnabled]);
 
   // ------------------------------------------------------------------
   // Derived data
@@ -355,20 +362,20 @@ export default function RandevularPage() {
   );
 
   const rowActions: RowAction<AppointmentListRow>[] = [
-    {
+    ...(["yonetici", "operasyon"].includes(role) ? [{
       label: "Tamamla",
-      onClick: (row) => setResultTarget({ open: true, randevuId: row.id }),
-      isDisabled: (row) => row.status === "tamamlandi" || row.status === "iptal",
-    },
-    {
+      onClick: (row: AppointmentListRow) => setResultTarget({ open: true, randevuId: row.id }),
+      isDisabled: (row: AppointmentListRow) => row.status === "tamamlandi" || row.status === "iptal",
+    }] : []),
+    ...(tasksEnabled ? [{
       label: "Görev oluştur",
-      onClick: (row) => {
+      onClick: (row: AppointmentListRow) => {
         // Find the legacy mock id for this company so NewTaskModal can
         // work with the still-mock firmalar dictionary.
         const legacyId = companyLegacyById[row.company_id] ?? row.company_id;
         setTaskTarget({ open: true, firmaId: legacyId, randevuId: row.id });
       },
-    },
+    }] : []),
   ];
 
   // ------------------------------------------------------------------
@@ -529,12 +536,12 @@ export default function RandevularPage() {
                 <dd className={DL_VALUE}>{selectedRandevu.next_action}</dd>
               </div>
             )}
-            <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
+            {tasksEnabled && <div className={`pt-2 border-t ${BORDER_SUBTLE}`}>
               <dt className={DL_LABEL}>Bu randevuya bağlı görevler</dt>
               <dd className="mt-1">
                 <AppointmentTasks key={`${listScope}:${selectedRandevu.id}`} client={supabase} appointmentId={selectedRandevu.id} />
               </dd>
-            </div>
+            </div>}
           </dl>
         )}
       </RightSidePanel>
@@ -568,7 +575,8 @@ export default function RandevularPage() {
         onClose={() => { if (liveContext.current === context) setResultTarget({ open: false }); }}
         randevuId={resultTarget.randevuId}
         actorId={user?.id??""}
-        onComplete={async ({ randevuId, sonuc, sonrakiAksiyon, actorId }) => {
+        allowTaskCreation={tasksEnabled}
+        onComplete={async ({ randevuId, sonuc, sonrakiAksiyon, actorId, createTask }) => {
           if (!randevuId) return;
           // The action completes the appointment (allowed on a pasif firma)
           // and guards the follow-up task side-effect. On success it may
@@ -577,7 +585,7 @@ export default function RandevularPage() {
           const result = await completeAppointmentAction(randevuId, {
             result: sonuc,
             nextAction: sonrakiAksiyon,
-            createTask: true,
+            createTask,
           }, actorId);
           if (liveContext.current !== context) return;
           if (!result.ok) throw new Error(result.error);
@@ -592,7 +600,7 @@ export default function RandevularPage() {
           );
         }}
       />
-      <NewTaskModal
+      {tasksEnabled && <NewTaskModal
         key={`${listScope}:${taskTarget.randevuId ?? "none"}`}
         open={taskTarget.open}
         onClose={() => { if (liveContext.current === context) setTaskTarget({ open: false }); }}
@@ -624,7 +632,7 @@ export default function RandevularPage() {
           if (liveContext.current !== context) return;
           router.refresh();
         }}
-      />
+      />}
     </>
   );
 }
