@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Geist } from "next/font/google";
+import localFont from "next/font/local";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin','latin-ext'],variable:'--font-geist-sans'});
+const geist = localFont({
+  src: "./fonts/geist.woff2",
+  weight: "100 900",
+  variable: "--font-geist-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "BPS — B2B Operasyon Platformu",

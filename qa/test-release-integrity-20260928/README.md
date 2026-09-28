@@ -34,3 +34,7 @@ GitHub Actions aynı uygulama kapısını sıfır checkout + npm ci ile çalış
 122 SQL dosyası son uygulanmış üretim kaynak dizisiyle byte düzeyinde aynı. Hiç uygulanmamış 20260722000200 taslağı supabase/planned/retired altına taşındı; bu tur SQL uygulanmaz.
 
 Uzak main (237e06c) canlı zincirin atasıdır. Yerel main (2b53d98) ayrıca 9 Eylül eski yayın/belge geçmişini taşır. Birleştirmede doğrulanmış canlı ağaç esas alınır; yerel main tarihçesi ikinci ebeveyn olarak korunur, eski uygulama dosyaları yeni koda geri taşınmaz. Karışık ana çalışma klasörü topluca commit edilmez veya sıfırlanmaz.
+
+## Temiz CI font bulgusu
+
+İlk GitHub temiz kurulumu 475 testi geçti ancak Public Sans için next/font/google yükleyicisi dış servis yanıtını işleyemedi. Archivo, Public Sans ve Geist resmi Google Fonts kaynaklarından OFL lisanslarıyla projeye alındı; next/font/local kullanılır. WOFF2 dönüşümünden önce ve sonra Türkçe karakterler doğrulandı; kaynaklar ve SHA256 değerleri src/app/fonts/README.md içindedir. Görsel font aileleri ve CSS değişkenleri korunur.

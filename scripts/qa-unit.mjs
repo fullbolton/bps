@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 
 // ---------------------------------------------------------------------------
-// 1. Test edilen kopya — src/lib/calendar-date.ts ile AYNI olmalı
+// 1. Gerçek kaynak export — src/lib/calendar-date.ts
 // ---------------------------------------------------------------------------
 const {isIsoDate} = await importActualTypeScript(new URL('../src/lib/calendar-date.ts', import.meta.url));
 
