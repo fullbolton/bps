@@ -540,5 +540,9 @@
   {
     "file": "scripts/document-notification-state.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/customer-history-db.test.mjs",
+    "suite": "database"
   }
 ]

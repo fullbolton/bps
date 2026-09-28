@@ -314,3 +314,9 @@ Randevu/sözleşme/evrak aday okumaları service-only SQL projeksiyonlarına ta�
 002500 expand ve altı tabloda service_role ham SELECT kesen 002600 contract hazır. Contract yalnız yeni worker kabulü ve repo dışı entegrasyon envanteri sonrası; etkin inherited/kolon izni kalırsa migration durur. Kaynak incelemesinde dört service-key rotası kontrol edildi; e-posta dizininde bu dört kaynak tabloyu doğrudan okuyan yol kalmadı. On yeni DB ve altı uygulama senaryosu; kesin sonuçlar `qa/tenant-module-notification-candidates-20260928/manifest.json` içinde.
 
 **Yerel; üretim SQL/push/deploy/gerçek mail yok.** Kimlikli tarayıcı/PostgREST kabulü ve canlı şema/izin ölçümü yapılmadı. Son kontrol ile HTTP arasında atomik iptal garantisi yok. Genel modül kapatma UI'si kapalı; parent-FK/diğer definer ve modül yolları, açık iş/bağımlılık, ayar mutasyonu/cache işleri sürüyor. Eski cutover sıraları korunur.
+
+## Uygulama kaydı — 28 Eylül 2026, müşteri/mizan geçmişi M2m
+
+002700 ile contacts/notes şirket ve yazar ilişkileri ile mizan snapshot yükleme ilişkisi (beş FK) RESTRICT'e çevrilmek üzere hazırlandı. Bağlı kayıt varken şirket/profil/yükleme hard-delete reddediliyor; pasifleştirme ve üyelik kaldırma değişmiyor. Şema sapması veya beklenmeyen ek dolaylı mutasyon varsa migration geri alınıyor. Sekiz yeni gerçek PostgreSQL senaryosu, eşzamanlı çocuk ekleme/silme yarışı dahil; nihai sonuç `qa/tenant-module-customer-history-20260928/manifest.json` içinde.
+
+**Yerel; üretim SQL/push/deploy yok.** TS/TSX değişmedi; uygulama/derleme önceki M2l kanıtı yeniden koşulmuş sayılmıyor. Profilin bağlı geçmiş varken fiziksel silinmesi ayrı saklama/anonimleştirme süreci gerektirir. financial_summaries temel CREATE TABLE repo'da bulunamadı; canlı katalog olmadan constraint varsayılmadı. Diğer parent/FK yolları ve açık iş/bağımlılık, modül erişimleri, ayar mutasyonu/cache açık; modül kapatma UI'si kapalı. Kilit maliyeti ve rollback koşulları raporda.
