@@ -1,4 +1,4 @@
-import {completeRows} from "./complete-result";
+import { completePages } from "./complete-pages";
 /**
  * BPS — Raw Supabase access for the `critical_dates` table.
  *
@@ -28,15 +28,11 @@ type Client = SupabaseClient<Database>;
 export async function selectAllCriticalDates(
   client: Client,
 ): Promise<CriticalDateRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("critical_dates")
     .select("*", {count:"exact"})
-    .order("deadline_date", { ascending: true });
-
-  if (error) {
-    throw new Error(`critical_dates select-all failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectAllCriticalDates");
+    .order("deadline_date", { ascending: true })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Kritik tarihler");
 }
 
 /**

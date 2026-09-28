@@ -1,4 +1,4 @@
-import {completeRows} from "./complete-result";
+import { completePages } from "./complete-pages";
 /**
  * BPS — Raw Supabase access for the `workforce_summary` table.
  *
@@ -53,18 +53,14 @@ export async function selectWorkforceSummaryByCompanyId(
 export async function selectAllWorkforceSummaries(
   client: Client,
 ): Promise<WorkforceSummaryRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("workforce_summary")
-    .select("*", {count:"exact"});
-
-  if (error) {
-    throw new Error(`workforce_summary select-all failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectAllWorkforceSummaries");
+    .select("*", {count:"exact"})
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "İş gücü");
 }
 
 /**
- * Batch-fetch workforce summaries for many companies in one round trip.
+ * Batch-fetch workforce summaries for many companies in bounded pages.
  * Used by the Firmalar list for the workforce columns. Companies with
  * no summary row are silently absent from the result.
  */
@@ -74,15 +70,11 @@ export async function selectWorkforceSummariesByCompanyIds(
 ): Promise<WorkforceSummaryRow[]> {
   if (companyIds.length === 0) return [];
 
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("workforce_summary")
     .select("*", {count:"exact"})
-    .in("company_id", companyIds);
-
-  if (error) {
-    throw new Error(`workforce_summary select-by-company-ids failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectWorkforceSummariesByCompanyIds");
+    .in("company_id", companyIds)
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "İş gücü");
 }
 
 // ---------------------------------------------------------------------------

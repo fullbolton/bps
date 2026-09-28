@@ -33,7 +33,12 @@ const tasks=await importActualTypeScript(new URL('../src/lib/supabase/tasks.ts',
 const appointments=await importActualTypeScript(new URL('../src/lib/supabase/appointments.ts',import.meta.url));
 const contracts=await importActualTypeScript(new URL('../src/lib/supabase/contracts.ts',import.meta.url));
 const notes=await importActualTypeScript(new URL('../src/lib/supabase/notes.ts',import.meta.url));
+const critical=await importActualTypeScript(new URL('../src/lib/supabase/critical-dates.ts',import.meta.url));
+const workforce=await importActualTypeScript(new URL('../src/lib/supabase/workforce-summary.ts',import.meta.url));
 for(const [read,table,filter,arg] of [
+ [critical.selectAllCriticalDates,'critical_dates',null,null],
+ [workforce.selectAllWorkforceSummaries,'workforce_summary',null,null],
+ [workforce.selectWorkforceSummariesByCompanyIds,'workforce_summary','company_id',['c']],
  [tasks.selectAllTasks,'tasks',null,null],
  [tasks.selectTasksByCompanyId,'tasks','company_id','c'],
  [tasks.selectTasksByContractId,'tasks','contract_id','contract'],
