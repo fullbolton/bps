@@ -35,20 +35,16 @@ import {
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
 import { NewTaskModal } from "@/components/modals";
-// Faz 3: Görevler list cutover. Tasks come from the tasks service
-// layer; the firma filter dropdown and New Task modal now source
-// options from the real companies table via selectAllCompanies (RLS-
-// scoped), replacing the earlier MOCK_FIRMALAR UI dictionary.
 import { createClient } from "@/lib/supabase/client";
-import { selectAllCompanies } from "@/lib/supabase/companies";
+import { loadTaskWorkspace, loadTaskCompanyChoices, type TaskCompanyChoice } from '@/lib/services/task-workspace';
+import type { WorkspaceModuleContext } from '@/lib/modules/context';
 import { listActiveTenantProfiles } from "@/lib/services/profiles";
-import type { CompanyRow, ProfileRow } from "@/types/database.types";
+import type { ProfileRow } from "@/types/database.types";
 import {
   listAllTasks,
   updateTask,
   type TaskCreateInput,
 } from "@/lib/services/tasks";
-import { getCompanyDisplayMapByIds } from "@/lib/services/companies";
 // Görev create routes through the server action so the passive-company
 // guard runs before the insert (updateTask stays a direct service call).
 import { createTaskAction, claimTaskAction, completeTaskAction } from "./actions";
@@ -79,12 +75,12 @@ const FORM_LABEL = `block ${TYPE_BODY} font-medium ${TEXT_BODY} mb-1`;
 
 /**
  * Augment the raw `TaskRow` with the firma display name resolved from
- * companies. firma_name is resolved via `getCompanyDisplayMapByIds`
- * after loading tasks from the service layer.
+ * a module-aware company directory containing only display fields.
  */
 interface TaskListRow extends TaskRow {
   firma_name: string;
   assignee_label: string;
+  contextAccess: {contracts:boolean;calendar:boolean};
 }
 
 const FILTER_CONFIG: FilterConfig[] = [
@@ -205,14 +201,15 @@ export default function GorevlerPage() {
   const [taskRows, setTasks] = useState<TaskRow[]>([]);
   const [taskDataScope, setTaskDataScope] = useState<string | null>(null);
   const taskGeneration = useRef(0);
-  const [companyNameById, setCompanyNameById] = useState<Record<string, string>>({});
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   // Real companies for the firma filter + New Task modal dropdown.
   // RLS-scoped; option id prefers legacy_mock_id so the modal's write
   // path (createTask → legacyCompanyId) keeps working.
-  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: CompanyRow[]; status: "loading" | "error" | "ready"} | null>(null);
+  const [companySnapshot, setCompanySnapshot] = useState<{scope: string; rows: TaskCompanyChoice[]; status: "loading" | "error" | "ready"} | null>(null);
   const [companyReloadKey, setCompanyReloadKey] = useState(0);
+  const [moduleSnapshot,setModuleSnapshot]=useState<{scope:string;context:WorkspaceModuleContext}|null>(null);
   const [profileSnapshot, setProfileSnapshot] = useState<{ scope: string; rows: ProfileRow[]; status: "loading" | "error" | "ready" } | null>(null);
   const [profileReloadKey, setProfileReloadKey] = useState(0);
 
@@ -220,8 +217,10 @@ export default function GorevlerPage() {
   const searchControl = useRef<SearchInputHandle>(null);
   const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("gorevler", listScope, LIST_FILTER_DEFAULTS);
+  const modules=moduleSnapshot?.scope===listScope?moduleSnapshot.context.modules:null;
   const allCompanies = useMemo(() => companySnapshot?.scope === listScope ? companySnapshot?.rows ?? [] : [], [companySnapshot, listScope]);
   const companiesDurum = companySnapshot?.scope === listScope ? companySnapshot?.status ?? "loading" : "loading";
+  const companyNameById=useMemo(()=>Object.fromEntries(allCompanies.map(c=>[c.id,c.name])),[allCompanies]);
   const creationContext = useMemo(() => ({scope: listScope}), [listScope]);
   const liveCreationContext = useRef<typeof creationContext | null>(creationContext);
   liveCreationContext.current = creationContext;
@@ -256,13 +255,17 @@ export default function GorevlerPage() {
     const generation = ++taskGeneration.current;
     setLoading(true); setLoadError(null);
     try {
-      const rows = await listAllTasks(supabase);
-      const display = await getCompanyDisplayMapByIds(supabase, Array.from(new Set(rows.map(row => row.company_id).filter((id): id is string => id !== null))));
+      const [actorId,tenantId,expectedRole]=JSON.parse(listScope) as [string,string,string];
+      const expected={actorId,tenantId,role:expectedRole};
+      const context=await loadTaskWorkspace(supabase,expected);
+      const rows=context.modules.tasks ? await listAllTasks(supabase) : [];
       if (generation !== taskGeneration.current) return;
-      setTasks(rows); setCompanyNameById(display.nameById); setTaskDataScope(listScope);
+      setModuleSnapshot({scope:listScope,context});
+      setTasks(rows); setTaskDataScope(listScope);
     } catch (err) {
       if (generation !== taskGeneration.current) return;
-      setTasks([]); setCompanyNameById({}); setTaskDataScope(null);
+      setTasks([]); setTaskDataScope(null); setModuleSnapshot(null);
+      setCompanySnapshot({scope:listScope,rows:[],status:"error"});
       setLoadError(err instanceof Error ? err.message : "Görevler yüklenirken bir hata oluştu.");
     } finally {
       if (generation === taskGeneration.current) setLoading(false);
@@ -276,18 +279,21 @@ export default function GorevlerPage() {
   }, [reload]);
   const openLinkedTask = useCallback((id: string) => { setPanelError(null); setSelectedId(id); }, []);
 
-  // Distinguish directory errors from a genuinely empty list and bind it to auth scope.
+  // Retrying this picker preserves any unsaved task draft.
   useEffect(() => {
-    if (!listScope) return;
-    let active = true;
-    setCompanySnapshot({scope: listScope, rows: [], status: "loading"});
-    void selectAllCompanies(supabase).then(rows => {
-      if (active) setCompanySnapshot({scope: listScope, rows, status: "ready"});
-    }).catch(() => {
-      if (active) setCompanySnapshot({scope: listScope, rows: [], status: "error"});
-    });
-    return () => { active = false; };
-  }, [supabase, listScope, companyReloadKey]);
+    if (!listScope || !modules) return;
+    let active=true;
+    if (!modules.tasks || !modules.customers) {
+      setCompanySnapshot({scope:listScope,rows:[],status:"ready"});
+      return;
+    }
+    const [actorId,tenantId]=JSON.parse(listScope) as [string,string];
+    setCompanySnapshot({scope:listScope,rows:[],status:"loading"});
+    void loadTaskCompanyChoices(supabase,{actorId,tenantId}).then(rows=>{
+      if(active)setCompanySnapshot({scope:listScope,rows,status:"ready"});
+    }).catch(()=>{if(active)setCompanySnapshot({scope:listScope,rows:[],status:"error"});});
+    return ()=>{active=false;};
+  },[supabase,listScope,modules,companyReloadKey]);
 
   // Scope the directory snapshot so a previous account/tenant cannot name current rows.
   useEffect(() => {
@@ -308,10 +314,11 @@ export default function GorevlerPage() {
   const enrichedRows: TaskListRow[] = useMemo(() => {
     return tasks.map((t) => ({
       ...t,
-      firma_name: t.company_id ? companyNameById[t.company_id] ?? "—" : "Firma dışı görev",
+      firma_name: t.company_id ? (modules?.customers ? companyNameById[t.company_id] ?? (companiesDurum==="loading"?"Firma bilgisi yükleniyor…":companiesDurum==="error"?"Firma bilgisi alınamadı":"Firma erişimi yok") : "Firma modülü kapalı") : "Firma dışı görev",
+      contextAccess:{contracts:modules?.contracts===true && ["yonetici","operasyon"].includes(role),calendar:modules?.calendar===true && ["yonetici","operasyon"].includes(role)},
       assignee_label: taskAssigneeLabel(t, t.assigned_to_user_id ? profileNames.get(t.assigned_to_user_id) : undefined, profilesDurum),
     }));
-  }, [tasks, companyNameById, profileNames, profilesDurum]);
+  }, [tasks, companyNameById, profileNames, profilesDurum,modules,role,companiesDurum]);
 
   // ------------------------------------------------------------------
   // Status counts — computed from loaded tasks
@@ -331,7 +338,7 @@ export default function GorevlerPage() {
       }
       if (filters.durum && g.status !== filters.durum) return false;
       if (filters.oncelik && g.priority !== filters.oncelik) return false;
-      if (filters.firma && g.firma_name !== filters.firma) return false;
+      if (modules?.customers && filters.firma && g.firma_name !== filters.firma) return false;
       if (filters.atama === "atanmamis" && !unassignedTask(g)) return false;
       // Oturum çözülmemişse "bana atanan" HİÇBİR ŞEY döndürür — açıkça,
       // `user?.id ?? null` ile karşılaştırarak DEĞİL: o hâlde null === null
@@ -342,7 +349,7 @@ export default function GorevlerPage() {
       }
       return true;
     });
-  }, [enrichedRows, search, filters, user]);
+  }, [enrichedRows, search, filters, user,modules]);
 
   const selectedTask = useMemo(
     () => enrichedRows.find((task) => task.id === selectedId) ?? null,
@@ -401,7 +408,7 @@ export default function GorevlerPage() {
 
   const firmaOptions = useMemo(
     () =>
-      allCompanies.map((c) => ({
+      allCompanies.filter(c=>c.status!=="pasif").map((c) => ({
         id: c.legacy_mock_id ?? c.id,
         ad: c.name,
       })),
@@ -416,9 +423,9 @@ export default function GorevlerPage() {
   const filterConfig = useMemo<FilterConfig[]>(
     () => [
       ...FILTER_CONFIG,
-      buildFirmaFilter(["Firma dışı görev", ...allCompanies.map((c) => c.name)]),
+      ...(modules?.customers ? [buildFirmaFilter(["Firma dışı görev", ...allCompanies.map((c) => c.name)])] : []),
     ],
-    [allCompanies],
+    [allCompanies,modules],
   );
 
   // ------------------------------------------------------------------
@@ -435,7 +442,7 @@ export default function GorevlerPage() {
     );
   }
 
-  if (["goruntuleyici", "muhasebe"].includes(role)) {
+  if (!["yonetici", "operasyon", "ik"].includes(role)) {
     return (
       <>
         <PageHeader title="Görevler" subtitle="Operasyon takibi" />
@@ -449,36 +456,37 @@ export default function GorevlerPage() {
       <PageHeader
         title="Görevler"
         subtitle="Görev takibi ve koordinasyon"
-        actions={[
+        actions={modules?.tasks ? [
           ...(role === "yonetici" ? [{ label: "Görevleri devret", variant: "secondary" as const, onClick: () => setTransferOpen(true) }] : []),
           {
             label: "Yeni Görev",
             onClick: () => { feedback.clear(); setTaskPrefill(null); setNewOpen(true); },
             icon: <Plus size={16} />,
           },
-        ]}
+        ] : []}
       />
 
-      {(role === "yonetici" || role === "operasyon") && <Suspense fallback={<p role="status">Talep bağlantısı hazırlanıyor…</p>}>
+      {modules?.tasks && modules.staffing && (role === "yonetici" || role === "operasyon") && <Suspense fallback={<p role="status">Talep bağlantısı hazırlanıyor…</p>}>
         <TaskPrefillBanner key={listScope} disabled={newOpen} onPrepare={prefill => {
           setTaskPrefill(prefill); setNewOpen(true);
         }} />
       </Suspense>}
 
       <Suspense fallback={null}>
-        <TaskLinkOpener key={listScope} ready={!loading && !loadError && taskDataScope === listScope}
+        <TaskLinkOpener key={listScope} ready={!loading && !loadError && modules?.tasks === true && taskDataScope === listScope}
           taskIds={tasks.map(task => task.id)} onOpen={openLinkedTask} />
       </Suspense>
       <ActionNotice message={feedback.message} onDismiss={feedback.clear} />
       {quickBusy && <p role="status" className="mb-3 text-sm text-blue-700">İşlem kaydediliyor…</p>}
       {quickMessage && <div role="alert" className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm"><p>{quickMessage}</p><button className="mt-2 min-h-11 underline" onClick={() => { setQuickMessage(''); void reload(); }}>İşleri yenile</button></div>}
-      <PickerFeedback id="task-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
-        emptyText="Firma filtresinde gösterilecek firma yok." onRetry={() => setCompanyReloadKey(value => value + 1)} />
-      {profilesDurum === "error" && <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+      {modules?.customers && <PickerFeedback id="task-company-directory" status={companiesDurum} count={allCompanies.length} name="Firma listesi"
+        emptyText="Firma filtresinde gösterilecek firma yok." onRetry={() => setCompanyReloadKey(value => value + 1)} />}
+      {modules?.tasks && profilesDurum === "error" && <div role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         <p>Görevler yüklendi ancak görevlerin kimde olduğunu gösteren isimler alınamadı. Kişi listesini yeniden yükleyin.</p>
         <button type="button" className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3" onClick={() => setProfileReloadKey(value => value + 1)}>Kişi listesini tekrar yükle</button>
       </div>}
 
+      {modules && !modules.tasks && <div role="status" className="rounded-xl border border-slate-200 bg-slate-50 p-5">Görevler bu çalışma alanında kapalı.</div>}
       <div className="space-y-4">
         {/* Loading state */}
         {loading && (
@@ -493,7 +501,7 @@ export default function GorevlerPage() {
         )}
 
         {/* Main content */}
-        {!loading && !loadError && (
+        {!loading && !loadError && modules?.tasks && (
           <>
             <ListToolbar label="Görevlerde ara" search={<SearchInput ref={searchControl} key={listScope} value={search} maxLength={512} placeholder="Görev, firma, kişi ara..." onChange={handleSearch} />}>
               <CollapsibleFilters key={listScope} activeCount={Object.values(filters).filter(Boolean).length}>
@@ -540,7 +548,7 @@ export default function GorevlerPage() {
               <div>
                 <dt className={DL_LABEL}>Bağlı Firma</dt>
                 <dd className={`${TYPE_BODY} mt-0.5`}>
-                  {selectedTask.company_id ? <Link href={`/firmalar/${selectedTask.company_id}`} aria-disabled={saving || undefined}
+                  {selectedTask.company_id && modules?.customers && companyNameById[selectedTask.company_id] ? <Link href={`/firmalar/${selectedTask.company_id}`} aria-disabled={saving || undefined}
                     onClick={event => {
                       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                       if (saveBusy.current) { event.preventDefault(); return; }
@@ -548,7 +556,7 @@ export default function GorevlerPage() {
                     }}
                     className={`${TEXT_LINK} inline-block min-h-11 max-w-full break-words py-2 underline underline-offset-4`}>
                     {selectedTask.firma_name === "—" ? "Firma kaydını aç" : selectedTask.firma_name}
-                  </Link> : <span>Firma dışı görev</span>}
+                  </Link> : <span>{selectedTask.firma_name}</span>}
                 </dd>
               </div>
               <div>
@@ -676,7 +684,7 @@ export default function GorevlerPage() {
         )}
         {selectedTask&&<TaskAssignmentHistory key={`${user?.id}:${selectedTask.id}:${selectedTask.revision}`} client={supabase} taskId={selectedTask.id} profiles={allProfiles} />}
       </RightSidePanel>
-      {quickTask && <ConfirmActionDialog key={`${listScope}:${quickTask.id}:${quickTask.revision}`} title="Görevi tamamla" recordName={quickTask.title}
+      {modules?.tasks && quickTask && <ConfirmActionDialog key={`${listScope}:${quickTask.id}:${quickTask.revision}`} title="Görevi tamamla" recordName={quickTask.title}
         description="Bu işi tamamlandı olarak kaydedeceksiniz. Bağlı personel talebi veya işe başlama takibi bundan etkilenmez."
         confirmLabel="Tamamlandı olarak kaydet" onClose={() => setQuickTask(null)} onConfirm={() => quickAction(quickTask,'complete')} />}
       {discardIntent && selectedTask && <ConfirmActionDialog
@@ -690,15 +698,16 @@ export default function GorevlerPage() {
         }} />}
 
 
-      {transferOpen && role === "yonetici" && user && <TaskTransferModal
+      {modules?.tasks && transferOpen && role === "yonetici" && user && <TaskTransferModal
         key={`${user.id}:${user.app_metadata?.active_tenant}:${role}`}
         actorId={user.id} onClose={() => setTransferOpen(false)}
         onApplied={() => { void reload(); router.refresh(); }}
       />}
-      <NewTaskModal
+      {modules?.tasks && <NewTaskModal
         key={listScope}
         open={newOpen}
         onClose={() => { if (liveCreationContext.current !== creationContext) return; setNewOpen(false); setTaskPrefill(null); }}
+        allowCompany={modules.customers}
         firmalar={taskPrefill ? [{id:taskPrefill.companyId,ad:taskPrefill.companyName}] : firmaOptions}
         firmalarDurum={taskPrefill ? "ready" : companiesDurum}
         onRetryFirmalar={taskPrefill ? undefined : () => setCompanyReloadKey(value => value + 1)}
@@ -733,7 +742,7 @@ export default function GorevlerPage() {
           if (liveCreationContext.current !== creationContext) return;
           router.refresh();
         }}
-      />
+      />}
     </>
   );
 }

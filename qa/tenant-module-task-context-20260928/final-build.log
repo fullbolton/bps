@@ -1,0 +1,79 @@
+
+> bps@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.26
+   - Experiments (use with caution):
+     · middlewareClientMaxBodySize: "11mb"
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 28.2s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/29) ...
+   Generating static pages (7/29)
+   Generating static pages (14/29)
+   Generating static pages (21/29)
+ ✓ Generating static pages (29/29)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    48.7 kB         151 kB
+├ ○ /_not-found                             1 kB         104 kB
+├ ƒ /admin                               6.07 kB         109 kB
+├ ○ /aktif-isgucu                        6.92 kB         194 kB
+├ ƒ /api/access-request                    151 B         103 kB
+├ ƒ /api/contracts/pdf-upload              151 B         103 kB
+├ ƒ /api/cron/notifications                151 B         103 kB
+├ ƒ /api/demo-request                      151 B         103 kB
+├ ƒ /api/healthz                           151 B         103 kB
+├ ƒ /api/operations/weekly-export          151 B         103 kB
+├ ƒ /auth/callback                         151 B         103 kB
+├ ○ /ayarlar                             6.75 kB         188 kB
+├ ○ /dashboard                           11.4 kB         198 kB
+├ ○ /davet                                4.2 kB         182 kB
+├ ○ /evraklar                            9.24 kB         210 kB
+├ ○ /finansal-ozet                       6.04 kB         184 kB
+├ ○ /firmalar                             7.1 kB         191 kB
+├ ƒ /firmalar/[id]                        126 kB         329 kB
+├ ○ /gorevler                            17.7 kB         218 kB
+├ ○ /import                              7.95 kB         186 kB
+├ ○ /kayit                               1.75 kB         169 kB
+├ ○ /kurulum                             6.84 kB         188 kB
+├ ○ /kurumsal-tarihler                   7.46 kB         185 kB
+├ ○ /login                               3.75 kB         168 kB
+├ ○ /luca-import                          168 kB         346 kB
+├ ƒ /personel-havuzu                     33.2 kB         237 kB
+├ ƒ /personel-havuzu/aktarim             23.4 kB         199 kB
+├ ƒ /personel-havuzu/listeler            5.46 kB         191 kB
+├ ƒ /projeler                            2.17 kB         108 kB
+├ ƒ /projeler/[id]                       2.92 kB         109 kB
+├ ƒ /projeler/[id]/aktarim               9.01 kB         120 kB
+├ ƒ /projeler/[id]/rapor                   169 B         106 kB
+├ ƒ /projeler/[id]/rapor/kayitlar          169 B         106 kB
+├ ○ /randevular                          11.9 kB         210 kB
+├ ○ /raporlar                            7.07 kB         196 kB
+├ ○ /sirket-sec                          3.84 kB         168 kB
+├ ○ /sozlesmeler                          7.2 kB         204 kB
+├ ƒ /sozlesmeler/[id]                    15.9 kB         219 kB
+├ ○ /talepler                            8.33 kB         206 kB
+├ ƒ /talepler/dizin                      7.33 kB         192 kB
+├ ƒ /talepler/gunluk                     35.9 kB         230 kB
+├ ƒ /talepler/haftalik                   7.74 kB         189 kB
+├ ƒ /talepler/ise-baslama                10.7 kB         195 kB
+├ ○ /talepler/ise-baslama/onizleme       2.84 kB         171 kB
+├ ƒ /talepler/kadro                      8.45 kB         180 kB
+├ ƒ /talepler/kontrol                    5.44 kB         187 kB
+├ ƒ /talepler/planlar                    8.14 kB         179 kB
+└ ƒ /yonetim                             7.14 kB         197 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/8337-670d98be687c4cde.js      46.3 kB
+  ├ chunks/945200c1-3bdd3afc4617970b.js  54.2 kB
+  └ other shared chunks (total)          2.15 kB
+
+
+ƒ Middleware                             86.8 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

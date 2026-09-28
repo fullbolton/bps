@@ -18,12 +18,12 @@ const taskGuard=actualFunction('20260926000100_multi_workspace_cutover.sql','tas
 const body=sql=>sql.replace(/^BEGIN;\s*$/m,'').replace(/COMMIT;\s*$/,'');
 const setup=`
 CREATE TABLE profiles(id uuid PRIMARY KEY,display_name text,role text);
-CREATE TABLE companies(id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES tenants(id),name text,status text);
-CREATE TABLE contracts(name text DEFAULT 'Synthetic contract',renewal_target_date date,end_date date, id uuid PRIMARY KEY,company_id uuid NOT NULL REFERENCES companies(id),tenant_id uuid NOT NULL REFERENCES tenants(id));
-CREATE TABLE appointments(status text DEFAULT 'planlandi',result text,next_action text,updated_at timestamptz DEFAULT now(), id uuid PRIMARY KEY,company_id uuid NOT NULL REFERENCES companies(id),tenant_id uuid NOT NULL REFERENCES tenants(id));
+CREATE TABLE companies(legacy_mock_id text,finance_secret numeric DEFAULT 999999, id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES tenants(id),name text,status text);
+CREATE TABLE contracts(name text DEFAULT 'Synthetic contract',renewal_target_date date,end_date date, id uuid PRIMARY KEY,company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,tenant_id uuid NOT NULL REFERENCES tenants(id));
+CREATE TABLE appointments(status text DEFAULT 'planlandi',result text,next_action text,updated_at timestamptz DEFAULT now(), id uuid PRIMARY KEY,company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,tenant_id uuid NOT NULL REFERENCES tenants(id));
 INSERT INTO profiles VALUES('${id(11)}','Manager','yonetici'),('${id(12)}','Other tenant','operasyon');
 ${roles.slice(1).map((r,i)=>`INSERT INTO profiles VALUES('${id(21+i)}','Member ${i}','${r}');INSERT INTO tenant_memberships VALUES('${id(1)}','${id(21+i)}','${r}','${id(121+i)}');`).join('\n')}
-INSERT INTO companies VALUES('${id(101)}','${id(1)}','Synthetic customer','aktif'),('${id(102)}','${id(2)}','Foreign customer','aktif');
+INSERT INTO companies(id,tenant_id,name,status) VALUES('${id(101)}','${id(1)}','Synthetic customer','aktif'),('${id(102)}','${id(2)}','Foreign customer','aktif');
 INSERT INTO contracts(id,company_id,tenant_id) VALUES('${id(201)}','${id(101)}','${id(1)}'),('${id(202)}','${id(102)}','${id(2)}');
 INSERT INTO appointments(id,company_id,tenant_id) VALUES('${id(301)}','${id(101)}','${id(1)}');
 `;
@@ -40,7 +40,7 @@ before(async()=>{
  admin=new Client({connectionString:adminUrl.href,connectionTimeoutMillis:5000,query_timeout:10000});await admin.connect();await admin.query(`CREATE DATABASE ${name}`);created=true;
  db=client();await db.connect();
  await db.query(fixture+setup+active+verified+workspace+currentRole+baseTask+`
- ALTER TABLE tasks ADD COLUMN tenant_id uuid NOT NULL REFERENCES tenants(id),ADD COLUMN assigned_to_user_id uuid REFERENCES profiles(id);
+ ALTER TABLE tasks ADD COLUMN tenant_id uuid NOT NULL REFERENCES tenants(id),ADD COLUMN assigned_to_user_id uuid REFERENCES profiles(id) ON DELETE SET NULL;
  ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
  CREATE POLICY tasks_read ON tasks FOR SELECT TO authenticated USING(tenant_id=current_user_verified_tenant() AND current_user_role() IN('yonetici','operasyon','ik'));
  CREATE POLICY tasks_old_write ON tasks FOR ALL TO authenticated USING(tenant_id=current_user_verified_tenant()) WITH CHECK(tenant_id=current_user_verified_tenant());
@@ -77,6 +77,22 @@ before(async()=>{
  await db.query(sqlFile('20260928001100_task_module_direct_write_cutover.sql'));
  await db.query(sqlFile('20260928001200_task_module_workflows.sql'));
  await db.query(sqlFile('20260928001300_task_module_notifications.sql'));
+
+ // Effective task parent keys from 20260915000600 + 20260928000600, without unrelated tables.
+ await db.query(`
+ ALTER TABLE companies ADD UNIQUE(tenant_id,id);
+ ALTER TABLE tasks DROP CONSTRAINT tasks_company_id_fkey, ADD CONSTRAINT tasks_company_tenant_fkey FOREIGN KEY(tenant_id,company_id) REFERENCES companies(tenant_id,id) ON DELETE CASCADE;
+ ALTER TABLE contracts ADD UNIQUE(id,company_id,tenant_id);
+ ALTER TABLE appointments ADD UNIQUE(id,company_id,tenant_id);
+ ALTER TABLE tasks DROP CONSTRAINT tasks_contract_id_fkey,DROP CONSTRAINT tasks_appointment_id_fkey,
+ ADD CONSTRAINT tasks_contract_company_tenant_fkey FOREIGN KEY(contract_id,company_id,tenant_id) REFERENCES contracts(id,company_id,tenant_id) ON DELETE SET NULL(contract_id),
+ ADD CONSTRAINT tasks_appointment_company_tenant_fkey FOREIGN KEY(appointment_id,company_id,tenant_id) REFERENCES appointments(id,company_id,tenant_id) ON DELETE SET NULL(appointment_id);
+ ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY company_fixture_read ON companies FOR SELECT TO authenticated USING(tenant_id=current_user_verified_tenant());
+ GRANT SELECT ON companies TO authenticated;
+ `);
+ await db.query(sqlFile('20260928001400_task_company_projection.sql'));
+ await db.query(sqlFile('20260928001500_preserve_task_relations.sql'));
  console.log('Task gateway synthetic PostgreSQL:',(await db.query('SHOW server_version')).rows[0].server_version);
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${name} WITH (FORCE)`);await admin.end();}});
@@ -301,3 +317,59 @@ test('shared configuration validator preserves scope, completeness and dependenc
 test('workflow patch aborts on unexpected function definition rather than silently skipping a guard',()=>rollback(async()=>{
  await assert.rejects(db.query(body(sqlFile('20260928001200_task_module_workflows.sql'))),e=>e.message.includes('MODULE_WORKFLOW_DRIFT'));
 }));
+
+test('task company projection returns only display columns and retains tenant, module, role and company RLS',async()=>{
+ await rollback(async()=>{
+  await asUser(db);const rows=(await db.query('SELECT * FROM task_company_choices_v1()')).rows;
+  assert.equal(rows.length,1);assert.equal(rows[0].id,id(101));
+  assert.deepEqual(Object.keys(rows[0]).sort(),['id','tenant_id','name','legacy_mock_id','status'].sort());
+ });
+ await rollback(async()=>{
+  await db.query('DROP POLICY company_fixture_read ON companies');await asUser(db);
+  assert.equal((await db.query('SELECT * FROM task_company_choices_v1()')).rowCount,0);
+ });
+ for(const actor of [23,24,25])await rollback(async()=>{await asUser(db,actor);assert.equal((await db.query('SELECT * FROM task_company_choices_v1()')).rowCount,0);});
+ await rollback(async()=>{await disabled(db);await asUser(db);assert.equal((await db.query('SELECT * FROM task_company_choices_v1()')).rowCount,0);});
+ await rollback(async()=>{
+  await db.query("UPDATE tenant_module_settings SET enabled=false WHERE tenant_id=$1 AND module_key<>'tasks'",[id(1)]);
+  await asUser(db);assert.equal((await db.query('SELECT * FROM task_company_choices_v1()')).rowCount,0);
+  assert.ok((await create(db)).id);
+ });
+});
+
+test('parent hard deletion cannot delete task history or detach task context, even with tasks disabled',async()=>{
+ for(const target of ['companies','contracts','appointments','creator','assignee'])await rollback(async()=>{
+  await asUser(db);const row=await create(db,{company_id:id(101),contract_id:id(201),appointment_id:id(301),assigned_to_user_id:id(21)});
+  await db.query('RESET ROLE');await disabled(db);await db.query('SAVEPOINT delete_parent');
+  const table=target==='creator'||target==='assignee'?'profiles':target;
+  const key={companies:101,contracts:201,appointments:301,creator:11,assignee:21}[target];
+  await assert.rejects(db.query(`DELETE FROM ${table} WHERE id=$1`,[id(key)]),e=>e.code==='23503');
+  await db.query('ROLLBACK TO delete_parent');
+  const unchanged=(await db.query('SELECT * FROM tasks WHERE id=$1',[row.id])).rows[0];
+  assert.equal(unchanged.revision,row.revision);assert.equal(unchanged.contract_id,id(201));assert.equal(unchanged.appointment_id,id(301));
+  assert.equal((await db.query('SELECT count(*)::int n FROM task_assignment_history WHERE task_id=$1',[row.id])).rows[0].n,1);
+ });
+});
+
+test('unreferenced parent deletion and deactivation remain possible; schema drift aborts the preservation migration',async()=>{
+ await rollback(async()=>{
+  await db.query("INSERT INTO companies(id,tenant_id,name,status) VALUES($1,$2,'Unreferenced','aktif')",[id(888),id(1)]);
+  assert.equal((await db.query('DELETE FROM companies WHERE id=$1',[id(888)])).rowCount,1);
+  await asUser(db);await create(db,{company_id:id(101)});await db.query('RESET ROLE');
+  assert.equal((await db.query("UPDATE companies SET status='pasif' WHERE id=$1",[id(101)])).rowCount,1);
+ });
+ await rollback(async()=>{await assert.rejects(db.query(body(sqlFile('20260928001500_preserve_task_relations.sql'))),e=>e.message.includes('TASK_RELATION_DRIFT'));});
+});
+
+test('parent deletion waiting behind a new task cannot erase that task after its commit',async()=>{
+ const writer=client(),remover=client();await Promise.all([writer.connect(),remover.connect()]);
+ try{
+  await db.query("INSERT INTO companies(id,tenant_id,name,status) VALUES($1,$2,'Concurrent parent','aktif')",[id(889),id(1)]);
+  await writer.query('BEGIN');await asUser(writer);const row=await create(writer,{company_id:id(889)});
+  const pid=(await remover.query('SELECT pg_backend_pid() pid')).rows[0].pid;
+  const pending=remover.query('DELETE FROM companies WHERE id=$1',[id(889)]).then(()=>({ok:true}),e=>({code:e.code}));
+  try{await waiting(db,pid);await writer.query('COMMIT');assert.deepEqual(await pending,{code:'23503'});}
+  finally{await writer.query('ROLLBACK');await pending;}
+  assert.equal((await db.query('SELECT count(*)::int n FROM task_assignment_history WHERE task_id=$1',[row.id])).rows[0].n,1);
+ }finally{await Promise.all([writer.end(),remover.end()]);}
+});

@@ -480,5 +480,9 @@
   {
     "file": "scripts/task-module-gateway-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/task-workspace.test.mjs",
+    "suite": "application"
   }
 ]

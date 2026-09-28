@@ -1,0 +1,12 @@
+✔ task screen requires verified actor, tenant, live role and complete module snapshot (5.185833ms)
+✔ task company directory keeps narrow fields, ordered complete pagination and rejects wrong tenant (5.041375ms)
+✔ context navigation needs an enabled source module; missing state never defaults to all links (0.680333ms)
+✔ actual task form hides disabled company controls instead of calling the company list empty (20.640583ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1620.627417

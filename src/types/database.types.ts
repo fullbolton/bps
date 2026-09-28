@@ -1288,6 +1288,10 @@ export interface Database {
       admin_manage_membership: {Args:{p_user_id:string;p_tenant_id:string;p_action:string;p_role?:string;p_expected_role?:string;p_expected_version?:string};Returns:Json};
       my_workspace_choices: { Args: Record<string, never>; Returns: Json };
       select_workspace: { Args: {p_tenant_id:string;p_membership_version:string;p_command_id:string;p_expected_version:string|null}; Returns: Json };
+      task_company_choices_v1: {
+        Args: Record<string, never>;
+        Returns: {id: string; tenant_id: string; legacy_mock_id: string | null; name: string; status: string}[];
+      };
       task_notification_candidates_v1: {
         Args: Record<string, never>;
         Returns: Pick<TaskRow, 'id' | 'title' | 'status' | 'due_date' | 'assigned_to_user_id' | 'tenant_id' | 'company_id'>[];

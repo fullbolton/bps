@@ -20,6 +20,7 @@ interface NewTaskModalProps {
   onClose: () => void;
   firmalar: { id: string; ad: string }[];
   firmalarDurum?: PickerStatus;
+  allowCompany?: boolean;
   onRetryFirmalar?: () => void;
   onRetryKullanicilar?: () => void;
   /**
@@ -60,6 +61,7 @@ export default function NewTaskModal({
   onClose,
   firmalar,
   firmalarDurum = "ready",
+  allowCompany = true,
   onRetryFirmalar,
   onRetryKullanicilar,
   kullanicilar = [],
@@ -100,8 +102,8 @@ export default function NewTaskModal({
     setOncelik(defaultOncelik ?? "normal");
   }, [open, defaultFirmaId, defaultKaynak, defaultKaynakRef, defaultBaslik, defaultOncelik]);
 
-  const companyValid = (!isSourceLocked && !firmaId) || firmalarDurum === "ready" && firmalar.some(f => f.id === firmaId)
-    && (!isSourceLocked || (!!defaultFirmaId && firmaId === defaultFirmaId));
+  const companyValid = allowCompany ? (!isSourceLocked && !firmaId) || firmalarDurum === "ready" && firmalar.some(f => f.id === firmaId)
+    && (!isSourceLocked || (!!defaultFirmaId && firmaId === defaultFirmaId)) : !firmaId && !isSourceLocked;
   const assigneeValid = !allowAssignee || !atananKisiId || (kullanicilarDurum === "ready" && kullanicilar.some(k => k.id === atananKisiId));
 
   async function handleSubmit() {
@@ -210,7 +212,7 @@ export default function NewTaskModal({
               className="min-h-11 min-w-0 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <div>
+          {allowCompany ? <div>
             <label htmlFor={`${formId}-firmaId`} className="block text-sm font-medium text-slate-700 mb-1">
               {isSourceLocked ? "Bağlı firma" : "Firma (isteğe bağlı)"}
             </label>
@@ -239,7 +241,7 @@ export default function NewTaskModal({
             {!isSourceLocked && <p className="mt-2 text-xs text-slate-500">Firma seçmeden iç işler veya dışarıda yapılacak işler için görev açabilirsiniz.</p>}
             <PickerFeedback id={`${formId}-companies`} status={firmalarDurum} count={firmalar.length} name="Firma listesi"
               emptyText="Firma listesi boş. Firma dışı görev oluşturabilirsiniz." onRetry={onRetryFirmalar} />
-          </div>
+          </div> : <p className="text-sm text-slate-600">{firmaId || isSourceLocked ? "Bu görevin firma bağlantısı artık kullanılamıyor. Firma bağlantısı olmadan yeni bir görev açın." : "Bu görev firma bağlantısı olmadan kaydedilecek."}</p>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor={`${formId}-oncelik`} className="block text-sm font-medium text-slate-700 mb-1">

@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState, type ReactNode } from 'react';
 import { Check, ChevronRight, Clock3, UserRound, RefreshCw } from 'lucide-react';
-import { taskContextLinks } from '@/lib/task-context';
+import { taskContextLinks, type TaskContextAccess } from '@/lib/task-context';
 import { StatusBadge, PriorityBadge } from '@/components/ui';
 import type { TaskRow } from '@/types/database.types';
 import { activeTask, taskActionPermissions, mobileTaskMatches, mobileTaskViews, operationDay, orderMobileTasks, taskDueLabel, type MobileTaskView } from '@/lib/mobile-operations';
 
-type Row = TaskRow & { firma_name: string; assignee_label: string };
+type Row = TaskRow & { firma_name: string; assignee_label: string; contextAccess:TaskContextAccess };
 export default function MobileTaskList({ rows, actorId, role, busy, onOpen, onClaim, onComplete, onReload, onClearFilters, onCreate, renderDesktop, view, onViewChange }: {
   view: MobileTaskView; onViewChange: (view: MobileTaskView) => void;
   rows: Row[]; actorId: string | null; role: string; busy: boolean;

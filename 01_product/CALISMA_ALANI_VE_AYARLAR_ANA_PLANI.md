@@ -230,3 +230,13 @@ Toplu devir, sözleşme yenileme ve randevu tamamlama config kilidini profil/iş
 **Yerel; üretime uygulanmadı.** Genişletilmiş kontrollü sıra: 000900 + 001000 + 001200 + 001300 expand → yeni frontend ve kimlikli smoke → 001100 contract. Numaraya göre bütün bekleyen SQL'leri aynı adımda uygulamayın.
 
 Sırada: görevlerin ortak ekran/kaynak projeksiyonları ve FK CASCADE/SET NULL etkileri; diğer modüllerin erişim kapıları; açık iş/bağımlılık kontrollü ayar komutu ve Modüller UI. Üretim etkin yetki ölçümü, tarayıcı/PostgREST kabulü hâlâ açık. Kapatma seçeneği henüz kullanıcıya sunulmuyor.
+
+## Uygulama kaydı — 28 Eylül 2026, görev ekranı ve ilişki koruması M2c
+
+Görevler ekranı modül snapshot'ını doğruluyor; kapalı modüle bağlantı/aksiyon sunmuyor. Firma seçimi tek dar ve RLS korumalı endpoint'e taşındı; mali/iletişim alanları görev ekranına taşınmıyor. Firma dizini yükleme/boş/kapalı/hata durumları ayrıldı, bağımsız retry görev taslağını koruyor. Kapalı müşteriler modülü mevcut firmalı görevi “firma dışı” diye göstermiyor.
+
+Beş task-parent FK'nin CASCADE/SET NULL davranışı RESTRICT'e çevrilen yerel migration hazır. Görev veya atama geçmişi ebeveyn silmeyle kaybolmaz; firma pasifleştirme değişmez. Bağlı profil hard-delete'i de engellenir; ilerideki anonimleştirme/hesap silme iş akışı ayrı ele alınmalıdır.
+
+541 genel uygulama testi + 4 odaklı servis/form testi (üçü ortak), 42 PostgreSQL 17.10 testi geçti. Rapor: `qa/tenant-module-task-context-20260928/README.md`; son tip/derleme kanıtı aynı dizinde.
+
+**Yerel, yayın yok.** Yeni adaylar 001400 dar firma projeksiyonu ve 001500 ilişki koruması. 001400 frontend'den önce; eski 001100 doğrudan görev yazma cutover'ı frontend smoke sonrasında. Bekleyen bütün SQL'leri tek seferde uygulamayın. Genel modül kapatma mutasyonu/UI hâlâ açılmadı.

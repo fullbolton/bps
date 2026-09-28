@@ -1,0 +1,52 @@
+Task gateway synthetic PostgreSQL: 17.10
+✔ company-free task creation derives creator and assignee label, then revision advances on edit (889.477ms)
+✔ authenticated cannot bypass gateway with direct DML or call private lock helper (24.284458ms)
+✔ missing or disabled module configuration blocks mutation, disabled tasks hide table and history reads (34.548792ms)
+✔ all six live roles: only manager, operations and HR can create (58.780958ms)
+✔ HR cannot reassign and non-owner quick completion cannot masquerade as manager (58.554083ms)
+✔ forged fields, invalid dates/types, foreign relations and stale revisions are rejected (172.640417ms)
+✔ foreign task, mismatched expected actor/tenant and nonmember assignee fail (58.3065ms)
+✔ linked creation requires the source module while independent tasks remain available (28.239333ms)
+✔ two simultaneous claims have exactly one winner and one assignment event (128.10925ms)
+✔ config change winning the lock makes a waiting write see disabled state after commit (164.768875ms)
+✔ a writing transaction holds its configuration barrier until commit; independent writers share it (200.451833ms)
+✔ role revoked while waiting for the profile lock is rechecked after the lock (131.572ms)
+✔ passive company rejects new work; HR cannot use an unreadable contract or appointment (42.953417ms)
+✔ repeatable-read writes are refused rather than using a stale post-lock snapshot (11.902584ms)
+✔ contract removes an explicit column-level write grant as well as table grants (6.535709ms)
+✔ inherited write privilege drift aborts contract migration instead of leaving a bypass (11.707625ms)
+✔ task transfer supports independent tasks, live membership roles and idempotent replay (80.099958ms)
+✔ disabled task module rejects all three workflow mutations including receipt replays (386.407667ms)
+✔ calendar completion without a follow-up works with tasks off, but calendar off rejects it (34.269917ms)
+✔ failed appointment task request does not complete the appointment or leave a receipt (9.603291ms)
+✔ definer reads obey module gates and hide company projection when only tasks remain enabled (248.01525ms)
+✔ dashboard activity excludes each disabled source without suppressing enabled task activity (98.363125ms)
+✔ config barrier is first for every workflow and waiting commands see the newly disabled module (374.854958ms)
+✔ workflow role and cross-tenant restrictions remain intact (57.963416ms)
+✔ service-only task notification RPC filters disabled tenants and refuses incomplete config (32.427541ms)
+✔ shared configuration validator preserves scope, completeness and dependency failures (6.850833ms)
+✔ workflow patch aborts on unexpected function definition rather than silently skipping a guard (10.172416ms)
+✔ task company projection returns only display columns and retains tenant, module, role and company RLS (116.856958ms)
+✔ parent hard deletion cannot delete task history or detach task context, even with tasks disabled (129.70125ms)
+✔ unreferenced parent deletion and deactivation remain possible; schema drift aborts the preservation migration (29.74375ms)
+✔ parent deletion waiting behind a new task cannot erase that task after its commit (129.416375ms)
+Synthetic module DB: 17.10
+✔ existing tenants get exactly ten enabled settings and one truthful bootstrap receipt each (798.671541ms)
+✔ new tenant provisioning initializes all ten rows in the same transaction; rollback leaves nothing (11.905541ms)
+✔ authenticated response is scoped to live membership, preserves role and bigint precision (11.911ms)
+✔ all configuration tables deny direct reads and writes to anon/authenticated/service_role (24.975625ms)
+✔ only authenticated can execute the public reader; internal bootstrap and catalog have no client grants (10.174375ms)
+✔ no session, foreign tenant claim and removed membership fail closed (8.6505ms)
+✔ stale workspace selection and stale membership generations are rejected by the real scope functions (10.369041ms)
+✔ missing config, missing key and broken hard dependencies do not return an all-enabled fallback (13.265208ms)
+✔ disabled independent module is represented as disabled without changing another tenant (6.311084ms)
+✔ unknown/duplicate module keys, invalid revision and bootstrap reset are rejected (7.5085ms)
+✔ tenant insert and migration serialize in both orders; timeout rolls back all new tables (782.637875ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6348.019667

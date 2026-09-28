@@ -1,0 +1,53 @@
+{
+  "status": "local_verified_not_published",
+  "stage": "M2c_task_context_and_parent_preservation",
+  "baseCommit": "af658bf23f942613cda1e15445951a1e96b7a426",
+  "productionApplied": false,
+  "moduleDisableAvailable": false,
+  "migrations": [
+    {
+      "path": "supabase/migrations/20260928001400_task_company_projection.sql",
+      "sha256": "02eee2c98659ebee7d5cf0d6ede7f409cf24b329a8a77b7ffc987f84324d2079"
+    },
+    {
+      "path": "supabase/migrations/20260928001500_preserve_task_relations.sql",
+      "sha256": "891c15c401769b400060ba1aac5554db09773f70550e81a7264a16b55396627d"
+    }
+  ],
+  "checks": {
+    "applicationFullRun": {
+      "passed": 541,
+      "failed": 0,
+      "pendingFeatureFilesExcluded": 7
+    },
+    "focusedContextAndForm": {
+      "passed": 4,
+      "failed": 0,
+      "overlapWithFullRun": 3,
+      "additionalRenderCaseAfterFullRun": 1
+    },
+    "database": {
+      "engine": "PostgreSQL 17.10",
+      "passed": 42,
+      "failed": 0
+    },
+    "typecheck": "pass",
+    "finalBuild": "pass",
+    "static": {
+      "fail": 0,
+      "warn": 2
+    },
+    "browserSmoke": "not_run",
+    "remoteCI": "not_run",
+    "productionCatalog": "not_measured",
+    "legacyDockerSuites": "not_run"
+  },
+  "remaining": [
+    "other shared screens and source projections",
+    "other module RLS/RPC/direct writes/storage/export/cron/FK paths",
+    "effective production access inventory",
+    "settings mutation and open-work blockers",
+    "global navigation and configuration invalidation"
+  ],
+  "retentionEffect": "Hard deleting task-linked companies, contracts, appointments or profiles is rejected; a future explicit anonymization/retention workflow is separate."
+}
