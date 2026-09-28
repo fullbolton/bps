@@ -1,0 +1,31 @@
+{
+  "baseCommit": "db6a860020fcac7d9f6f1387f666b74a5a463edc",
+  "status": "local-not-deployed",
+  "releaseExitCode": 0,
+  "databaseExitCode": 0,
+  "applicationTests": 591,
+  "databaseTests": 105,
+  "newApplicationTests": 8,
+  "newDatabaseTests": 13,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "browserSmokeRun": false,
+  "productionMigrationApplied": false,
+  "contactDmlCutoverTestedLocally": true,
+  "files": {
+    ".github/workflows/module-foundation-db.yml": "c92eb525e92de430d0f6a96265a8fb4ecd7f4a2b2154b85230a8747dd80df898",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "313267ab878b76838a125845fda50ff6ff4fea8c425ae3af669104d4ec2f666c",
+    "scripts/test-inventory.json": "c0d17bbc95f69f6a8963046f0f312280ec544ba02a9be4f11f96ed9d36a87497",
+    "src/app/(main)/firmalar/[id]/actions.ts": "d51b008a7c70a13b6512a6d49393a52c70c6931d67fa95834e4ff7b6adaa241d",
+    "src/app/(main)/firmalar/[id]/page.tsx": "f45c0a6a66b1a7f585ad9eb102c7d9134f7e2933859fc98a187712eca0dc0a1c",
+    "src/app/(main)/import/actions.ts": "7149b965105cf0051f4ebd48bad0e035f4bac1231a8ffe9db67173cefa2a5cad",
+    "src/lib/import/import-service.ts": "554d96da11c236332f1ec90c12f47ddcfe24ff60db3aa745c825d423154904e5",
+    "src/lib/services/contacts.ts": "386952e0c8070575f6d9f49f7567bbce6744b41079bcf9fb1621641a218e456b",
+    "src/lib/supabase/contacts.ts": "d15fc069dee0207bc15327f4caff094179a640fcd50b058a04076fc9f7b8449a",
+    "src/types/database.types.ts": "52b123d6dca6d457c2fd7159058c8dcdb0da049c99d7c43f040a8c7e40795b0d",
+    "scripts/contact-commands-db.test.mjs": "ca5a2e5b3d072aecef8ffad3d2020a6c807ff209abfceb55f87d6b0e03625af9",
+    "scripts/contact-commands.test.mjs": "39e59ab82c52b8f810fb5e7d61c4600a21aaea65b1aad376c6d296a26bc6eb25",
+    "supabase/migrations/20260928002200_contact_remaining_commands.sql": "56b1c81f237f730b4bac01bf1c4afd2e268bd730ec5b32e5f6268cc2776d9db7",
+    "supabase/migrations/20260928002300_contact_direct_write_cutover.sql": "a4f879d99ba0441b915fd69c2262a31c633a855c9a13d3f84bbf85cbd1629cc0"
+  }
+}

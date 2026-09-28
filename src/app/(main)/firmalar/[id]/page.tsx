@@ -405,7 +405,7 @@ function CompanyWorkspace({id, workspace}: {id:string; workspace:WorkspaceModule
   async function confirmRecordDelete(target: NonNullable<typeof deleteTarget>) {
     if (target.scope !== companyScopeRef.current) throw new Error("Firma bilgisi değişti. Sayfayı yenileyin.");
     if (target.kind === "contact") {
-      const result = await deleteContactAction(target.id);
+      const result = await deleteContactAction(id, target.id);
       if (!result.ok) throw new Error(result.error);
       if (target.scope !== companyScopeRef.current) return;
       if (result.deletedName !== undefined) feedback.show(`${result.deletedName} yetkili kişilerden silindi.`);

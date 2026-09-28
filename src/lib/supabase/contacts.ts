@@ -1,30 +1,10 @@
 import { moduleAccessMessage } from "@/lib/modules/errors";
-/**
- * Supabase data access layer — contacts (Yetkililer, Faz 1A primary truth).
- *
- *     UI Component
- *         ↓
- *     src/lib/services/contacts.ts          ← business logic, invariants
- *         ↓
- *     src/lib/supabase/contacts.ts          ← THIS FILE — raw CRUD only
- *         ↓
- *     Supabase Postgres + RLS
- *
- * Rules (mirrors `companies.ts` and `profiles.ts`):
- *   - Raw CRUD only. No business logic, no invariant enforcement,
- *     no role checks. The service layer is responsible for those.
- *   - Functions take a Supabase client as the first argument so the
- *     caller chooses the right context (server vs browser).
- *   - Errors are normalized into Error instances with the Supabase
- *     message preserved for the service layer to translate.
- */
+/** Company contact reads and scoped commands. SQL owns authorization and invariants. */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Database,
   ContactRow,
-  ContactInsert,
-  ContactUpdate,
 } from "@/types/database.types";
 
 type Client = SupabaseClient<Database>;
@@ -108,114 +88,6 @@ export async function selectContactByIdAndCompany(
   return data;
 }
 
-// ---------------------------------------------------------------------------
-// Writes
-// ---------------------------------------------------------------------------
-
-/**
- * Insert a contact row exactly as provided. The service layer is
- * responsible for:
- *   - Resolving the company_id (legacy mock id → uuid)
- *   - Enforcing the max-5 / phone-or-email / single-primary invariants
- *     before calling this function (the database also enforces them as
- *     a safety net via constraint trigger + partial unique index)
- *   - Re-verifying partner scope per PARTNER_SCOPE_TOUCHPOINTS.md §3
- */
-export async function insertContact(
-  client: Client,
-  input: ContactInsert,
-): Promise<ContactRow> {
-  const { data, error } = await client
-    .from("contacts")
-    .insert(input)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`contacts insert failed: ${error.message}`);
-  }
-  return data;
-}
-
-/**
- * Update an existing contact row. The service layer is responsible for:
- *   - Narrowing the patch to the columns the caller's role may write
- *     (e.g. operasyon → only phone/email)
- *   - Promoting/demoting the is_primary flag in tandem with other rows
- *     when the caller is reassigning the ana yetkili
- *   - Re-verifying partner scope before calling this function
- */
-export async function updateContact(
-  client: Client,
-  id: string,
-  patch: ContactUpdate,
-): Promise<ContactRow> {
-  const { data, error } = await client
-    .from("contacts")
-    .update(patch)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`contacts update failed: ${error.message}`);
-  }
-  return data;
-}
-
-/**
- * Demote every primary contact for a given company to is_primary = false.
- * This standalone statement is NOT atomic with a later insert/update.
- * @deprecated Active create/full-edit paths use writeCompanyContact so a
- * failed target write cannot leave the company without its former primary.
- *
- * The exclude_id parameter lets the caller skip a row (e.g. the row that
- * is about to be promoted).
- */
-export async function clearPrimaryForCompany(
-  client: Client,
-  companyId: string,
-  excludeId?: string,
-): Promise<void> {
-  let query = client
-    .from("contacts")
-    .update({ is_primary: false })
-    .eq("company_id", companyId)
-    .eq("is_primary", true);
-
-  if (excludeId) {
-    query = query.neq("id", excludeId);
-  }
-
-  const { error } = await query;
-  if (error) {
-    throw new Error(`contacts clear-primary failed: ${error.message}`);
-  }
-}
-
-/**
- * Delete a contact row. The service layer is responsible for partner
- * scope re-verification before calling this function.
- *
- * Phase 1A does not yet expose a "delete contact" UI action — this
- * function is provided so the service layer can shape its full surface
- * area now and the future delete CTA does not require schema changes.
- */
-export async function deleteContact(
-  client: Client,
-  id: string,
-): Promise<void> {
-  const { error } = await client
-    .from("contacts")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    throw new Error(`contacts delete failed: ${error.message}`);
-  }
-}
-
-
 /** One RPC transaction; never fall back to separate demote/write calls. */
 export async function writeCompanyContact(
   client: Client,
@@ -224,4 +96,41 @@ export async function writeCompanyContact(
   const { data, error } = await client.rpc("write_company_contact", input).single();
   if (error) throw new Error(moduleAccessMessage(error) ?? "Yetkili kişi kaydedilemedi. Tekrar denemeden önce yetkili listesini kontrol edin.");
   return data;
+}
+
+export type ContactCommandScope = { companyId: string; tenantId: string; actorId: string };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** No retry: a transport error can follow a committed write. */
+export async function executeContact(
+  client: Client, scope: ContactCommandScope, action: "communication" | "delete" | "import",
+  contactId: string | null, input: Record<string, string | boolean | null>,
+): Promise<ContactRow> {
+  const uncertain = "Yetkili işleminin sonucu doğrulanamadı. Tekrar denemeden önce yetkili listesini yenileyin.";
+  if (![scope.companyId, scope.tenantId, scope.actorId].every(value => UUID.test(value))
+    || (contactId !== null && !UUID.test(contactId))) throw Error("Yetkili işleminin kapsamı doğrulanamadı.");
+  let response;
+  try {
+    response = await client.rpc("contact_execute_v1", {
+      p_action: action, p_contact_id: contactId, p_company_id: scope.companyId,
+      p_tenant_id: scope.tenantId, p_actor_id: scope.actorId, p_input: input,
+    });
+  } catch { throw Error(uncertain); }
+  if (response.error) {
+    const messages: Record<string, string> = {
+      CONTACT_PRIMARY_EXISTS: "Bu firmanın ana yetkilisi zaten var. CSV satırını kontrol edin; mevcut ana yetkili değiştirilmedi.",
+      CONTACT_CHANNEL_REQUIRED: "Telefon veya e-posta alanlarından en az biri zorunludur.",
+      CONTACT_SCOPE: "Yetkili kişi veya firma erişimi doğrulanamadı. Listeyi yenileyin.",
+      CONTACT_ROLE: "Bu yetkili kişi işlemi için yetkiniz yok.",
+    };
+    throw Error(messages[response.error.message] ?? moduleAccessMessage(response.error)
+      ?? (response.error.code === "BC400" ? "Yetkili kişi alanlarını kontrol edin." : uncertain));
+  }
+  const rows = response.data;
+  if (!Array.isArray(rows) || rows.length !== 1) throw Error(uncertain);
+  const row = rows[0];
+  if (!row || !UUID.test(row.id) || row.company_id !== scope.companyId
+    || (contactId !== null && row.id !== contactId) || typeof row.full_name !== "string" || !row.full_name.trim()
+    || typeof row.is_primary !== "boolean" || (action === "import" && (row.created_by !== scope.actorId || row.is_primary !== input.is_primary))) throw Error(uncertain);
+  return row;
 }

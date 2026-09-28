@@ -524,5 +524,13 @@
   {
     "file": "scripts/customer-notes.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/contact-commands.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/contact-commands-db.test.mjs",
+    "suite": "database"
   }
 ]

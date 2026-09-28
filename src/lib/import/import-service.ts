@@ -12,6 +12,8 @@ import type { SozlesmeDurumu, FirmaDurumu, RiskSeviyesi } from "@/types/ui";
 import type { ParsedRow } from "./csv-parser";
 import { parseBooleanish, convertDateForDB } from "./csv-parser";
 
+import { executeContact } from "@/lib/supabase/contacts";
+import { completePages } from "@/lib/supabase/complete-pages";
 import { insertCompany } from "@/lib/supabase/companies";
 
 type Client = SupabaseClient<Database>;
@@ -29,8 +31,7 @@ export interface ImportResult {
 export async function buildCompanyNameMap(
   client: Client,
 ): Promise<Map<string, string>> {
-  const { data, error } = await client.from("companies").select("id, name");
-  if (error) throw new Error(`Company map query failed: ${error.message}`);
+  const data = await completePages((from, to, signal) => client.from("companies").select("id, name", {count: "exact"}).order("id").range(from, to).abortSignal(signal), "Firma eşlemesi");
 
   // Count occurrences — reject ambiguous names
   const counts = new Map<string, number>();
@@ -105,50 +106,31 @@ export async function importCompanies(
 // ---------------------------------------------------------------------------
 
 export async function importContacts(
-  client: Client,
-  validRows: ParsedRow[],
-  companyNameToId: Map<string, string>,
+  client: Client, validRows: ParsedRow[], companyNameToId: Map<string, string>, options: {tenantId: string},
 ): Promise<ImportResult> {
   let imported = 0;
   const errors: string[] = [];
-
-  const { data: { user } } = await client.auth.getUser();
-
+  const {data, error} = await client.auth.getUser();
+  if (error || !data.user) return {imported: 0, skipped: validRows.length, errors: ["Oturum doğrulanamadı. Aktarım başlamadı."]};
   for (const row of validRows) {
-    if (!row.valid) {
-      // Surface the server-side rejection reason (see importCompanies).
-      errors.push(`Satir ${row.rowIndex}: ${row.errors.join("; ")}`);
-      continue;
-    }
+    if (!row.valid) { errors.push(`Satır ${row.rowIndex}: ${row.errors.join("; ")}`); continue; }
     const d = row.data;
     const companyId = companyNameToId.get(d.company_name?.trim());
-    if (!companyId) {
-      errors.push(`Satir ${row.rowIndex}: firma "${d.company_name}" artik bulunamiyor`);
-      continue;
-    }
-
-    const { error } = await client.from("contacts").insert({
-      // No tenant_id column on contacts — tenant scope is enforced by
-      // RLS via company_id → companies.tenant_id. company_id is resolved
-      // server-side from the company name map.
-      company_id: companyId,
-      full_name: d.full_name.trim(),
-      title: d.title?.trim() || null,
-      phone: d.phone?.trim() || null,
-      email: d.email?.trim() || null,
-      is_primary: parseBooleanish(d.is_primary),
-      context_note: d.context_note?.trim() || null,
-      created_by: user?.id ?? null,
-    });
-
-    if (error) {
-      errors.push(`Satir ${row.rowIndex}: ${error.message}`);
-    } else {
+    if (!companyId) { errors.push(`Satır ${row.rowIndex}: Firma eşlemesi bulunamadı.`); continue; }
+    try {
+      await executeContact(client, {companyId, tenantId: options.tenantId, actorId: data.user.id}, "import", null, {
+        full_name: d.full_name.trim(), title: d.title?.trim() || null,
+        phone: d.phone?.trim() || null, email: d.email?.trim() || null,
+        is_primary: parseBooleanish(d.is_primary), context_note: d.context_note?.trim() || null,
+      });
       imported++;
+    } catch (failure) {
+      errors.push(`Satır ${row.rowIndex}: ${failure instanceof Error ? failure.message : "Yetkili kaydı doğrulanamadı."}`);
+      errors.push("Aktarım durduruldu. Kalan satırlar işlenmedi; yeniden aktarmadan önce kaydedilen yetkilileri kontrol edin.");
+      break;
     }
   }
-
-  return { imported, skipped: validRows.filter((r) => !r.valid).length, errors };
+  return {imported, skipped: validRows.filter(row => !row.valid).length, errors};
 }
 
 // ---------------------------------------------------------------------------

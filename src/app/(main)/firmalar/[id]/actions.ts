@@ -6,13 +6,13 @@ import { recoverCompanyDocumentInsert } from "@/lib/services/company-document-re
 
 /** Company detail actions use the authenticated cookie client; no service role.
  * Company status changes use the scoped company command and reject missing targets.
- * Document, contact and note actions retain their existing storage/RLS and role checks;
- * their module write gateways are a separate cutover.
+ * Contact and note writes use database commands. Document/storage paths retain
+ * their existing controls and remain a separate module cutover.
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertCompanyIsActiveForNewOperation } from "@/lib/services/companies";
-import { createContact } from "@/lib/services/contacts";
+import { createContact, removeContact } from "@/lib/services/contacts";
 import type { ContactCreateInput } from "@/lib/services/contacts";
 import { createNote } from "@/lib/services/notes";
 import type { NoteCreateInput } from "@/lib/services/notes";
@@ -404,60 +404,15 @@ export async function deleteCompanyDocumentAction(
   return { ok: true, deleted: true };
 }
 
-/**
- * Hard-delete a single contact (Faz 1 — no trash, no soft-delete).
- * contacts has no soft-state column, so hard delete is the only path.
- *
- * yonetici-only at the app layer (rpc current_user_role). The contacts
- * DELETE RLS also permits partner company-scope, but this action is
- * deliberately narrower — only yonetici. service_role is never used.
- *
- * DB-first delete with RETURNING so we confirm a row was actually
- * removed (returned-row guard). Zero rows (already gone / RLS-hidden /
- * concurrent delete) is an idempotent no-op success — no misleading
- * "deleted" feedback for a row that wasn't there. No storage involved.
- */
-export async function deleteContactAction(
-  contactId: string,
-): Promise<ContactDeleteResult> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
+/** Manager-only deletion; database checks the expected company and rejects missing rows. */
+export async function deleteContactAction(companyId: string, contactId: string): Promise<ContactDeleteResult> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const row = await removeContact(supabase, companyId, contactId);
+    return {ok: true, deletedName: row.full_name};
+  } catch (error) {
+    return {ok: false, error: error instanceof Error ? error.message : "Yetkili silinemedi. Listeyi yenileyin."};
   }
-
-  if (!contactId || typeof contactId !== "string") {
-    return { ok: false, error: "Yetkili kimliği geçersiz." };
-  }
-
-  const { data: roleData, error: roleError } = await supabase.rpc(
-    "current_user_role",
-  );
-  if (roleError || roleData !== "yonetici") {
-    return {
-      ok: false,
-      error: "Yetkisiz: yetkili kişi silme yalnızca yöneticiye açıktır.",
-    };
-  }
-
-  const del = await supabase
-    .from("contacts")
-    .delete()
-    .eq("id", contactId)
-    .select("id, full_name");
-  if (del.error) {
-    return { ok: false, error: `Yetkili silinemedi: ${del.error.message}` };
-  }
-
-  const deletedRows = del.data ?? [];
-  if (deletedRows.length === 0) {
-    // Already gone / not visible — idempotent no-op success.
-    return { ok: true };
-  }
-
-  return { ok: true, deletedName: deletedRows[0].full_name };
 }
 
 /** Both actions use the same scoped database command; status is the only writable field. */

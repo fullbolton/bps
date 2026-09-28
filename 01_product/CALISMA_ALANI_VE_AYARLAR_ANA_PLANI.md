@@ -290,3 +290,11 @@ Notların dört yazma işlemi doğrulanmış tenant/aktör/firma kapsamlı RPC'y
 001900/002000 expand ve 002100 şirket/not direct-DML contract dosyaları hazır. Contract yalnız yeni frontend ve kimlikli smoke sonrasında uygulanacak; contacts ham yazımları henüz kesilmedi. Yedi yeni uygulama ve 18 yeni PostgreSQL testi eklendi; kesin release sonuçları `qa/tenant-module-customer-notes-20260928/manifest.json` içinde.
 
 **Yerel; üretim SQL/push/deploy yok.** Kişi telefon/e-posta, silme ve CSV yolları, service/definer/FK etkileri ve genel modül kapatma işleri açık. Modül kapatma UI'si açılmadı. Kaynak gövdesi sapmasında kişi migration'ı durur. Oluşturmada kalıcı idempotency yok; ağ belirsizliğinde otomatik tekrar yapılmaz. Ayrıntılar aynı rapor dizinindeki README'de.
+
+## Uygulama kaydı — 28 Eylül 2026, yetkili kişi komutları M2j
+
+Yetkili kişinin telefon/e-posta düzenleme, silme ve CSV ekleme yolları tenant/aktör/firma kapsamlı komuta taşındı. Config→profil→firma→kişi kilit sırası; bekleme sonrası rol/üyelik kontrolü. Gönderilmeyen iletişim alanı kilitlenmiş güncel satırdan korunuyor. CSV mevcut ana yetkiliyi sessizce değiştirmiyor; ilk başarısız/belirsiz yazmada durup önceki doğrulanmış satırları koruyor. Firma isim eşlemesi tam sayfalı okumaya taşındı. Ham kişi yazma yardımcıları kaldırıldı.
+
+002200 expand ve 002300 kişi direct-DML contract dosyaları hazır. Contract yalnız yeni frontend ve kimlikli smoke sonrası; eski 002100/001100 kabul sıraları korunur. 13 yeni DB ve 8 uygulama testi; kesin sonuçlar `qa/tenant-module-contact-commands-20260928/manifest.json` içinde.
+
+**Yerel; üretim SQL/push/deploy yok.** Müşteri uygulama yazma yolları tamamlandı; service/definer/FK etkileri, diğer modüller, açık iş/bağımlılık ve ayar mutasyonu/cache işleri açık. Genel modül kapatma UI'si hâlâ açılmadı. CSV idempotency/tek dosya atomikliği yok; ağ belirsizliğinde otomatik tekrar yapılmaz. Eşleme 10.000 firma sınırını aşarsa eksik veriyle ilerlemez.

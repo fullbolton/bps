@@ -1,42 +1,4 @@
-/**
- * BPS service layer — contacts (Yetkililer, Faz 1A primary truth).
- *
- *     UI Component
- *         ↓
- *     src/lib/services/contacts.ts          ← THIS FILE — invariants, scope
- *         ↓
- *     src/lib/supabase/contacts.ts          ← raw CRUD only
- *         ↓
- *     Supabase Postgres + RLS
- *
- * Responsibilities (per ARCHITECTURE.md and ROLE_MATRIX.md §5.1.1):
- *
- *   1. Application-level invariant enforcement, with clean error messages:
- *        - max 5 contacts per firma
- *        - at most one is_primary per firma; zero is allowed
- *        - phone or email is required
- *        - role-narrowed updates: operasyon may write phone/email only
- *
- *      The DB enforces (1)–(3) too, but the service layer's checks let the
- *      UI surface a friendly Turkish message instead of a Postgres error
- *      string.
- *
- *   2. Partner-scope re-verification per PARTNER_SCOPE_TOUCHPOINTS.md §3.
- *      Every write entry point resolves the legacy mock id to a real
- *      companies row first; if the partner has no scope over that firma,
- *      the resolver throws (CompanyNotFoundOrOutOfScopeError) and the
- *      mutation never lands.
- *
- *   3. Legacy mock id translation. Phase 1A still has the Firmalar list
- *      backed by MOCK_FIRMALAR, so the UI passes "f1".."f8". The service
- *      hides this from the data layer.
- *
- * Out of scope for Faz 1A:
- *   - Bulk import / move between firmas / delete CTA in the UI
- *     (`removeContact` is exported so the future delete CTA can wire it
- *     in without changing this file).
- *   - Notes / annotations beyond the single short `context_note` field.
- */
+/** Company-bound contact services. SQL enforces roles, ownership and field constraints. */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
@@ -48,8 +10,8 @@ import {
   selectPrimaryContactsByCompanyIds,
   selectContactByIdAndCompany,
   writeCompanyContact,
-  updateContact,
-  deleteContact,
+  executeContact,
+  type ContactCommandScope,
 } from "@/lib/supabase/contacts";
 import { requireCompanyByLegacyMockId } from "@/lib/services/companies";
 
@@ -232,10 +194,10 @@ export async function getPrimaryContactNamesByLegacyIds(
  * Create a new yetkili for a firma identified by legacy mock id.
  *
  * Lower-level service: relies on the caller-supplied Supabase client and
- * RLS for authorization/scope — it does not encode a role decision. The
+ * the database command for authorization/scope. The
  * active app create path is guarded by `createContactAction` (currently
  * yonetici-only at the app level). Company scope is resolved here and
- * ultimately enforced by RLS.
+ * ultimately enforced by the database command.
  *
  * Service-level validations (unchanged):
  *   - Resolves the company via the company resolver (throws on miss).
@@ -273,12 +235,12 @@ export async function createContact(
 }
 
 // ---------------------------------------------------------------------------
-// Writes — full update (yonetici, partner)
+// Writes — full update (manager only)
 // ---------------------------------------------------------------------------
 
 /**
  * Full edit is a manager-only RPC command in the verified tenant.
- * Operasyon uses updateContactPhoneEmail; that bounded path is unchanged.
+ * Operasyon uses updateContactPhoneEmail; that bounded path preserves omitted fields under the SQL row lock.
  */
 export async function updateContactFull(
   client: Client,
@@ -308,60 +270,26 @@ export async function updateContactFull(
 // Writes — bounded operasyon update
 // ---------------------------------------------------------------------------
 
-/**
- * Bounded update for the operasyon role per ROLE_MATRIX.md §5.1.1:
- *
- *   "Operasyon yalnızca telefon ve e-posta alanlarını güncelleyebilir;
- *    isim, unvan ve ana yetkili bayrağını değiştiremez; yeni yetkili
- *    ekleyemez."
- *
- * The service narrows the patch to {phone, email} regardless of what the
- * caller passes; even if a malicious caller injects extra fields they
- * will be discarded here. RLS is the database-level defense-in-depth.
- *
- * The phone-or-email rule still applies: at least one of the two must be
- * non-empty after the update. We re-fetch the existing row so the check
- * accounts for the field that the operasyon caller is leaving alone.
- */
-export async function updateContactPhoneEmail(
-  client: Client,
-  legacyMockId: string,
-  contactId: string,
-  input: ContactPhoneEmailUpdateInput,
-): Promise<ContactRow> {
-  const company = await requireCompanyByLegacyMockId(client, legacyMockId);
-  const existing = await requireContactInCompany(client, company.id, contactId);
-
-  // Merge semantics: an omitted field keeps its stored value — only a
-  // field the caller actually supplied is (re)written. This is what the
-  // docblock promises; without the merge an omitted field was NULLed.
-  const phone =
-    input.phone === undefined ? existing.phone : normalizeOptional(input.phone);
-  const email =
-    input.email === undefined ? existing.email : normalizeOptional(input.email);
-  ensurePhoneOrEmail(phone, email);
-
-  return updateContact(client, contactId, {
-    phone,
-    email,
-  });
+/** Resolve identity once; SQL rechecks it after acquiring configuration/profile locks. */
+async function commandScope(client: Client, companyId: string): Promise<ContactCommandScope> {
+  const company = await requireCompanyByLegacyMockId(client, companyId);
+  const {data, error} = await client.auth.getUser();
+  if (error || !data.user) throw new ContactValidationError("Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+  return {companyId: company.id, tenantId: company.tenant_id, actorId: data.user.id};
 }
 
-// ---------------------------------------------------------------------------
-// Writes — delete (provided for the future delete CTA)
-// ---------------------------------------------------------------------------
+/** Omitted fields stay untouched; SQL merges with the locked current row. */
+export async function updateContactPhoneEmail(
+  client: Client, companyId: string, contactId: string, input: ContactPhoneEmailUpdateInput,
+): Promise<ContactRow> {
+  const patch: Record<string, string | null> = {};
+  if (input.phone !== undefined) patch.phone = normalizeOptional(input.phone);
+  if (input.email !== undefined) patch.email = normalizeOptional(input.email);
+  if (!Object.keys(patch).length) throw new ContactValidationError("Güncellenecek telefon veya e-posta girin.");
+  return executeContact(client, await commandScope(client, companyId), "communication", contactId, patch);
+}
 
-/**
- * Delete a contact row. Phase 1A does not yet expose a UI button for this
- * — exporting it now lets the future delete CTA wire in without touching
- * this file. The service still re-verifies partner scope on the way in.
- */
-export async function removeContact(
-  client: Client,
-  legacyMockId: string,
-  contactId: string,
-): Promise<void> {
-  const company = await requireCompanyByLegacyMockId(client, legacyMockId);
-  await requireContactInCompany(client, company.id, contactId);
-  return deleteContact(client, contactId);
+/** Missing or mismatched targets fail rather than acknowledge a deletion. */
+export async function removeContact(client: Client, companyId: string, contactId: string): Promise<ContactRow> {
+  return executeContact(client, await commandScope(client, companyId), "delete", contactId, {});
 }

@@ -393,12 +393,9 @@ export async function importContactsAction(
     };
   }
 
-  // contacts has NO tenant_id column — tenant scope is enforced by RLS
-  // (company_id → companies.tenant_id). tenant_id is neither read from
-  // the client nor written by the server here. The yonetici-only role
-  // guard above still narrows the partner-capable INSERT RLS.
+  // The command verifies the server-resolved tenant and company under locks.
   const sanitized = rows.map(sanitizeContactRow);
-  return importContacts(supabase, sanitized, companyMap);
+  return importContacts(supabase, sanitized, companyMap, {tenantId: guard.tenantId});
 }
 
 export async function importContractsAction(
