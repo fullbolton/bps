@@ -496,5 +496,13 @@
   {
     "file": "scripts/finance-module-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/customer-module-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/customer-directory-modules.test.mjs",
+    "suite": "application"
   }
 ]

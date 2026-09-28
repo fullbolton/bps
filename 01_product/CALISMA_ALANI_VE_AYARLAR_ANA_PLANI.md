@@ -266,3 +266,11 @@ Finans Özeti ve Luca aktarımı ortak modül/rol sınırına bağlandı. Luca o
 PostgreSQL 17.10 üzerinde 55/55 senaryo geçti (13 yeni finans); detay ve nihai release ölçümleri `qa/tenant-module-finance-access-20260928/README.md` ve `manifest.json` içinde. Eski finans RPC stub'larında algoritma değil yetki; gerçek atomik mizan gövdesinde çalışma ve yarış durumları test edildi.
 
 **Yerel; üretim SQL/push/deploy yok.** Canlı yetki/owner/entegrasyon ve tarayıcı/PostgREST kabulü açık. Finansın parent-FK etkileri ve diğer modül yolları tamamlanmadan modül kapatma açılmaz. 001600 ortak 000900/001000 sonrasında; eski görev 001100 cutover'ı frontend smoke sonrasında. Toplu kör migration uygulaması yapılmaz.
+
+## Uygulama kaydı — 28 Eylül 2026, müşteri okuma sınırı M2g
+
+Firmalar listesi doğrulanmış modül bağlamına taşındı. Yetkili/sözleşme özetlerinin sorgu, masaüstü sütunu, mobil detayı ve arama ipucu aynı modül/rol koşuluna uyuyor. Erişilemeyen sözleşme özeti 0 gibi gösterilmiyor; gerçek boşluk ve hata ayrılıyor. Firma okuması başarısızsa bağlı özetler başlamıyor.
+
+Yerel 001700 migration companies/contacts/notes için restrictive authenticated SELECT filtrelerini ekliyor; mevcut rol izinleri korunuyor. Contacts tenant'ı görünür firmasından alıyor. Şema/RLS sapmasında işlem geri alınıyor. Sekiz yeni PostgreSQL ve dört gerçek TSX/hook testi eklendi. Son ölçümler ve sonraki yazma bloğunun somut giriş noktaları: `qa/tenant-module-customer-reads-20260928/README.md` / `manifest.json`.
+
+**Yerel; push/deploy/üretim SQL yok.** Bu bir okuma bloğudur; müşteri/kişi/not yazımları, import, service/definer projeksiyonları ve parent-FK etkileri henüz modül kapanmasına tam bağlanmadı. Dolayısıyla modül kapatma UI'si açılmadı. 001700 ortak 000900/001000 sonrasında; önceki görev cutover sırası değişmedi. Canlı katalog/izin ön kontrolü ve kimlikli tarayıcı/PostgREST kabulü açık.

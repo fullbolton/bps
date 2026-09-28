@@ -1,4 +1,7 @@
 "use client";
+import WorkspaceModuleBoundary from "@/components/modules/WorkspaceModuleBoundary";
+import type { WorkspaceModuleContext } from "@/lib/modules/context";
+import { companyModuleAccess } from "@/lib/modules/company-access";
 import ListToolbar from "@/components/ui/ListToolbar";
 import { cityLabel } from "@/lib/display-values";
 
@@ -64,8 +67,6 @@ import AsyncSection from "@/components/ui/AsyncSection";
 import { useScopedResource } from "@/components/ui/useScopedResource";
 import NewCompanyModal from "@/components/modals/NewCompanyModal";
 import type { CreatedCompany } from "@/components/modals/NewCompanyModal";
-import { useAuth } from "@/context/AuthContext";
-import { useRole } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { selectAllCompanies } from "@/lib/supabase/companies";
 import { selectPrimaryContactNames, selectActiveContractCounts } from "@/lib/supabase/company-summaries";
@@ -102,7 +103,8 @@ function sectorLabel(code: string | null): string {
 // Column definitions — no mock dependency
 // ---------------------------------------------------------------------------
 
-const COLUMNS: ColumnDef<FirmaListRow>[] = [
+function companyColumns(access: ReturnType<typeof companyModuleAccess>): ColumnDef<FirmaListRow>[] {
+ const columns: ColumnDef<FirmaListRow>[] = [
   {
     key: "firmaAdi", header: "Firma Adı", sortable: true,
     render: (_value, row) => <div className="whitespace-normal break-words sm:w-64">
@@ -117,8 +119,8 @@ const COLUMNS: ColumnDef<FirmaListRow>[] = [
         </div>
         <dl className="space-y-2 text-sm">
           <div><dt className="text-xs text-slate-500">Şehir · Sektör</dt><dd className="[overflow-wrap:anywhere]">{row.sehir} · {row.sektor}</dd></div>
-          <div><dt className="text-xs text-slate-500">Ana yetkili</dt><dd className="[overflow-wrap:anywhere]">{row.anaYetkili}</dd></div>
-          <div><dt className="text-xs text-slate-500">Aktif sözleşme</dt><dd>{row.aktifSozlesme === null ? "Okunamadı" : row.aktifSozlesme}</dd></div>
+          {access.contacts && <div><dt className="text-xs text-slate-500">Ana yetkili</dt><dd className="[overflow-wrap:anywhere]">{row.anaYetkili}</dd></div>}
+          {access.contracts && <div><dt className="text-xs text-slate-500">Aktif sözleşme</dt><dd>{row.aktifSozlesme === null ? "Okunamadı" : row.aktifSozlesme}</dd></div>}
         </dl>
       </div>
     </div>,
@@ -138,22 +140,29 @@ const COLUMNS: ColumnDef<FirmaListRow>[] = [
     render: (val) => <StatusBadge status={val as FirmaDurumu} />,
   },
 ];
+ return columns.filter(column => (column.key !== "anaYetkili" || access.contacts) && (column.key !== "aktifSozlesme" || access.contracts));
+}
 
 const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", sektor: "", sehir: "" };
 const normalizeCompanySearch = (value: string) => value.normalize("NFC").trim().toLocaleLowerCase("tr");
 
 export default function FirmalarPage() {
+  return <WorkspaceModuleBoundary requiredModule="customers" allowedRoles={["yonetici", "operasyon", "ik", "muhasebe", "goruntuleyici"]}>{workspace => <CompanyDirectory workspace={workspace} />}</WorkspaceModuleBoundary>;
+}
+
+function CompanyDirectory({ workspace }: { workspace: WorkspaceModuleContext }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const { role } = useRole();
-  const { user, loading: authLoading } = useAuth();
+  const { role } = workspace;
+  const access = companyModuleAccess(workspace);
+  const columns = companyColumns(access);
   const isYonetici = role === "yonetici";
 
   const [newOpen, setNewOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const searchControl = useRef<SearchInputHandle>(null);
-  const listScope = !authLoading && user ? JSON.stringify([user.id, user.app_metadata?.active_tenant ?? null, role]) : null;
+  const listScope = JSON.stringify([workspace.actorId, workspace.tenantId, role, access.contacts, access.contracts]);
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("firmalar", listScope, LIST_FILTER_DEFAULTS);
 
 
@@ -164,8 +173,8 @@ export default function FirmalarPage() {
     const rows = await selectAllCompanies(supabase);
     const companyIds = rows.map(row => row.id);
     const [contacts, contracts] = await Promise.allSettled([
-      selectPrimaryContactNames(supabase, companyIds),
-      selectActiveContractCounts(supabase, companyIds),
+      access.contacts ? selectPrimaryContactNames(supabase, companyIds) : Promise.resolve<Record<string, string>>({}),
+      access.contracts ? selectActiveContractCounts(supabase, companyIds) : Promise.resolve<Record<string, number>>({}),
     ]);
     return {
       rows,
@@ -174,7 +183,7 @@ export default function FirmalarPage() {
       contactsError: contacts.status === "rejected",
       contractsError: contracts.status === "rejected",
     };
-  }, [supabase]);
+  }, [supabase, access.contacts, access.contracts]);
   const directory = useScopedResource(listScope, readDirectory);
   const companies = directory.data?.rows ?? [];
   const primaryNameById = directory.data?.nameMap ?? {};
@@ -230,14 +239,14 @@ export default function FirmalarPage() {
     });
 
     return enriched.filter((f) => {
-      const searchable = [f.firmaAdi, f.sektor, f.sehir, contactsError ? "" : f.anaYetkili];
+      const searchable = [f.firmaAdi, f.sektor, f.sehir, !access.contacts || contactsError ? "" : f.anaYetkili];
       if (query && !searchable.some(value => normalizeCompanySearch(value).includes(query))) return false;
       if (filters.durum && f.durum !== filters.durum) return false;
       if (filters.sektor && f.sektorKodu !== filters.sektor) return false;
       if (filters.sehir && f.sehir !== cityLabel(filters.sehir)) return false;
       return true;
     });
-  }, [search, filters, companies, primaryNameById, activeContractById, contactsError, contractsError]);
+  }, [search, filters, companies, primaryNameById, activeContractById, contactsError, contractsError, access.contacts]);
 
   /**
    * Modal kapandığında: kayıt GÖRÜNÜR olmalı, yoksa "oldu mu" belirsizliği
@@ -305,12 +314,12 @@ export default function FirmalarPage() {
           <p>Firma listesi yüklendi; bazı yetkili veya sözleşme özetleri okunamadı.</p>
           <button type="button" onClick={() => { void directory.reload(); }} className="min-h-11 text-blue-700 underline">Özetleri yeniden dene</button>
         </div>}
-        <ListToolbar label="Firmalarda ara" search={<SearchInput ref={searchControl} key={listScope} maxLength={512} value={search} placeholder="Firma, yetkili, sektör ara…" onChange={handleSearch} />}>
+        <ListToolbar label="Firmalarda ara" search={<SearchInput ref={searchControl} key={listScope} maxLength={512} value={search} placeholder={access.contacts ? "Firma, yetkili, sektör ara…" : "Firma, şehir, sektör ara…"} onChange={handleSearch} />}>
           <FilterBar filters={filterConfig} values={filters} onChange={setFilters} />
         </ListToolbar>
         <div aria-label="Firma listesi" role="region" className="max-sm:[&_table]:w-full max-sm:[&_table]:table-fixed max-sm:[&_th:not(:first-child)]:hidden max-sm:[&_td:not(:first-child)]:hidden">
         <DataTable<FirmaListRow>
-          columns={COLUMNS}
+          columns={columns}
           data={filteredData}
           rowKey="id"
           rowActions={rowActions}

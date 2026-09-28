@@ -1,0 +1,23 @@
+{
+  "baseCommit": "80e613a05d57744ba4b1b8bb724fbaeb65609e96",
+  "status": "local-not-deployed",
+  "releaseExitCode": 0,
+  "databaseExitCode": 0,
+  "applicationTests": 564,
+  "databaseTests": 63,
+  "newApplicationTests": 4,
+  "newDatabaseTests": 8,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "browserSmokeRun": false,
+  "productionMigrationApplied": false,
+  "files": {
+    ".github/workflows/module-foundation-db.yml": "ea4f693e74574eeec93a9598597342ce908618cfbdb34891624a23c45cf4ab3f",
+    "scripts/test-inventory.json": "a2e0954e5cf390cf7dc2f56ddafb5f924a427a9e77f8b4eb2fd9f8a81b523ad4",
+    "scripts/customer-module-db.test.mjs": "c75356636439c11334b89c1bcab80255201bfc56c582d1172468ef5af39f6f7e",
+    "scripts/customer-directory-modules.test.mjs": "815afed190043949e8636d4eb5606ca51a9bca379ad750dc8b41705db6aa3cb6",
+    "supabase/migrations/20260928001700_customer_module_reads.sql": "64535fe8e56d7a2f342a32462cb1cec9c54c41774caeb3456649fc25ecda4b5e",
+    "src/app/(main)/firmalar/page.tsx": "436f0058aa95d459766fc721be2b2a136ab8270e1d6dede604847fe9a1426ec6",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "c0f9ceeefe4375acb56f566627685cb93af1cbe16ed53f181f0e4070c7d38802"
+  }
+}
