@@ -50,6 +50,7 @@ export async function updateSession(request: NextRequest) {
     pathname === "/kayit" ||
     pathname === "/auth/callback" ||
     pathname === "/" ||
+    pathname === "/api/access-request" ||
     pathname.startsWith("/api/demo-request") ||
     pathname.startsWith("/api/cron") ||
     pathname === "/api/healthz";
