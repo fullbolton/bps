@@ -320,3 +320,11 @@ Randevu/sözleşme/evrak aday okumaları service-only SQL projeksiyonlarına ta�
 002700 ile contacts/notes şirket ve yazar ilişkileri ile mizan snapshot yükleme ilişkisi (beş FK) RESTRICT'e çevrilmek üzere hazırlandı. Bağlı kayıt varken şirket/profil/yükleme hard-delete reddediliyor; pasifleştirme ve üyelik kaldırma değişmiyor. Şema sapması veya beklenmeyen ek dolaylı mutasyon varsa migration geri alınıyor. Sekiz yeni gerçek PostgreSQL senaryosu, eşzamanlı çocuk ekleme/silme yarışı dahil; nihai sonuç `qa/tenant-module-customer-history-20260928/manifest.json` içinde.
 
 **Yerel; üretim SQL/push/deploy yok.** TS/TSX değişmedi; uygulama/derleme önceki M2l kanıtı yeniden koşulmuş sayılmıyor. Profilin bağlı geçmiş varken fiziksel silinmesi ayrı saklama/anonimleştirme süreci gerektirir. financial_summaries temel CREATE TABLE repo'da bulunamadı; canlı katalog olmadan constraint varsayılmadı. Diğer parent/FK yolları ve açık iş/bağımlılık, modül erişimleri, ayar mutasyonu/cache açık; modül kapatma UI'si kapalı. Kilit maliyeti ve rollback koşulları raporda.
+
+## Uygulama kaydı — 29 Eylül 2026, sözleşme/randevu/evrak geçmişi M2n
+
+20260929000100 migration'ıyla altı FK RESTRICT'e çevrilmek üzere hazırlandı: sözleşme/randevu/evrak firma bağlantıları, randevu/evrak sözleşme bağlantıları ve completion receipt randevu bağlantısı. Sözleşme silinince PDF'nin genel firma belgesine dönüşmesi ve randevu silinince tekrar kontrolü kaydının kaybolması engelleniyor. Composite FK eski SET NULL kolon kapsamı ayrıca doğrulanıyor; şema sapması/ek cascade bütün işlemi geri alıyor.
+
+Sekiz yeni PostgreSQL senaryosu ve ortak modül suite'leri; kesin ölçümler `qa/tenant-module-business-history-20260929/manifest.json`. TS/TSX değişmedi; önceki uygulama testi/derleme yeniden koşulmuş sayılmıyor.
+
+**Yerel; üretim SQL/push/deploy yok.** Canlı katalog/kimlikli tarayıcı/PostgREST kabulü yapılmadı. Diğer parent/FK/definer ve modül yolları, açık iş/bağımlılık, ayar mutasyonu/cache açık; genel modül kapatma UI'si kapalı. Düşük trafikte kontrollü uygulama, okuyucu/yazar kilit maliyeti ve rollback koşulları raporda. Önceki cutover sıraları korunuyor.

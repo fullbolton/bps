@@ -544,5 +544,9 @@
   {
     "file": "scripts/customer-history-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/business-history-db.test.mjs",
+    "suite": "database"
   }
 ]

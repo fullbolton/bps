@@ -1,0 +1,22 @@
+{
+  "baseCommit": "ad0c4ab96f19978949db1f579ec33823e3aced5b",
+  "status": "local-not-deployed",
+  "databaseExitCode": 0,
+  "staticExitCode": 0,
+  "databaseTests": 139,
+  "newDatabaseTests": 8,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "applicationTestsRerun": false,
+  "productionBuildRerun": false,
+  "priorApplicationEvidence": "qa/tenant-module-notification-candidates-20260928/manifest.json",
+  "browserSmokeRun": false,
+  "productionMigrationApplied": false,
+  "files": {
+    ".github/workflows/module-foundation-db.yml": "810227fad1be2aba627f07416d8378e528b882692cfbbd1c1edc0be12dc07729",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "4f4afb4f98101506b198958e8274ba7481991f746ee8c1a133e08d206a464f06",
+    "scripts/test-inventory.json": "4f4dd67d90b7b3f020d25acf30650609766b9c834438c256620d284d0da6f641",
+    "scripts/business-history-db.test.mjs": "2195281ed295e76b30fb09127df1f001fb192972750583a57d153893d70d159c",
+    "supabase/migrations/20260929000100_preserve_business_history.sql": "2d286429a21a7ed5d1c302df9a307d53470c003b67874fe3ba8e85877128bb9a"
+  }
+}
