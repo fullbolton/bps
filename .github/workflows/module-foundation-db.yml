@@ -1,0 +1,49 @@
+name: Module foundation database checks
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/tenant-modules*'
+      - 'scripts/module-catalog-sql.mjs'
+      - 'src/lib/modules/**'
+      - 'package*.json'
+      - '.github/workflows/module-foundation-db.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/tenant-modules*'
+      - 'scripts/module-catalog-sql.mjs'
+      - 'src/lib/modules/**'
+      - 'package*.json'
+      - '.github/workflows/module-foundation-db.yml'
+permissions:
+  contents: read
+jobs:
+  module-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bps_module_test
+          POSTGRES_PASSWORD: synthetic-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bps_module_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BPS_MODULE_TEST_DATABASE_URL: postgres://bps_module_test:synthetic-ci-only@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node scripts/module-catalog-sql.mjs --check
+      - run: node --test scripts/tenant-modules-db.test.mjs

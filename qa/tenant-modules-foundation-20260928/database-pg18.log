@@ -1,0 +1,20 @@
+Synthetic module DB: 18.4
+✔ existing tenants get exactly ten enabled settings and one truthful bootstrap receipt each (415.604958ms)
+✔ new tenant provisioning initializes all ten rows in the same transaction; rollback leaves nothing (9.044417ms)
+✔ authenticated response is scoped to live membership, preserves role and bigint precision (18.795709ms)
+✔ all configuration tables deny direct reads and writes to anon/authenticated/service_role (45.582125ms)
+✔ only authenticated can execute the public reader; internal bootstrap and catalog have no client grants (10.333625ms)
+✔ no session, foreign tenant claim and removed membership fail closed (14.490459ms)
+✔ stale workspace selection and stale membership generations are rejected by the real scope functions (20.101458ms)
+✔ missing config, missing key and broken hard dependencies do not return an all-enabled fallback (10.681292ms)
+✔ disabled independent module is represented as disabled without changing another tenant (8.737667ms)
+✔ unknown/duplicate module keys, invalid revision and bootstrap reset are rejected (6.557625ms)
+✔ tenant insert and migration serialize in both orders; timeout rolls back all new tables (855.167416ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2338.009084

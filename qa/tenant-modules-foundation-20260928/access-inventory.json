@@ -1,0 +1,4738 @@
+{
+  "baseCommit": "01c46b561ee20263a82331067ffda6f7b13c8cb6",
+  "sourceFileCount": 452,
+  "routeCount": 47,
+  "callCount": 332,
+  "caveats": [
+    "Static .from/.rpc candidates; not an authorization proof.",
+    "SQL declarations indexed by name, not signature; overloads, drops and effective grants require database catalog verification.",
+    "Calls through aliases/helpers/SDK internals are not resolved.",
+    "storage upload/download/remove and service-role consumers require manual review."
+  ],
+  "routes": [
+    {
+      "route": "/aktif-isgucu",
+      "file": "src/app/(main)/aktif-isgucu/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/ayarlar",
+      "file": "src/app/(main)/ayarlar/page.tsx",
+      "owner": "infrastructure"
+    },
+    {
+      "route": "/dashboard",
+      "file": "src/app/(main)/dashboard/page.tsx",
+      "owner": "projection"
+    },
+    {
+      "route": "/davet",
+      "file": "src/app/(main)/davet/page.tsx",
+      "owner": "infrastructure"
+    },
+    {
+      "route": "/evraklar",
+      "file": "src/app/(main)/evraklar/page.tsx",
+      "owner": "documents"
+    },
+    {
+      "route": "/finansal-ozet",
+      "file": "src/app/(main)/finansal-ozet/page.tsx",
+      "owner": "finance"
+    },
+    {
+      "route": "/firmalar/[id]",
+      "file": "src/app/(main)/firmalar/[id]/page.tsx",
+      "owner": "customers"
+    },
+    {
+      "route": "/firmalar",
+      "file": "src/app/(main)/firmalar/page.tsx",
+      "owner": "customers"
+    },
+    {
+      "route": "/gorevler",
+      "file": "src/app/(main)/gorevler/page.tsx",
+      "owner": "tasks"
+    },
+    {
+      "route": "/import",
+      "file": "src/app/(main)/import/page.tsx",
+      "owner": "customers/contracts"
+    },
+    {
+      "route": "/kurulum",
+      "file": "src/app/(main)/kurulum/page.tsx",
+      "owner": "projection"
+    },
+    {
+      "route": "/kurumsal-tarihler",
+      "file": "src/app/(main)/kurumsal-tarihler/page.tsx",
+      "owner": "shared/projection"
+    },
+    {
+      "route": "/luca-import",
+      "file": "src/app/(main)/luca-import/page.tsx",
+      "owner": "finance"
+    },
+    {
+      "route": "/personel-havuzu/aktarim",
+      "file": "src/app/(main)/personel-havuzu/aktarim/page.tsx",
+      "owner": "talent"
+    },
+    {
+      "route": "/personel-havuzu/listeler",
+      "file": "src/app/(main)/personel-havuzu/listeler/page.tsx",
+      "owner": "talent"
+    },
+    {
+      "route": "/personel-havuzu",
+      "file": "src/app/(main)/personel-havuzu/page.tsx",
+      "owner": "talent"
+    },
+    {
+      "route": "/projeler/[id]/aktarim",
+      "file": "src/app/(main)/projeler/[id]/aktarim/page.tsx",
+      "owner": "reporting"
+    },
+    {
+      "route": "/projeler/[id]",
+      "file": "src/app/(main)/projeler/[id]/page.tsx",
+      "owner": "reporting"
+    },
+    {
+      "route": "/projeler/[id]/rapor/kayitlar",
+      "file": "src/app/(main)/projeler/[id]/rapor/kayitlar/page.tsx",
+      "owner": "reporting"
+    },
+    {
+      "route": "/projeler/[id]/rapor",
+      "file": "src/app/(main)/projeler/[id]/rapor/page.tsx",
+      "owner": "reporting"
+    },
+    {
+      "route": "/projeler",
+      "file": "src/app/(main)/projeler/page.tsx",
+      "owner": "reporting"
+    },
+    {
+      "route": "/randevular",
+      "file": "src/app/(main)/randevular/page.tsx",
+      "owner": "calendar"
+    },
+    {
+      "route": "/raporlar",
+      "file": "src/app/(main)/raporlar/page.tsx",
+      "owner": "projection"
+    },
+    {
+      "route": "/sozlesmeler/[id]",
+      "file": "src/app/(main)/sozlesmeler/[id]/page.tsx",
+      "owner": "contracts"
+    },
+    {
+      "route": "/sozlesmeler",
+      "file": "src/app/(main)/sozlesmeler/page.tsx",
+      "owner": "contracts"
+    },
+    {
+      "route": "/talepler/dizin",
+      "file": "src/app/(main)/talepler/dizin/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/talepler/gunluk",
+      "file": "src/app/(main)/talepler/gunluk/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/talepler/haftalik",
+      "file": "src/app/(main)/talepler/haftalik/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/talepler/ise-baslama/onizleme",
+      "file": "src/app/(main)/talepler/ise-baslama/onizleme/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/talepler/ise-baslama",
+      "file": "src/app/(main)/talepler/ise-baslama/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/talepler/kadro",
+      "file": "src/app/(main)/talepler/kadro/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/talepler/kontrol",
+      "file": "src/app/(main)/talepler/kontrol/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/talepler",
+      "file": "src/app/(main)/talepler/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/talepler/planlar",
+      "file": "src/app/(main)/talepler/planlar/page.tsx",
+      "owner": "staffing"
+    },
+    {
+      "route": "/yonetim",
+      "file": "src/app/(main)/yonetim/page.tsx",
+      "owner": "projection"
+    },
+    {
+      "route": "/admin",
+      "file": "src/app/admin/page.tsx",
+      "owner": "platform"
+    },
+    {
+      "route": "/api/access-request",
+      "file": "src/app/api/access-request/route.ts",
+      "owner": "review"
+    },
+    {
+      "route": "/api/contracts/pdf-upload",
+      "file": "src/app/api/contracts/pdf-upload/route.ts",
+      "owner": "review"
+    },
+    {
+      "route": "/api/cron/notifications",
+      "file": "src/app/api/cron/notifications/route.ts",
+      "owner": "review"
+    },
+    {
+      "route": "/api/demo-request",
+      "file": "src/app/api/demo-request/route.ts",
+      "owner": "review"
+    },
+    {
+      "route": "/api/healthz",
+      "file": "src/app/api/healthz/route.ts",
+      "owner": "review"
+    },
+    {
+      "route": "/api/operations/weekly-export",
+      "file": "src/app/api/operations/weekly-export/route.ts",
+      "owner": "review"
+    },
+    {
+      "route": "/auth/callback",
+      "file": "src/app/auth/callback/route.ts",
+      "owner": "identity"
+    },
+    {
+      "route": "/kayit",
+      "file": "src/app/kayit/page.tsx",
+      "owner": "identity"
+    },
+    {
+      "route": "/login",
+      "file": "src/app/login/page.tsx",
+      "owner": "identity"
+    },
+    {
+      "route": "/",
+      "file": "src/app/page.tsx",
+      "owner": "public"
+    },
+    {
+      "route": "/sirket-sec",
+      "file": "src/app/sirket-sec/page.tsx",
+      "owner": "identity"
+    }
+  ],
+  "calls": [
+    {
+      "file": "src/app/(main)/ayarlar/page.tsx",
+      "line": 148,
+      "kind": "rpc",
+      "target": "is_platform_admin",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/ayarlar/page.tsx",
+      "line": 151,
+      "kind": "table-candidate",
+      "target": "access_requests",
+      "expression": "supabase.from",
+      "operations": [
+        "select",
+        "order",
+        "order",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/app/(main)/ayarlar/page.tsx",
+      "line": 167,
+      "kind": "table-candidate",
+      "target": "access_requests",
+      "expression": "createClient().from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/app/(main)/dashboard/DailyOverview.tsx",
+      "line": 13,
+      "kind": "rpc",
+      "target": "daily_dashboard",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/dashboard/DashboardClient.tsx",
+      "line": 214,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/dashboard/DashboardClient.tsx",
+      "line": 217,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/app/(main)/dashboard/DashboardClient.tsx",
+      "line": 224,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select",
+        "in"
+      ]
+    },
+    {
+      "file": "src/app/(main)/dashboard/DashboardClient.tsx",
+      "line": 228,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/app/(main)/dashboard/RecentActivities.tsx",
+      "line": 22,
+      "kind": "rpc",
+      "target": "dashboard_activity",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/dashboard/StartOverview.tsx",
+      "line": 14,
+      "kind": "rpc",
+      "target": "ops_start_board_filtered",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/dashboard/actions.ts",
+      "line": 47,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/davet/page.tsx",
+      "line": 12,
+      "kind": "rpc",
+      "target": "prepare_invited_profile",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/davet/page.tsx",
+      "line": 13,
+      "kind": "rpc",
+      "target": "accept_workspace_invitation",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/evraklar/page.tsx",
+      "line": 290,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "supabase.storage.from",
+      "operations": [
+        "createSignedUrl"
+      ]
+    },
+    {
+      "file": "src/app/(main)/finansal-ozet/page.tsx",
+      "line": 89,
+      "kind": "table-candidate",
+      "target": "financial_summaries",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select",
+        "is",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/app/(main)/finansal-ozet/page.tsx",
+      "line": 96,
+      "kind": "table-candidate",
+      "target": "financial_summaries",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select",
+        "not"
+      ]
+    },
+    {
+      "file": "src/app/(main)/finansal-ozet/page.tsx",
+      "line": 100,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "supabase.from",
+      "operations": [
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 127,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 138,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 232,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "supabase.storage\n    .from",
+      "operations": [
+        "upload"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 255,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 262,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 308,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 327,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "supabase.storage\n    .from",
+      "operations": [
+        "createSignedUrl"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 376,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 385,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 403,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "delete",
+        "eq",
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 429,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "supabase.storage\n      .from",
+      "operations": [
+        "remove"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 472,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 482,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "delete",
+        "eq",
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 541,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 551,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 560,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 609,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 619,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 628,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 690,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 700,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 772,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/page.tsx",
+      "line": 386,
+      "kind": "table-candidate",
+      "target": "financial_summaries",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/app/(main)/firmalar/actions.ts",
+      "line": 82,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/actions.ts",
+      "line": 93,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/gorevler/actions.ts",
+      "line": 34,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/gorevler/transfer-actions.ts",
+      "line": 9,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/iletisim/actions.ts",
+      "line": 13,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/iletisim/actions.ts",
+      "line": 19,
+      "kind": "rpc",
+      "target": "ops_comment_list",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/iletisim/actions.ts",
+      "line": 19,
+      "kind": "rpc",
+      "target": "ops_comment_people",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/iletisim/actions.ts",
+      "line": 27,
+      "kind": "rpc",
+      "target": "ops_comment_inbox_page",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/iletisim/actions.ts",
+      "line": 30,
+      "kind": "rpc",
+      "target": "ops_comment_read",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/iletisim/actions.ts",
+      "line": 34,
+      "kind": "rpc",
+      "target": "ops_comment_resolve",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/import/actions.ts",
+      "line": 245,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/import/actions.ts",
+      "line": 270,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/kurulum/Invitations.tsx",
+      "line": 10,
+      "kind": "rpc",
+      "target": "list_workspace_invitations",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/kurulum/Invitations.tsx",
+      "line": 17,
+      "kind": "rpc",
+      "target": "manage_workspace_invitation",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/kurulum/Invitations.tsx",
+      "line": 20,
+      "kind": "rpc",
+      "target": "manage_workspace_invitation",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/kurulum/WorkspaceSetup.tsx",
+      "line": 20,
+      "kind": "rpc",
+      "target": "workspace_setup",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/kurumsal-tarihler/actions.ts",
+      "line": 46,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/luca-import/page.tsx",
+      "line": 111,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "supabase.from",
+      "operations": [
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/luca-import/page.tsx",
+      "line": 145,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/luca-import/page.tsx",
+      "line": 156,
+      "kind": "rpc",
+      "target": "confirm_mizan_atomic",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 44,
+      "kind": "rpc",
+      "target": "talent_attachment_list",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 56,
+      "kind": "rpc",
+      "target": "talent_attachment_reserve",
+      "expression": "c.rpc",
+      "operations": [
+        "then"
+      ]
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 57,
+      "kind": "storage",
+      "target": "person-files",
+      "expression": "c.storage.from",
+      "operations": [
+        "upload"
+      ]
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 58,
+      "kind": "rpc",
+      "target": "talent_attachment_finish",
+      "expression": "c.rpc",
+      "operations": [
+        "then"
+      ]
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 64,
+      "kind": "storage",
+      "target": "person-files",
+      "expression": "c.storage.from",
+      "operations": [
+        "createSignedUrl"
+      ]
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 73,
+      "kind": "rpc",
+      "target": "talent_conversation_list",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 83,
+      "kind": "rpc",
+      "target": "talent_conversation_save",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 92,
+      "kind": "rpc",
+      "target": "talent_attachment_pending",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 95,
+      "kind": "rpc",
+      "target": "talent_attachment_finish",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 102,
+      "kind": "rpc",
+      "target": "talent_attachment_cancel",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 103,
+      "kind": "storage",
+      "target": "person-files",
+      "expression": "c.storage.from",
+      "operations": [
+        "remove"
+      ]
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 104,
+      "kind": "rpc",
+      "target": "talent_attachment_cancel",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 110,
+      "kind": "rpc",
+      "target": "talent_availability_read",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 113,
+      "kind": "rpc",
+      "target": "talent_availability_save",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 124,
+      "kind": "rpc",
+      "target": "talent_prepare_worker",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 134,
+      "kind": "rpc",
+      "target": "talent_match_source",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 139,
+      "kind": "rpc",
+      "target": "talent_work_copy_page",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 164,
+      "kind": "rpc",
+      "target": "talent_merged_availability",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 170,
+      "kind": "rpc",
+      "target": "talent_contact_summaries",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 175,
+      "kind": "rpc",
+      "target": "talent_shared_views_read",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 181,
+      "kind": "rpc",
+      "target": "talent_shared_view_create",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 188,
+      "kind": "rpc",
+      "target": "talent_shared_view_archive",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 194,
+      "kind": "rpc",
+      "target": "talent_call_lists_read",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 197,
+      "kind": "rpc",
+      "target": "talent_call_list_people",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 200,
+      "kind": "rpc",
+      "target": "talent_call_list_create",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 204,
+      "kind": "rpc",
+      "target": "talent_call_list_archive",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 211,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/personel-havuzu/actions.ts",
+      "line": 224,
+      "kind": "rpc",
+      "target": "talent_call_list_edit",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/[id]/aktarim/page.tsx",
+      "line": 13,
+      "kind": "rpc",
+      "target": "reporting_project_detail",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/[id]/aktarim/page.tsx",
+      "line": 17,
+      "kind": "rpc",
+      "target": "reporting_import_read",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/[id]/aktarim/page.tsx",
+      "line": 20,
+      "kind": "rpc",
+      "target": "reporting_import_list",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/[id]/page.tsx",
+      "line": 14,
+      "kind": "rpc",
+      "target": "reporting_project_detail",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/[id]/page.tsx",
+      "line": 16,
+      "kind": "table-candidate",
+      "target": "ops_locations",
+      "expression": "c.from",
+      "operations": [
+        "select",
+        "eq",
+        "eq",
+        "eq",
+        "order",
+        "order",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/app/(main)/projeler/[id]/rapor/kayitlar/page.tsx",
+      "line": 13,
+      "kind": "rpc",
+      "target": "reporting_work_details",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/[id]/rapor/page.tsx",
+      "line": 14,
+      "kind": "rpc",
+      "target": "reporting_monthly_report",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/actions.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "reporting_project_execute",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/import-actions.ts",
+      "line": 9,
+      "kind": "rpc",
+      "target": "reporting_import_people",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/import-actions.ts",
+      "line": 12,
+      "kind": "rpc",
+      "target": "reporting_person_code_set",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/import-actions.ts",
+      "line": 15,
+      "kind": "rpc",
+      "target": "reporting_import_prepare",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/import-actions.ts",
+      "line": 18,
+      "kind": "rpc",
+      "target": "reporting_import_finish",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/page.tsx",
+      "line": 10,
+      "kind": "rpc",
+      "target": "reporting_project_list",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/page.tsx",
+      "line": 13,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "c.from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/app/(main)/projeler/source-actions.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "reporting_source_file",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/source-actions.ts",
+      "line": 16,
+      "kind": "storage",
+      "target": "<dynamic>",
+      "expression": "c.storage.from",
+      "operations": [
+        "upload"
+      ]
+    },
+    {
+      "file": "src/app/(main)/projeler/source-actions.ts",
+      "line": 16,
+      "kind": "storage",
+      "target": "<dynamic>",
+      "expression": "c.storage.from",
+      "operations": [
+        "download"
+      ]
+    },
+    {
+      "file": "src/app/(main)/projeler/source-actions.ts",
+      "line": 17,
+      "kind": "rpc",
+      "target": "reporting_source_file",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/projeler/source-actions.ts",
+      "line": 22,
+      "kind": "storage",
+      "target": "<dynamic>",
+      "expression": "c.storage.from",
+      "operations": [
+        "createSignedUrl"
+      ]
+    },
+    {
+      "file": "src/app/(main)/randevular/actions.ts",
+      "line": 54,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/randevular/actions.ts",
+      "line": 116,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/raporlar/ReportsClient.tsx",
+      "line": 320,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "supabase.from",
+      "operations": [
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/raporlar/ReportsClient.tsx",
+      "line": 335,
+      "kind": "table-candidate",
+      "target": "staffing_demands",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/raporlar/ReportsClient.tsx",
+      "line": 341,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "supabase\n          .from",
+      "operations": [
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/sozlesmeler/[id]/actions.ts",
+      "line": 44,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/sozlesmeler/[id]/actions.ts",
+      "line": 54,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "supabase\n    .from",
+      "operations": [
+        "delete",
+        "eq",
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/(main)/sozlesmeler/[id]/page.tsx",
+      "line": 308,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "supabase.storage\n      .from",
+      "operations": [
+        "createSignedUrl"
+      ]
+    },
+    {
+      "file": "src/app/(main)/sozlesmeler/[id]/pdf-actions.ts",
+      "line": 8,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/sozlesmeler/[id]/renewal-actions.ts",
+      "line": 9,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/sozlesmeler/[id]/renewal-actions.ts",
+      "line": 15,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/sozlesmeler/actions.ts",
+      "line": 54,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/sozlesmeler/actions.ts",
+      "line": 61,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/actions.ts",
+      "line": 48,
+      "kind": "rpc",
+      "target": "current_user_active_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/gunluk/actions.ts",
+      "line": 21,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/gunluk/actions.ts",
+      "line": 40,
+      "kind": "rpc",
+      "target": "ops_idp_list",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/gunluk/actions.ts",
+      "line": 63,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/gunluk/actions.ts",
+      "line": 103,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/gunluk/actions.ts",
+      "line": 156,
+      "kind": "rpc",
+      "target": "ops_idp_save",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/gunluk/actions.ts",
+      "line": 163,
+      "kind": "rpc",
+      "target": "ops_idp_period_read",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/gunluk/actions.ts",
+      "line": 170,
+      "kind": "rpc",
+      "target": "ops_idp_period_manage",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/gunluk/actions.ts",
+      "line": 179,
+      "kind": "rpc",
+      "target": "ops_idp_period_history",
+      "expression": "c.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/app/(main)/talepler/ise-baslama/StartBoardClient.tsx",
+      "line": 44,
+      "kind": "rpc",
+      "target": "ops_start_board_filtered",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/ise-baslama/StartBoardClient.tsx",
+      "line": 53,
+      "kind": "rpc",
+      "target": "ops_start_execute",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/ise-baslama/StartBoardClient.tsx",
+      "line": 63,
+      "kind": "rpc",
+      "target": "ops_reconcile_commands",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/talepler/ise-baslama/StartBoardClient.tsx",
+      "line": 75,
+      "kind": "rpc",
+      "target": "ops_reconcile_commands",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/yonetim/actions.ts",
+      "line": 8,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/yonetim/actions.ts",
+      "line": 8,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/yonetim/actions.ts",
+      "line": 18,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "c.from",
+      "operations": [
+        "select",
+        "eq",
+        "in"
+      ]
+    },
+    {
+      "file": "src/app/(main)/yonetim/actions.ts",
+      "line": 21,
+      "kind": "rpc",
+      "target": "active_tenant_profiles",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/admin/layout.tsx",
+      "line": 47,
+      "kind": "rpc",
+      "target": "is_platform_admin",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/admin/membership-actions.ts",
+      "line": 13,
+      "kind": "rpc",
+      "target": "admin_workspace_users",
+      "expression": "db.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/app/admin/membership-actions.ts",
+      "line": 19,
+      "kind": "rpc",
+      "target": "admin_user_memberships",
+      "expression": "db.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/app/admin/membership-actions.ts",
+      "line": 25,
+      "kind": "rpc",
+      "target": "admin_manage_membership",
+      "expression": "db.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/app/api/access-request/route.ts",
+      "line": 131,
+      "kind": "table-candidate",
+      "target": "access_requests",
+      "expression": "supabase.from",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/app/api/contracts/pdf-upload/route.ts",
+      "line": 15,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/api/demo-request/route.ts",
+      "line": 135,
+      "kind": "table-candidate",
+      "target": "demo_requests",
+      "expression": "supabase.from",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/app/api/healthz/route.ts",
+      "line": 82,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "admin\n        .from",
+      "operations": [
+        "select"
+      ]
+    },
+    {
+      "file": "src/app/kayit/page.tsx",
+      "line": 10,
+      "kind": "rpc",
+      "target": "invitation_registration_allowed",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/sirket-sec/WorkspacePicker.tsx",
+      "line": 13,
+      "kind": "rpc",
+      "target": "my_workspace_choices",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/app/sirket-sec/WorkspacePicker.tsx",
+      "line": 23,
+      "kind": "rpc",
+      "target": "select_workspace",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/app/sirket-sec/WorkspacePicker.tsx",
+      "line": 25,
+      "kind": "rpc",
+      "target": "current_workspace_context",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/context/AuthContext.tsx",
+      "line": 97,
+      "kind": "rpc",
+      "target": "current_workspace_context",
+      "expression": "supabase.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/hooks/useVerifiedTenant.ts",
+      "line": 11,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/email/batch-candidates.ts",
+      "line": 9,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "in",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/batch-candidates.ts",
+      "line": 16,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "not",
+        "lte",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/batch-candidates.ts",
+      "line": 23,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq",
+        "eq",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/company-names.ts",
+      "line": 10,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "in"
+      ]
+    },
+    {
+      "file": "src/lib/email/contract-candidates.ts",
+      "line": 10,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq",
+        "not",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/contract-recipients.ts",
+      "line": 13,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/contract-recipients.ts",
+      "line": 25,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "in",
+        "eq",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/notification-log.ts",
+      "line": 50,
+      "kind": "table-candidate",
+      "target": "notification_log",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/email/notification-log.ts",
+      "line": 87,
+      "kind": "table-candidate",
+      "target": "notification_log",
+      "expression": "client\n    .from",
+      "operations": [
+        "delete",
+        "eq",
+        "eq",
+        "eq",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/lib/email/notification-recipients.ts",
+      "line": 80,
+      "kind": "table-candidate",
+      "target": "tenant_memberships",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "order",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/notification-recipients.ts",
+      "line": 113,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "in",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/notification-recipients.ts",
+      "line": 135,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "client\n        .from",
+      "operations": [
+        "select",
+        "in"
+      ]
+    },
+    {
+      "file": "src/lib/email/notification-recipients.ts",
+      "line": 162,
+      "kind": "table-candidate",
+      "target": "partner_company_assignments",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "in",
+        "order",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/tenant-role-recipients.ts",
+      "line": 25,
+      "kind": "table-candidate",
+      "target": "tenant_memberships",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "order",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/email/tenant-role-recipients.ts",
+      "line": 30,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "in",
+        "order",
+        "range"
+      ]
+    },
+    {
+      "file": "src/lib/import/import-service.ts",
+      "line": 30,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client.from",
+      "operations": [
+        "select"
+      ]
+    },
+    {
+      "file": "src/lib/import/import-service.ts",
+      "line": 78,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client.from",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/lib/import/import-service.ts",
+      "line": 126,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client.from",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/lib/import/import-service.ts",
+      "line": 178,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client.from",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/lib/project-reporting/server.ts",
+      "line": 6,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/project-reporting/server.ts",
+      "line": 6,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/companies.ts",
+      "line": 293,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/services/company-document-recovery.ts",
+      "line": 19,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "supabase.from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/services/company-document-recovery.ts",
+      "line": 29,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "supabase.from",
+      "operations": [
+        "select",
+        "eq",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/lib/services/company-document-recovery.ts",
+      "line": 31,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "supabase.storage.from",
+      "operations": [
+        "remove"
+      ]
+    },
+    {
+      "file": "src/lib/services/contract-appendices.ts",
+      "line": 9,
+      "kind": "rpc",
+      "target": "contract_appendices",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/contract-appendices.ts",
+      "line": 12,
+      "kind": "rpc",
+      "target": "contract_document_history",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/contract-appendices.ts",
+      "line": 15,
+      "kind": "rpc",
+      "target": "contract_document_version_path",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/contract-appendices.ts",
+      "line": 17,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "client.storage.from",
+      "operations": [
+        "createSignedUrl"
+      ]
+    },
+    {
+      "file": "src/lib/services/contract-pdf.ts",
+      "line": 8,
+      "kind": "rpc",
+      "target": "contract_pdf_versions",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/contract-pdf.ts",
+      "line": 12,
+      "kind": "rpc",
+      "target": "contract_pdf_version_path",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/contract-pdf.ts",
+      "line": 14,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "client.storage.from",
+      "operations": [
+        "createSignedUrl"
+      ]
+    },
+    {
+      "file": "src/lib/services/conversation.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "ops_comment_send",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/current-role.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "current_user_role",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/daily-operations.ts",
+      "line": 93,
+      "kind": "rpc",
+      "target": "ops_idp_period_create",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/documents.ts",
+      "line": 230,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/services/documents.ts",
+      "line": 344,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client.from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "eq",
+        "is",
+        "select",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/services/fixed-roster.ts",
+      "line": 13,
+      "kind": "rpc",
+      "target": "ops_fixed_roster_save",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/fixed-roster.ts",
+      "line": 24,
+      "kind": "rpc",
+      "target": "ops_fixed_roster_list",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/fixed-roster.ts",
+      "line": 36,
+      "kind": "rpc",
+      "target": "ops_fixed_roster_idp_create",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/fixed-roster.ts",
+      "line": 44,
+      "kind": "rpc",
+      "target": "ops_fixed_roster_history",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/import-undo.ts",
+      "line": 8,
+      "kind": "rpc",
+      "target": "<dynamic>",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/notes.ts",
+      "line": 126,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/services/notes.ts",
+      "line": 343,
+      "kind": "table-candidate",
+      "target": "notes",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/services/pdf-upload-context.ts",
+      "line": 5,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/pdf-upload.ts",
+      "line": 11,
+      "kind": "rpc",
+      "target": "prepare_contract_document_upload",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/pdf-upload.ts",
+      "line": 11,
+      "kind": "rpc",
+      "target": "prepare_contract_pdf_upload",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/pdf-upload.ts",
+      "line": 15,
+      "kind": "rpc",
+      "target": "get_contract_pdf_upload",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/pdf-upload.ts",
+      "line": 24,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "client.storage.from",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/pdf-upload.ts",
+      "line": 30,
+      "kind": "rpc",
+      "target": "finish_contract_pdf_upload",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/person-merge.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "talent_merge_review",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/person-merge.ts",
+      "line": 14,
+      "kind": "rpc",
+      "target": "talent_merge_apply",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/person-merge.ts",
+      "line": 19,
+      "kind": "rpc",
+      "target": "talent_merge_resolve",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/platform-admin.ts",
+      "line": 101,
+      "kind": "rpc",
+      "target": "admin_list_tenants",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/platform-admin.ts",
+      "line": 116,
+      "kind": "rpc",
+      "target": "admin_list_users",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/platform-admin.ts",
+      "line": 123,
+      "kind": "rpc",
+      "target": "is_platform_admin",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/platform-admin.ts",
+      "line": 162,
+      "kind": "rpc",
+      "target": "admin_assign_role_and_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/platform-admin.ts",
+      "line": 183,
+      "kind": "rpc",
+      "target": "admin_create_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/recurring-schedules.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "ops_schedule_list",
+      "expression": "c.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/recurring-schedules.ts",
+      "line": 8,
+      "kind": "rpc",
+      "target": "ops_schedule_save",
+      "expression": "c.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/recurring-schedules.ts",
+      "line": 9,
+      "kind": "rpc",
+      "target": "ops_schedule_preview",
+      "expression": "c.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/recurring-schedules.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "ops_schedule_generate",
+      "expression": "c.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/related-company-record.ts",
+      "line": 15,
+      "kind": "table-candidate",
+      "target": "<dynamic>",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq",
+        "eq",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/services/replacement-outreach.ts",
+      "line": 13,
+      "kind": "rpc",
+      "target": "ops_replacement_outreach_latest",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/replacement-outreach.ts",
+      "line": 20,
+      "kind": "rpc",
+      "target": "ops_record_replacement_outreach",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/tasks.ts",
+      "line": 444,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/tasks.ts",
+      "line": 457,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/timed-requests.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "ops_create_timed_requests",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/services/work-approval.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "ops_work_record_read",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/work-approval.ts",
+      "line": 11,
+      "kind": "rpc",
+      "target": "ops_work_record_execute",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/work-approval.ts",
+      "line": 17,
+      "kind": "rpc",
+      "target": "ops_work_record_list",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/announcements.ts",
+      "line": 36,
+      "kind": "table-candidate",
+      "target": "announcements",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/announcements.ts",
+      "line": 59,
+      "kind": "table-candidate",
+      "target": "announcements",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/announcements.ts",
+      "line": 81,
+      "kind": "table-candidate",
+      "target": "announcements",
+      "expression": "client.from",
+      "operations": [
+        "delete",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/appointments.ts",
+      "line": 28,
+      "kind": "rpc",
+      "target": "complete_appointment_scoped",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/appointments.ts",
+      "line": 49,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/appointments.ts",
+      "line": 64,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/appointments.ts",
+      "line": 79,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/appointments.ts",
+      "line": 99,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/appointments.ts",
+      "line": 118,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "in",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/appointments.ts",
+      "line": 140,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/appointments.ts",
+      "line": 162,
+      "kind": "table-candidate",
+      "target": "appointments",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/companies.ts",
+      "line": 42,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/companies.ts",
+      "line": 67,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/companies.ts",
+      "line": 109,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "order",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/companies.ts",
+      "line": 136,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "ilike"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/companies.ts",
+      "line": 159,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/companies.ts",
+      "line": 199,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "in",
+        "order",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/company-summaries.ts",
+      "line": 20,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/company-summaries.ts",
+      "line": 21,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 46,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 73,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "in",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 97,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 127,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 152,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 179,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 207,
+      "kind": "table-candidate",
+      "target": "contacts",
+      "expression": "client\n    .from",
+      "operations": [
+        "delete",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 223,
+      "kind": "rpc",
+      "target": "write_company_contact",
+      "expression": "client.rpc",
+      "operations": [
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contract-renewal.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "contract_renewal_snapshot",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/contract-renewal.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "create_contract_renewal_task",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/contracts.ts",
+      "line": 33,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order",
+        "order",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contracts.ts",
+      "line": 50,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contracts.ts",
+      "line": 74,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contracts.ts",
+      "line": 102,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "in",
+        "eq",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contracts.ts",
+      "line": 125,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contracts.ts",
+      "line": 147,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/critical-dates.ts",
+      "line": 31,
+      "kind": "table-candidate",
+      "target": "critical_dates",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/critical-dates.ts",
+      "line": 45,
+      "kind": "table-candidate",
+      "target": "critical_dates",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/critical-dates.ts",
+      "line": 68,
+      "kind": "table-candidate",
+      "target": "critical_dates",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/critical-dates.ts",
+      "line": 99,
+      "kind": "table-candidate",
+      "target": "critical_dates",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "select",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 8,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 11,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq",
+        "order"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 16,
+      "kind": "rpc",
+      "target": "ops_board",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 21,
+      "kind": "rpc",
+      "target": "ops_mutate",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 27,
+      "kind": "rpc",
+      "target": "ops_import_locations",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 33,
+      "kind": "rpc",
+      "target": "ops_execute_scoped",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 39,
+      "kind": "rpc",
+      "target": "ops_reconcile_commands",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 45,
+      "kind": "rpc",
+      "target": "ops_week",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 51,
+      "kind": "rpc",
+      "target": "ops_create_request_batch",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 57,
+      "kind": "rpc",
+      "target": "ops_resize_request",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 63,
+      "kind": "rpc",
+      "target": "ops_record_attendance",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 69,
+      "kind": "rpc",
+      "target": "ops_replace_assignment",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 75,
+      "kind": "rpc",
+      "target": "ops_attendance_week",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 81,
+      "kind": "rpc",
+      "target": "ops_directory",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 87,
+      "kind": "rpc",
+      "target": "ops_set_directory_active",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/daily-operations.ts",
+      "line": 93,
+      "kind": "rpc",
+      "target": "ops_update_location",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/dashboard-cards.ts",
+      "line": 27,
+      "kind": "table-candidate",
+      "target": "contracts",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq",
+        "gte",
+        "order",
+        "order",
+        "limit",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/dashboard-cards.ts",
+      "line": 35,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "or",
+        "order",
+        "order",
+        "limit",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/dashboard-cards.ts",
+      "line": 43,
+      "kind": "table-candidate",
+      "target": "critical_dates",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "lte",
+        "order",
+        "order",
+        "limit",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/dashboard-cards.ts",
+      "line": 54,
+      "kind": "table-candidate",
+      "target": "companies",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "in",
+        "order",
+        "limit",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/documents.ts",
+      "line": 59,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "order",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/documents.ts",
+      "line": 90,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/documents.ts",
+      "line": 125,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/documents.ts",
+      "line": 145,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/documents.ts",
+      "line": 160,
+      "kind": "table-candidate",
+      "target": "documents",
+      "expression": "client.from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "select",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/notes.ts",
+      "line": 37,
+      "kind": "table-candidate",
+      "target": "notes",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/notes.ts",
+      "line": 56,
+      "kind": "table-candidate",
+      "target": "notes",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/notes.ts",
+      "line": 81,
+      "kind": "table-candidate",
+      "target": "notes",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/notes.ts",
+      "line": 103,
+      "kind": "table-candidate",
+      "target": "notes",
+      "expression": "client\n    .from",
+      "operations": [
+        "delete",
+        "eq"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/profiles.ts",
+      "line": 47,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/profiles.ts",
+      "line": 83,
+      "kind": "rpc",
+      "target": "active_tenant_profiles",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/profiles.ts",
+      "line": 109,
+      "kind": "rpc",
+      "target": "is_active_tenant_member",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/profiles.ts",
+      "line": 138,
+      "kind": "table-candidate",
+      "target": "profiles",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/sector-templates.ts",
+      "line": 18,
+      "kind": "table-candidate",
+      "target": "sector_templates",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/sector-templates.ts",
+      "line": 36,
+      "kind": "table-candidate",
+      "target": "sector_templates",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/staffing-demands.ts",
+      "line": 38,
+      "kind": "table-candidate",
+      "target": "staffing_demands",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/staffing-demands.ts",
+      "line": 57,
+      "kind": "table-candidate",
+      "target": "staffing_demands",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/staffing-demands.ts",
+      "line": 82,
+      "kind": "table-candidate",
+      "target": "staffing_demands",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/staffing-demands.ts",
+      "line": 104,
+      "kind": "table-candidate",
+      "target": "staffing_demands",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/talent-import.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "talent_import_prepare",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent-import.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "talent_import_status",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent-import.ts",
+      "line": 13,
+      "kind": "rpc",
+      "target": "talent_import_apply_row",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent-import.ts",
+      "line": 16,
+      "kind": "rpc",
+      "target": "talent_import_cancel",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent-import.ts",
+      "line": 20,
+      "kind": "rpc",
+      "target": "<dynamic>",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent-import.ts",
+      "line": 22,
+      "kind": "rpc",
+      "target": "talent_import_history",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent.ts",
+      "line": 6,
+      "kind": "rpc",
+      "target": "talent_resolve_person_command",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "talent_people_page",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent.ts",
+      "line": 14,
+      "kind": "rpc",
+      "target": "talent_person_detail",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent.ts",
+      "line": 18,
+      "kind": "rpc",
+      "target": "talent_save_person",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/talent.ts",
+      "line": 23,
+      "kind": "rpc",
+      "target": "talent_compare_snapshot",
+      "expression": "c.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/task-transfer.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "task_transfer_directory",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/task-transfer.ts",
+      "line": 11,
+      "kind": "rpc",
+      "target": "preview_task_transfer",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/task-transfer.ts",
+      "line": 15,
+      "kind": "rpc",
+      "target": "transfer_tasks_scoped",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 31,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client.from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "eq",
+        "in"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 54,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 69,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 84,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 104,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 120,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 149,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "insert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 173,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "select",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 189,
+      "kind": "table-candidate",
+      "target": "task_assignment_history",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "limit"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 197,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client.from",
+      "operations": [
+        "update",
+        "eq",
+        "eq",
+        "eq",
+        "is",
+        "is",
+        "in",
+        "select",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/workforce-summary.ts",
+      "line": 37,
+      "kind": "table-candidate",
+      "target": "workforce_summary",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "maybeSingle"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/workforce-summary.ts",
+      "line": 56,
+      "kind": "table-candidate",
+      "target": "workforce_summary",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/workforce-summary.ts",
+      "line": 73,
+      "kind": "table-candidate",
+      "target": "workforce_summary",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "in",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/workforce-summary.ts",
+      "line": 95,
+      "kind": "table-candidate",
+      "target": "workforce_summary",
+      "expression": "client\n    .from",
+      "operations": [
+        "upsert",
+        "select",
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/workspace-context.ts",
+      "line": 5,
+      "kind": "rpc",
+      "target": "current_workspace_context",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/workspace-modules.ts",
+      "line": 6,
+      "kind": "rpc",
+      "target": "current_workspace_modules_v1",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    }
+  ],
+  "sqlFunctionDeclarations": [
+    {
+      "name": "accept_workspace_invitation",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 128
+    },
+    {
+      "name": "active_tenant_profiles",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 21
+    },
+    {
+      "name": "admin_assign_role_and_tenant",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 108
+    },
+    {
+      "name": "admin_create_tenant",
+      "file": "supabase/migrations/20260827000400_platform_admin_rpcs.sql",
+      "line": 415
+    },
+    {
+      "name": "admin_list_tenants",
+      "file": "supabase/migrations/20260827000400_platform_admin_rpcs.sql",
+      "line": 153
+    },
+    {
+      "name": "admin_list_users",
+      "file": "supabase/migrations/20260827000400_platform_admin_rpcs.sql",
+      "line": 192
+    },
+    {
+      "name": "admin_manage_membership",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 65
+    },
+    {
+      "name": "admin_user_memberships",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 95
+    },
+    {
+      "name": "admin_workspace_users",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 283
+    },
+    {
+      "name": "appointments_set_updated_at",
+      "file": "supabase/migrations/20260407000700_create_appointments.sql",
+      "line": 42
+    },
+    {
+      "name": "can_access_pdf_upload",
+      "file": "supabase/migrations/20260909001900_contract_pdf_upload_commands.sql",
+      "line": 173
+    },
+    {
+      "name": "can_read_retained_contract_object",
+      "file": "supabase/migrations/20260909001800_contract_document_versions.sql",
+      "line": 115
+    },
+    {
+      "name": "companies_set_updated_at",
+      "file": "supabase/migrations/20260407000200_create_companies_anchor.sql",
+      "line": 84
+    },
+    {
+      "name": "complete_appointment_atomic",
+      "file": "supabase/migrations/20260407001700_complete_appointment_atomic.sql",
+      "line": 8
+    },
+    {
+      "name": "complete_appointment_scoped",
+      "file": "supabase/migrations/20260909001400_appointment_completion.sql",
+      "line": 18
+    },
+    {
+      "name": "confirm_financial_data",
+      "file": "supabase/migrations/20260415000400_financial_summaries_last_source.sql",
+      "line": 34
+    },
+    {
+      "name": "confirm_mizan_atomic",
+      "file": "supabase/migrations/20260909002600_atomic_mizan.sql",
+      "line": 11
+    },
+    {
+      "name": "contacts_enforce_max_per_company",
+      "file": "supabase/migrations/20260407000300_create_contacts.sql",
+      "line": 114
+    },
+    {
+      "name": "contacts_set_updated_at",
+      "file": "supabase/migrations/20260407000300_create_contacts.sql",
+      "line": 147
+    },
+    {
+      "name": "contract_appendices",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 172
+    },
+    {
+      "name": "contract_document_history",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 181
+    },
+    {
+      "name": "contract_document_version_path",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 191
+    },
+    {
+      "name": "contract_pdf_version_path",
+      "file": "supabase/migrations/20260909001800_contract_document_versions.sql",
+      "line": 139
+    },
+    {
+      "name": "contract_pdf_versions",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 200
+    },
+    {
+      "name": "contract_renewal_snapshot",
+      "file": "supabase/migrations/20260909001700_contract_renewal_task.sql",
+      "line": 51
+    },
+    {
+      "name": "contracts_advance_revision",
+      "file": "supabase/migrations/20260909001700_contract_renewal_task.sql",
+      "line": 23
+    },
+    {
+      "name": "contracts_guard_pdf_context",
+      "file": "supabase/migrations/20260909001800_contract_document_versions.sql",
+      "line": 92
+    },
+    {
+      "name": "contracts_set_updated_at",
+      "file": "supabase/migrations/20260407000500_create_contracts.sql",
+      "line": 183
+    },
+    {
+      "name": "create_contract_renewal_task",
+      "file": "supabase/migrations/20260909001700_contract_renewal_task.sql",
+      "line": 70
+    },
+    {
+      "name": "critical_dates_set_updated_at",
+      "file": "supabase/migrations/20260915000700_critical_date_monotonic_stamp.sql",
+      "line": 17
+    },
+    {
+      "name": "current_user_active_tenant",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 175
+    },
+    {
+      "name": "current_user_has_company_scope",
+      "file": "supabase/migrations/20260407000200_create_companies_anchor.sql",
+      "line": 186
+    },
+    {
+      "name": "current_user_role",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 16
+    },
+    {
+      "name": "current_user_verified_tenant",
+      "file": "supabase/migrations/20260904000100_profiles_tenant_scope.sql",
+      "line": 280
+    },
+    {
+      "name": "current_workspace_context",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 197
+    },
+    {
+      "name": "current_workspace_modules_v1",
+      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "line": 105
+    },
+    {
+      "name": "custom_access_token_hook",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 250
+    },
+    {
+      "name": "daily_dashboard",
+      "file": "supabase/migrations/20260909002500_daily_dashboard.sql",
+      "line": 3
+    },
+    {
+      "name": "dashboard_activity",
+      "file": "supabase/migrations/20260913000100_company_document_activity.sql",
+      "line": 33
+    },
+    {
+      "name": "demo_requests_set_updated_at",
+      "file": "supabase/migrations/20260414000100_create_demo_requests.sql",
+      "line": 23
+    },
+    {
+      "name": "derive_financial_summaries_from_mizan",
+      "file": "supabase/migrations/20260810000100_financial_summaries_tenant_correctness.sql",
+      "line": 183
+    },
+    {
+      "name": "document_object_in_workspace",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 342
+    },
+    {
+      "name": "documents_guard_version",
+      "file": "supabase/migrations/20260909001800_contract_document_versions.sql",
+      "line": 42
+    },
+    {
+      "name": "documents_record_version",
+      "file": "supabase/migrations/20260909001800_contract_document_versions.sql",
+      "line": 77
+    },
+    {
+      "name": "documents_set_updated_at",
+      "file": "supabase/migrations/20260810000200_documents_critical_dates_updated_at_triggers.sql",
+      "line": 49
+    },
+    {
+      "name": "finish_contract_pdf_upload",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 115
+    },
+    {
+      "name": "get_contract_pdf_upload",
+      "file": "supabase/migrations/20260909001900_contract_pdf_upload_commands.sql",
+      "line": 131
+    },
+    {
+      "name": "guard_contact_write_fields",
+      "file": "supabase/migrations/20260915000200_contact_note_write_boundaries.sql",
+      "line": 6
+    },
+    {
+      "name": "guard_contract_document_role",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 33
+    },
+    {
+      "name": "guard_contract_upload_context",
+      "file": "supabase/migrations/20260909001900_contract_pdf_upload_commands.sql",
+      "line": 157
+    },
+    {
+      "name": "guard_note_write_fields",
+      "file": "supabase/migrations/20260915000200_contact_note_write_boundaries.sql",
+      "line": 46
+    },
+    {
+      "name": "guard_reserved_pdf_upload",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 160
+    },
+    {
+      "name": "handle_new_user",
+      "file": "supabase/migrations/20260909002400_invited_account_registration.sql",
+      "line": 4
+    },
+    {
+      "name": "invitation_registration_allowed",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 120
+    },
+    {
+      "name": "is_active_tenant_member",
+      "file": "supabase/migrations/20260904000100_profiles_tenant_scope.sql",
+      "line": 309
+    },
+    {
+      "name": "is_platform_admin",
+      "file": "supabase/migrations/20260827000400_platform_admin_rpcs.sql",
+      "line": 132
+    },
+    {
+      "name": "is_reserved_pdf_upload",
+      "file": "supabase/migrations/20260909001900_contract_pdf_upload_commands.sql",
+      "line": 169
+    },
+    {
+      "name": "is_retained_contract_object",
+      "file": "supabase/migrations/20260909001800_contract_document_versions.sql",
+      "line": 105
+    },
+    {
+      "name": "list_workspace_invitations",
+      "file": "supabase/migrations/20260909002300_workspace_invitations.sql",
+      "line": 39
+    },
+    {
+      "name": "manage_workspace_invitation",
+      "file": "supabase/migrations/20260909002300_workspace_invitations.sql",
+      "line": 16
+    },
+    {
+      "name": "membership_guard_active_tasks",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 41
+    },
+    {
+      "name": "my_workspace_choices",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 211
+    },
+    {
+      "name": "notes_set_updated_at",
+      "file": "supabase/migrations/20260407000400_create_notes.sql",
+      "line": 131
+    },
+    {
+      "name": "operational_row_is_private",
+      "file": "supabase/migrations/20260928000800_operational_text_guard.sql",
+      "line": 16
+    },
+    {
+      "name": "operational_text_guard",
+      "file": "supabase/migrations/20260928000800_operational_text_guard.sql",
+      "line": 32
+    },
+    {
+      "name": "operational_text_is_private",
+      "file": "supabase/migrations/20260928000800_operational_text_guard.sql",
+      "line": 8
+    },
+    {
+      "name": "ops_assignment_shift_snapshot",
+      "file": "supabase/migrations/20260927000100_shift_scheduling.sql",
+      "line": 51
+    },
+    {
+      "name": "ops_attendance_week",
+      "file": "supabase/migrations/20260909001000_attendance_week.sql",
+      "line": 4
+    },
+    {
+      "name": "ops_board",
+      "file": "supabase/migrations/20260909000800_attendance.sql",
+      "line": 49
+    },
+    {
+      "name": "ops_comment_context",
+      "file": "supabase/migrations/20260910000200_request_conversation.sql",
+      "line": 26
+    },
+    {
+      "name": "ops_comment_inbox",
+      "file": "supabase/migrations/20260910000200_request_conversation.sql",
+      "line": 95
+    },
+    {
+      "name": "ops_comment_inbox_page",
+      "file": "supabase/migrations/20260910000300_conversation_read_surfaces.sql",
+      "line": 16
+    },
+    {
+      "name": "ops_comment_list",
+      "file": "supabase/migrations/20260910000200_request_conversation.sql",
+      "line": 77
+    },
+    {
+      "name": "ops_comment_people",
+      "file": "supabase/migrations/20260910000300_conversation_read_surfaces.sql",
+      "line": 4
+    },
+    {
+      "name": "ops_comment_read",
+      "file": "supabase/migrations/20260910000200_request_conversation.sql",
+      "line": 109
+    },
+    {
+      "name": "ops_comment_resolve",
+      "file": "supabase/migrations/20260910000400_comment_command_recovery.sql",
+      "line": 55
+    },
+    {
+      "name": "ops_comment_send",
+      "file": "supabase/migrations/20260910000400_comment_command_recovery.sql",
+      "line": 12
+    },
+    {
+      "name": "ops_create_request_batch",
+      "file": "supabase/migrations/20260910000100_candidate_company_operations.sql",
+      "line": 66
+    },
+    {
+      "name": "ops_create_timed_requests",
+      "file": "supabase/migrations/20260927000100_shift_scheduling.sql",
+      "line": 99
+    },
+    {
+      "name": "ops_directory",
+      "file": "supabase/migrations/20260909001200_directory_activation.sql",
+      "line": 128
+    },
+    {
+      "name": "ops_execute_scoped",
+      "file": "supabase/migrations/20260909000300_scoped_operation_command.sql",
+      "line": 4
+    },
+    {
+      "name": "ops_fixed_roster_assignment_guard",
+      "file": "supabase/migrations/20260926000200_fixed_roster.sql",
+      "line": 199
+    },
+    {
+      "name": "ops_fixed_roster_history",
+      "file": "supabase/migrations/20260926000200_fixed_roster.sql",
+      "line": 109
+    },
+    {
+      "name": "ops_fixed_roster_idp_create",
+      "file": "supabase/migrations/20260926000200_fixed_roster.sql",
+      "line": 139
+    },
+    {
+      "name": "ops_fixed_roster_list",
+      "file": "supabase/migrations/20260926000200_fixed_roster.sql",
+      "line": 93
+    },
+    {
+      "name": "ops_fixed_roster_period_guard",
+      "file": "supabase/migrations/20260926000200_fixed_roster.sql",
+      "line": 177
+    },
+    {
+      "name": "ops_fixed_roster_save",
+      "file": "supabase/migrations/20260926000200_fixed_roster.sql",
+      "line": 36
+    },
+    {
+      "name": "ops_fixed_roster_source_guard",
+      "file": "supabase/migrations/20260926000200_fixed_roster.sql",
+      "line": 192
+    },
+    {
+      "name": "ops_guard_approved_attendance",
+      "file": "supabase/migrations/20260915000900_work_approval.sql",
+      "line": 116
+    },
+    {
+      "name": "ops_guard_confirmed_start",
+      "file": "supabase/migrations/20260909002700_start_tracking.sql",
+      "line": 132
+    },
+    {
+      "name": "ops_idp_list",
+      "file": "supabase/migrations/20260924000300_idp_request_context.sql",
+      "line": 63
+    },
+    {
+      "name": "ops_idp_period_context_guard",
+      "file": "supabase/migrations/20260924000500_idp_period_management.sql",
+      "line": 11
+    },
+    {
+      "name": "ops_idp_period_create",
+      "file": "supabase/migrations/20260924000500_idp_period_management.sql",
+      "line": 17
+    },
+    {
+      "name": "ops_idp_period_history",
+      "file": "supabase/migrations/20260925000100_idp_period_history.sql",
+      "line": 5
+    },
+    {
+      "name": "ops_idp_period_manage",
+      "file": "supabase/migrations/20260924000500_idp_period_management.sql",
+      "line": 61
+    },
+    {
+      "name": "ops_idp_period_read",
+      "file": "supabase/migrations/20260926000200_fixed_roster.sql",
+      "line": 209
+    },
+    {
+      "name": "ops_idp_read",
+      "file": "supabase/migrations/20260924000300_idp_request_context.sql",
+      "line": 12
+    },
+    {
+      "name": "ops_idp_request_guard",
+      "file": "supabase/migrations/20260924000300_idp_request_context.sql",
+      "line": 54
+    },
+    {
+      "name": "ops_idp_save",
+      "file": "supabase/migrations/20260924000300_idp_request_context.sql",
+      "line": 23
+    },
+    {
+      "name": "ops_import_locations",
+      "file": "supabase/migrations/20260910000100_candidate_company_operations.sql",
+      "line": 18
+    },
+    {
+      "name": "ops_mutate",
+      "file": "supabase/migrations/20260910000100_candidate_company_operations.sql",
+      "line": 231
+    },
+    {
+      "name": "ops_reconcile_commands",
+      "file": "supabase/migrations/20260909000400_command_reconciliation.sql",
+      "line": 4
+    },
+    {
+      "name": "ops_record_attendance",
+      "file": "supabase/migrations/20260909000800_attendance.sql",
+      "line": 14
+    },
+    {
+      "name": "ops_record_replacement_outreach",
+      "file": "supabase/migrations/20260915000800_replacement_outreach.sql",
+      "line": 21
+    },
+    {
+      "name": "ops_replace_assignment",
+      "file": "supabase/migrations/20260909002700_start_tracking.sql",
+      "line": 170
+    },
+    {
+      "name": "ops_replace_assignment_before_start",
+      "file": "supabase/migrations/20260910000100_candidate_company_operations.sql",
+      "line": 151
+    },
+    {
+      "name": "ops_replacement_outreach_history",
+      "file": "supabase/migrations/20260915000800_replacement_outreach.sql",
+      "line": 75
+    },
+    {
+      "name": "ops_replacement_outreach_latest",
+      "file": "supabase/migrations/20260915000800_replacement_outreach.sql",
+      "line": 92
+    },
+    {
+      "name": "ops_request_mode_guard",
+      "file": "supabase/migrations/20260927000100_shift_scheduling.sql",
+      "line": 194
+    },
+    {
+      "name": "ops_request_shift_history_guard",
+      "file": "supabase/migrations/20260927000100_shift_scheduling.sql",
+      "line": 74
+    },
+    {
+      "name": "ops_resize_request",
+      "file": "supabase/migrations/20260910000100_candidate_company_operations.sql",
+      "line": 116
+    },
+    {
+      "name": "ops_schedule_generate",
+      "file": "supabase/migrations/20260927000200_recurring_schedules.sql",
+      "line": 114
+    },
+    {
+      "name": "ops_schedule_list",
+      "file": "supabase/migrations/20260927000200_recurring_schedules.sql",
+      "line": 85
+    },
+    {
+      "name": "ops_schedule_preview",
+      "file": "supabase/migrations/20260927000200_recurring_schedules.sql",
+      "line": 112
+    },
+    {
+      "name": "ops_schedule_save",
+      "file": "supabase/migrations/20260927000200_recurring_schedules.sql",
+      "line": 63
+    },
+    {
+      "name": "ops_schedule_scope",
+      "file": "supabase/migrations/20260927000200_recurring_schedules.sql",
+      "line": 19
+    },
+    {
+      "name": "ops_schedule_validate",
+      "file": "supabase/migrations/20260927000200_recurring_schedules.sql",
+      "line": 28
+    },
+    {
+      "name": "ops_schedule_window",
+      "file": "supabase/migrations/20260927000200_recurring_schedules.sql",
+      "line": 93
+    },
+    {
+      "name": "ops_set_directory_active",
+      "file": "supabase/migrations/20260910000100_candidate_company_operations.sql",
+      "line": 192
+    },
+    {
+      "name": "ops_shift_range",
+      "file": "supabase/migrations/20260927000100_shift_scheduling.sql",
+      "line": 9
+    },
+    {
+      "name": "ops_start_board",
+      "file": "supabase/migrations/20260909002700_start_tracking.sql",
+      "line": 139
+    },
+    {
+      "name": "ops_start_board_filtered",
+      "file": "supabase/migrations/20260909002800_start_board_filters.sql",
+      "line": 5
+    },
+    {
+      "name": "ops_start_execute",
+      "file": "supabase/migrations/20260909002900_start_event_validation.sql",
+      "line": 10
+    },
+    {
+      "name": "ops_update_location",
+      "file": "supabase/migrations/20260914000100_location_metadata_update.sql",
+      "line": 4
+    },
+    {
+      "name": "ops_week",
+      "file": "supabase/migrations/20260909000500_weekly_operations.sql",
+      "line": 4
+    },
+    {
+      "name": "ops_work_record_execute",
+      "file": "supabase/migrations/20260915000900_work_approval.sql",
+      "line": 31
+    },
+    {
+      "name": "ops_work_record_list",
+      "file": "supabase/migrations/20260915000900_work_approval.sql",
+      "line": 126
+    },
+    {
+      "name": "ops_work_record_read",
+      "file": "supabase/migrations/20260915000900_work_approval.sql",
+      "line": 103
+    },
+    {
+      "name": "pdf_upload_payload",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 44
+    },
+    {
+      "name": "prepare_contract_document_upload",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 53
+    },
+    {
+      "name": "prepare_contract_pdf_upload",
+      "file": "supabase/migrations/20260909002000_contract_appendices.sql",
+      "line": 109
+    },
+    {
+      "name": "prepare_invited_profile",
+      "file": "supabase/migrations/20260909002400_invited_account_registration.sql",
+      "line": 24
+    },
+    {
+      "name": "preview_task_transfer",
+      "file": "supabase/migrations/20260909001500_task_transfer.sql",
+      "line": 29
+    },
+    {
+      "name": "profile_guard_active_tasks",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 62
+    },
+    {
+      "name": "profiles_set_updated_at",
+      "file": "supabase/migrations/20260407000000_create_profiles.sql",
+      "line": 92
+    },
+    {
+      "name": "record_company_document_event",
+      "file": "supabase/migrations/20260913000100_company_document_activity.sql",
+      "line": 17
+    },
+    {
+      "name": "reporting_actual_link_guard",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 162
+    },
+    {
+      "name": "reporting_assert_scope",
+      "file": "supabase/migrations/20260928000100_project_reporting_foundation.sql",
+      "line": 50
+    },
+    {
+      "name": "reporting_import_finish",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 122
+    },
+    {
+      "name": "reporting_import_list",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 172
+    },
+    {
+      "name": "reporting_import_people",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 188
+    },
+    {
+      "name": "reporting_import_prepare",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 97
+    },
+    {
+      "name": "reporting_import_read",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 204
+    },
+    {
+      "name": "reporting_import_validate",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 45
+    },
+    {
+      "name": "reporting_json_has_private_person_code",
+      "file": "supabase/migrations/20260928000700_reporting_person_code_guard.sql",
+      "line": 10
+    },
+    {
+      "name": "reporting_monthly_report",
+      "file": "supabase/migrations/20260928000300_project_reporting_monthly_report.sql",
+      "line": 5
+    },
+    {
+      "name": "reporting_period_pending_guard",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 155
+    },
+    {
+      "name": "reporting_person_code_guard",
+      "file": "supabase/migrations/20260928000700_reporting_person_code_guard.sql",
+      "line": 24
+    },
+    {
+      "name": "reporting_person_code_is_private",
+      "file": "supabase/migrations/20260928000700_reporting_person_code_guard.sql",
+      "line": 6
+    },
+    {
+      "name": "reporting_person_code_set",
+      "file": "supabase/migrations/20260928000200_project_reporting_actual_import.sql",
+      "line": 72
+    },
+    {
+      "name": "reporting_project_detail",
+      "file": "supabase/migrations/20260928000100_project_reporting_foundation.sql",
+      "line": 169
+    },
+    {
+      "name": "reporting_project_execute",
+      "file": "supabase/migrations/20260928000100_project_reporting_foundation.sql",
+      "line": 60
+    },
+    {
+      "name": "reporting_project_list",
+      "file": "supabase/migrations/20260928000100_project_reporting_foundation.sql",
+      "line": 152
+    },
+    {
+      "name": "reporting_source_access",
+      "file": "supabase/migrations/20260928000500_project_reporting_source_files.sql",
+      "line": 14
+    },
+    {
+      "name": "reporting_source_file",
+      "file": "supabase/migrations/20260928000500_project_reporting_source_files.sql",
+      "line": 33
+    },
+    {
+      "name": "reporting_work_details",
+      "file": "supabase/migrations/20260928000400_project_reporting_work_details.sql",
+      "line": 3
+    },
+    {
+      "name": "sector_templates_set_updated_at",
+      "file": "supabase/migrations/20260413000100_create_sector_templates.sql",
+      "line": 26
+    },
+    {
+      "name": "select_workspace",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 222
+    },
+    {
+      "name": "staffing_demands_set_updated_at",
+      "file": "supabase/migrations/20260407000600_create_staffing_demands.sql",
+      "line": 40
+    },
+    {
+      "name": "talent_assert_scope",
+      "file": "supabase/migrations/20260914000200_talent_people.sql",
+      "line": 44
+    },
+    {
+      "name": "talent_attachment_access",
+      "file": "supabase/migrations/20260923000300_talent_attachment_cancellation.sql",
+      "line": 8
+    },
+    {
+      "name": "talent_attachment_can_cleanup",
+      "file": "supabase/migrations/20260923000300_talent_attachment_cancellation.sql",
+      "line": 20
+    },
+    {
+      "name": "talent_attachment_cancel",
+      "file": "supabase/migrations/20260923000300_talent_attachment_cancellation.sql",
+      "line": 26
+    },
+    {
+      "name": "talent_attachment_finish",
+      "file": "supabase/migrations/20260915000400_talent_attachments.sql",
+      "line": 59
+    },
+    {
+      "name": "talent_attachment_list",
+      "file": "supabase/migrations/20260915000400_talent_attachments.sql",
+      "line": 69
+    },
+    {
+      "name": "talent_attachment_pending",
+      "file": "supabase/migrations/20260923000300_talent_attachment_cancellation.sql",
+      "line": 50
+    },
+    {
+      "name": "talent_attachment_reserve",
+      "file": "supabase/migrations/20260915000400_talent_attachments.sql",
+      "line": 45
+    },
+    {
+      "name": "talent_availability_read",
+      "file": "supabase/migrations/20260923000400_talent_availability.sql",
+      "line": 24
+    },
+    {
+      "name": "talent_availability_save",
+      "file": "supabase/migrations/20260923000400_talent_availability.sql",
+      "line": 37
+    },
+    {
+      "name": "talent_bump_pool_version",
+      "file": "supabase/migrations/20260925000600_talent_paged_export.sql",
+      "line": 11
+    },
+    {
+      "name": "talent_call_list_archive",
+      "file": "supabase/migrations/20260927000800_talent_call_lists.sql",
+      "line": 54
+    },
+    {
+      "name": "talent_call_list_create",
+      "file": "supabase/migrations/20260927000800_talent_call_lists.sql",
+      "line": 28
+    },
+    {
+      "name": "talent_call_list_edit",
+      "file": "supabase/migrations/20260927000900_call_list_edit_and_conversation_context.sql",
+      "line": 22
+    },
+    {
+      "name": "talent_call_list_people",
+      "file": "supabase/migrations/20260927000900_call_list_edit_and_conversation_context.sql",
+      "line": 13
+    },
+    {
+      "name": "talent_call_lists_read",
+      "file": "supabase/migrations/20260927000800_talent_call_lists.sql",
+      "line": 17
+    },
+    {
+      "name": "talent_canonical_person",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 211
+    },
+    {
+      "name": "talent_compare_snapshot",
+      "file": "supabase/migrations/20260914000400_talent_compare_snapshot.sql",
+      "line": 4
+    },
+    {
+      "name": "talent_contact_summaries",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 541
+    },
+    {
+      "name": "talent_conversation_list",
+      "file": "supabase/migrations/20260927000900_call_list_edit_and_conversation_context.sql",
+      "line": 71
+    },
+    {
+      "name": "talent_conversation_save",
+      "file": "supabase/migrations/20260915000300_talent_conversations.sql",
+      "line": 24
+    },
+    {
+      "name": "talent_fold",
+      "file": "supabase/migrations/20260914000200_talent_people.sql",
+      "line": 52
+    },
+    {
+      "name": "talent_guard_closed_person",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 61
+    },
+    {
+      "name": "talent_guard_person_child",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 71
+    },
+    {
+      "name": "talent_import_apply_row",
+      "file": "supabase/migrations/20260914000600_talent_import_recovery.sql",
+      "line": 63
+    },
+    {
+      "name": "talent_import_cancel",
+      "file": "supabase/migrations/20260914000500_talent_import_batches.sql",
+      "line": 184
+    },
+    {
+      "name": "talent_import_change_review",
+      "file": "supabase/migrations/20260927000400_talent_import_undo.sql",
+      "line": 91
+    },
+    {
+      "name": "talent_import_close",
+      "file": "supabase/migrations/20260914000600_talent_import_recovery.sql",
+      "line": 39
+    },
+    {
+      "name": "talent_import_contact_key",
+      "file": "supabase/migrations/20260914000500_talent_import_batches.sql",
+      "line": 39
+    },
+    {
+      "name": "talent_import_contacts",
+      "file": "supabase/migrations/20260927000300_talent_multi_contact_import.sql",
+      "line": 4
+    },
+    {
+      "name": "talent_import_fence",
+      "file": "supabase/migrations/20260914000500_talent_import_batches.sql",
+      "line": 24
+    },
+    {
+      "name": "talent_import_history",
+      "file": "supabase/migrations/20260914000700_talent_import_history.sql",
+      "line": 4
+    },
+    {
+      "name": "talent_import_list",
+      "file": "supabase/migrations/20260925000400_talent_extended_import.sql",
+      "line": 4
+    },
+    {
+      "name": "talent_import_name_key",
+      "file": "supabase/migrations/20260914000500_talent_import_batches.sql",
+      "line": 50
+    },
+    {
+      "name": "talent_import_person_fields",
+      "file": "supabase/migrations/20260927000400_talent_import_undo.sql",
+      "line": 18
+    },
+    {
+      "name": "talent_import_prepare",
+      "file": "supabase/migrations/20260914000600_talent_import_recovery.sql",
+      "line": 12
+    },
+    {
+      "name": "talent_import_recover",
+      "file": "supabase/migrations/20260914000600_talent_import_recovery.sql",
+      "line": 23
+    },
+    {
+      "name": "talent_import_status",
+      "file": "supabase/migrations/20260914000500_talent_import_batches.sql",
+      "line": 92
+    },
+    {
+      "name": "talent_import_undo_update",
+      "file": "supabase/migrations/20260927000400_talent_import_undo.sql",
+      "line": 117
+    },
+    {
+      "name": "talent_import_validate_row",
+      "file": "supabase/migrations/20260914000500_talent_import_batches.sql",
+      "line": 55
+    },
+    {
+      "name": "talent_import_write_fence",
+      "file": "supabase/migrations/20260914000500_talent_import_batches.sql",
+      "line": 28
+    },
+    {
+      "name": "talent_latest_general_contact",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 531
+    },
+    {
+      "name": "talent_match_contact_keys",
+      "file": "supabase/migrations/20260925000500_talent_targeted_compare.sql",
+      "line": 5
+    },
+    {
+      "name": "talent_match_source",
+      "file": "supabase/migrations/20260927000300_talent_multi_contact_import.sql",
+      "line": 66
+    },
+    {
+      "name": "talent_merge_apply",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 123
+    },
+    {
+      "name": "talent_merge_resolve",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 189
+    },
+    {
+      "name": "talent_merge_review",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 102
+    },
+    {
+      "name": "talent_merge_snapshot",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 87
+    },
+    {
+      "name": "talent_merged_availability",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 507
+    },
+    {
+      "name": "talent_people_page",
+      "file": "supabase/migrations/20260924000100_talent_availability_filter.sql",
+      "line": 4
+    },
+    {
+      "name": "talent_person_detail",
+      "file": "supabase/migrations/20260914000200_talent_people.sql",
+      "line": 95
+    },
+    {
+      "name": "talent_person_family",
+      "file": "supabase/migrations/20260927000500_pool_merge_and_contacts.sql",
+      "line": 51
+    },
+    {
+      "name": "talent_person_json",
+      "file": "supabase/migrations/20260915000500_talent_filters.sql",
+      "line": 6
+    },
+    {
+      "name": "talent_prepare_worker",
+      "file": "supabase/migrations/20260924000200_talent_worker_prepare.sql",
+      "line": 31
+    },
+    {
+      "name": "talent_resolve_person_command",
+      "file": "supabase/migrations/20260914000200_talent_people.sql",
+      "line": 200
+    },
+    {
+      "name": "talent_save_person",
+      "file": "supabase/migrations/20260915000500_talent_filters.sql",
+      "line": 15
+    },
+    {
+      "name": "talent_shared_view_archive",
+      "file": "supabase/migrations/20260927000700_talent_shared_views.sql",
+      "line": 53
+    },
+    {
+      "name": "talent_shared_view_create",
+      "file": "supabase/migrations/20260927000700_talent_shared_views.sql",
+      "line": 28
+    },
+    {
+      "name": "talent_shared_views_read",
+      "file": "supabase/migrations/20260927000700_talent_shared_views.sql",
+      "line": 17
+    },
+    {
+      "name": "talent_sync_worker",
+      "file": "supabase/migrations/20260924000200_talent_worker_prepare.sql",
+      "line": 8
+    },
+    {
+      "name": "talent_work_copy_page",
+      "file": "supabase/migrations/20260925000600_talent_paged_export.sql",
+      "line": 33
+    },
+    {
+      "name": "task_transfer_directory",
+      "file": "supabase/migrations/20260909001500_task_transfer.sql",
+      "line": 14
+    },
+    {
+      "name": "tasks_advance_revision",
+      "file": "supabase/migrations/20260909001300_task_assignment_history.sql",
+      "line": 32
+    },
+    {
+      "name": "tasks_guard_active_assignee",
+      "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
+      "line": 28
+    },
+    {
+      "name": "tasks_guard_renewal_context",
+      "file": "supabase/migrations/20260909001700_contract_renewal_task.sql",
+      "line": 39
+    },
+    {
+      "name": "tasks_record_assignment",
+      "file": "supabase/migrations/20260909001300_task_assignment_history.sql",
+      "line": 46
+    },
+    {
+      "name": "tasks_set_updated_at",
+      "file": "supabase/migrations/20260407000800_create_tasks.sql",
+      "line": 42
+    },
+    {
+      "name": "tenant_module_bootstrap_v1",
+      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "line": 73
+    },
+    {
+      "name": "tenant_module_key_guard_v1",
+      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "line": 61
+    },
+    {
+      "name": "tenant_module_on_create_v1",
+      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "line": 88
+    },
+    {
+      "name": "transfer_tasks_scoped",
+      "file": "supabase/migrations/20260909001500_task_transfer.sql",
+      "line": 44
+    },
+    {
+      "name": "workforce_summary_set_updated_at",
+      "file": "supabase/migrations/20260407000900_create_workforce_summary.sql",
+      "line": 31
+    },
+    {
+      "name": "workspace_module_catalog_v1",
+      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "line": 9
+    },
+    {
+      "name": "workspace_setup",
+      "file": "supabase/migrations/20260910000100_candidate_company_operations.sql",
+      "line": 310
+    },
+    {
+      "name": "write_company_contact",
+      "file": "supabase/migrations/20260911000100_contact_atomic_write.sql",
+      "line": 5
+    }
+  ]
+}

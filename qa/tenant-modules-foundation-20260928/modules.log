@@ -1,0 +1,18 @@
+✔ hard dependencies are a DAG; unknown, duplicate and self edges are rejected (2.033375ms)
+✔ talent, tasks and announcements stand alone; reporting and staffing do not require each other (1.416125ms)
+✔ every one of the 1024 configurations is accepted iff all required dependencies are enabled (29.505583ms)
+✔ partial, unknown, inherited and non-boolean module values never imply enabled (0.552333ms)
+✔ context keeps bigint revisions exact and discards unrelated response fields (0.887541ms)
+✔ actor/company/generation/role/protocol mismatches cannot supply a context (0.877291ms)
+✔ all existing member roles retain their role without receiving new privileges (0.411125ms)
+✔ an older response from another workspace is rejected and no RPC fallback runs (0.883291ms)
+✔ one bounded RPC returns the whole snapshot, without a client-selected tenant argument (0.351583ms)
+✔ migration catalog is generated from the same manifest, not a second hand-maintained graph (0.792916ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1315.067375

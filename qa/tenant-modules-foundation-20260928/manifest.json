@@ -1,0 +1,39 @@
+{
+  "status": "local_verified_not_published",
+  "baseCommit": "01c46b561ee20263a82331067ffda6f7b13c8cb6",
+  "branch": "codex/tenant-modules-foundation-20260928",
+  "migration": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+  "migrationSha256": "199b4a9c2bcdbd355f815f06831580337a128265c1c2124762eb13aff2680a75",
+  "migrationAppliedToProduction": false,
+  "moduleDisableAvailable": false,
+  "checks": {
+    "application": {
+      "passed": 528,
+      "failed": 0,
+      "newModuleTestsIncluded": 10,
+      "pendingFeatureTestFilesExcluded": 7
+    },
+    "database": {
+      "postgres17.10": {
+        "passed": 11,
+        "failed": 0
+      },
+      "postgres18.4": {
+        "passed": 11,
+        "failed": 0
+      },
+      "allExistingDatabaseSuitesRun": false
+    },
+    "static": {
+      "fail": 0,
+      "warn": 2
+    },
+    "typescript": "pass",
+    "build": "pass_with_ci_placeholder_supabase_environment",
+    "initialReleaseCommand": "failed_at_build_due_to_missing_environment_then_build_retried_successfully",
+    "dependencyVulnerabilities": 0,
+    "remoteCI": "not_run",
+    "browserSmoke": "not_run_no_ui_change"
+  },
+  "enforcement": "not_implemented_next_package"
+}

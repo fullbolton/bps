@@ -468,5 +468,13 @@
   {
     "file": "scripts/inbox-interaction.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/tenant-modules.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/tenant-modules-db.test.mjs",
+    "suite": "database"
   }
 ]
