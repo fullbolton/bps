@@ -1,3 +1,4 @@
+import { moduleAccessMessage } from '@/lib/modules/errors';
 /**
  * Task reads use the existing role/tenant RLS plus the module fence.
  * Writes use task_execute_v1: module, live role, assignment and revision checks
@@ -127,10 +128,9 @@ export async function selectTasksByAppointmentId(
 function taskWriteError(error: {code?:string;message:string}): Error {
   if(error.code==='BT405')return new Error('Firma pasif olduğu için yeni görev oluşturulamaz.');
   if(error.code==='BT409')return new TaskConflictError();
-  if(error.code==='BM001')return new Error('Bu işlem için gereken modül çalışma alanında kapalı.');
-  if(error.code==='BT403'||error.code==='42501')return new Error('Bu görev işlemi için erişiminiz yok. Çalışma alanınızı kontrol edin.');
+  const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return new Error(moduleMessage);
+  if(error.code==='BT403')return new Error('Bu görev işlemi için erişiminiz yok. Çalışma alanınızı kontrol edin.');
   if(error.code==='BT400'||error.code==='22007'||error.code==='22008'||error.code==='22P02'||error.code==='23514')return new Error('Görev bilgilerini kontrol edin. Başlık, tarih veya seçimlerden biri geçersiz.');
-  if(error.code==='55000')return new Error('Çalışma alanı ayarları doğrulanamadı. Yeniden deneyin.');
   if(error.code==='BP004')return new Error("İşlem güvenli biçimde tamamlanamadı. Sayfayı yenileyip tekrar deneyin.");
   if(error.code==='BP002')return new Error("Atanan kişi artık bu çalışma alanının üyesi değil. Geçerli bir üye seçin.");
   if(error.code==='BP003')return new Error("Atanan kişinin görev erişimi yok. Yönetici, operasyon veya İK üyesi seçin.");

@@ -220,3 +220,13 @@ Aynı izole dalda ortak modül okuma/yazma kapıları, task_execute_v1 ve uygula
 **Henüz üretimde değil.** Yayın sırası: 000900 temel + 001000 expand → yeni frontend + kimlikli smoke → 001100 direct-write cutover. İki yeni dosya tek üretim DB adımında uygulanmaz. Genel modül kapatma hâlâ açılmadı.
 
 M2b açık: görev devri/sözleşme yenileme/randevu tamamlama definer yolları, dashboard ve cron okuyucuları, ortak projeksiyonlar/FK yan etkileri; ardından diğer modüller ve ayar mutasyonu/UI.
+
+## Uygulama kaydı — 28 Eylül 2026, görev iş akışları M2b
+
+Toplu devir, sözleşme yenileme ve randevu tamamlama config kilidini profil/iş kilitlerinden önce alıyor; makbuz tekrarları da modül kontrolünden geçiyor. Devir/yenileme definer okuyucuları ve dashboard kaynakları filtrelendi. Firmasız görev devrindeki eski firma zorunluluğu düzeltildi. Görev cron'u service-only modüllü aday okuyucusu kullanıyor; damga öncesi ve gönderim öncesi doğruluyor, kapanan/doğrulanamayan modül için yeni damgaları geri alıyor. HTTP gönderimiyle SQL arasında atomiklik/geri çağırma garantisi yok.
+
+538 uygulama testi, 38 PostgreSQL 17.10 senaryosu ve 39 odaklı regresyon geçti. Detaylı sonuçlar: `qa/tenant-module-task-workflows-20260928/README.md` ve `manifest.json`.
+
+**Yerel; üretime uygulanmadı.** Genişletilmiş kontrollü sıra: 000900 + 001000 + 001200 + 001300 expand → yeni frontend ve kimlikli smoke → 001100 contract. Numaraya göre bütün bekleyen SQL'leri aynı adımda uygulamayın.
+
+Sırada: görevlerin ortak ekran/kaynak projeksiyonları ve FK CASCADE/SET NULL etkileri; diğer modüllerin erişim kapıları; açık iş/bağımlılık kontrollü ayar komutu ve Modüller UI. Üretim etkin yetki ölçümü, tarayıcı/PostgREST kabulü hâlâ açık. Kapatma seçeneği henüz kullanıcıya sunulmuyor.

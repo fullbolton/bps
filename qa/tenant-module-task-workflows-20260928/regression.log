@@ -1,0 +1,47 @@
+✔ bounded completion input is normalized; nonboolean cannot request a task (8.863458ms)
+✔ completion result must identify exact appointment and valid task/skip combination (1.294792ms)
+✔ service uses one scoped RPC with no sequential table fallback (0.738875ms)
+✔ transport failure is unverifiable, not already completed or unauthorized (3.381416ms)
+✔ scope and invalid input fail before calling RPC (4.663208ms)
+✔ status-only service cannot recreate split completion path (1.770875ms)
+✔ creation validates real calendar dates, bounded revision and required basis (50.535083ms)
+✔ unavailable or malformed snapshot never means no task (0.646125ms)
+✔ current task owner can be unassigned or unavailable without inventing a person (0.239417ms)
+✔ service uses one scoped RPC; malformed success and transport failure do not fall back (3.583084ms)
+✔ only exact known failure is definite; unknown responses keep retry command (2.675291ms)
+✔ tasks candidate pages keep filters and never expose a partial source list (21.885792ms)
+✔ documents candidate pages keep filters and never expose a partial source list (14.652333ms)
+✔ appointments candidate pages keep filters and never expose a partial source list (3.632625ms)
+✔ task module snapshots require a complete distinct boolean response and propagate transport failure (7.108041ms)
+✔ task module snapshot chunks 501 distinct tenants without truncation (1.239667ms)
+✔ document batch reaches last source/membership rows and keeps tenant contents out of the other email (138.978209ms)
+✔ late documents error produces no sends or reservation writes (2.609042ms)
+✔ late tenant_memberships error produces no sends or reservation writes (15.689542ms)
+✔ unacknowledged notification stamps are errors, never sent or counted as already sent (18.561833ms)
+✔ unverifiable task owner is not treated as unassigned or sent to the manager fallback (4.605ms)
+✔ verified task owner receives the task while a truly unassigned task goes to its tenant manager (7.7085ms)
+✔ overdue tasks change day at Istanbul midnight, not three hours later at UTC midnight (9.4195ms)
+✔ appointment reminders use tomorrow in Istanbul when UTC is still on the previous day (8.848125ms)
+✔ tenant roles override global roles for document recipients (37.375541ms)
+✔ missing membership role fails closed before any transport or stamp (5.537625ms)
+✔ disabled task tenant never produces an email or a reservation (3.93525ms)
+✔ unverifiable task module before stamping stops the email without consuming a reservation (78.41875ms)
+✔ task module disabled after reservation is rechecked and reservation is rolled back before send (10.242834ms)
+✔ unverifiable post-stamp module state releases the reservation and sends nothing (4.381416ms)
+✔ command validates bounded unique integer revisions and canonical identities (140.99275ms)
+✔ snapshot normalization removes ordering and presentation from command identity (5.166958ms)
+✔ preview rejects silent omissions, duplicate rows, unsafe counts and wrong source (0.7565ms)
+✔ directory allows unnamed departed source, never absent arrays or duplicate targets (1.092708ms)
+✔ result must match exact command scope and moved count (25.675208ms)
+✔ service writes one RPC and has no iterative task fallback (24.9415ms)
+✔ invalid command fails before write and malformed successful response is uncertain (5.131417ms)
+✔ transport error cannot be mislabeled as nonmember or conflict (3.2655ms)
+✔ module rejection is definite but a transport error remains uncertain (10.353459ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7444.174375

@@ -6,9 +6,7 @@ const identity = (row: { id: string }) => typeof row.id === 'string' && row.id ?
 
 export function readTaskNotificationCandidates(client: Client) {
   return readNotificationPages(
-    (from, to) => client.from('tasks')
-      .select('id, title, status, due_date, assigned_to_user_id, tenant_id, company_id', { count: 'exact' })
-      .in('status', ['acik', 'devam_ediyor', 'gecikti']).order('id').range(from, to), identity,
+    (from, to) => client.rpc('task_notification_candidates_v1', {}, { count: 'exact' }).order('id').range(from, to), identity,
   );
 }
 export function readDocumentNotificationCandidates(client: Client, upper: string) {

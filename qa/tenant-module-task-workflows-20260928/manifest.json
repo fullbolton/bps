@@ -1,0 +1,58 @@
+{
+  "status": "local_verified_not_published",
+  "baseCommit": "8b9ed68bd49e3e1a2b68609b2f17ea9cfe3fd93c",
+  "stage": "M2b_task_workflows",
+  "migrations": [
+    {
+      "path": "supabase/migrations/20260928001200_task_module_workflows.sql",
+      "sha256": "2344f991ed42a82eb557a8a0dd0cf7dd4f786896ff8aef59609c9478bf9240cb"
+    },
+    {
+      "path": "supabase/migrations/20260928001300_task_module_notifications.sql",
+      "sha256": "a044ff634c7f1ce45a7fd8c710232662583b5962a5c0059fbfbacc71c5745f66"
+    }
+  ],
+  "productionApplied": false,
+  "moduleDisableAvailable": false,
+  "rollout": [
+    "000900 + 001000 + 001200 + 001300 expand only",
+    "frontend deployment + authenticated smoke",
+    "001100 contract + direct-DML denial probes"
+  ],
+  "checks": {
+    "application": {
+      "passed": 538,
+      "failed": 0,
+      "pendingFeatureFilesExcluded": 7
+    },
+    "database": {
+      "engine": "PostgreSQL 17.10",
+      "passed": 38,
+      "failed": 0,
+      "foundation": 11,
+      "taskGatewayAndWorkflows": 27
+    },
+    "focusedRegression": {
+      "passed": 39,
+      "failed": 0
+    },
+    "typecheck": "pass",
+    "build": "pass",
+    "static": {
+      "fail": 0,
+      "warn": 2
+    },
+    "browserSmoke": "not_run",
+    "remoteCI": "not_run",
+    "productionCatalog": "not_measured",
+    "legacyDockerSuites": "not_run"
+  },
+  "remaining": [
+    "shared UI/source projections",
+    "FK side effects and history preservation",
+    "other module gates and cron",
+    "production effective permissions audit",
+    "module settings mutation, blockers and UI"
+  ],
+  "emailLimit": "Final SQL precheck is not atomic with external HTTP transport; sent or in-flight email cannot be recalled."
+}

@@ -19,13 +19,13 @@ const body=sql=>sql.replace(/^BEGIN;\s*$/m,'').replace(/COMMIT;\s*$/,'');
 const setup=`
 CREATE TABLE profiles(id uuid PRIMARY KEY,display_name text,role text);
 CREATE TABLE companies(id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES tenants(id),name text,status text);
-CREATE TABLE contracts(id uuid PRIMARY KEY,company_id uuid NOT NULL REFERENCES companies(id),tenant_id uuid NOT NULL REFERENCES tenants(id));
-CREATE TABLE appointments(id uuid PRIMARY KEY,company_id uuid NOT NULL REFERENCES companies(id),tenant_id uuid NOT NULL REFERENCES tenants(id));
+CREATE TABLE contracts(name text DEFAULT 'Synthetic contract',renewal_target_date date,end_date date, id uuid PRIMARY KEY,company_id uuid NOT NULL REFERENCES companies(id),tenant_id uuid NOT NULL REFERENCES tenants(id));
+CREATE TABLE appointments(status text DEFAULT 'planlandi',result text,next_action text,updated_at timestamptz DEFAULT now(), id uuid PRIMARY KEY,company_id uuid NOT NULL REFERENCES companies(id),tenant_id uuid NOT NULL REFERENCES tenants(id));
 INSERT INTO profiles VALUES('${id(11)}','Manager','yonetici'),('${id(12)}','Other tenant','operasyon');
 ${roles.slice(1).map((r,i)=>`INSERT INTO profiles VALUES('${id(21+i)}','Member ${i}','${r}');INSERT INTO tenant_memberships VALUES('${id(1)}','${id(21+i)}','${r}','${id(121+i)}');`).join('\n')}
 INSERT INTO companies VALUES('${id(101)}','${id(1)}','Synthetic customer','aktif'),('${id(102)}','${id(2)}','Foreign customer','aktif');
-INSERT INTO contracts VALUES('${id(201)}','${id(101)}','${id(1)}'),('${id(202)}','${id(102)}','${id(2)}');
-INSERT INTO appointments VALUES('${id(301)}','${id(101)}','${id(1)}');
+INSERT INTO contracts(id,company_id,tenant_id) VALUES('${id(201)}','${id(101)}','${id(1)}'),('${id(202)}','${id(102)}','${id(2)}');
+INSERT INTO appointments(id,company_id,tenant_id) VALUES('${id(301)}','${id(101)}','${id(1)}');
 `;
 async function claims(c,actor=11,tenant=1){await c.query("SELECT set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(actor),active_tenant_id:id(tenant)})]);}
 async function asUser(c,actor=11,tenant=1){await claims(c,actor,tenant);await c.query('SET ROLE authenticated');}
@@ -48,10 +48,35 @@ before(async()=>{
  `+body(sqlFile('20260909001300_task_assignment_history.sql'))+body(sqlFile('20260915001000_independent_tasks.sql'))+taskGuard+`
  CREATE TRIGGER tasks_guard_active_assignee BEFORE INSERT OR UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION tasks_guard_active_assignee();
  `);
+
+ await db.query(sqlFile('20260909001400_appointment_completion.sql'));
+ await db.query(sqlFile('20260909001500_task_transfer.sql'));
+ await db.query(sqlFile('20260909001700_contract_renewal_task.sql'));
+ // Apply the exact three task-workflow role replacements from the workspace cutover.
+ const rolePatch=sqlFile('20260926000100_multi_workspace_cutover.sql');
+ const matches=[...rolePatch.matchAll(/\('([^']+)',\$old\$([\s\S]*?)\$old\$,\$new\$([\s\S]*?)\$new\$,1\)/g)]
+  .filter(m=>/^public\.(task_transfer_directory|transfer_tasks_scoped|create_contract_renewal_task)\(/.test(m[1]));
+ assert.equal(matches.length,3);
+ for(const [,signature,oldText,newText] of matches){
+  const definition=(await db.query('SELECT pg_get_functiondef($1::regprocedure) def',[signature])).rows[0].def;
+  assert.equal(definition.split(oldText).length,2);await db.query(definition.replace(oldText,newText));
+ }
+ await db.query(`
+ CREATE TABLE ops_events(id uuid,tenant_id uuid,entity_id uuid,created_at timestamptz,kind text);
+ CREATE TABLE ops_locations(id uuid,tenant_id uuid,name text);
+ CREATE TABLE ops_workers(id uuid,tenant_id uuid,name text);
+ CREATE TABLE ops_daily_requests(id uuid,tenant_id uuid,position text,work_date date);
+ CREATE TABLE ops_assignments(id uuid,tenant_id uuid,worker_id uuid,work_date date);
+ CREATE TABLE contract_document_versions(id uuid,tenant_id uuid,contract_id uuid,company_id uuid,recorded_at timestamptz,name text,origin text);
+ CREATE TABLE documents(id uuid,tenant_id uuid,company_id uuid,contract_id uuid,storage_path text,name text);
+ `);
+ await db.query(sqlFile('20260913000100_company_document_activity.sql'));
  await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
  await db.query(sqlFile('20260928001000_task_module_gateway.sql'));
  assert.equal((await db.query("SELECT has_table_privilege('authenticated','tasks','INSERT,UPDATE') allowed")).rows[0].allowed,true);
  await db.query(sqlFile('20260928001100_task_module_direct_write_cutover.sql'));
+ await db.query(sqlFile('20260928001200_task_module_workflows.sql'));
+ await db.query(sqlFile('20260928001300_task_module_notifications.sql'));
  console.log('Task gateway synthetic PostgreSQL:',(await db.query('SHOW server_version')).rows[0].server_version);
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${name} WITH (FORCE)`);await admin.end();}});
@@ -158,4 +183,121 @@ test('inherited write privilege drift aborts contract migration instead of leavi
  const group='bps_task_legacy_'+process.pid;
  await db.query(`CREATE ROLE ${group};GRANT UPDATE ON tasks TO ${group};GRANT ${group} TO authenticated`);
  await assert.rejects(db.query(body(sqlFile('20260928001100_task_module_direct_write_cutover.sql'))),e=>e.message.includes('TASK_DIRECT_WRITE_GRANT_REMAINS'));
+}));
+
+const transfer=(c,task,command=id(500))=>c.query('SELECT transfer_tasks_scoped($1,$2,$3,$1,$4,$5) result',[id(11),id(1),command,id(21),JSON.stringify([{id:task.id,revision:Number(task.revision)}])]);
+const renewal=c=>c.query("SELECT create_contract_renewal_task($1,$2,$3,$4,0,$5,'2026-10-01','Synthetic basis') result",[id(11),id(1),id(201),id(501),id(21)]);
+const appointment=(c,createTask=true)=>c.query("SELECT complete_appointment_scoped($1,$2,$3,'Synthetic result','Follow up',$4) result",[id(11),id(1),id(301),createTask]);
+
+test('task transfer supports independent tasks, live membership roles and idempotent replay',()=>rollback(async()=>{
+ await db.query("UPDATE profiles SET role='goruntuleyici' WHERE id=$1",[id(21)]);
+ await asUser(db);const row=await create(db,{assigned_to_user_id:id(11)});
+ const first=await transfer(db,row);assert.equal(first.rows[0].result.moved,1);
+ assert.deepEqual((await transfer(db,row)).rows,first.rows);
+ assert.equal((await db.query('SELECT assigned_to_user_id FROM tasks WHERE id=$1',[row.id])).rows[0].assigned_to_user_id,id(21));
+}));
+
+test('disabled task module rejects all three workflow mutations including receipt replays',async()=>{
+ for(const action of ['transfer','renewal','appointment']) await rollback(async()=>{
+  await asUser(db);const row=await create(db,{assigned_to_user_id:id(11)});
+  const run=()=>action==='transfer'?transfer(db,row):action==='renewal'?renewal(db):appointment(db);
+  await run();await db.query('RESET ROLE');await disabled(db);await asUser(db);
+  await assert.rejects(run(),e=>e.code==='BM001');
+ });
+});
+
+test('calendar completion without a follow-up works with tasks off, but calendar off rejects it',async()=>{
+ await rollback(async()=>{await disabled(db);await asUser(db);assert.equal((await appointment(db,false)).rows[0].result.taskId,null);});
+ await rollback(async()=>{await disabled(db,'calendar');await asUser(db);await assert.rejects(appointment(db,false),e=>e.code==='BM001');});
+ await rollback(async()=>{await disabled(db,'contracts');await asUser(db);await assert.rejects(renewal(db),e=>e.code==='BM001');});
+});
+
+test('failed appointment task request does not complete the appointment or leave a receipt',async()=>{
+ await rollback(async()=>{
+  await disabled(db);await asUser(db);await db.query('SAVEPOINT failed_command');
+  await assert.rejects(appointment(db),e=>e.code==='BM001');await db.query('ROLLBACK TO failed_command');await db.query('RESET ROLE');
+  assert.equal((await db.query('SELECT status FROM appointments WHERE id=$1',[id(301)])).rows[0].status,'planlandi');
+  assert.equal((await db.query('SELECT count(*)::int n FROM appointment_completion_receipts')).rows[0].n,0);
+ });
+});
+
+test('definer reads obey module gates and hide company projection when only tasks remain enabled',async()=>{
+ await rollback(async()=>{
+  await asUser(db);await create(db,{company_id:id(101),assigned_to_user_id:id(11)});await renewal(db);
+  assert.ok((await db.query('SELECT contract_renewal_snapshot($1,$2,$3) value',[id(11),id(1),id(201)])).rows[0].value.task);
+  await db.query('RESET ROLE');await disabled(db);await asUser(db);
+  assert.equal((await db.query('SELECT contract_renewal_snapshot($1,$2,$3) value',[id(11),id(1),id(201)])).rows[0].value,null);
+  for(const query of ['SELECT task_transfer_directory($1,$2)','SELECT preview_task_transfer($1,$2,$1)']){
+   await db.query('SAVEPOINT denied_read');await assert.rejects(db.query(query,[id(11),id(1)]),e=>e.code==='BM001');await db.query('ROLLBACK TO denied_read');
+  }
+ });
+ await rollback(async()=>{
+  await asUser(db);await create(db,{company_id:id(101),assigned_to_user_id:id(11)});await db.query('RESET ROLE');
+  await db.query("UPDATE tenant_module_settings SET enabled=false WHERE tenant_id=$1 AND module_key<>'tasks'",[id(1)]);await asUser(db);
+  const preview=(await db.query('SELECT preview_task_transfer($1,$2,$1) value',[id(11),id(1)])).rows[0].value;
+  assert.ok(preview.tasks.length>0);assert.ok(preview.tasks.every(t=>t.companyName===null));
+ });
+});
+
+test('dashboard activity excludes each disabled source without suppressing enabled task activity',()=>rollback(async()=>{
+ await asUser(db);await create(db,{assigned_to_user_id:id(11)});await db.query('RESET ROLE');
+ await db.query(`INSERT INTO ops_events VALUES('${id(701)}','${id(1)}','${id(701)}',now(),'worker');
+ INSERT INTO ops_workers VALUES('${id(701)}','${id(1)}','Synthetic worker');
+ INSERT INTO contract_document_versions VALUES('${id(702)}','${id(1)}','${id(201)}','${id(101)}',now(),'Synthetic contract file','upload');
+ INSERT INTO documents VALUES('${id(703)}','${id(1)}','${id(101)}',NULL,'synthetic/file','Synthetic document');`);
+ await asUser(db);
+ const events=async()=>(await db.query('SELECT dashboard_activity($1,$2) value',[id(11),id(1)])).rows[0].value;
+ for(const prefix of ['ops:','task:','pdf:','document:'])assert.ok((await events()).some(e=>e.id.startsWith(prefix)),prefix);
+ await db.query('RESET ROLE');for(const mod of ['staffing','contracts','documents'])await disabled(db,mod);await asUser(db);
+ assert.ok((await events()).every(e=>e.id.startsWith('task:')));
+ await db.query('RESET ROLE');await disabled(db);await asUser(db);assert.deepEqual(await events(),[]);
+}));
+
+test('config barrier is first for every workflow and waiting commands see the newly disabled module',async()=>{
+ for(const action of ['transfer','renewal','appointment']){
+  const a=client(),b=client();await Promise.all([a.connect(),b.connect()]);
+  try{
+   await asUser(b);const row=await create(b,{assigned_to_user_id:id(11)});
+   await a.query('BEGIN');await a.query('SELECT 1 FROM tenant_module_config WHERE tenant_id=$1 FOR UPDATE',[id(1)]);
+   const pid=(await b.query('SELECT pg_backend_pid() pid')).rows[0].pid;
+   const pending=(action==='transfer'?transfer(b,row,id(600)):action==='renewal'?renewal(b):appointment(b)).then(()=>({ok:true}),e=>({code:e.code}));
+   try{
+    await waiting(a,pid);
+    // NOWAIT proves the blocked workflow has not already acquired its profile SHARE lock.
+    await a.query('SELECT 1 FROM profiles WHERE id=$1 FOR UPDATE NOWAIT',[id(11)]);
+    await disabled(a);await a.query('COMMIT');assert.deepEqual(await pending,{code:'BM001'});
+   }finally{await a.query('ROLLBACK');await pending;}
+  }finally{await a.query("UPDATE tenant_module_settings SET enabled=true WHERE tenant_id=$1 AND module_key='tasks'",[id(1)]);await Promise.all([a.end(),b.end()]);}
+ }
+});
+
+test('workflow role and cross-tenant restrictions remain intact',async()=>{
+ for(const run of [c=>c.query('SELECT task_transfer_directory($1,$2)',[id(21),id(1)]),c=>c.query("SELECT create_contract_renewal_task($1,$2,$3,$4,0,$1,'2026-10-01','basis')",[id(21),id(1),id(201),id(502)])]){
+  await rollback(async()=>{await asUser(db,21);await assert.rejects(run(db),e=>e.message.includes('FORBIDDEN'));});
+ }
+ await rollback(async()=>{await asUser(db,12,2);await assert.rejects(appointment(db),e=>e.message==='APPT_SCOPE_CHANGED');});
+ await rollback(async()=>{await db.query("UPDATE profiles SET role='goruntuleyici' WHERE id=$1",[id(21)]);await asUser(db);assert.ok((await renewal(db)).rows[0].result.taskId);});
+});
+
+test('service-only task notification RPC filters disabled tenants and refuses incomplete config',async()=>{
+ await rollback(async()=>{
+  await asUser(db);const row=await create(db);await db.query('RESET ROLE');await db.query('SET ROLE service_role');
+  assert.ok((await db.query('SELECT * FROM task_notification_candidates_v1()')).rows.some(t=>t.id===row.id));
+  assert.deepEqual((await db.query('SELECT * FROM task_notification_modules_v1($1)',[[id(1),id(1)]])).rows,[{tenant_id:id(1),enabled:true}]);
+  await db.query('RESET ROLE');await disabled(db);await db.query('SET ROLE service_role');
+  assert.ok((await db.query('SELECT * FROM task_notification_candidates_v1()')).rows.every(t=>t.tenant_id!==id(1)));
+  assert.equal((await db.query('SELECT * FROM task_notification_modules_v1($1)',[[id(1)]])).rows[0].enabled,false);
+ });
+ await rollback(async()=>{await db.query('DELETE FROM tenant_module_settings WHERE tenant_id=$1 AND module_key=$2',[id(1),'tasks']);await db.query('SET ROLE service_role');await assert.rejects(db.query('SELECT * FROM task_notification_candidates_v1()'),e=>e.code==='55000');});
+ for(const role of ['anon','authenticated'])await rollback(async()=>{await db.query('SET ROLE '+role);await assert.rejects(db.query('SELECT * FROM task_notification_candidates_v1()'),e=>e.code==='42501');});
+ await rollback(async()=>{await db.query('SET ROLE service_role');await assert.rejects(db.query('SELECT workspace_module_snapshot_v1($1)',[id(1)]),e=>e.code==='42501');});
+});
+
+test('shared configuration validator preserves scope, completeness and dependency failures',async()=>{
+ await rollback(async()=>{await asUser(db,12,2);assert.equal((await db.query('SELECT current_workspace_modules_v1() value')).rows[0].value.tenantId,id(2));});
+ await rollback(async()=>{await disabled(db,'customers');await asUser(db);await assert.rejects(db.query('SELECT current_workspace_modules_v1()'),e=>e.code==='55000');});
+});
+
+test('workflow patch aborts on unexpected function definition rather than silently skipping a guard',()=>rollback(async()=>{
+ await assert.rejects(db.query(body(sqlFile('20260928001200_task_module_workflows.sql'))),e=>e.message.includes('MODULE_WORKFLOW_DRIFT'));
 }));

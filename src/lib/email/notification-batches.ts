@@ -1,3 +1,4 @@
+import { enabledTaskTenants } from './task-module-access';
 import {readTenantRoleDirectory,tenantCompanyRecipients,sameRecipientMembership,type TenantRoleDirectory} from './tenant-role-recipients';
 /**
  * BPS — üç yeni e-posta bildirim tipinin toplayıcısı ve göndericisi.
@@ -399,15 +400,26 @@ async function sendGrouped(
     //    Tek yerde uygulanıyor çünkü üç toplayıcının üçü de aynı sızıntıyı
     //    üretebilir: `profiles`'ta tenant_id olmadığı için rol/owner/firma
     //    yollarının hiçbiri kendiliğinden tenant'a daralmıyor.
-    const scopedItems = items.filter((i) => scope.isMember(i.tenantId, recipient.id));
+    let scopedItems = items.filter((i) => scope.isMember(i.tenantId, recipient.id));
     const droppedByTenant = items.length - scopedItems.length;
     if (droppedByTenant > 0) {
       result.itemsDroppedCrossTenant += droppedByTenant;
     }
     if (scopedItems.length === 0) continue;
+    if (kind === 'task_overdue') {
+      try {
+        const enabled = await enabledTaskTenants(client, scopedItems.map(i => i.tenantId));
+        scopedItems = scopedItems.filter(i => enabled.has(i.tenantId));
+      } catch {
+        result.errors.push('task modules unavailable before stamp; no email sent');
+        continue;
+      }
+      if (scopedItems.length === 0) continue;
+    }
+
 
     // 1. Kalem kalem damgala. Zaten damgalı olanlar bu mailin dışında kalır.
-    const stamped: Item[] = [];
+    let stamped: Item[] = [];
     for (const item of scopedItems) {
       const key = {
         kind,
@@ -429,6 +441,22 @@ async function sendGrouped(
     }
 
     if (stamped.length === 0) continue;
+
+    // Recheck after reservations, immediately before building/sending the email.
+    // HTTP transport is outside the SQL transaction; an in-flight send is not recallable.
+    if (kind === 'task_overdue') {
+      let enabled = new Set<string>();
+      try { enabled = await enabledTaskTenants(client, stamped.map(i => i.tenantId)); }
+      catch { result.errors.push('task modules unavailable before send; no email sent'); }
+      const removed = stamped.filter(i => !enabled.has(i.tenantId));
+      for (const item of removed) {
+        const rollback = await rollbackStamp(client, { kind, entityId: item.entityId,
+          recipientProfileId: recipient.id, thresholdKey, tenantId: item.tenantId });
+        if (!rollback.ok) result.errors.push(`ROLLBACK FAILED (task module/${item.entityId}/${recipient.id}): ${rollback.error ?? 'unknown'}`);
+      }
+      stamped = stamped.filter(i => enabled.has(i.tenantId));
+      if (stamped.length === 0) continue;
+    }
 
     // 2. Tek mail — bu koşuda yeni damgalanan kalemler.
     stamped.sort((a, b) => a.sortKey.localeCompare(b.sortKey));

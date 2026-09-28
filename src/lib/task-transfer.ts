@@ -1,3 +1,4 @@
+import { moduleAccessMessage } from '@/lib/modules/errors';
 /** Strict boundary for the bounded transfer command and its measured preview. */
 export interface TransferTask { id: string; revision: number; title: string; companyName: string | null }
 export interface TransferPreview { sourceId: string; total: number; tasks: TransferTask[] }
@@ -52,6 +53,7 @@ export function parseTransferResult(value:unknown,command:TransferCommand):Trans
   return {commandId:command.commandId,sourceId:command.sourceId,targetId:command.targetId,moved:command.tasks.length};
 }
 export function transferFailure(error:unknown):{error:string;uncertain:boolean} {
+  const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return {error:moduleMessage,uncertain:false};
   const message=error instanceof Error?error.message:typeof error==='object'&&error!==null&&'message' in error?String(error.message):'';
   const known:Record<string,string>={TRANSFER_SCOPE:'Hesap veya çalışma alanı değişti. Sayfayı yenileyin.',TRANSFER_FORBIDDEN:'Görev devri için yönetici yetkisi gerekiyor.',TRANSFER_TARGET_ROLE:'Hedef kişinin görev erişimi yok. Başka bir üye seçin.',TRANSFER_TARGET:'Hedef kişi artık bu çalışma alanının üyesi değil.',TRANSFER_VALIDATION:'Devir bilgileri geçersiz. Önizlemeyi yenileyin.',TRANSFER_COMMAND:'Bu işlem kimliği farklı bir devir için kullanılmış. Önizlemeyi yenileyin.',TRANSFER_CONFLICT:'Görevlerden biri değişti. Hiçbiri devredilmedi; önizlemeyi yenileyin.'};
   for(const [code,text] of Object.entries(known))if(message===code)return {error:text,uncertain:false};

@@ -1,3 +1,4 @@
+import { moduleAccessMessage } from '@/lib/modules/errors';
 import {transferId} from '@/lib/task-transfer';
 export interface RenewalCommand {commandId:string;contractId:string;revision:number;assigneeId:string;dueDate:string;basis:string}
 export interface RenewalSnapshot {
@@ -29,6 +30,7 @@ export function parseRenewalResult(input:unknown,command:RenewalCommand){const r
   return {commandId:command.commandId,contractId:command.contractId,taskId:transferId(r.taskId)};
 }
 export function renewalFailure(error:unknown):{error:string;uncertain:boolean}{
+  const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return {error:moduleMessage,uncertain:false};
   const message=error instanceof Error?error.message:typeof error==='object'&&error!==null&&'message'in error?String(error.message):'';
   const messages:Record<string,string>={RENEWAL_SCOPE:'Hesap veya çalışma alanı değişti. Sayfayı yenileyin.',RENEWAL_FORBIDDEN:'Yenileme görevi için yönetici yetkisi gerekiyor.',RENEWAL_VALIDATION:'Görev bilgilerini kontrol edin.',RENEWAL_CONFLICT:'Sözleşme değişti. Güncel bilgileri yükleyip yeniden değerlendirin.',RENEWAL_EXISTS:'Bu sözleşmenin yenileme görevi zaten var. Güncel kaydı yükleyin.',RENEWAL_PASSIVE:'Pasif firma için yeni yenileme görevi oluşturulamaz.',RENEWAL_TARGET:'Sorumlunun aktif üyeliği veya görev erişimi yok.',RENEWAL_ISOLATION:'İşlem ortamı doğrulanamadı. Yeniden deneyin.'};
   return messages[message]?{error:messages[message],uncertain:false}:{error:'İşlemin sonucu doğrulanamadı. Aynı işlemi tekrar deneyin; ikinci görev oluşturulmaz.',uncertain:true};

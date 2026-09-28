@@ -47,3 +47,10 @@ test('transport error cannot be mislabeled as nonmember or conflict',()=>{
   assert.match(boundary.transferFailure({message:'TRANSFER_TARGET'}).error,/üyesi değil/);
   assert.match(boundary.transferFailure({message:'TRANSFER_TARGET_ROLE'}).error,/görev erişimi yok/);
 });
+
+test('module rejection is definite but a transport error remains uncertain',async()=>{
+ const {transferFailure}=await importActualTypeScript(new URL('../src/lib/task-transfer.ts',import.meta.url));
+ assert.deepEqual(transferFailure({code:'BM001',message:'MODULE_DISABLED'}),{error:'Bu işlem için gereken modül çalışma alanında kapalı.',uncertain:false});
+ assert.equal(transferFailure({code:'55000',message:'MODULE_CONFIG_MISSING'}).uncertain,false);
+ assert.equal(transferFailure(new Error('network')).uncertain,true);
+});

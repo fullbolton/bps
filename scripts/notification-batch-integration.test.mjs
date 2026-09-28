@@ -16,20 +16,24 @@ for(const [,spec] of compiled.matchAll(/require\("([^"]+)"\)/g)){
  modules.set(spec,await importActualTypeScript(url));
 }
 function batch(sent,multi=false){const exports={};vm.runInNewContext(compiled,{exports,require:spec=>spec.endsWith('/resend-transport')?{sendEmail:async input=>{sent.push(input);return {ok:true,id:'synthetic'};}}:modules.get(spec),Date,Map,Set,process:{env:{NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:String(multi)}}});return exports.runNotificationBatch;}
-function fixture({failTable=null,missingStamp=false,tasks=[],appointments=[],companies=[],failOwners=false}={}){
+function fixture({failTable=null,missingStamp=false,tasks=[],appointments=[],companies=[],failOwners=false,moduleStates={A:true,B:true},moduleFailure=false,afterStamp=null}={}){
  const documents=Array.from({length:601},(_,i)=>({id:'d'+String(i).padStart(4,'0'),name:'A-DOC-'+i,validity_date:'2026-09-20',tenant_id:'A'}));
  documents.push({id:'z-document',name:'B-PRIVATE-DOC',validity_date:'2026-09-20',tenant_id:'B'});
  const profiles=[{id:'z-alice',email:'alice@example.invalid',display_name:'Alice',role:'yonetici'},{id:'z-bob',email:'bob@example.invalid',display_name:'Bob',role:'ik'}];
  const memberships=Array.from({length:601},(_,i)=>({tenant_id:'A',user_id:'dummy'+String(i).padStart(4,'0')}));
  memberships.push({tenant_id:'A',user_id:'z-alice'},{tenant_id:'B',user_id:'z-bob'});
  const tables={documents,profiles,tasks,appointments,companies,tenant_memberships:memberships},stamps=[],ranges=[];
- const client={from(table){let filters=[],orders=[],payload;
+ const client={rpc(name,args,opts){
+  if(name==='task_notification_candidates_v1')return this.from('tasks').select('id',opts).in('status',['acik','devam_ediyor','gecikti']).in('tenant_id',Object.keys(moduleStates).filter(k=>moduleStates[k]===true));
+  assert.equal(name,'task_notification_modules_v1');
+  return Promise.resolve(moduleFailure?{data:null,error:{code:'55000'}}:{data:args.p_tenant_ids.map(tenant_id=>({tenant_id,enabled:moduleStates[tenant_id]})),error:null});
+ },from(table){let filters=[],orders=[],payload;
   const q={select(_fields,opts){if(table!=='notification_log')assert.equal(opts.count,'exact');return q;},eq(k,value){filters.push(r=>r[k]===value);return q;},in(k,values){filters.push(r=>values.includes(r[k]));return q;},not(k,_op,v){filters.push(r=>r[k]!==v);return q;},lte(k,v){filters.push(r=>r[k]<=v);return q;},order(k){orders.push(k);return q;},range:async(from,to)=>{
    ranges.push([table,from]);assert.equal(to-from,499);
    if(table===failTable&&from>0)return {data:null,count:null,error:{code:'42501'}};
    const all=tables[table].filter(r=>filters.every(f=>f(r))).sort((a,b)=>{for(const k of orders){const n=a[k].localeCompare(b[k]);if(n)return n;}return 0;});
    return {data:all.slice(from,from+200),count:all.length,error:null};
-  },then(resolve,reject){const data=tables[table].filter(r=>filters.every(f=>f(r)));return Promise.resolve(failOwners?{data:null,count:null,error:{code:'42501'}}:{data,count:data.length,error:null}).then(resolve,reject);},insert(value){assert.equal(table,'notification_log');payload=value;return q;},maybeSingle:async()=>{stamps.push(payload);return {data:missingStamp?null:{kind:payload.kind},error:null};}};
+  },delete(){payload='delete';return q;},then(resolve,reject){if(table==='notification_log'&&payload==='delete')return Promise.resolve({data:null,error:null}).then(resolve,reject);const data=tables[table].filter(r=>filters.every(f=>f(r)));return Promise.resolve(failOwners?{data:null,count:null,error:{code:'42501'}}:{data,count:data.length,error:null}).then(resolve,reject);},insert(value){assert.equal(table,'notification_log');payload=value;return q;},maybeSingle:async()=>{stamps.push(payload);afterStamp?.(moduleStates);return {data:missingStamp?null:{kind:payload.kind},error:null};}};
   return q;
  }};
  return {client,stamps,ranges,tables};
@@ -93,4 +97,30 @@ test('missing membership role fails closed before any transport or stamp',async(
  const sent=[],f=fixture();
  const result=await batch(sent,true)(f.client,'document_expiry',new Date('2026-09-15T09:00:00Z'),config);
  assert.ok(result.errors.length);assert.equal(sent.length,0);assert.equal(f.stamps.length,0);
+});
+
+const moduleTask={id:'module-task',title:'MODULE-TASK',status:'gecikti',due_date:null,assigned_to_user_id:'z-alice',tenant_id:'A',company_id:null};
+test('disabled task tenant never produces an email or a reservation',async()=>{
+ const sent=[],f=fixture({tasks:[moduleTask],moduleStates:{A:false,B:true}});
+ const result=await batch(sent)(f.client,'task_overdue',new Date('2026-09-15T09:00:00Z'),config);
+ assert.equal(result.errors.length,0);assert.equal(result.itemsFound,0);assert.equal(sent.length,0);assert.equal(f.stamps.length,0);
+});
+test('unverifiable task module before stamping stops the email without consuming a reservation',async()=>{
+ const sent=[],f=fixture({tasks:[moduleTask],moduleFailure:true});
+ const result=await batch(sent)(f.client,'task_overdue',new Date('2026-09-15T09:00:00Z'),config);
+ assert.ok(result.errors.some(e=>e.includes('modules unavailable')));assert.equal(sent.length,0);assert.equal(f.stamps.length,0);
+});
+test('task module disabled after reservation is rechecked and reservation is rolled back before send',async()=>{
+ const sent=[],f=fixture({tasks:[moduleTask],afterStamp:states=>{states.A=false;}}),deletes=[];
+ const original=f.client.from.bind(f.client);
+ f.client.from=table=>{const q=original(table),remove=q.delete;q.delete=()=>{deletes.push(table);return remove();};return q;};
+ const result=await batch(sent)(f.client,'task_overdue',new Date('2026-09-15T09:00:00Z'),config);
+ assert.equal(result.errors.length,0);assert.equal(sent.length,0);assert.equal(f.stamps.length,1);assert.deepEqual(deletes,['notification_log']);
+});
+test('unverifiable post-stamp module state releases the reservation and sends nothing',async()=>{
+ const sent=[],f=fixture({tasks:[moduleTask],afterStamp:states=>{delete states.A;}}),deletes=[];
+ const original=f.client.from.bind(f.client);
+ f.client.from=table=>{const q=original(table),remove=q.delete;q.delete=()=>{deletes.push(table);return remove();};return q;};
+ const result=await batch(sent)(f.client,'task_overdue',new Date('2026-09-15T09:00:00Z'),config);
+ assert.ok(result.errors.some(e=>e.includes('before send')));assert.equal(sent.length,0);assert.deepEqual(deletes,['notification_log']);
 });

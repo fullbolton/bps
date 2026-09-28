@@ -1,3 +1,4 @@
+import { moduleAccessMessage } from '@/lib/modules/errors';
 import { isUuid } from "@/lib/operations/pilot-validation";
 export type CompletionInput = {result:string;nextAction:string;createTask?:boolean};
 export type CompletionResult = {appointmentId:string;taskId:string|null;taskSkippedReason:string|null};
@@ -19,6 +20,7 @@ export function parseCompletion(value:unknown,appointmentId:string,createTask:bo
   return p as CompletionResult;
 }
 export function completionError(error:unknown):Error {
+  const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return new Error(moduleMessage);
   const raw=error&&typeof error==="object"&&"message" in error?String(error.message):"";
   const messages:Record<string,string>={APPT_SCOPE_CHANGED:"Hesap veya çalışma alanı değişti. Sayfayı yenileyin.",APPT_FORBIDDEN:"Bu randevuyu tamamlama yetkiniz yok.",APPT_NOT_FOUND:"Randevu bulunamadı veya erişim yetkiniz yok.",APPT_VALIDATION:"Randevu sonucu veya sonraki adım geçersiz.",APPT_ALREADY_COMPLETED:"Randevu daha önce tamamlanmış veya farklı içerikle kaydedilmiş. Güncel listeyi yükleyin.",APPT_STATE_CHANGED:"Randevu tamamlandıktan sonra değiştirilmiş. Güncel kaydı inceleyin."};
   for(const [key,message] of Object.entries(messages))if(raw.includes(key))return new Error(message);
