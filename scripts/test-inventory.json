@@ -460,5 +460,9 @@
   {
     "file": "scripts/operational-text-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/dashboard-cards.test.mjs",
+    "suite": "application"
   }
 ]

@@ -29,18 +29,12 @@ import {
   ModalShell,
 } from "@/components/ui";
 import AsyncSection from "@/components/ui/AsyncSection";
-import {
-  listAllContracts,
-  computeRemainingDays,
-} from "@/lib/services/contracts";
-import { listAllDocuments } from "@/lib/services/documents";
-import type { ContractRow, DocumentRow } from "@/types/database.types";
+import {selectDashboardContracts, selectDashboardDocuments, selectDashboardDeadlines, selectDashboardCompanyNames, dashboardRemainingDays, type DashboardContract, type DashboardDocument, type DashboardDeadline} from '@/lib/supabase/dashboard-cards';
 import type { ExpiringContract } from "@/components/ui/ContractExpiryCard";
 import type { EvrakDurumu } from "@/types/ui";
 import { clsx } from "clsx";
 import { formatDateTR } from "@/lib/format-date";
 import { useRole } from "@/context/RoleContext";
-import { listAllCriticalDates } from "@/lib/services/critical-dates";
 import {
   listRecentAnnouncements,
   ANNOUNCEMENT_MAX_LENGTH,
@@ -51,10 +45,8 @@ import {
 } from "./actions";
 import {
   CRITICAL_DATE_TYPE_LABELS,
-  computeRemainingDays as computeDeadlineRemaining,
-  deriveDeadlineStatus,
 } from "@/lib/critical-date-types";
-import type { CriticalDateRow, AnnouncementRow } from "@/types/database.types";
+import type { AnnouncementRow } from "@/types/database.types";
 import DailyOverview from "./DailyOverview";
 import RecentActivities from "./RecentActivities";
 import {
@@ -148,7 +140,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
   // prior mock: derived status "suresi_yaklsiyor" or "suresi_doldu",
   // capped at 4 rows (subset-view). Order follows the service's
   // deadline-ascending read so the most urgent items show first.
-  const [criticalDates, setCriticalDates] = useState<CriticalDateRow[]>([]);
+  const [criticalDates, setCriticalDates] = useState<DashboardDeadline[]>([]);
 
   // Duyurular — real `announcements` truth (Batch 10 Phase 2). Tenant-scoped
   // by RLS, newest first, capped at ANNOUNCEMENT_STRIP_LIMIT by the service.
@@ -218,10 +210,10 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
         allCriticalDateRows,
         recentAnnouncements,
       ] = await Promise.all([
-        // Shared company count and name lookup for the signal cards.
+        // Count only; names are fetched for the displayed references below.
         supabase
           .from("companies")
-          .select("id, name, legacy_mock_id", { count: "exact" }),
+          .select("id", { count: "exact", head: true }),
         supabase
           .from("contracts")
           .select("id", { count: "exact", head: true })
@@ -237,27 +229,27 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
           .from("appointments")
           .select("id", { count: "exact", head: true })
           .eq("status", "planlandi"),
-        // Yaklaşan Sözleşme Bitişleri — reuse existing service reader.
+        // Filter and cap on the server before transferring card rows.
         // Reader failures used to degrade silently to empty; now we
         // capture the failure so the JSX can show a real error state.
-        listAllContracts(supabase).catch((err) => {
-          console.error("[dashboard] listAllContracts:", err);
+        selectDashboardContracts(supabase, signalDay).catch((err) => {
+          console.error("[dashboard] contracts card:", err);
           contractsCatchError = true;
-          return [] as ContractRow[];
+          return [] as DashboardContract[];
         }),
-        // Eksik / Süresi Dolan Evraklar — reuse existing service reader.
-        listAllDocuments(supabase).catch((err) => {
-          console.error("[dashboard] listAllDocuments:", err);
+        // Calendar-derived document predicates are applied before the cap.
+        selectDashboardDocuments(supabase, signalDay).catch((err) => {
+          console.error("[dashboard] documents card:", err);
           documentsCatchError = true;
-          return [] as DocumentRow[];
+          return [] as DashboardDocument[];
         }),
-        // Kurumsal Kritik Tarihler — reuse existing service reader.
+        // Only the four earliest due/approaching dates are transferred.
         // Broad-read under RLS; reader failure surfaces as the
         // "Veri yüklenemedi" branch on the Kritik Tarihler card.
-        listAllCriticalDates(supabase).catch((err) => {
-          console.error("[dashboard] listAllCriticalDates:", err);
+        selectDashboardDeadlines(supabase, signalDay).catch((err) => {
+          console.error("[dashboard] critical dates card:", err);
           criticalDatesCatchError = true;
-          return [] as CriticalDateRow[];
+          return [] as DashboardDeadline[];
         }),
         // Duyurular — tenant-scoped under RLS, newest first. Same explicit
         // failure capture as the readers above: an unreadable strip must not
@@ -279,16 +271,14 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
       });
 
       // --- Signal-card derivations ---
-      const companyNameById = new Map<string, string>();
-      if (companiesResult.rows) {
-        for (const c of companiesResult.rows) {
-          companyNameById.set(c.id, c.name);
-        }
-      }
-
-      const companyIds = companiesResult.rows
-        ? new Set(companiesResult.rows.map(company => company.id))
-        : null;
+      let companyNameById: Map<string,string>;
+      try {
+        companyNameById = await selectDashboardCompanyNames(supabase, [
+          ...(tasksResult.rows ?? []), ...allContractRows, ...allDocumentRows,
+        ].flatMap(row => row.company_id ? [row.company_id] : []));
+      } catch { companyNameById = new Map(); }
+      if (cancelled) return;
+      const companyIds = new Set(companyNameById.keys());
       const linkedTasks = tasksResult.rows?.filter((task): task is typeof task & {company_id:string} => task.company_id !== null) ?? null;
       const tasksReady = linkedTasks !== null && (linkedTasks.length === 0 || hasCompleteCompanyReferences(linkedTasks, companyIds));
       const contractsReady = !contractsCatchError && hasCompleteCompanyReferences(allContractRows, companyIds);
@@ -296,7 +286,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
 
       // Bugünün Görevleri — mirrors the prior mock's sort exactly:
       // gecikti first, then devam_ediyor, then acik; within a status,
-      // earlier due_date first. Row cap preserved at 4.
+      // earlier due_date first; the visible task subset is capped at 8.
       const mappedTasks = !tasksReady
         ? []
         : [...(tasksResult.rows ?? [])]
@@ -327,38 +317,17 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
       // Yaklaşan Sözleşme Bitişleri — derive card rows. Only active
       // contracts with a non-past end_date qualify as "yaklaşan". Order
       // by soonest expiry; cap at the ContractExpiryCard default (5).
-      const now = new Date();
-      const mappedExpiringContracts: ExpiringContract[] = allContractRows
-        .filter((c) => c.status === "aktif" && c.end_date !== null)
-        .map((c) => ({
-          row: c,
-          kalanGun: computeRemainingDays(c.end_date, now),
-        }))
-        .filter(
-          (x): x is { row: ContractRow; kalanGun: number } =>
-            x.kalanGun !== null && x.kalanGun >= 0,
-        )
-        .sort((a, b) => a.kalanGun - b.kalanGun)
-        .slice(0, 5)
-        .map(({ row, kalanGun }) => ({
-          id: row.id,
-          sozlesmeAdi: row.name,
-          firmaAdi: companyNameById.get(row.company_id) ?? "—",
-          kalanGun,
-          durum: row.status,
-        }));
-
-      // Eksik / Süresi Dolan Evraklar — filter out complete documents.
-      // The service has already derived validity status for this read.
-      const mappedEksikEvraklar = allDocumentRows
-        .filter((d) => d.status !== "tam")
-        .slice(0, 5)
-        .map((d) => ({
-          id: d.id,
-          evrak: d.name,
-          firma: companyNameById.get(d.company_id) ?? "—",
-          durum: d.status,
-        }));
+      const mappedExpiringContracts: ExpiringContract[] = allContractRows.map(row => ({
+        id: row.id,
+        sozlesmeAdi: row.name,
+        firmaAdi: companyNameById.get(row.company_id) ?? "—",
+        kalanGun: dashboardRemainingDays(row.end_date!, signalDay),
+        durum: row.status,
+      }));
+      const mappedEksikEvraklar = allDocumentRows.map(row => ({
+        id: row.id, evrak: row.name,
+        firma: companyNameById.get(row.company_id) ?? "—", durum: row.status,
+      }));
 
       setOpenTasks(mappedTasks);
       setExpiringContracts(contractsReady ? mappedExpiringContracts : []);
@@ -649,12 +618,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
               </div>
             );
           }
-          const kritikler = criticalDates
-            .filter((r) => {
-              const s = deriveDeadlineStatus(r.deadline_date);
-              return s === "suresi_yaklsiyor" || s === "suresi_doldu";
-            })
-            .slice(0, 4);
+          const kritikler = criticalDates;
           if (kritikler.length === 0) return null;
           return (
             <div className={CARD}>
@@ -667,7 +631,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
               </div>
               <div className="space-y-0">
                 {kritikler.map((r, idx) => {
-                  const kalan = computeDeadlineRemaining(r.deadline_date);
+                  const kalan = dashboardRemainingDays(r.deadline_date, signalDay);
                   return (
                     <div key={r.id} className={clsx("py-2.5", idx < kritikler.length - 1 && LIST_DIVIDER)}>
                       <div className="flex items-center justify-between">
