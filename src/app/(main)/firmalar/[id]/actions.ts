@@ -608,7 +608,7 @@ export async function createNoteAction(
   }
 
   const { data: tenantId, error: tenantError } = await supabase.rpc(
-    "current_user_active_tenant",
+    "current_user_verified_tenant",
   );
   if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
     return { ok: false, error: "Aktif kiracı çözümlenemedi." };

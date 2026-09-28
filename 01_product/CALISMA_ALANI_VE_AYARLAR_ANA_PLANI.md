@@ -282,3 +282,11 @@ Yerel 001800 ile firma oluşturma ve aktif/pasif durum değişimi doğrulanmış
 11 yeni PostgreSQL + 8 gerçek servis/action + 4 statik yol sözleşmesi testi; tam ölçümler `qa/tenant-module-company-commands-20260928/manifest.json`. Rapor aynı dizinde.
 
 **Yerel expand, üretim SQL/push/deploy yok.** Direct-DML yetkileri henüz kaldırılmadı: mevcut invoker `write_company_contact` firma FOR UPDATE için UPDATE iznine ihtiyaç duyuyor. Sırada kişi/not/import-yetkili komutları, ardından uygun frontend smoke sonrası direct-write cutover; ayrıca service/definer/FK/açık iş kontrolleri. Modül kapatma UI'si hâlâ açılmadı. 001800 ortak 000900/001000 sonrası ve yeni frontend öncesi; eski görev cutover planı değişmedi.
+
+## Uygulama kaydı — 28 Eylül 2026, not komutları ve kişi kilit sınırı M2i
+
+Notların dört yazma işlemi doğrulanmış tenant/aktör/firma kapsamlı RPC'ye taşındı; aynı tenant içindeki başka firmanın notuna işlem reddediliyor. Yetki/yazar kuralları SQL'de toplanıp tekrarlı istemci kontrolleri kaldırıldı. Mevcut yetkili kişi komutu kaynak gövdesi birebir doğrulanarak config→profil→firma sırasına alındı; beş kişi ve atomik ana yetkili davranışı korunuyor.
+
+001900/002000 expand ve 002100 şirket/not direct-DML contract dosyaları hazır. Contract yalnız yeni frontend ve kimlikli smoke sonrasında uygulanacak; contacts ham yazımları henüz kesilmedi. Yedi yeni uygulama ve 18 yeni PostgreSQL testi eklendi; kesin release sonuçları `qa/tenant-module-customer-notes-20260928/manifest.json` içinde.
+
+**Yerel; üretim SQL/push/deploy yok.** Kişi telefon/e-posta, silme ve CSV yolları, service/definer/FK etkileri ve genel modül kapatma işleri açık. Modül kapatma UI'si açılmadı. Kaynak gövdesi sapmasında kişi migration'ı durur. Oluşturmada kalıcı idempotency yok; ağ belirsizliğinde otomatik tekrar yapılmaz. Ayrıntılar aynı rapor dizinindeki README'de.

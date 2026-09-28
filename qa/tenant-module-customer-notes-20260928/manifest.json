@@ -1,0 +1,31 @@
+{
+  "baseCommit": "97dc876d7b8273723aa3a9bc0c91a4cbbc6f0329",
+  "status": "local-not-deployed",
+  "releaseExitCode": 0,
+  "databaseExitCode": 0,
+  "applicationTests": 583,
+  "databaseTests": 92,
+  "newApplicationTests": 7,
+  "newDatabaseTests": 18,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "browserSmokeRun": false,
+  "productionMigrationApplied": false,
+  "companyNoteDmlCutoverTestedLocally": true,
+  "contactDmlCutoverIncluded": false,
+  "files": {
+    ".github/workflows/module-foundation-db.yml": "79179007b36882b1315dafe4716a479d7718185eb4828149bbb8fe738bcf8d9d",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "a022bfd1d6aa9f44301ce16a42fbc19bb7be33ee9481b3a8a6709ee49b9c816d",
+    "scripts/test-inventory.json": "4307d1d6fbc73e429367af21e3639f4bf9617258b4d01a99fad8053e0a5865f1",
+    "src/app/(main)/firmalar/[id]/actions.ts": "5cbded9e6a597bc2f77accb755f7f6d54b047fc4f4d78a98807c745d1a157938",
+    "src/lib/services/notes.ts": "ad1a258b05fdd305a6b43c8a1b0ea45e28f96113b1cc30dc154ba9208827f5ad",
+    "src/lib/supabase/contacts.ts": "0993dbebf6b1d4e94fd616b353a22d5f3b3833da44846d754644e9e5c3e1c6cd",
+    "src/lib/supabase/notes.ts": "33adba79ffc2a389e7a1b5756e130e49d520f1fb646d0f0420c4923c22743dba",
+    "src/types/database.types.ts": "688bcaae12601ed75d690c87e35a0b6f69ef57b7eceaa9da2daf0124545bd16c",
+    "scripts/customer-notes-db.test.mjs": "2a3ac3f0a9592081f4f499b5876f85c9f2708594fff79b110b41e89069d47167",
+    "scripts/customer-notes.test.mjs": "22cf1ca7e8008ad3644189eefc2efbb103ce37228615613a45d644d90ca7bb11",
+    "supabase/migrations/20260928001900_contact_module_barrier.sql": "10147dd36a88a0324e202c0d983c27f497fea6e0dc67f167d1e54c586a785322",
+    "supabase/migrations/20260928002000_note_module_commands.sql": "613e56db68a5d209bfd02892339a10af463472f19fda8fdad11c5dde64629137",
+    "supabase/migrations/20260928002100_company_note_direct_write_cutover.sql": "88d61e829dc3c81a047e2da6ff651d44edf655028de1275228606d3dcc21e03a"
+  }
+}

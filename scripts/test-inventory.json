@@ -516,5 +516,13 @@
   {
     "file": "scripts/company-status-contract.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/customer-notes-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/customer-notes.test.mjs",
+    "suite": "application"
   }
 ]

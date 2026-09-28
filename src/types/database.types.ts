@@ -1226,6 +1226,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      note_execute_v1: {
+        Args: {p_action:string;p_note_id:string|null;p_company_id:string;p_tenant_id:string;p_actor_id:string;p_input:Json};
+        Returns: Database["public"]["Tables"]["notes"]["Row"][];
+      };
       company_execute_v1: {
         Args: { p_action: string; p_company_id: string | null; p_tenant_id: string; p_actor_id: string; p_input: Json };
         Returns: Database["public"]["Tables"]["companies"]["Row"][];

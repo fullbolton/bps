@@ -1,3 +1,4 @@
+import { moduleAccessMessage } from "@/lib/modules/errors";
 /**
  * Supabase data access layer — contacts (Yetkililer, Faz 1A primary truth).
  *
@@ -221,6 +222,6 @@ export async function writeCompanyContact(
   input: Database["public"]["Functions"]["write_company_contact"]["Args"],
 ): Promise<ContactRow> {
   const { data, error } = await client.rpc("write_company_contact", input).single();
-  if (error) throw new Error(`contacts atomic write failed: ${error.message}`);
+  if (error) throw new Error(moduleAccessMessage(error) ?? "Yetkili kişi kaydedilemedi. Tekrar denemeden önce yetkili listesini kontrol edin.");
   return data;
 }
