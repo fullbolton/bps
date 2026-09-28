@@ -1,3 +1,4 @@
+import {requireOperationalText} from '@/lib/privacy/operational-text';
 import { isUuid } from './pilot-validation';
 
 export const COMMENT_MAX_CHARACTERS = 4000;
@@ -14,7 +15,7 @@ function uuid(value: unknown): string {
 }
 
 /** Input validation only. The RPC must independently authorize actor, source and recipients. */
-export function validateCommentCommand(raw: unknown): CommentCommand {
+export function parseCommentCommand(raw: unknown): CommentCommand {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return invalid();
   const v = raw as Record<string, unknown>;
   const keys = ['commandId', 'actorId', 'tenantId', 'requestId', 'body', 'parentId', 'mentionIds'];
@@ -32,14 +33,21 @@ export function validateCommentCommand(raw: unknown): CommentCommand {
   };
 }
 
+/** New submissions only; stored commands remain recoverable after policy changes. */
+export function validateCommentCommand(raw: unknown): CommentCommand {
+  const command = parseCommentCommand(raw);
+  requireOperationalText(command.body);
+  return command;
+}
+
 /** Stable identity for retry comparison, not a signature or authorization token. */
 export function commentCommandIdentity(raw: unknown): string {
-  return JSON.stringify(validateCommentCommand(raw));
+  return JSON.stringify(parseCommentCommand(raw));
 }
 
 /** A malformed RPC success must never clear a pending command or show "sent". */
 export function parseCommentReceipt(raw: unknown, command: CommentCommand): { messageId: string } {
-  const expected = validateCommentCommand(command);
+  const expected = parseCommentCommand(command);
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('COMM_RESPONSE');
   const r = raw as Record<string, unknown>;
   for (const key of ['commandId', 'actorId', 'tenantId', 'requestId'] as const) {

@@ -1,3 +1,4 @@
+import {privateTextError} from '@/lib/privacy/operational-text';
 import {parseCompareSnapshot} from '@/lib/talent/import-compare';
 import {selectTalentCompareSnapshot} from '@/lib/supabase/talent';
 import type {SupabaseClient} from '@supabase/supabase-js';
@@ -19,6 +20,7 @@ export async function writeTalentPerson(c:Client,scope:unknown,command:unknown){
  const s=checkTalentScope(scope),x=validateSavePerson(command);return parseSaveReceipt(await saveTalentPerson(c,s,x),x);
 }
 export function talentError(error:unknown):string{
+ const privacy=privateTextError(error);if(privacy)return privacy;
  const message=error&&typeof error==='object'&&'message' in error?String(error.message):'';
  if(message.includes('TALENT_IMPORT_CLOSED'))return 'Bu aktarım güvenli şekilde kapatıldı. Sonucu kontrol edin.';
  if(message.includes('TALENT_IMPORT_LIMIT'))return 'Bir aktarım en fazla 500 satır ve 1 MB olabilir.';

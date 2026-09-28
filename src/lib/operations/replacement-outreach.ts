@@ -1,3 +1,4 @@
+import {requireOperationalText} from '@/lib/privacy/operational-text';
 import {isUuid} from './pilot-validation';
 export const outreachLabels={unreachable:'Ulaşılamadı',considering:'Değerlendiriyor',declined:'Reddetti',accepted:'Kabul etti · yerleştirilmedi',withdrawn:'Kabulden vazgeçti'} as const;
 export type OutreachOutcome=keyof typeof outreachLabels;
@@ -8,6 +9,7 @@ const validOutcome=(v:unknown):v is OutreachOutcome=>typeof v==='string'&&Object
 export function validateOutreachInput(value:unknown):OutreachInput{
  const v=object(value);
  if(!isUuid(v.assignmentId)||!isUuid(v.workerId)||!Number.isSafeInteger(v.expectedRevision)||Number(v.expectedRevision)<0||Number(v.expectedRevision)>2147483646||!validOutcome(v.outcome)||typeof v.note!=='string'||v.note.length>1000)throw Error('Görüşme alanları geçersiz.');
+ requireOperationalText(v.note);
  return {assignmentId:v.assignmentId,workerId:v.workerId,expectedRevision:v.expectedRevision as number,outcome:v.outcome,note:v.note};
 }
 export function parseOutreachLatest(value:unknown,assignmentId:string,workerId:string):OutreachLatest|null{

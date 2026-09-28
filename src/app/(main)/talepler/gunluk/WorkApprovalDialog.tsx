@@ -1,4 +1,5 @@
 "use client";
+import {privateTextError} from '@/lib/privacy/operational-text';
 import {useEffect,useRef,useState} from 'react';
 import {ModalShell} from '@/components/ui';
 import {workMinutes,validateWorkAction,workStatusLabels,workActionLabels,type WorkAction,type WorkFields,type WorkRecord} from '@/lib/operations/work-approval';
@@ -39,7 +40,7 @@ export default function WorkApprovalDialog({scope,assignmentId,workerName,workDa
   if(inFlight.current||!ready||pending)return;
   let payload:ReturnType<typeof validateWorkAction>;
   try{payload=validateWorkAction(action,action==='save'?fields:{reason});}
-  catch(e){setError(e instanceof Error?e.message:'Alanları kontrol edin.');return;}
+  catch(e){setError(privateTextError(e)??(e instanceof Error?e.message:'Alanları kontrol edin.'));return;}
   inFlight.current=true;setBusy(true);setDiscard(false);setError('');setMessage('');let id:string|undefined;
   try{
    const revision=record?.revision??0;

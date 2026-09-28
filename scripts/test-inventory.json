@@ -452,5 +452,13 @@
   {
     "file": "scripts/workspace-setup.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/operational-text.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/operational-text-db.test.mjs",
+    "suite": "database"
   }
 ]

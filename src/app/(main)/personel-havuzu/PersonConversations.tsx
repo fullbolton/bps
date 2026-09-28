@@ -1,4 +1,5 @@
 "use client";
+import {privateTextError} from "@/lib/privacy/operational-text";
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {Button} from '@/components/ui/button';
@@ -23,7 +24,7 @@ export default function PersonConversations({scope,personId,canWrite,onDirty,onS
   if(flight.current||!canWrite)return;flight.current=true;setBusy(true);setMessage('');
   let command:ConversationInput;
   try{command=validateConversation(pending??{commandId:crypto.randomUUID(),personId,requestId:request?.id??null,channel,outcome,note});}
-  catch{flight.current=false;setBusy(false);setMessage('Görüşme notunun biçimini ve uzunluğunu kontrol edin.');return;}
+  catch(error){flight.current=false;setBusy(false);setMessage(privateTextError(error)??'Görüşme notunun biçimini ve uzunluğunu kontrol edin.');return;}
   try{
    // Keep the exact command after an uncertain response. Retry cannot duplicate the conversation.
    setPending(command);

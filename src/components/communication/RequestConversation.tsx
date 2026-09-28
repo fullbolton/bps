@@ -1,8 +1,9 @@
 'use client';
+import {privateTextError} from '@/lib/privacy/operational-text';
 import {useState,useEffect,useRef} from 'react';
 import {useAuth} from '@/context/AuthContext';
 import {conversationLoad,conversationSend,conversationResolve} from '@/app/(main)/iletisim/actions';
-import {validateCommentCommand,type CommentCommand} from '@/lib/operations/conversation-command';
+import {validateCommentCommand,parseCommentCommand,type CommentCommand} from '@/lib/operations/conversation-command';
 import type {ConversationMessage,ConversationPerson} from '@/lib/operations/conversation-read';
 export type ConversationDraftState={dirty:boolean;busy:boolean;body:string;mentionIds:string[];parentId:string|null;pending:boolean;command:CommentCommand|null};
 export default function RequestConversation({requestId,onDraftStateChange,initialDraft}:{requestId:string;initialDraft?:ConversationDraftState;onDraftStateChange?:(requestId:string,state:ConversationDraftState|null)=>void}){
@@ -19,7 +20,7 @@ export default function RequestConversation({requestId,onDraftStateChange,initia
   try{const r=await conversationLoad(requestId,older?rows.at(-1)?.id??null:null);if(ticket!==sequence.current)return;
    if(!r.ok)throw Error(r.message);if(r.actorId!==user?.id)throw Error('Oturum değişti. Sayfayı yenileyin.');
    const s={actorId:r.actorId,tenantId:r.tenantId};setScope(s);setPeople(r.people);setRows(old=>older?[...old,...r.messages.filter(m=>!old.some(o=>o.id===m.id))]:r.messages);setMore(r.messages.length===30);
-   const saved=localStorage.getItem(key(s));if(saved){const c=validateCommentCommand(JSON.parse(saved));if(c.actorId!==s.actorId||c.tenantId!==s.tenantId||c.requestId!==requestId)throw Error('Bekleyen mesajın kapsamı doğrulanamadı.');setPending(c);setBody(c.body);setMentions(c.mentionIds);setParent(c.parentId);}
+   const saved=localStorage.getItem(key(s));if(saved){const c=parseCommentCommand(JSON.parse(saved));if(c.actorId!==s.actorId||c.tenantId!==s.tenantId||c.requestId!==requestId)throw Error('Bekleyen mesajın kapsamı doğrulanamadı.');setPending(c);setBody(c.body);setMentions(c.mentionIds);setParent(c.parentId);}
   }catch(e){if(ticket===sequence.current){setError(e instanceof Error?e.message:'Konuşma yüklenemedi.');if(!older){setRows([]);setScope(null);}}}finally{if(ticket===sequence.current)setBusy(false);}
  }
  useEffect(()=>{setRows([]);setPeople([]);setScope(null);setPending(initialDraft?.command??null);setBody(initialDraft?.body??'');setMentions(initialDraft?.mentionIds??[]);setParent(initialDraft?.parentId??null);},[requestId,user?.id]); // Restore only on identity change; typing must not reset the draft.
@@ -29,14 +30,15 @@ export default function RequestConversation({requestId,onDraftStateChange,initia
   try{
    if(!navigator.locks?.request)throw Error('Bu tarayıcı güvenli mesaj göndermeyi desteklemiyor.');
    await navigator.locks.request(key(scope),async()=>{
-    const saved=localStorage.getItem(key(scope));const c=saved?validateCommentCommand(JSON.parse(saved)):pending??validateCommentCommand({commandId:crypto.randomUUID(),...scope,requestId,body,parentId:parent,mentionIds:mentions});
+    const saved=localStorage.getItem(key(scope));const c=saved?parseCommentCommand(JSON.parse(saved)):pending??validateCommentCommand({commandId:crypto.randomUUID(),...scope,requestId,body,parentId:parent,mentionIds:mentions});
     if(saved&&(!pending||pending.commandId!==c.commandId)){setPending(c);setBody(c.body);setMentions(c.mentionIds);setParent(c.parentId);throw Error('Başka sekmeden bekleyen mesaj bulundu. İçeriği kontrol edip yeniden deneyin.');}
     if(c.actorId!==scope.actorId||c.tenantId!==scope.tenantId||c.requestId!==requestId)throw Error('Mesaj kapsamı değişti.');
+    validateCommentCommand(c);
     localStorage.setItem(key(scope),JSON.stringify(c));setPending(c);
     const r=await conversationSend(c);if(!r.ok)throw Error(r.message);
     localStorage.removeItem(key(scope));setPending(null);setBody('');setMentions([]);setParent(null);
    });await load();
-  }catch(e){setError(e instanceof Error?e.message:'Gönderim doğrulanamadı. Aynı mesajı yeniden deneyin.');}finally{locked.current=false;setBusy(false);}
+  }catch(e){setError(privateTextError(e)??(e instanceof Error?e.message:'Gönderim doğrulanamadı. Aynı mesajı yeniden deneyin.'));}finally{locked.current=false;setBusy(false);}
  }
  async function resolve(){
   if(locked.current||!scope||!pending)return;locked.current=true;setBusy(true);setError('');setNotice('');
@@ -44,7 +46,7 @@ export default function RequestConversation({requestId,onDraftStateChange,initia
    if(!navigator.locks?.request)throw Error('Tarayıcı işlem kilidi kullanılamıyor.');
    await navigator.locks.request(key(scope),async()=>{
     const saved=localStorage.getItem(key(scope));
-    const c=saved?validateCommentCommand(JSON.parse(saved)):validateCommentCommand(pending);if(c.commandId!==pending.commandId||c.actorId!==scope.actorId||c.tenantId!==scope.tenantId||c.requestId!==requestId)throw Error('Bekleyen kayıt değişti.');
+    const c=saved?parseCommentCommand(JSON.parse(saved)):parseCommentCommand(pending);if(c.commandId!==pending.commandId||c.actorId!==scope.actorId||c.tenantId!==scope.tenantId||c.requestId!==requestId)throw Error('Bekleyen kayıt değişti.');
     const r=await conversationResolve(c);if(!r.ok)throw Error(r.message);
     localStorage.removeItem(key(scope));setPending(null);
     if(r.status==='sent'){setBody('');setMentions([]);setParent(null);setNotice('Mesaj daha önce gönderilmiş. Kaydı doğruladık.');}

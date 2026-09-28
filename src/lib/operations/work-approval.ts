@@ -1,3 +1,4 @@
+import {requireOperationalText,privateTextError} from '@/lib/privacy/operational-text';
 import {shiftDuration} from './shift-window';
 import {isUuid} from './pilot-validation';
 export const workStatusLabels={draft:'Taslak',submitted:'Onay bekliyor',approved:'Onaylandı',returned:'Düzeltme istendi'} as const;
@@ -16,10 +17,11 @@ export function workMinutes(value:WorkFields){
 }
 export function validateWorkAction(action:WorkAction,payload:unknown){
  const p=asObject(payload);
- if(action==='save'){const fields={startTime:p.startTime,endTime:p.endTime,nextDay:p.nextDay,breakMinutes:p.breakMinutes,note:p.note} as WorkFields;workMinutes(fields);return fields;}
+ if(action==='save'){const fields={startTime:p.startTime,endTime:p.endTime,nextDay:p.nextDay,breakMinutes:p.breakMinutes,note:p.note} as WorkFields;workMinutes(fields);requireOperationalText(fields.note);return fields;}
  if(!['submit','approve','return','reopen'].includes(action))throw Error('Çalışma işlemi geçersiz.');
  if(action==='return'||action==='reopen'){
   if(typeof p.reason!=='string'||p.reason.trim().length<3||p.reason.length>1000)throw Error('En az üç karakterlik düzeltme gerekçesi yazın.');
+  requireOperationalText(p.reason);
   return {reason:p.reason.trim()};
  }
  return {};
@@ -39,6 +41,7 @@ export function parseWorkReceipt(value:unknown,commandId:string,assignmentId:str
  return {commandId,revision:r.revision as number,status:expected as WorkStatus};
 }
 export function workError(error:unknown){
+ const privacy=privateTextError(error);if(privacy)return privacy;
  const code=error&&typeof error==='object'&&'message' in error?String(error.message):'';
  const messages:Record<string,string>={WORK_STALE:'Kayıt değişti. Son kaydı yenileyip taslağınızı karşılaştırın.',WORK_FORBIDDEN:'Bu onay işlemi için yönetici yetkisi gerekir.',WORK_ATTENDANCE:'Onaya göndermek için Geldi kaydı bulunmalı.',WORK_NOT_FINISHED:'Bitiş zamanı henüz gelmedi; tamamlanmamış çalışma onaya gönderilemez.',WORK_LOCKED:'Onaydaki kayıt doğrudan değiştirilemez. Önce gerekçeyle düzeltmeye açın.',WORK_STATE:'Kayıt bu işleme uygun durumda değil; yenileyin.',WORK_CLOSED:'Atama kapalı veya talep iptal edilmiş.',WORK_REASON:'Düzeltme gerekçesi yazın.',WORK_APPROVAL_LOCKED:'Çalışma onayda veya onaylı. Önce çalışma kaydını gerekçeyle düzeltmeye açın.'};
  return messages[code]??'İşlem sonucu doğrulanamadı. Bekleyen işlemi kontrol edin.';

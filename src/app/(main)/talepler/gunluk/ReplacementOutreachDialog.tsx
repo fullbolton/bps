@@ -1,7 +1,8 @@
 "use client";
+import {privateTextError} from '@/lib/privacy/operational-text';
 import {useEffect,useRef,useState} from 'react';
 import {ModalShell} from '@/components/ui';
-import {outreachLabels,type OutreachOutcome,type OutreachLatest} from '@/lib/operations/replacement-outreach';
+import {validateOutreachInput,outreachLabels,type OutreachOutcome,type OutreachLatest} from '@/lib/operations/replacement-outreach';
 import {reserveCommand,acknowledgeCommand,reconcilePending,pendingCount,type CommandScope} from '@/lib/operations/pending-commands';
 import {parseCommandResolutions} from '@/lib/operations/command-reconciliation';
 import {outreachLatestAction,outreachRecordAction,pilotReconcileAction} from './actions';
@@ -30,13 +31,13 @@ export default function ReplacementOutreachDialog({scope,assignmentId,workerId,w
   if(inFlight.current||!ready||!outcome||pending||saved)return;
   inFlight.current=true;setBusy(true);setDiscard(false);setError('');let id:string|undefined;
   try{
-   const input={assignmentId,workerId,expectedRevision:latest?.revision??0,outcome,note};
+   const input=validateOutreachInput({assignmentId,workerId,expectedRevision:latest?.revision??0,outcome,note});
    id=await reserveCommand(scope,'replacement_outreach',input,localStorage,navigator.locks);
    setPending(id);
    await outreachRecordAction(scope,id,input);
    await acknowledgeCommand(scope,id,localStorage,navigator.locks);
    if(active.current){setPending(null);setSaved(true);}
-  }catch{if(active.current)setError(id?'Sonuç doğrulanamadı. Yeniden kayıt göndermeden işlemin sonucunu kontrol edin.':'İşlem kurtarma kaydı oluşturulamadı; görüşme gönderilmedi.');}
+  }catch(error){if(active.current)setError(privateTextError(error)??(id?'Sonuç doğrulanamadı. Yeniden kayıt göndermeden işlemin sonucunu kontrol edin.':'İşlem kurtarma kaydı oluşturulamadı; görüşme gönderilmedi.'));}
   finally{inFlight.current=false;if(active.current)setBusy(false);}
  }
  async function recover(){if(!pending||inFlight.current)return;inFlight.current=true;setBusy(true);setError('');
