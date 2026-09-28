@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {importActualTypeScript} from './helpers/import-typescript.mjs';
 const modules=await Promise.all(['notes','contracts','critical-dates','appointments','workforce-summary','tasks'].map(name=>importActualTypeScript(new URL(`../src/lib/supabase/${name}.ts`,import.meta.url))));
 const readers=[modules[0].selectNotesByCompanyId,modules[1].selectAllContracts,modules[1].selectContractsByCompanyId,modules[1].getActiveContractCountsByCompanyIds,modules[2].selectAllCriticalDates,modules[3].selectAllAppointments,modules[3].selectAppointmentsByCompanyId,modules[3].selectAppointmentsByContractId,modules[3].selectAppointmentsByCompanyIds,modules[4].selectAllWorkforceSummaries,modules[4].selectWorkforceSummariesByCompanyIds,modules[5].selectTasksByCompanyId,modules[5].selectAllTasks,modules[5].selectTasksByContractId,modules[5].selectTasksByAppointmentId];
-function client(result){let selected=false;const chain={select(_cols,opts){assert.equal(opts.count,'exact');selected=true;return chain;},eq(){return chain;},in(){return chain;},order(){return chain;},then(resolve,reject){assert.ok(selected);return Promise.resolve(result).then(resolve,reject);}};return {from(){return chain;}};}
+function client(result){let selected=false;const chain={select(_cols,opts){assert.equal(opts.count,'exact');selected=true;return chain;},eq(){return chain;},in(){return chain;},order(){return chain;},range(){return chain;},abortSignal(){return chain;},then(resolve,reject){assert.ok(selected);return Promise.resolve(result).then(resolve,reject);}};return {from(){return chain;}};}
 for(const read of readers)test(`${read.name} rejects clipped, null-count and failed results`,async()=>{
  for(const response of [{data:[{company_id:'a'}],count:2,error:null},{data:[],count:null,error:null},{data:null,count:0,error:null},{data:[],count:0,error:{message:'offline'}}])await assert.rejects(read(client(response),['a']));
  const empty=await read(client({data:[],count:0,error:null}),['a']);assert.equal(Object.keys(empty).length,0);
 });
 test('active counts retain repeated company IDs in a complete result',async()=>{
- const result=await modules[1].getActiveContractCountsByCompanyIds(client({data:[{company_id:'a'},{company_id:'a'},{company_id:'b'}],count:3,error:null}),['a','b']);
+ const result=await modules[1].getActiveContractCountsByCompanyIds(client({data:[{id:'1',company_id:'a'},{id:'2',company_id:'a'},{id:'3',company_id:'b'}],count:3,error:null}),['a','b']);
  assert.deepEqual(result,{a:2,b:1});
 });
 

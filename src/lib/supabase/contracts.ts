@@ -1,4 +1,4 @@
-import {completeRows} from "./complete-result";
+import { completePages } from "./complete-pages";
 /**
  * BPS — Raw Supabase access for the `contracts` table.
  *
@@ -30,17 +30,13 @@ type Client = SupabaseClient<Database>;
  * client-side via its existing filter chips and search input.
  */
 export async function selectAllContracts(client: Client): Promise<ContractRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("contracts")
     .select("*", {count:"exact"})
     .order("status", { ascending: true })
     .order("end_date", { ascending: true, nullsFirst: false })
-    .order("name", { ascending: true });
-
-  if (error) {
-    throw new Error(`contracts select-all failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectAllContracts");
+    .order("name", { ascending: true })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Sözleşmeler");
 }
 
 /**
@@ -75,18 +71,14 @@ export async function selectContractsByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<ContractRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("contracts")
     .select("*", {count:"exact"})
     .eq("company_id", companyId)
     .order("status", { ascending: true })
     .order("end_date", { ascending: true, nullsFirst: false })
-    .order("name", { ascending: true });
-
-  if (error) {
-    throw new Error(`contracts select-by-company failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectContractsByCompanyId");
+    .order("name", { ascending: true })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Sözleşmeler");
 }
 
 /**
@@ -107,18 +99,15 @@ export async function getActiveContractCountsByCompanyIds(
 ): Promise<Record<string, number>> {
   if (companyIds.length === 0) return {};
 
-  const { data, error, count } = await client
+  const rows = await completePages((from, to, signal) => client
     .from("contracts")
-    .select("company_id", {count:"exact"})
+    .select("id, company_id", {count:"exact"})
     .in("company_id", companyIds)
-    .eq("status", "aktif");
-
-  if (error) {
-    throw new Error(`contracts active-count failed: ${error.message}`);
-  }
+    .eq("status", "aktif")
+    .order("id", {ascending:true}).range(from, to).abortSignal(signal), "Sözleşmeler");
 
   const counts: Record<string, number> = {};
-  for (const row of completeRows(data, count, "getActiveContractCountsByCompanyIds")) {
+  for (const row of rows) {
     counts[row.company_id] = (counts[row.company_id] ?? 0) + 1;
   }
   return counts;

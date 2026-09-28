@@ -20,7 +20,7 @@ test('agenda groups civil dates, sorts unknown time last, retains cancelled entr
   assert.equal(JSON.stringify(rows), original);
 });
 test('truncated or uncounted appointment response cannot render a falsely empty calendar', async () => {
-  const client = result => ({from: table => {assert.equal(table,'appointments'); return {select: (columns, options) => {assert.equal(options.count,'exact'); return {order: async () => result};}};}});
+  const client = result => ({from: table => {assert.equal(table,'appointments'); const chain={select(_columns, options){assert.equal(options.count,'exact');return chain;},order(){return chain;},range(){return chain;},abortSignal:async()=>result};return chain;}});
   assert.deepEqual(await selectAllAppointments(client({data:[], count:0, error:null})), []);
   for (const result of [{data:[{id:'1'}],count:2,error:null},{data:[],count:null,error:null},{data:null,count:0,error:null},{data:[],count:0,error:{message:'connection failed'}}]) {
     await assert.rejects(selectAllAppointments(client(result)));

@@ -14,7 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { completeRows } from "./complete-result";
+import { completePages } from "./complete-pages";
 import { requireTaskRevision, TaskConflictError } from "@/lib/task-revision";
 import type {
   Database,
@@ -51,16 +51,12 @@ export async function selectTasksByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<TaskRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("tasks")
     .select("*", { count: "exact" })
     .eq("company_id", companyId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`tasks select-by-company failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectTasksByCompanyId");
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Görevler");
 }
 
 /**
@@ -70,15 +66,11 @@ export async function selectTasksByCompanyId(
 export async function selectAllTasks(
   client: Client,
 ): Promise<TaskRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("tasks")
     .select("*", { count: "exact" })
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`tasks select-all failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectAllTasks");
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Görevler");
 }
 
 /**
@@ -109,16 +101,12 @@ export async function selectTasksByContractId(
   client: Client,
   contractId: string,
 ): Promise<TaskRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("tasks")
     .select("*", { count: "exact" })
     .eq("contract_id", contractId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`tasks select-by-contract failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectTasksByContractId");
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Görevler");
 }
 
 /**
@@ -129,16 +117,12 @@ export async function selectTasksByAppointmentId(
   client: Client,
   appointmentId: string,
 ): Promise<TaskRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("tasks")
     .select("*", { count: "exact" })
     .eq("appointment_id", appointmentId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`tasks select-by-appointment failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectTasksByAppointmentId");
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Görevler");
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import {completeRows} from "./complete-result";
+import { completePages } from "./complete-pages";
 /**
  * BPS — Raw Supabase access for the `appointments` table.
  *
@@ -46,16 +46,12 @@ export async function selectAppointmentsByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<AppointmentRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("appointments")
     .select("*", {count:"exact"})
     .eq("company_id", companyId)
-    .order("meeting_date", { ascending: false });
-
-  if (error) {
-    throw new Error(`appointments select-by-company failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectAppointmentsByCompanyId");
+    .order("meeting_date", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Randevular");
 }
 
 /**
@@ -65,16 +61,11 @@ export async function selectAppointmentsByCompanyId(
 export async function selectAllAppointments(
   client: Client,
 ): Promise<AppointmentRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("appointments")
     .select("*", { count: "exact" })
-    .order("meeting_date", { ascending: false });
-
-  if (error) {
-    throw new Error(`appointments select-all failed: ${error.message}`);
-  }
-  // A truncated response must not make unreturned days look empty on the calendar.
-  return completeRows(data, count, "Randevular");
+    .order("meeting_date", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Randevular");
 }
 
 /**
@@ -105,20 +96,16 @@ export async function selectAppointmentsByContractId(
   client: Client,
   contractId: string,
 ): Promise<AppointmentRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("appointments")
     .select("*", {count:"exact"})
     .eq("contract_id", contractId)
-    .order("meeting_date", { ascending: false });
-
-  if (error) {
-    throw new Error(`appointments select-by-contract failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectAppointmentsByContractId");
+    .order("meeting_date", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Randevular");
 }
 
 /**
- * Read every appointment for a set of company ids in one round trip.
+ * Read every appointment for a set of company ids in bounded pages.
  * Used by the batched Firmalar list reader to derive Son Görüşme /
  * Sonraki Randevu columns without N+1 queries.
  */
@@ -128,16 +115,12 @@ export async function selectAppointmentsByCompanyIds(
 ): Promise<AppointmentRow[]> {
   if (companyIds.length === 0) return [];
 
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("appointments")
     .select("*", {count:"exact"})
     .in("company_id", companyIds)
-    .order("meeting_date", { ascending: false });
-
-  if (error) {
-    throw new Error(`appointments select-by-companies failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectAppointmentsByCompanyIds");
+    .order("meeting_date", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Randevular");
 }
 
 // ---------------------------------------------------------------------------

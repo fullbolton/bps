@@ -1,4 +1,4 @@
-import {completeRows} from "./complete-result";
+import { completePages } from "./complete-pages";
 /**
  * BPS — Raw Supabase access for the `notes` table.
  *
@@ -34,17 +34,13 @@ export async function selectNotesByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<NoteRow[]> {
-  const { data, error, count } = await client
+  return completePages((from, to, signal) => client
     .from("notes")
     .select("*", {count:"exact"})
     .eq("company_id", companyId)
     .order("is_pinned", { ascending: false })
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`notes select failed: ${error.message}`);
-  }
-  return completeRows(data, count, "selectNotesByCompanyId");
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true }).range(from, to).abortSignal(signal), "Notlar");
 }
 
 /**

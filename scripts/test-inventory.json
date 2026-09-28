@@ -40,6 +40,10 @@
     "suite": "database"
   },
   {
+    "file": "scripts/complete-pages.test.mjs",
+    "suite": "application"
+  },
+  {
     "file": "scripts/complete-result.test.mjs",
     "suite": "application"
   },
