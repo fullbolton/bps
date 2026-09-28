@@ -8,7 +8,7 @@
  * No parameter UI. No admin panel. No effective-date logic.
  * Parameters are updated in code when government rates change.
  *
- * Formula backbone matches the verified spreadsheet logic:
+ * Formula backbone follows the existing spreadsheet assumptions (not re-verified here):
  *   Net → Brüt (reverse tax formula)
  *   Brüt → İşveren Maliyeti (+ SGK İşveren + İşsizlik İşveren)
  *   İşveren Maliyeti + ek kalemler → Toplam Maliyet
@@ -55,6 +55,16 @@ const ISG_OSGB_GUNLUK = 10;
 
 /** Default hedef kâr oranı (%) */
 export const DEFAULT_KAR_ORANI = 16.5;
+/** Applicability baseline of this stored model, not a claim about legal minimum pay. */
+export const MIN_MODEL_NET_GUNLUK = NET_FLOOR;
+export const TEKLIF_MODEL_NOTE = "Kodda 2026 olarak etiketlenmiş mevcut hesap varsayımları kullanılır; güncel oran/kaynak doğrulaması yapılmamıştır. Bordro hesabı veya kesin teklif değildir.";
+
+/** Empty optional costs mean zero; malformed or missing required input stays invalid. */
+export function parseTeklifAmount(value: string, optional = false): number {
+  const trimmed = value.trim();
+  if (!trimmed) return optional ? 0 : Number.NaN;
+  return Number(trimmed);
+}
 
 // ---------------------------------------------------------------------------
 // Calculation interface
@@ -63,7 +73,7 @@ export const DEFAULT_KAR_ORANI = 16.5;
 export interface TeklifHesaplamaInput {
   /** Daily net amount to be paid to the worker (₺) */
   netUcretGunluk: number;
-  /** Target profit margin (%) */
+  /** Markup on total cost (%) */
   hedefKarOrani: number;
   /** Optional additional net payment per day (₺) */
   ekOdeme?: number;
@@ -89,17 +99,17 @@ export interface TeklifHesaplamaOutput {
 // ---------------------------------------------------------------------------
 
 /**
- * Calculate recommended offer price from net worker payment and target margin.
- * Returns null if inputs are invalid (non-positive net ücret or negative margin).
+ * Calculate recommended offer price from net worker payment and cost markup.
+ * Returns null outside the existing reverse-formula baseline or for invalid costs.
  */
 export function hesaplaTeklifBedeli(
   input: TeklifHesaplamaInput,
 ): TeklifHesaplamaOutput | null {
   const { netUcretGunluk, hedefKarOrani, ekOdeme = 0, yemek = 0, servis = 0, kiyafet = 0 } = input;
 
-  // Guard: net ücret must be positive
-  if (netUcretGunluk <= 0 || isNaN(netUcretGunluk)) return null;
-  if (hedefKarOrani < 0 || isNaN(hedefKarOrani)) return null;
+  if (![netUcretGunluk, hedefKarOrani, ekOdeme, yemek, servis, kiyafet]
+    .every(value => Number.isFinite(value) && value >= 0)) return null;
+  if (netUcretGunluk < MIN_MODEL_NET_GUNLUK) return null;
 
   // Step 1: Net → Brüt (reverse tax formula)
   const brutUcret = BRUT_BASE + ((netUcretGunluk - NET_FLOOR) / REVERSE_COEFF);
@@ -124,6 +134,10 @@ export function hesaplaTeklifBedeli(
   // Step 7: Profit and offer price
   const karTutari = toplamMaliyet * (hedefKarOrani / 100);
   const teklifBedeli = toplamMaliyet + karTutari;
+
+  // A finite input can still overflow multiplication or lose cent precision.
+  if (![toplamMaliyet, karTutari, teklifBedeli].every(value =>
+    Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER / 100)) return null;
 
   return {
     tahminiIsverenMaliyeti: Math.round(toplamMaliyet * 100) / 100,

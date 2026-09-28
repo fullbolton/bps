@@ -1,4 +1,5 @@
 "use client";
+import { useIstanbulDay } from "@/components/ui/useIstanbulDay";
 import { formatTry } from "@/lib/display-values";
 
 import { useScopedResource } from "@/components/ui/useScopedResource";
@@ -54,7 +55,7 @@ import { createAppointmentAction } from "../../randevular/actions";
 import { suggestNote } from "@/lib/suggest";
 import { generatePaymentFollowup } from "@/lib/draft-payment-followup";
 import { generateYenidenTemasDraft } from "@/lib/draft-yeniden-temas";
-import { hesaplaTeklifBedeli, DEFAULT_KAR_ORANI } from "@/lib/teklif-hesaplayici";
+import { hesaplaTeklifBedeli, DEFAULT_KAR_ORANI, MIN_MODEL_NET_GUNLUK, TEKLIF_MODEL_NOTE, parseTeklifAmount } from "@/lib/teklif-hesaplayici";
 import { formatDateTR } from "@/lib/format-date";
 import { SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
@@ -435,7 +436,8 @@ export default function FirmaDetayPage({
   // -------------------------------------------------------------------------
   // Phase 4A — Firma Evraklar (real Supabase truth)
   // -------------------------------------------------------------------------
-  const readDocuments = useCallback(() => listDocumentsByLegacyCompanyId(supabase, id), [supabase, id]);
+  const documentDay = useIstanbulDay();
+  const readDocuments = useCallback(() => listDocumentsByLegacyCompanyId(supabase, id), [supabase, id, documentDay]);
   const documentResource = useScopedResource(!authLoading && user && !documentsAccessRestricted ? companyScope : null, readDocuments);
   const firmaDocs = documentResource.data ?? [];
   const docsLoading = documentResource.loading;
@@ -1000,15 +1002,15 @@ export default function FirmaDetayPage({
               </div>
 
               {hesapOpen && (() => {
-                const netVal = parseFloat(hesapNet) || 0;
-                const karVal = parseFloat(hesapKar) || 0;
+                const netVal = parseTeklifAmount(hesapNet);
+                const karVal = parseTeklifAmount(hesapKar);
                 const result = netVal > 0 ? hesaplaTeklifBedeli({
                   netUcretGunluk: netVal,
                   hedefKarOrani: karVal,
-                  ekOdeme: parseFloat(hesapEk) || 0,
-                  yemek: parseFloat(hesapYemek) || 0,
-                  servis: parseFloat(hesapServis) || 0,
-                  kiyafet: parseFloat(hesapKiyafet) || 0,
+                  ekOdeme: parseTeklifAmount(hesapEk, true),
+                  yemek: parseTeklifAmount(hesapYemek, true),
+                  servis: parseTeklifAmount(hesapServis, true),
+                  kiyafet: parseTeklifAmount(hesapKiyafet, true),
                 }) : null;
 
                 return (
@@ -1026,7 +1028,7 @@ export default function FirmaDetayPage({
                         />
                       </div>
                       <div>
-                        <label className={`${TYPE_CAPTION} ${TEXT_MUTED} block mb-1`}>Hedef Kâr Oranı (%)</label>
+                        <label className={`${TYPE_CAPTION} ${TEXT_MUTED} block mb-1`}>Maliyet Üstü Kâr (%)</label>
                         <input
                           type="number"
                           value={hesapKar}
@@ -1085,10 +1087,10 @@ export default function FirmaDetayPage({
                     )}
 
                     {!result && hesapNet && (
-                      <p className={`${TYPE_CAPTION} text-amber-600`}>Geçerli bir net ücret girin.</p>
+                      <p className={`${TYPE_CAPTION} text-amber-600`}>Net ücret bu model için en az {MIN_MODEL_NET_GUNLUK.toLocaleString("tr-TR")} ₺ olmalı. Kâr oranını ve ek giderleri kontrol edin; negatif değer kullanmayın.</p>
                     )}
 
-                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>Yönetim varsayımlarına dayalı tahmini hesaplama. Kesin teklif değildir.</p>
+                    <p className={`${TYPE_CAPTION} ${TEXT_MUTED}`}>{TEKLIF_MODEL_NOTE}</p>
                   </div>
                 );
               })()}

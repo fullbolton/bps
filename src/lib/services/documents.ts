@@ -16,14 +16,14 @@
  *   - Document name must be non-blank.
  *   - storage_path is an object key, never a public URL.
  *   - Manual status changes remain explicit. File upload and validity-date
- *     updates share the UTC-day expiry classification in document-validity.
+ *     updates share the Istanbul-day expiry classification in document-validity.
  *
  * Error surface:
  *   - DocumentValidationError        -- blank name
  *   - CompanyNotFoundOrOutOfScopeError -- reused from services/companies
  */
 
-import { documentStatusForFile, isDocumentValidityDate } from "@/lib/document-validity";
+import { documentStatusForFile, isDocumentValidityDate, withCurrentDocumentStatus } from "@/lib/document-validity";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EvrakDurumu } from "@/types/ui";
 import type {
@@ -107,7 +107,8 @@ export async function listDocumentsByLegacyCompanyId(
   legacyMockId: string,
 ): Promise<DocumentRow[]> {
   const company = await requireCompanyByLegacyMockId(client, legacyMockId);
-  return selectDocumentsByCompanyId(client, company.id);
+  const now = new Date();
+  return (await selectDocumentsByCompanyId(client, company.id)).map(row => withCurrentDocumentStatus(row, now));
 }
 
 /**
@@ -117,7 +118,8 @@ export async function listDocumentsByLegacyCompanyId(
 export async function listAllDocuments(
   client: Client,
 ): Promise<DocumentRow[]> {
-  return selectAllDocuments(client);
+  const now = new Date();
+  return (await selectAllDocuments(client)).map(row => withCurrentDocumentStatus(row, now));
 }
 
 /**
@@ -127,7 +129,8 @@ export async function getDocumentById(
   client: Client,
   id: string,
 ): Promise<DocumentRow | null> {
-  return selectDocumentById(client, id);
+  const row = await selectDocumentById(client, id);
+  return row ? withCurrentDocumentStatus(row) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +154,8 @@ export async function getDocumentComplianceByLegacyIds(
   const realIds = Object.values(idMap);
   if (realIds.length === 0) return {};
 
-  const documents = await selectDocumentsByCompanyIds(client, realIds);
+  const now = new Date();
+  const documents = (await selectDocumentsByCompanyIds(client, realIds)).map(row => withCurrentDocumentStatus(row, now));
 
   // Group by company_id and count
   const byCompany = new Map<string, DocumentRow[]>();

@@ -1,5 +1,7 @@
 "use client";
 
+import { countedResult } from "@/lib/supabase/complete-result";
+import { hasCompleteCompanyReferences } from "@/lib/supabase/company-references";
 import { useEffect, useMemo, useState } from "react";
 import DailyOverview from "../dashboard/DailyOverview";
 import Link from "next/link";
@@ -315,7 +317,7 @@ export default function ReportsClient({operationsEnabled}:{operationsEnabled:boo
         // Single companies.select for the batch — feeds firma-name
         // resolution across reports 1-4 and the Riskli Firma derivation
         // (risk + legacy_mock_id added for Report 5).
-        supabase.from("companies").select("id, name, risk, legacy_mock_id"),
+        supabase.from("companies").select("id, name, risk, legacy_mock_id", { count: "exact" }),
         // Service readers already used by the destination list pages.
         // Reader failures are now captured (was silent `() => []`).
         listAllWorkforceSummaries(supabase).catch((err) => {
@@ -333,20 +335,22 @@ export default function ReportsClient({operationsEnabled}:{operationsEnabled:boo
         supabase
           .from("staffing_demands")
           .select(
-            "id, company_id, position, requested_count, provided_count, priority, status",
+            "id, company_id, position, requested_count, provided_count, priority, status", { count: "exact" },
           ),
         // Randevu Sonuçları — per-record grain preserved.
         supabase
           .from("appointments")
           .select(
-            "id, company_id, meeting_date, meeting_type, attendee, status, result",
+            "id, company_id, meeting_date, meeting_type, attendee, status, result", { count: "exact" },
           ),
       ]);
       if (cancelled) return;
 
+      const companiesResult=countedResult(companiesRes),demandsResult=countedResult(demandsRes),appointmentsResult=countedResult(appointmentsRes);
+      const companyIds=companiesResult.rows?new Set(companiesResult.rows.map(c=>c.id)):null;
       const companyNameById = new Map<string, string>();
-      if (!companiesRes.error) {
-        for (const c of companiesRes.data ?? []) {
+      if (companiesResult.rows) {
+        for (const c of companiesResult.rows) {
           companyNameById.set(c.id, c.name);
         }
       }
@@ -363,8 +367,7 @@ export default function ReportsClient({operationsEnabled}:{operationsEnabled:boo
           hedefKisi: row.target_count,
           acikFark: deriveOpenGap(row),
           riskEtiketi: deriveRiskLevel(row),
-        }))
-        .filter((r) => r.firmaAdi !== "—");
+        }));
 
       // Report 2 — Sözleşme Bitişleri. Preserve the mock's 90-day
       // window + kalanGun ASC sort. hazirlikDurumu has no real-schema
@@ -391,9 +394,9 @@ export default function ReportsClient({operationsEnabled}:{operationsEnabled:boo
         }));
 
       // Report 3 — Talep Analizi. Per-record, no aggregation.
-      const talepRows: RaporTalepRow[] = demandsRes.error
+      const talepRows: RaporTalepRow[] = !hasCompleteCompanyReferences(demandsResult.rows,companyIds)
         ? []
-        : (demandsRes.data ?? []).map((d) => ({
+        : (demandsResult.rows ?? []).map((d) => ({
             firmaAdi: companyNameById.get(d.company_id) ?? "—",
             pozisyon: d.position,
             talepEdilen: d.requested_count,
@@ -405,9 +408,9 @@ export default function ReportsClient({operationsEnabled}:{operationsEnabled:boo
 
       // Report 4 — Randevu Sonuçları. Per-record. meeting_type maps
       // through the existing APPOINTMENT_TYPE_LABELS helper.
-      const randevuRows: RaporRandevuRow[] = appointmentsRes.error
+      const randevuRows: RaporRandevuRow[] = !hasCompleteCompanyReferences(appointmentsResult.rows,companyIds)
         ? []
-        : (appointmentsRes.data ?? []).map((a) => ({
+        : (appointmentsResult.rows ?? []).map((a) => ({
             tarih: a.meeting_date,
             firmaAdi: companyNameById.get(a.company_id) ?? "—",
             gorusmeTipiLabel:
@@ -422,9 +425,9 @@ export default function ReportsClient({operationsEnabled}:{operationsEnabled:boo
       // Riskli Firmalar pattern. legacy_mock_id ?? id keeps firma-detay
       // routing aligned with the rest of the app. No subset cap — the
       // full report shows every matching company.
-      const riskliRows: RaporRiskliFirmaRow[] = companiesRes.error
+      const riskliRows: RaporRiskliFirmaRow[] = !companiesResult.rows
         ? []
-        : (companiesRes.data ?? [])
+        : (companiesResult.rows ?? [])
             .filter(
               (c): c is typeof c & { risk: "orta" | "yuksek" } =>
                 c.risk === "orta" || c.risk === "yuksek",
@@ -447,14 +450,17 @@ export default function ReportsClient({operationsEnabled}:{operationsEnabled:boo
       setRaporRandevular(randevuRows);
       setRaporRiskli(riskliRows);
       setReportErrors({
-        isGucu: workforceCatchError,
-        sozlesmeBitis: contractsCatchError,
-        talepler: demandsRes.error !== null,
-        randevular: appointmentsRes.error !== null,
-        riskli: companiesRes.error !== null,
+        isGucu: workforceCatchError||!hasCompleteCompanyReferences(workforceRows,companyIds),
+        sozlesmeBitis: contractsCatchError||!hasCompleteCompanyReferences(contractRows,companyIds),
+        talepler: !hasCompleteCompanyReferences(demandsResult.rows,companyIds),
+        randevular: !hasCompleteCompanyReferences(appointmentsResult.rows,companyIds),
+        riskli: companiesResult.rows===null,
       });
-      setReportsLoading(false);
-    })();
+    })().catch(() => {
+      if(cancelled)return;
+      setRaporIsGucu([]);setRaporSozlesmeBitis([]);setRaporTalepler([]);setRaporRandevular([]);setRaporRiskli([]);
+      setReportErrors({isGucu:true,sozlesmeBitis:true,talepler:true,randevular:true,riskli:true});
+    }).finally(() => {if(!cancelled)setReportsLoading(false);});
     return () => {
       cancelled = true;
     };

@@ -1,3 +1,4 @@
+import {completeRows} from "./complete-result";
 /**
  * BPS — Raw Supabase access for the `workforce_summary` table.
  *
@@ -52,14 +53,14 @@ export async function selectWorkforceSummaryByCompanyId(
 export async function selectAllWorkforceSummaries(
   client: Client,
 ): Promise<WorkforceSummaryRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("workforce_summary")
-    .select("*");
+    .select("*", {count:"exact"});
 
   if (error) {
     throw new Error(`workforce_summary select-all failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectAllWorkforceSummaries");
 }
 
 /**
@@ -73,15 +74,15 @@ export async function selectWorkforceSummariesByCompanyIds(
 ): Promise<WorkforceSummaryRow[]> {
   if (companyIds.length === 0) return [];
 
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("workforce_summary")
-    .select("*")
+    .select("*", {count:"exact"})
     .in("company_id", companyIds);
 
   if (error) {
     throw new Error(`workforce_summary select-by-company-ids failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectWorkforceSummariesByCompanyIds");
 }
 
 // ---------------------------------------------------------------------------

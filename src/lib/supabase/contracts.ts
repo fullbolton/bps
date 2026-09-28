@@ -1,3 +1,4 @@
+import {completeRows} from "./complete-result";
 /**
  * BPS — Raw Supabase access for the `contracts` table.
  *
@@ -29,9 +30,9 @@ type Client = SupabaseClient<Database>;
  * client-side via its existing filter chips and search input.
  */
 export async function selectAllContracts(client: Client): Promise<ContractRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("contracts")
-    .select("*")
+    .select("*", {count:"exact"})
     .order("status", { ascending: true })
     .order("end_date", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
@@ -39,7 +40,7 @@ export async function selectAllContracts(client: Client): Promise<ContractRow[]>
   if (error) {
     throw new Error(`contracts select-all failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectAllContracts");
 }
 
 /**
@@ -74,9 +75,9 @@ export async function selectContractsByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<ContractRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("contracts")
-    .select("*")
+    .select("*", {count:"exact"})
     .eq("company_id", companyId)
     .order("status", { ascending: true })
     .order("end_date", { ascending: true, nullsFirst: false })
@@ -85,7 +86,7 @@ export async function selectContractsByCompanyId(
   if (error) {
     throw new Error(`contracts select-by-company failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectContractsByCompanyId");
 }
 
 /**
@@ -106,9 +107,9 @@ export async function getActiveContractCountsByCompanyIds(
 ): Promise<Record<string, number>> {
   if (companyIds.length === 0) return {};
 
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("contracts")
-    .select("company_id")
+    .select("company_id", {count:"exact"})
     .in("company_id", companyIds)
     .eq("status", "aktif");
 
@@ -117,7 +118,7 @@ export async function getActiveContractCountsByCompanyIds(
   }
 
   const counts: Record<string, number> = {};
-  for (const row of data ?? []) {
+  for (const row of completeRows(data, count, "getActiveContractCountsByCompanyIds")) {
     counts[row.company_id] = (counts[row.company_id] ?? 0) + 1;
   }
   return counts;

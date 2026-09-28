@@ -1,4 +1,7 @@
 "use client";
+import { countedResult } from "@/lib/supabase/complete-result";
+import { hasCompleteCompanyReferences } from "@/lib/supabase/company-references";
+import { useIstanbulDay } from "@/components/ui/useIstanbulDay";
 
 import {claimTaskAction} from "../gorevler/actions";
 import Link from "next/link";
@@ -135,7 +138,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
 
   // Eksik / Süresi Dolan Evraklar — real documents under RLS. Filter
   // matches the prior mock exactly: any document whose status is not
-  // "tam". No new validity-date derivation.
+  // "tam". The service derives date-based status at read time.
   const [eksikEvraklar, setEksikEvraklar] = useState<
     Array<{ id: string; evrak: string; firma: string; durum: EvrakDurumu }>
   >([]);
@@ -184,6 +187,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
   const [announceSaving, setAnnounceSaving] = useState(false);
   const [announceError, setAnnounceError] = useState<string | null>(null);
 
+  const signalDay = useIstanbulDay();
   useEffect(() => {
     let cancelled = false;
     setSignalsLoading(true);
@@ -200,8 +204,9 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
       // Çözülemezse currentUserId null kalır ve filtre yalnız atanmamış
       // görevleri gösterir; sessizce "hepsi"ne düşmez.
       const {
-        data: { user: currentUser },
+        data: { user: currentUser }, error: authError,
       } = await supabase.auth.getUser();
+      if(authError||!currentUser)throw new Error("Dashboard session unavailable");
       if (!cancelled) {setCurrentUserId(currentUser?.id ?? null);setTaskTenant(currentUser?.app_metadata?.active_tenant??null);}
       const [
         companiesRes,
@@ -216,17 +221,17 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
         // Shared company count and name lookup for the signal cards.
         supabase
           .from("companies")
-          .select("id, name, legacy_mock_id"),
+          .select("id, name, legacy_mock_id", { count: "exact" }),
         supabase
           .from("contracts")
           .select("id", { count: "exact", head: true })
           .eq("status", "aktif"),
-        // tasks: full rows feed both the Bekleyen Görev KPI (count via
-        // data.length) and the Bugünün Görevleri signal card. Same
+        // tasks: exact count feeds the KPI; only a complete row set feeds
+        // the task card. Same
         // filter as the KPI — status IN ('acik','devam_ediyor','gecikti').
         supabase
           .from("tasks")
-          .select("id, title, company_id, status, due_date, assigned_to_user_id, assigned_to, revision")
+          .select("id, title, company_id, status, due_date, assigned_to_user_id, assigned_to, revision", { count: "exact" })
           .in("status", ["acik", "devam_ediyor", "gecikti"]),
         supabase
           .from("appointments")
@@ -265,27 +270,36 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
       ]);
       if (cancelled) return;
 
+      const companiesResult=countedResult(companiesRes),tasksResult=countedResult(tasksRes);
       setKpis({
-        toplamFirma: companiesRes.error ? null : companiesRes.data?.length ?? 0,
-        aktifSozlesme: contractsRes.error ? null : contractsRes.count ?? 0,
-        bekleyenGorev: tasksRes.error ? null : tasksRes.data?.length ?? 0,
-        yaklasanRandevu: appointmentsRes.error ? null : appointmentsRes.count ?? 0,
+        toplamFirma: companiesResult.count,
+        aktifSozlesme: countedResult(contractsRes).count,
+        bekleyenGorev: tasksResult.count,
+        yaklasanRandevu: countedResult(appointmentsRes).count,
       });
 
       // --- Signal-card derivations ---
       const companyNameById = new Map<string, string>();
-      if (!companiesRes.error) {
-        for (const c of companiesRes.data ?? []) {
+      if (companiesResult.rows) {
+        for (const c of companiesResult.rows) {
           companyNameById.set(c.id, c.name);
         }
       }
 
+      const companyIds = companiesResult.rows
+        ? new Set(companiesResult.rows.map(company => company.id))
+        : null;
+      const linkedTasks = tasksResult.rows?.filter((task): task is typeof task & {company_id:string} => task.company_id !== null) ?? null;
+      const tasksReady = linkedTasks !== null && (linkedTasks.length === 0 || hasCompleteCompanyReferences(linkedTasks, companyIds));
+      const contractsReady = !contractsCatchError && hasCompleteCompanyReferences(allContractRows, companyIds);
+      const documentsReady = !documentsCatchError && hasCompleteCompanyReferences(allDocumentRows, companyIds);
+
       // Bugünün Görevleri — mirrors the prior mock's sort exactly:
       // gecikti first, then devam_ediyor, then acik; within a status,
       // earlier due_date first. Row cap preserved at 4.
-      const mappedTasks = tasksRes.error
+      const mappedTasks = !tasksReady
         ? []
-        : [...(tasksRes.data ?? [])]
+        : [...(tasksResult.rows ?? [])]
             .sort((a, b) => {
               const weight = (s: string) =>
                 s === "gecikti" ? 0 : s === "devam_ediyor" ? 1 : 2;
@@ -335,7 +349,7 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
         }));
 
       // Eksik / Süresi Dolan Evraklar — filter out complete documents.
-      // No new status semantics; preserves the prior mock's filter.
+      // The service has already derived validity status for this read.
       const mappedEksikEvraklar = allDocumentRows
         .filter((d) => d.status !== "tam")
         .slice(0, 5)
@@ -347,26 +361,32 @@ export default function DashboardClient({operationsEnabled}:{operationsEnabled:b
         }));
 
       setOpenTasks(mappedTasks);
-      setExpiringContracts(mappedExpiringContracts);
-      setEksikEvraklar(mappedEksikEvraklar);
+      setExpiringContracts(contractsReady ? mappedExpiringContracts : []);
+      setEksikEvraklar(documentsReady ? mappedEksikEvraklar : []);
       setCriticalDates(allCriticalDateRows);
       setAnnouncements(recentAnnouncements);
       // Surface per-section reader failures explicitly. Supabase
       // direct queries expose `.error` on the response object; service
       // readers were instrumented above with their `.catch` arm.
       setSignalErrors({
-        tasks: tasksRes.error !== null,
-        contracts: contractsCatchError,
-        documents: documentsCatchError,
+        tasks: !tasksReady,
+        contracts: !contractsReady,
+        documents: !documentsReady,
         criticalDates: criticalDatesCatchError,
         announcements: announcementsCatchError,
       });
-      setSignalsLoading(false);
-    })();
+    })().catch(() => {
+      if(cancelled)return;
+      // Transport/Auth/derivation exceptions must not leave an endless spinner or stale totals.
+      setCurrentUserId(null);setTaskTenant(null);
+      setKpis({toplamFirma:null,aktifSozlesme:null,bekleyenGorev:null,yaklasanRandevu:null});
+      setOpenTasks([]);setExpiringContracts([]);setEksikEvraklar([]);setCriticalDates([]);setAnnouncements([]);
+      setSignalErrors({tasks:true,contracts:true,documents:true,criticalDates:true,announcements:true});
+    }).finally(() => {if(!cancelled)setSignalsLoading(false);});
     return () => {
       cancelled = true;
     };
-  }, [refreshKey]);
+  }, [refreshKey, signalDay]);
 
   // Single retry handler shared by every signal card's error branch.
   // Re-fires the load `useEffect` by bumping the dependency. Cheap and

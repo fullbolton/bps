@@ -1,3 +1,4 @@
+import {completeRows} from "./complete-result";
 /**
  * BPS — Raw Supabase access for the `appointments` table.
  *
@@ -45,16 +46,16 @@ export async function selectAppointmentsByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<AppointmentRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("appointments")
-    .select("*")
+    .select("*", {count:"exact"})
     .eq("company_id", companyId)
     .order("meeting_date", { ascending: false });
 
   if (error) {
     throw new Error(`appointments select-by-company failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectAppointmentsByCompanyId");
 }
 
 /**
@@ -72,10 +73,8 @@ export async function selectAllAppointments(
   if (error) {
     throw new Error(`appointments select-all failed: ${error.message}`);
   }
-  if (!Array.isArray(data) || count !== data.length) {
-    throw new Error("Randevuların tamamı alınamadı. Listeyi yenileyerek tekrar deneyin.");
-  }
-  return data;
+  // A truncated response must not make unreturned days look empty on the calendar.
+  return completeRows(data, count, "Randevular");
 }
 
 /**
@@ -106,16 +105,16 @@ export async function selectAppointmentsByContractId(
   client: Client,
   contractId: string,
 ): Promise<AppointmentRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("appointments")
-    .select("*")
+    .select("*", {count:"exact"})
     .eq("contract_id", contractId)
     .order("meeting_date", { ascending: false });
 
   if (error) {
     throw new Error(`appointments select-by-contract failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectAppointmentsByContractId");
 }
 
 /**
@@ -129,16 +128,16 @@ export async function selectAppointmentsByCompanyIds(
 ): Promise<AppointmentRow[]> {
   if (companyIds.length === 0) return [];
 
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("appointments")
-    .select("*")
+    .select("*", {count:"exact"})
     .in("company_id", companyIds)
     .order("meeting_date", { ascending: false });
 
   if (error) {
     throw new Error(`appointments select-by-companies failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectAppointmentsByCompanyIds");
 }
 
 // ---------------------------------------------------------------------------

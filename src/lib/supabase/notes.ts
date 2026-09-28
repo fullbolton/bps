@@ -1,3 +1,4 @@
+import {completeRows} from "./complete-result";
 /**
  * BPS — Raw Supabase access for the `notes` table.
  *
@@ -22,8 +23,8 @@ type Client = SupabaseClient<Database>;
 /**
  * Read every note for a single company, pinned first then newest first.
  *
- * Ordering matches the compound index `notes_company_sort_idx` so the
- * query plan is index-only for the hot path.
+ * Ordering follows the pinned/newest display contract. Index-only execution
+ * is not assumed: this query reads the full row.
  *
  * The Firma Detay Notlar tab uses this directly. The Genel Bakış
  * Son Notlar card re-uses the same state and slices the first three
@@ -33,9 +34,9 @@ export async function selectNotesByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<NoteRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("notes")
-    .select("*")
+    .select("*", {count:"exact"})
     .eq("company_id", companyId)
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false });
@@ -43,7 +44,7 @@ export async function selectNotesByCompanyId(
   if (error) {
     throw new Error(`notes select failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectNotesByCompanyId");
 }
 
 /**

@@ -14,6 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { completeRows } from "./complete-result";
 import { requireTaskRevision, TaskConflictError } from "@/lib/task-revision";
 import type {
   Database,
@@ -50,16 +51,16 @@ export async function selectTasksByCompanyId(
   client: Client,
   companyId: string,
 ): Promise<TaskRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("tasks")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(`tasks select-by-company failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectTasksByCompanyId");
 }
 
 /**
@@ -69,15 +70,15 @@ export async function selectTasksByCompanyId(
 export async function selectAllTasks(
   client: Client,
 ): Promise<TaskRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("tasks")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(`tasks select-all failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectAllTasks");
 }
 
 /**
@@ -108,16 +109,16 @@ export async function selectTasksByContractId(
   client: Client,
   contractId: string,
 ): Promise<TaskRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("tasks")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("contract_id", contractId)
     .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(`tasks select-by-contract failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectTasksByContractId");
 }
 
 /**
@@ -128,16 +129,16 @@ export async function selectTasksByAppointmentId(
   client: Client,
   appointmentId: string,
 ): Promise<TaskRow[]> {
-  const { data, error } = await client
+  const { data, error, count } = await client
     .from("tasks")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("appointment_id", appointmentId)
     .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(`tasks select-by-appointment failed: ${error.message}`);
   }
-  return data ?? [];
+  return completeRows(data, count, "selectTasksByAppointmentId");
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 "use client";
 import ListToolbar from "@/components/ui/ListToolbar";
+import { useIstanbulDay } from "@/components/ui/useIstanbulDay";
 import Link from "next/link";
 import {DOCUMENT_FOLDERS,documentFolder} from "@/lib/document-folders";
 import DocumentCategoryEditor from "@/components/modals/DocumentCategoryEditor";
@@ -144,6 +145,7 @@ export default function EvraklarPage() {
   const liveContext = useRef<typeof context | null>(context);
   liveContext.current = context;
   const notice = useActionNotice(scope);
+  const documentDay = useIstanbulDay();
   const readDocuments = useCallback(async () => {
     const allDocs = await listAllDocuments(supabase);
     const companyIds = [...new Set(allDocs.map(d => d.company_id))];
@@ -151,7 +153,7 @@ export default function EvraklarPage() {
       ? await getCompanyDisplayMapByIds(supabase, companyIds)
       : { nameById: {} as Record<string, string>, legacyById: {} as Record<string, string> };
     return allDocs.map(d => ({ ...d, firma_name: nameById[d.company_id] ?? "Bilinmeyen Firma", firma_legacy_id: legacyById[d.company_id] ?? null }));
-  }, [supabase]);
+  }, [supabase, documentDay]);
   const documentResource = useScopedResource(context.scope, readDocuments);
   const documents: DocumentListRow[] = documentResource.data ?? [];
   const reload = documentResource.reload;
