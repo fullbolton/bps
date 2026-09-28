@@ -302,6 +302,14 @@
     "suite": "application"
   },
   {
+    "file": "scripts/report-person-code-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/report-person-code.test.mjs",
+    "suite": "application"
+  },
+  {
     "file": "scripts/request-batch.test.mjs",
     "suite": "application"
   },

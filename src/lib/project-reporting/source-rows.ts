@@ -1,3 +1,4 @@
+import {blockedPersonCode,PERSON_CODE_MESSAGE} from './person-code';
 import {decodeCSV,parseCSV} from '@/lib/import/csv-parser';
 import {sourceDate,type SourceSheet} from '@/lib/talent/import-preview';
 import type {ActualRow} from './actual-preview';
@@ -14,6 +15,7 @@ export function normalizeActualSheet(sheet:SourceSheet,headerRow:number,mapping:
   const issues:string[]=[];const values=Object.fromEntries(keys.map(k=>[k,r.cells[mapping[k]]?.value.trim()??''])) as Record<keyof ActualMapping,string>;
   if(keys.some(k=>r.cells[mapping[k]]?.issue))issues.push('Eşlenen hücrelerde formül veya Excel hatası var. Değer olarak kaydedin.');
   for(const key of ['sourceId','locationCode','personCode','slotCode'] as const)if(!values[key]||values[key].length>160||/[\u0000-\u001f\u007f]/.test(values[key]))issues.push(actualFields[key]+' eksik veya geçersiz.');
+  if(blockedPersonCode(values.personCode))issues.push(PERSON_CODE_MESSAGE);
   const day=sourceDate(values.day);if(!day||!day.startsWith(month+'-'))issues.push('Çalışma tarihi seçilen ayda olmalı.');
   let minutes:number|null=null;
   // At most two decimal digits for hours, no thousands separators or time-of-day inference.

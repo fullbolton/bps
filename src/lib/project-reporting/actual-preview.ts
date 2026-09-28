@@ -1,3 +1,4 @@
+import {blockedPersonCode} from './person-code';
 /** Normalized input after column mapping; never writes or authorizes an import.
  * The server must obtain a complete scoped snapshot and recheck revisions at approval.
  */
@@ -15,7 +16,7 @@ const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v ===
 const code = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 160 && v.trim() === v && !/[\u0000-\u001f\u007f]/.test(v);
 const day = (v: unknown): v is string => typeof v === 'string' && /^20\d{2}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v + 'T00:00:00Z')) && new Date(v + 'T00:00:00Z').toISOString().slice(0, 10) === v;
 function parseRow(v: unknown, scope: ReportingScope): ActualRow | null {
-  if (!object(v) || !code(v.sourceId) || !code(v.locationCode) || !code(v.personCode) || !code(v.slotCode)
+  if (!object(v) || !code(v.sourceId) || !code(v.locationCode) || !code(v.personCode) || blockedPersonCode(v.personCode) || !code(v.slotCode)
     || !day(v.day) || !v.day.startsWith(scope.month + '-')
     || !(v.minutes === null || (Number.isInteger(v.minutes) && Number(v.minutes) >= 0 && Number(v.minutes) <= 1440))) return null;
   return { sourceId: v.sourceId, locationCode: v.locationCode, personCode: v.personCode, day: v.day, slotCode: v.slotCode, minutes: v.minutes as number | null };

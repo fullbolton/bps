@@ -31,3 +31,7 @@
 - Proje kaynak dosyasını aynen saklama ile yalnız normalize edilmiş güvenli dosya saklama tercihi.
 
 Bu kararlar netleşene kadar mevcut telefonları silme, yeni dışa aktarım yetkisi açma veya kaynak dosyalarını sessizce değiştirme yapılmaz.
+
+## İlk uygulama bloğu
+
+Personel kodunun tamamı normalize edilince 11 rakamsa reddeden önizleme/server/DB koruması qa/report-person-code-guard-20260928 içinde hazırlanmıştır. Yayın durumu bu paketin manifest/kanıtlarında izlenir. Bu, yukarıdaki tüm alanların veya kaynak dosyaların korunduğu anlamına gelmez; serbest metin ve dosya politikaları açık kalır.

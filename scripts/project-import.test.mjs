@@ -3,9 +3,16 @@ const sql=q=>execFileSync('docker',['exec','-i','supabase_db_bps-supabase-accept
 test('staging, atomic approval, correction and closing gates on synthetic DB',()=>{
  assert.equal(sql("select obj_description('public.tasks'::regclass)").trim(),'BPS synthetic task-prefill fixture v1');
  assert.equal(sql("select to_regclass('public.reporting_projects') is null").trim(),'t');
- const source=['01_foundation','02_actual_import','03_monthly_report','04_work_details','05_source_files'].map((n,i)=>readFileSync('supabase/migrations/20260928000'+(i+1)+'00_project_reporting_'+n.slice(3)+'.sql','utf8').replace(/^BEGIN;/m,'').replace(/COMMIT;\s*$/,'')).join('\n');
+ const source=['01_foundation','02_actual_import','03_monthly_report','04_work_details','05_source_files'].map((n,i)=>readFileSync('supabase/migrations/20260928000'+(i+1)+'00_project_reporting_'+n.slice(3)+'.sql','utf8').replace(/^BEGIN;/m,'').replace(/COMMIT;\s*$/,'')).join('\n')+'\n'+readFileSync('supabase/migrations/20260928000700_reporting_person_code_guard.sql','utf8').replace(/^BEGIN;/m,'').replace(/COMMIT;\s*$/,'');
  sql(`BEGIN;${source}
 CREATE FUNCTION pg_temp.expect_error(q text,marker text) RETURNS void LANGUAGE plpgsql AS $$ DECLARE caught boolean:=false;BEGIN BEGIN EXECUTE q;EXCEPTION WHEN OTHERS THEN IF position(marker IN SQLERRM)=0 THEN RAISE;END IF;caught:=true;END;IF NOT caught THEN RAISE EXCEPTION 'Expected %',marker;END IF;END $$;
+DO $$ BEGIN
+ IF NOT public.reporting_person_code_is_private('000 000 000 00') OR NOT public.reporting_person_code_is_private('０００００００００００') OR public.reporting_person_code_is_private('P-00000000000') THEN RAISE EXCEPTION 'Person code policy mismatch';END IF;
+ PERFORM pg_temp.expect_error($q$INSERT INTO reporting_person_codes(code) VALUES('00000000000')$q$,'REPORT_PERSON_CODE_PRIVATE');
+ PERFORM pg_temp.expect_error($q$INSERT INTO reporting_person_code_events(code) VALUES('00000000000')$q$,'REPORT_PERSON_CODE_PRIVATE');
+ PERFORM pg_temp.expect_error($q$INSERT INTO reporting_imports(rows,resolved) VALUES('[{"personCode":"00000000000"}]','[]')$q$,'REPORT_PERSON_CODE_PRIVATE');
+ PERFORM pg_temp.expect_error($q$INSERT INTO reporting_imports(rows,resolved,previous_rows) VALUES('[]','[]','[{"personCode":"00000000000"}]')$q$,'REPORT_PERSON_CODE_PRIVATE');
+END $$;
 SELECT set_config('request.jwt.claims',jsonb_build_object('sub',user_id,'app_metadata',jsonb_build_object('active_tenant',tenant_id))::text,true) FROM tenant_memberships m JOIN profiles p ON p.id=m.user_id WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND role='operasyon' LIMIT 1;
 UPDATE profiles SET role='yonetici' WHERE id=auth.uid();
 INSERT INTO talent_people(id,tenant_id,name,source) VALUES('00000000-0000-4000-8000-000000008801','00000000-0000-4000-8000-000000000001','Synthetic import person','manual');
@@ -20,6 +27,7 @@ DO $$ DECLARE actor uuid:=auth.uid();t uuid:='00000000-0000-4000-8000-0000000000
  PERFORM pg_temp.expect_error(format('select reporting_monthly_report(%L,%L,%L,%L)',actor,t,pid,'2026-10'),'REPORT_PERIOD_NOT_FOUND');
  rows:='[{"sourceId":"r1","locationCode":"IMP001","personCode":"007","day":"2026-09-10","slotCode":"day","minutes":480}]';
  PERFORM pg_temp.expect_error(format('select reporting_import_prepare(%L,%L,%L,%L,%L,%L,%L)',actor,t,pid,cmd,'2026-09','excel',rows),'REPORT_PERSON_UNMAPPED');
+ PERFORM pg_temp.expect_error(format('select reporting_person_code_set(%L,%L,%L,3,%L,%L,%L)',actor,t,pid,'excel','00000000000','00000000-0000-4000-8000-000000008801'),'REPORT_PERSON_CODE_PRIVATE');
  rev:=reporting_person_code_set(actor,t,pid,3,'excel','007','00000000-0000-4000-8000-000000008801');
  r:=reporting_import_prepare(actor,t,pid,cmd,'2026-09','excel',rows);batch:=(r->>'batchId')::uuid;
  IF reporting_monthly_report(actor,t,pid,'2026-09')->>'pending'<>'1' THEN RAISE EXCEPTION 'Pending count';END IF;
