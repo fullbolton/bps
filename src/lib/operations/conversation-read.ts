@@ -1,3 +1,4 @@
+import {isWorkDate} from '@/lib/operations/daily-demand';
 import { isUuid } from './pilot-validation';
 export type ConversationPerson={id:string;name:string};
 export type ConversationMessage={id:string;author_id:string;body:string;parent_id:string|null;mention_ids:string[];created_at:string};
@@ -13,6 +14,7 @@ export function parseMessages(v:unknown):ConversationMessage[]{
 }
 export function parseInbox(v:unknown):{unread:number;items:InboxItem[]}{
  if(!record(v)||typeof v.unread!=='number'||!Number.isSafeInteger(v.unread)||v.unread<0||!Array.isArray(v.items)||v.items.length>30)return fail();
- if(v.items.some(x=>!record(x)||!isUuid(x.message_id)||!isUuid(x.request_id)||!isUuid(x.company_id)||typeof x.company_name!=='string'||typeof x.body!=='string'||typeof x.work_date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(x.work_date)||!stamp(x.created_at)||(x.read_at!==null&&!stamp(x.read_at))))return fail();
+ if(v.items.some(x=>!record(x)||!isUuid(x.message_id)||!isUuid(x.request_id)||!isUuid(x.company_id)||typeof x.company_name!=='string'||typeof x.body!=='string'||!isWorkDate(x.work_date)||!stamp(x.created_at)||(x.read_at!==null&&!stamp(x.read_at))))return fail();
+ if(new Set(v.items.map(x=>x.message_id)).size!==v.items.length)return fail();
  return {unread:v.unread,items:v.items};
 }

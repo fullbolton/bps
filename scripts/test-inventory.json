@@ -464,5 +464,9 @@
   {
     "file": "scripts/dashboard-cards.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/inbox-interaction.test.mjs",
+    "suite": "application"
   }
 ]

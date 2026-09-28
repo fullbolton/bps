@@ -24,7 +24,7 @@ export async function conversationSend(input:unknown){
  try{const c=validateCommentCommand(input);const {client,args}=await context();if(c.actorId!==args.p_actor_id||c.tenantId!==args.p_tenant_id)throw Error('COMM_SCOPE');return {ok:true as const,...await sendRequestComment(client,c)};}catch(error){return {ok:false as const,message:message(error)};}
 }
 export async function conversationInbox(before:string|null=null){
- try{if(before!==null&&!isUuid(before))throw Error('COMM_INPUT');const {client,args}=await context();const r=await client.rpc('ops_comment_inbox_page',{...args,p_before:before});if(r.error)throw r.error;return {ok:true as const,...parseInbox(r.data)};}catch(error){return {ok:false as const,message:message(error)};}
+ try{if(before!==null&&!isUuid(before))throw Error('COMM_INPUT');const {client,args}=await context();const r=await client.rpc('ops_comment_inbox_page',{...args,p_before:before});if(r.error)throw r.error;return {ok:true as const,...parseInbox(r.data),actorId:args.p_actor_id,tenantId:args.p_tenant_id};}catch(error){return {ok:false as const,message:message(error)};}
 }
 export async function conversationRead(messageId:string){
  try{if(!isUuid(messageId))throw Error('COMM_INPUT');const {client,args}=await context();const r=await client.rpc('ops_comment_read',{...args,p_message_id:messageId});if(r.error||r.data!==true)throw Error('COMM_READ');return {ok:true as const};}catch(error){return {ok:false as const,message:message(error)};}
