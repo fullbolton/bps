@@ -1,0 +1,28 @@
+{
+  "baseCommit": "91f0276d4e8a58bda9afa6343b821f20c1522546",
+  "status": "local-not-deployed",
+  "sqlChanged": false,
+  "releaseExitCode": 0,
+  "applicationTests": 560,
+  "newTests": 10,
+  "staticFailures": 0,
+  "staticWarnings": 1,
+  "browserSmokeRun": false,
+  "databaseTestsRerun": false,
+  "files": {
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "6ed0019a6f5932e7294f51651cec9860f5d007721a5adbd18ba86ca1d465bad7",
+    "scripts/company-module-screen.test.mjs": "26d4588a399838b9141b256ee15d6b6037ce7ff0d877e98e204297522d424eff",
+    "scripts/helpers/component-driver.mjs": "d6755cfde32ff6c07d27f2fbe2a4e05b0bd7e960a649679b08cb1aae0e61083b",
+    "scripts/shared-module-screens.test.mjs": "51ddaaa4c5d0d7dd1c28e80e651426227d1020903babbe3112f2f60e8356e1af",
+    "scripts/test-inventory.json": "0e532314a5c588be1693cdaff4cfa46f8df3b7dd7c635d68230bf7fcc85b0256",
+    "src/app/(main)/firmalar/[id]/EvrakUploadModal.tsx": "66da223db9b23ed2504b24cb20b9a798dddfff37593cd0d678dd55ddfa8ccece",
+    "src/app/(main)/firmalar/[id]/page.tsx": "7caac57144913ae06d1017d8284fa5f7c00924b04cbed70a6dd5c217df1e8d83",
+    "src/app/(main)/randevular/page.tsx": "0b3ddd09be6b5b7c19d17a77709085643939c83d1e11416345dc65c296ee30fa",
+    "src/app/(main)/sozlesmeler/[id]/page.tsx": "2f2a3a433f93a059d3911204221abf3680249efc26ec76456b726d7ccc46d706",
+    "src/lib/modules/company-access.ts": "fb9e63af76b1e67f2e5e8fe7dad61678011ea2e273a9892e566bdcc3de703480",
+    "src/lib/modules/dashboard-access.ts": "85112429ce34e2ee19da498f480b83d7e15984b0302a5b31f3fd544e739c331b",
+    "src/lib/services/company-overview.ts": "01f0fddee46b6970a8475aff5f535ff5f43c1fde999091f0e7e68d2c62fc24be",
+    "src/lib/services/documents.ts": "387aafcaf55f96776b169ae862615d40049b584fcf8232053ff7633d6fec2716",
+    "src/lib/supabase/documents.ts": "e915db7686d73ebf01011ac64805619e5714362dd7bacff687209bcaf11edfd6"
+  }
+}

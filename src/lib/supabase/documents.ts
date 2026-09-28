@@ -28,9 +28,10 @@ const COMPANY_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 export async function selectDocumentsByCompanyId(
   client: Client,
   companyId: string,
+  options?: {includeContractDocuments: boolean},
 ): Promise<DocumentRow[]> {
   if (typeof companyId !== "string" || !COMPANY_UUID.test(companyId)) throw new Error("documents scope invalid");
-  return readDocumentPages(client, [companyId]);
+  return readDocumentPages(client, [companyId], options?.includeContractDocuments ?? true);
 }
 
 /**
@@ -44,7 +45,7 @@ export async function selectAllDocuments(
 }
 
 /** Fixed UUID batches bound URLs; undefined alone means all visible to the caller. */
-async function readDocumentPages(client: Client, companyIds?: string[]): Promise<DocumentRow[]> {
+async function readDocumentPages(client: Client, companyIds?: string[], includeContractDocuments = true): Promise<DocumentRow[]> {
   const ids = companyIds === undefined ? undefined : [...new Set(companyIds.map(id => id.toLowerCase()))];
   if (ids?.length === 0) return [];
   const groups: (string[] | undefined)[] = [];
@@ -59,6 +60,7 @@ async function readDocumentPages(client: Client, companyIds?: string[]): Promise
       let query = client.from("documents").select("*").order("id", { ascending: true }).limit(500);
       if (keys?.length === 1) query = query.eq("company_id", keys[0]);
       else if (keys) query = query.in("company_id", keys);
+      if (!includeContractDocuments) query = query.is("contract_id", null);
       if (cursor) query = query.gt("id", cursor);
       const { data, error } = await query;
       if (error) throw new Error("documents scan page failed");
@@ -70,6 +72,7 @@ async function readDocumentPages(client: Client, companyIds?: string[]): Promise
           throw new Error("documents scan page did not advance");
         }
         if (allowedCompanies && !allowedCompanies.has(row.company_id)) throw new Error("documents scan scope mismatch");
+        if (!includeContractDocuments && row.contract_id !== null) throw new Error("documents contract scope mismatch");
         seen.add(row.id);
         cursor = row.id;
         rows.push(row);

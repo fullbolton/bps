@@ -1,51 +1,14 @@
 import test from 'node:test';
+import {driver,compile,nodes,settle} from './helpers/component-driver.mjs';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {createRequire} from 'node:module';
-import vm from 'node:vm';
-import ts from 'typescript';
 import {importActualTypeScript} from './helpers/import-typescript.mjs';
 import {id} from './fixtures/daily-operations.mjs';
-const require=createRequire(import.meta.url);
 const {dashboardModuleAccess}=await importActualTypeScript(new URL('../src/lib/modules/dashboard-access.ts',import.meta.url));
 const {MODULE_CATALOG,parseModuleStates}=await importActualTypeScript(new URL('../src/lib/modules/catalog.ts',import.meta.url));
 const {loadCurrentWorkspaceModules}=await importActualTypeScript(new URL('../src/lib/services/workspace-modules.ts',import.meta.url));
 const all=Object.fromEntries(MODULE_CATALOG.map(module=>[module.key,true]));
 const identity={actorId:id(11),tenantId:id(1),role:'yonetici'};
 const workspace={...identity,name:'Synthetic',selectionVersion:null,membershipVersion:id(33),schemaVersion:1,catalogVersion:1,configRevision:'1',modules:all};
-
-// A small deterministic hook driver for executing actual component callbacks/effects.
-// This is not a DOM/browser test: child shells, routing and network are injected.
-function driver() {
- const slots=[],effects=[]; let cursor=0;
- const depsChanged=(a,b)=>!a||!b||a.length!==b.length||a.some((x,i)=>x!==b[i]);
- const hooks={
-  useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],v=>{slots[i]=typeof v==='function'?v(slots[i]):v;}];},
-  useRef(initial){const i=cursor++;return slots[i]??(slots[i]={current:initial});},
-  useId(){return 'synthetic-id';},
-  useMemo(fn,deps){const i=cursor++;if(!slots[i]||depsChanged(slots[i].deps,deps))slots[i]={deps,value:fn()};return slots[i].value;},
-  useCallback(fn,deps){return hooks.useMemo(()=>fn,deps);},
-  useEffect(fn,deps){const i=cursor++;if(!slots[i]||depsChanged(slots[i].deps,deps)){const old=slots[i];slots[i]={deps};effects.push(()=>{old?.cleanup?.();slots[i].cleanup=fn();});}},
- };
- return {hooks,render(component,props){cursor=0;return component(props);},flush(){for(const effect of effects.splice(0))effect();},dispose(){for(const s of slots)s?.cleanup?.();}};
-}
-function compile(path,hooks,dependencies={}) {
- const exports={};
- const code=ts.transpileModule(readFileSync(new URL('../'+path,import.meta.url),'utf8'),{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
- vm.runInNewContext(code,{exports,console,Date,Map,Set,Intl,Error,require(spec){
-  if(spec==='react')return {...require('react'),...hooks};
-  if(spec==='react/jsx-runtime')return require(spec);
-  if(spec in dependencies)return dependencies[spec];
-  throw Error('Unexpected dependency '+spec);
- }});
- return exports.default;
-}
-function nodes(tree) {
- if(Array.isArray(tree))return tree.flatMap(nodes);
- if(!tree||typeof tree!=='object')return [];
- return [tree,...nodes(tree.props?.children)];
-}
-const settle=()=>new Promise(resolve=>setImmediate(resolve));
 
 test('all valid module combinations intersect dashboard roles, without enabling dependent sections',()=>{
  let valid=0;

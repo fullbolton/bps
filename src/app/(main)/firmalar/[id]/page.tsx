@@ -1,4 +1,9 @@
 "use client";
+import EvrakUploadModal from "./EvrakUploadModal";
+import WorkspaceModuleBoundary from '@/components/modules/WorkspaceModuleBoundary';
+import type { WorkspaceModuleContext } from '@/lib/modules/context';
+import { companyModuleAccess, companyModuleTabs } from '@/lib/modules/company-access';
+import { loadCompanyFinancialSummary } from '@/lib/services/company-overview';
 import { useIstanbulDay } from "@/components/ui/useIstanbulDay";
 import { formatTry } from "@/lib/display-values";
 
@@ -9,7 +14,7 @@ import AsyncSection from "@/components/ui/AsyncSection";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import ActionNotice, { useActionNotice } from "@/components/ui/ActionNotice";
 
-import { use, useId, useRef, useState, useMemo, useEffect, useCallback } from "react";
+import { use, useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   StickyNote,
@@ -61,14 +66,12 @@ import { SECTOR_LABELS } from "@/lib/sector-codes";
 import type { SectorCode } from "@/lib/sector-codes";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
-import { resolveCompanyByIdOrLegacy } from "@/lib/services/companies";
+import { resolveCompanyByIdOrLegacy, CompanyNotFoundOrOutOfScopeError } from "@/lib/services/companies";
 import type { CompanyRow } from "@/types/database.types";
 // Phase 4 — documents now read from real Supabase truth:
 import { listDocumentsByLegacyCompanyId } from "@/lib/services/documents";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/document-categories";
-import type { DocumentCategory } from "@/lib/document-categories";
 import {
-  uploadCompanyDocumentAction,
   getCompanyDocumentDownloadUrlAction,
   deleteCompanyDocumentAction,
   deleteContactAction,
@@ -116,7 +119,6 @@ import type {
   NoteRow,
   AppointmentRow,
 } from "@/types/database.types";
-import type { TabItem } from "@/types/ui";
 import { APPOINTMENT_TYPE_LABELS } from "@/lib/appointment-types";
 import type { AppointmentMeetingType } from "@/lib/appointment-types";
 import {
@@ -147,20 +149,7 @@ const CARD_TITLE = `${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-3 flex items-center ga
 const CARD_TITLE_PLAIN = `${TYPE_CARD_TITLE} ${TEXT_PRIMARY} mb-4`;
 const LIST_DIVIDER = `border-b ${BORDER_SUBTLE} last:border-0`;
 
-const TABS: TabItem[] = [
-  { key: "genel", label: "Genel Bakış" },
-  { key: "yetkililer", label: "Yetkililer" },
-  { key: "sozlesmeler", label: "Sözleşmeler" },
-  { key: "talepler", label: "Talepler" },
-  { key: "aktif-isgucu", label: "Aktif İş Gücü" },
-  { key: "randevular", label: "Randevular" },
-  { key: "evraklar", label: "Evraklar" },
-  { key: "notlar", label: "Notlar" },
-];
-
 const COMPANY_TAB_DEFAULTS = { tab: "genel" };
-
-const DISABLED_TAB_MESSAGES: Record<string, { title: string; description: string }> = {};
 
 export default function FirmaDetayPage({
   params,
@@ -168,9 +157,14 @@ export default function FirmaDetayPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  return <WorkspaceModuleBoundary requiredModule="customers" allowedRoles={["yonetici", "operasyon", "ik", "muhasebe", "goruntuleyici"]}>{workspace => <CompanyWorkspace key={id} id={id} workspace={workspace} />}</WorkspaceModuleBoundary>;
+}
+
+function CompanyWorkspace({id, workspace}: {id:string; workspace:WorkspaceModuleContext}) {
+  const access = useMemo(() => companyModuleAccess(workspace), [workspace]);
   const router = useRouter();
   const { role } = useRole();
-  const documentsAccessRestricted = role === "muhasebe" || role === "goruntuleyici";
+  const documentsAccessRestricted = !access.documents;
   const { user, loading: authLoading } = useAuth();
   // UI reset identity only; server/RLS remain the authorization authority.
   const companyScope = `${id}:${user?.id ?? ""}:${user?.app_metadata?.active_tenant ?? ""}:${role}`;
@@ -185,10 +179,7 @@ export default function FirmaDetayPage({
     setDeletionNotice(null);
     setDeleteTarget({ scope: companyScope, kind, id: recordId, name });
   }
-  const visibleTabs = useMemo(() => role === "goruntuleyici"
-    ? TABS.filter(tab => tab.key === "genel")
-    : role === "ik" ? TABS.filter(tab => ["genel", "evraklar", "talepler", "aktif-isgucu", "notlar"].includes(tab.key))
-    : role === "muhasebe" ? TABS.filter(tab => ["genel", "sozlesmeler"].includes(tab.key)) : TABS, [role]);
+  const visibleTabs = useMemo(() => companyModuleTabs(access), [access]);
   const tabView = useListViewState("firma-sekme", !authLoading && user ? companyScope : null, COMPANY_TAB_DEFAULTS);
   // Stored preferences cannot reveal a tab outside this role's visible set.
   const activeTab = visibleTabs.some(tab => tab.key === tabView.filters.tab) ? tabView.filters.tab : "genel";
@@ -218,13 +209,13 @@ export default function FirmaDetayPage({
   // (RLS-checked) → contacts query. Out-of-scope/missing firmas surface as
   // a CompanyNotFoundOrOutOfScopeError, which we map to an inline message.
   const supabase = useMemo(() => createClient(), []);
-  const contactScope = !authLoading && user && ["yonetici", "operasyon"].includes(role) ? companyScope : null;
+  const contactScope = !authLoading && user && access.contacts ? companyScope : null;
   const readContacts = useCallback(() => listContactsByLegacyCompanyId(supabase, id), [supabase, id]);
   const contactsResource = useScopedResource(contactScope, readContacts);
   const yetkililer = contactsResource.data ?? [];
   const contactsReady = !!contactScope && !contactsResource.loading && !contactsResource.error;
   const reloadYetkililer = contactsResource.reload;
-  const notesScope = !authLoading && user && !["goruntuleyici", "muhasebe"].includes(role) ? companyScope : null;
+  const notesScope = !authLoading && user && access.notes ? companyScope : null;
   const readNotes = useCallback(() => listNotesByLegacyCompanyId(supabase, id), [supabase, id]);
   const notesResource = useScopedResource(notesScope, readNotes);
   const notlar = notesResource.data ?? [];
@@ -250,15 +241,16 @@ export default function FirmaDetayPage({
     return () => { liveNoteContext.current = null; };
   }, [noteContext]);
   // Phase 3 state: Talepler, Randevular, İş Gücü — real Supabase truth.
-  const staffingScope = !authLoading && user ? companyScope : null;
+  const staffingScope = !authLoading && user && access.demands ? companyScope : null;
+  const workforceScope = !authLoading && user && access.workforce ? companyScope : null;
   const readDemands = useCallback(() => listDemandsByLegacyCompanyId(supabase, id), [supabase, id]);
   const readWorkforce = useCallback(() => getWorkforceSummaryByLegacyCompanyId(supabase, id), [supabase, id]);
   const demandResource = useScopedResource(staffingScope, readDemands);
-  const workforceResource = useScopedResource(staffingScope, readWorkforce);
+  const workforceResource = useScopedResource(workforceScope, readWorkforce);
   const firmaTalepler = demandResource.data ?? [];
   const firmaIsGucu = workforceResource.data;
   const [appointmentOpen, setAppointmentOpen] = useState(false);
-  const appointmentsEnabled = !authLoading && !!user;
+  const appointmentsEnabled = !authLoading && !!user && access.calendar;
   const appointmentContext = useMemo(() => ({ scope: companyScope, enabled: appointmentsEnabled }), [companyScope, appointmentsEnabled]);
   const liveAppointmentContext = useRef<typeof appointmentContext | null>(appointmentContext);
   liveAppointmentContext.current = appointmentContext;
@@ -316,19 +308,22 @@ export default function FirmaDetayPage({
   // Real company shell — loaded from DB, handles both legacy IDs and UUIDs
   const [companyShell, setCompanyShell] = useState<CompanyRow | null>(null);
   const [companyLoading, setCompanyLoading] = useState(true);
+  const [companyError, setCompanyError] = useState(false);
+  const [companyRetry, setCompanyRetry] = useState(0);
   const [loadedCompanyScope, setLoadedCompanyScope] = useState("");
   useEffect(() => {
     let current = true;
     setCompanyLoading(true);
+    setCompanyError(false);
     setCompanyShell(null);
     resolveCompanyByIdOrLegacy(supabase, id)
       .then((company) => { if (current) setCompanyShell(company); })
-      .catch(() => { if (current) setCompanyShell(null); })
+      .catch(error => { if (current) { setCompanyShell(null); setCompanyError(!(error instanceof CompanyNotFoundOrOutOfScopeError)); } })
       .finally(() => {
         if (current) { setCompanyLoading(false); setLoadedCompanyScope(companyScope); }
       });
     return () => { current = false; };
-  }, [supabase, id, companyScope]);
+  }, [supabase, id, companyScope, companyRetry]);
 
   async function changeCompanyStatus(next: "aktif" | "pasif") {
     if (!companyShell || companyScopeRef.current !== companyScope) throw new Error("Firma bilgisi değişti. Sayfayı yenileyin.");
@@ -368,59 +363,22 @@ export default function FirmaDetayPage({
   const isPassiveCompany = firma?.durum === "pasif";
   const PASSIVE_BLOCK_TITLE = "Firma pasif olduğu için yeni işlem oluşturulamaz.";
 
-  // Financial summary — real DB, truthful absence state.
-  // `last_source` distinguishes mizan-derived visibility from muhasebe
-  // manual-flow visibility so the Ticari Özet card can surface a subtle
-  // source caption. Legacy rows written before the source signal was
-  // added return null and render no caption.
-  const [firmaFinancial, setFirmaFinancial] = useState<{
-    open_receivable: string | null;
-    unbilled_amount: string | null;
-    is_overdue: boolean;
-    last_source: "mizan" | "muhasebe" | null;
-  } | null>(null);
-  useEffect(() => {
-    if (!companyShell) return;
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("financial_summaries")
-          .select("open_receivable, unbilled_amount, is_overdue, last_source")
-          .eq("company_id", companyShell.id)
-          .maybeSingle();
-        const row = data as
-          | {
-              open_receivable: string | null;
-              unbilled_amount: string | null;
-              is_overdue: boolean | null;
-              last_source: string | null;
-            }
-          | null;
-        setFirmaFinancial(
-          row
-            ? {
-                open_receivable: row.open_receivable ?? null,
-                unbilled_amount: row.unbilled_amount ?? null,
-                is_overdue: Boolean(row.is_overdue),
-                last_source:
-                  row.last_source === "mizan" || row.last_source === "muhasebe"
-                    ? row.last_source
-                    : null,
-              }
-            : null,
-        );
-      } catch {
-        setFirmaFinancial(null);
-      }
-    })();
-  }, [supabase, companyShell]);
+  // Scope-aware reader separates loading/error/absence and ignores late responses.
+  const companyId = companyShell?.id ?? null;
+  const readFinancial = useCallback(() => loadCompanyFinancialSummary(supabase, companyId ?? "", workspace.tenantId), [supabase, companyId, workspace.tenantId]);
+  const financialResource = useScopedResource(access.finance && companyId ? `${companyScope}:${companyId}` : null, readFinancial);
+  const firmaFinancial = financialResource.data;
+  const paymentContext = firmaFinancial ? {
+    gecikmisAlacak: firmaFinancial.is_overdue === true && Number(firmaFinancial.open_receivable) > 0 ? formatTry(firmaFinancial.open_receivable) : undefined,
+    kesilmemisBekleyen: Number(firmaFinancial.unbilled_amount) > 0 ? formatTry(firmaFinancial.unbilled_amount) : undefined,
+  } : null;
 
   // Sözleşmeler — Faz 2: real Supabase truth via service layer.
   // One fetch feeds both the Sözleşmeler tab (full list) and the
   // Genel Bakış > Aktif Sözleşmeler card (filtered to status='aktif').
   // Resolution path: legacy mock id → companies row (RLS-checked) →
   // contracts query. UI roles follow the existing contract SELECT policy.
-  const contractsAllowed = ["yonetici", "operasyon"].includes(role);
+  const contractsAllowed = access.contracts;
   const readContracts = useCallback(() => listContractsByLegacyCompanyId(supabase, id), [supabase, id]);
   const contractsResource = useScopedResource(
     !authLoading && user && contractsAllowed ? companyScope : null,
@@ -437,7 +395,7 @@ export default function FirmaDetayPage({
   // Phase 4A — Firma Evraklar (real Supabase truth)
   // -------------------------------------------------------------------------
   const documentDay = useIstanbulDay();
-  const readDocuments = useCallback(() => listDocumentsByLegacyCompanyId(supabase, id), [supabase, id, documentDay]);
+  const readDocuments = useCallback(() => listDocumentsByLegacyCompanyId(supabase, id, {includeContractDocuments:workspace.modules.contracts}), [supabase, id, documentDay, workspace.modules.contracts]);
   const documentResource = useScopedResource(!authLoading && user && !documentsAccessRestricted ? companyScope : null, readDocuments);
   const firmaDocs = documentResource.data ?? [];
   const docsLoading = documentResource.loading;
@@ -466,7 +424,7 @@ export default function FirmaDetayPage({
   }
 
   // Document upload draft is isolated from authorization/context changes.
-  const uploadAllowed = !authLoading && !!user && ["yonetici", "operasyon", "ik"].includes(role);
+  const uploadAllowed = !authLoading && !!user && access.documents;
   const uploadContext = useMemo(() => ({ scope: uploadAllowed ? companyScope : null }), [uploadAllowed, companyScope]);
   const liveUploadContext = useRef<typeof uploadContext | null>(uploadContext);
   liveUploadContext.current = uploadContext;
@@ -526,17 +484,16 @@ export default function FirmaDetayPage({
     return (
       <div className="py-12">
         <EmptyState
-          title="Firma bulunamadi"
-          description="Bu ID ile eslesen bir firma bulunamadi."
+          title={companyError ? "Firma yüklenemedi" : "Firma bulunamadı"}
+          description={companyError ? "Firma bilgisi alınamadı veya bu kayda erişiminiz yok. Yeniden deneyin." : "Bu kayıt bulunamadı veya erişiminizin dışında."}
           size="page"
-          action={{ label: "Firmalara Don", onClick: () => router.push("/firmalar") }}
+          action={companyError ? {label:"Tekrar dene",onClick:() => setCompanyRetry(value => value + 1)} : { label: "Firmalara dön", onClick: () => router.push("/firmalar") }}
         />
       </div>
     );
   }
 
-  const canCreateNotes = !["goruntuleyici", "muhasebe"].includes(role);
-  const canCreateRouting = role !== "goruntuleyici";
+  const canCreateNotes = access.notes;
 
   const headerActions = [
     ...(canCreateNotes ? [
@@ -551,7 +508,7 @@ export default function FirmaDetayPage({
         icon: <Lightbulb size={16} />,
       },
     ] : []),
-    ...(["yonetici", "operasyon"].includes(role) ? [{
+    ...(access.calendar ? [{
       label: "Randevu Planla",
       onClick: () => setAppointmentOpen(true),
       icon: <CalendarCheck size={16} />,
@@ -612,7 +569,7 @@ export default function FirmaDetayPage({
         actions={headerActions}
       />
 
-      {companyShell && (role === "yonetici" || role === "operasyon") && (
+      {companyShell && access.dailyPlan && (
         <button className="mb-5 inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" onClick={() => router.push(`/talepler/gunluk?firma=${companyShell.id}`)}>
           Günlük personel planını aç
         </button>
@@ -645,7 +602,7 @@ export default function FirmaDetayPage({
       )}
 
       <TabNavigation
-        tabs={visibleTabs.map(tab => ({ ...tab, disabled: tab.disabled || !tabView.ready }))}
+        tabs={visibleTabs.map(tab => ({ ...tab, disabled: !tabView.ready }))}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
@@ -658,7 +615,7 @@ export default function FirmaDetayPage({
           <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 1. Aktif Sözleşmeler — hidden for ik (contract domain) */}
-            {role !== "ik" && <div className={CARD}>
+            {access.contracts && <div className={CARD}>
               <h3 className={CARD_TITLE}>
                 <FileText size={14} className={TEXT_MUTED} />
                 Aktif Sözleşmeler
@@ -715,7 +672,7 @@ export default function FirmaDetayPage({
             </div>}
 
             {/* 2. Açık Talepler — hidden for muhasebe */}
-            {role !== "muhasebe" && (() => {
+            {access.demands && (() => {
               const acikKalanToplam = firmaTalepler.reduce((s, t) => s + computeOpenCount(t), 0);
               return (
                 <div className={CARD}>
@@ -746,7 +703,7 @@ export default function FirmaDetayPage({
             })()}
 
             {/* 3. Aktif İş Gücü Özeti — hidden for muhasebe */}
-            {role !== "muhasebe" && (() => {
+            {access.workforce && (() => {
               return (
                 <div className={CARD}>
                   <h3 className={CARD_TITLE}>
@@ -754,7 +711,7 @@ export default function FirmaDetayPage({
                     Önceki Kadro Özeti
                   </h3>
                   <p className="mt-2 text-xs text-slate-500">Eski kadro kayıtları gösterilir. Günlük görevlendirmeler için günlük personel planını açın.</p>
-                  {companyShell && <a className="my-2 inline-flex min-h-11 items-center text-sm text-blue-700 underline" href={`/talepler/gunluk?firma=${companyShell.id}`}>Firmanın günlük planını aç</a>}
+                  {companyShell && access.dailyPlan && <a className="my-2 inline-flex min-h-11 items-center text-sm text-blue-700 underline" href={`/talepler/gunluk?firma=${companyShell.id}`}>Firmanın günlük planını aç</a>}
                   <AsyncSection isLoading={workforceResource.loading} hasError={workforceResource.error} onRetry={() => { void workforceResource.reload(); }}>
                   {firmaIsGucu ? (
                     <div className="space-y-2">
@@ -779,7 +736,7 @@ export default function FirmaDetayPage({
             })()}
 
             {/* 4. Yaklaşan Randevular — hidden for muhasebe, derived from real truth */}
-            {role !== "muhasebe" && (() => {
+            {access.calendar && (() => {
               const planliRandevuSayisi = firmaRandevular.filter((r) => r.status === "planlandi").length;
               return (
                 <div className={CARD}>
@@ -807,7 +764,7 @@ export default function FirmaDetayPage({
             })()}
 
             {/* 5. Evrak takibi — stored status, only after a successful read */}
-            {role !== "muhasebe" && (() => {
+            {access.documents && (() => {
               const eksikler = firmaDocs.filter((e) => e.status !== "tam");
               return (
                 <div className={CARD}>
@@ -844,7 +801,8 @@ export default function FirmaDetayPage({
             })()}
 
             {/* 6. Ticari Özet — real financial data or honest absence */}
-            {!["goruntuleyici", "ik"].includes(role) && (() => {
+            {access.finance && (() => {
+              if (financialResource.loading || financialResource.error) return <div className={CARD}><h3 className={CARD_TITLE}>Ticari Özet</h3><AsyncSection isLoading={financialResource.loading} hasError={financialResource.error} onRetry={() => { void financialResource.reload(); }}>{null}</AsyncSection></div>;
               if (!firmaFinancial) {
                 return (
                   <div className={CARD}>
@@ -871,7 +829,7 @@ export default function FirmaDetayPage({
             })()}
 
             {/* 7. Son Notlar — reads from notes state, hidden for görüntüleyici + muhasebe */}
-            {!["goruntuleyici", "muhasebe"].includes(role) && <div className={CARD}>
+            {access.notes && <div className={CARD}>
               <h3 className={CARD_TITLE}>
                 <StickyNote size={14} className={TEXT_MUTED} />
                 Son Notlar
@@ -895,7 +853,7 @@ export default function FirmaDetayPage({
             </div>}
 
             {/* 8. Ödeme takibi — hidden for görüntüleyici + ik + muhasebe */}
-            {!["goruntuleyici", "ik", "muhasebe"].includes(role) && <div className={CARD}>
+            {access.finance && role === "yonetici" && <div className={CARD}>
               <h3 className={CARD_TITLE}>
                 <AlertTriangle size={14} className="text-amber-500" />
                 Ödeme takibi
@@ -904,18 +862,20 @@ export default function FirmaDetayPage({
                 
               </div>
               {(() => {
-                // Real risk signals from financial summary
+                if (financialResource.loading || financialResource.error) return <p className="text-sm text-slate-500">Ödeme takibi için ticari özetin yüklenmesi gerekiyor.</p>;
+                if (!firmaFinancial) return <p className="text-sm text-slate-500">Bu firma için ticari özet kaydı yok.</p>;
+                // Only a loaded positive amount is a payment follow-up signal.
                 const ticariBullets: string[] = [];
-                if (firmaFinancial?.is_overdue && firmaFinancial?.open_receivable) {
-                  ticariBullets.push(`Ticari: Gecikmis alacak ${firmaFinancial.open_receivable}`);
+                if (firmaFinancial?.is_overdue && Number(firmaFinancial.open_receivable) > 0) {
+                  ticariBullets.push(`Gecikmiş alacak: ${formatTry(firmaFinancial.open_receivable)}`);
                 }
-                if (firmaFinancial?.unbilled_amount) {
-                  ticariBullets.push(`Ticari: Kesilmemis bekleyen ${firmaFinancial.unbilled_amount}`);
+                if (Number(firmaFinancial?.unbilled_amount) > 0) {
+                  ticariBullets.push(`Faturalanmamış tutar: ${formatTry(firmaFinancial.unbilled_amount)}`);
                 }
                 const allSignals = ticariBullets.length === 0;
 
                 if (allSignals) {
-                  return <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>Takip bekleyen ödeme kaydı yok.</p>;
+                  return <p className={`${TYPE_BODY} ${TEXT_MUTED}`}>{firmaFinancial.is_overdue === null ? "Gecikme bilgisi belirtilmemiş." : "Takip bekleyen ödeme kaydı yok."}</p>;
                 }
 
                 const canDraftPayment = ticariBullets.length > 0 && (role === "yonetici" || role === "partner");
@@ -947,13 +907,13 @@ export default function FirmaDetayPage({
           </div>
 
           {/* Ticari Temas — outbound draft helpers, yönetici + partner only */}
-          {(role === "yonetici" || role === "partner") && firma.durum === "aktif" && (() => {
+          {access.finance && role === "yonetici" && !financialResource.loading && !financialResource.error && firma.durum === "aktif" && (() => {
             const sonGorusmeTarih = firma.sonGorusme;
             const isStale = sonGorusmeTarih && sonGorusmeTarih !== "—" && (() => {
               const diff = (new Date().getTime() - new Date(sonGorusmeTarih).getTime()) / (1000 * 60 * 60 * 24);
               return diff > 30;
             })();
-            const tb = firmaFinancial ? { gecikmisAlacak: firmaFinancial.is_overdue ? (firmaFinancial.open_receivable ?? undefined) : undefined, kesilmemisBekleyen: firmaFinancial.unbilled_amount ?? undefined } : null;
+            const tb = paymentContext;
             const hasTicariBaski = !!(tb?.gecikmisAlacak || tb?.kesilmemisBekleyen);
             if (!isStale && !hasTicariBaski) return null;
 
@@ -985,7 +945,7 @@ export default function FirmaDetayPage({
           })()}
 
           {/* Teklif Hesaplayıcı — inline offer calculator, yönetici + partner only */}
-          {(role === "yonetici" || role === "partner") && firma.durum === "aktif" && (
+          {access.finance && role === "yonetici" && firma.durum === "aktif" && (
             <div className={`${SURFACE_PRIMARY} border ${hesapOpen ? BORDER_DEFAULT : `border-dashed ${BORDER_DEFAULT}`} ${RADIUS_DEFAULT} ${hesapOpen ? "p-4" : "px-4 py-2.5"} transition-all`}>
               <div
                 className="flex items-center justify-between cursor-pointer"
@@ -1329,7 +1289,7 @@ export default function FirmaDetayPage({
             <div className={CARD_LG}>
               <h3 className={CARD_TITLE_PLAIN}>Önceki Kadro Özeti</h3>
               <p className="mt-2 text-sm text-slate-600">Bu bölüm kayıtlı kadro bilgisini gösterir. Günlük görevlendirmeleri ve yoklamaları personel planından takip edin.</p>
-              {companyShell && <a className="my-3 inline-flex min-h-11 items-center text-sm text-blue-700 underline" href={`/talepler/gunluk?firma=${companyShell.id}`}>Firmanın günlük planını aç</a>}
+              {companyShell && access.dailyPlan && <a className="my-3 inline-flex min-h-11 items-center text-sm text-blue-700 underline" href={`/talepler/gunluk?firma=${companyShell.id}`}>Firmanın günlük planını aç</a>}
               <AsyncSection isLoading={workforceResource.loading} hasError={workforceResource.error} onRetry={() => { void workforceResource.reload(); }}>
               {firmaIsGucu ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -1376,7 +1336,7 @@ export default function FirmaDetayPage({
           // Upload boundary matches ROLE_MATRIX row 308 (Evrak yükleme):
           // yonetici + partner-scope + operasyon + ik. Partner scope is
           // enforced at the DB layer by the documents INSERT policy.
-          const canMutateDocs = ["yonetici", "partner", "operasyon", "ik"].includes(role);
+          const canMutateDocs = access.documents;
           // Delete is yonetici-only — mirrors the documents + storage.objects
           // DELETE RLS policies. Same gate the server action enforces.
           const canDeleteDocs = role === "yonetici";
@@ -1409,7 +1369,7 @@ export default function FirmaDetayPage({
             </div>
           );
           const renderContractLink = (d: (typeof firmaDocs)[number]) => d.contract_id
-            ? (["yonetici", "operasyon"].includes(role)
+            ? (access.contracts
               ? <a href={`/sozlesmeler/${d.contract_id}`} className="inline-flex min-h-11 max-w-full items-center break-words py-2 text-blue-700 underline">{contractLabelById.get(d.contract_id) ?? "Sözleşme dosyaları"}</a>
               : contractLabelById.get(d.contract_id) ?? "Sözleşmeye bağlı belge")
             : "—";
@@ -1417,7 +1377,7 @@ export default function FirmaDetayPage({
           return (
             <div className={CARD_LG}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className={CARD_TITLE_PLAIN + " mb-0"}>Firma Evraklari</h3>
+                <h3 className={CARD_TITLE_PLAIN + " mb-0"}>Firma Evrakları</h3>
                 {canMutateDocs && firma && (
                   <button
                     type="button"
@@ -1432,6 +1392,7 @@ export default function FirmaDetayPage({
                 )}
               </div>
 
+              {!workspace.modules.contracts && <p className="mb-4 text-sm text-slate-500">Sözleşmeler modülü kapalı. Burada yalnız firma belgeleri gösteriliyor.</p>}
               {currentDownload && <section aria-label="Evrak indirme" className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <p className="min-w-0 break-words text-sm font-medium text-slate-800">{currentDownload.row.name}</p>
@@ -1701,17 +1662,9 @@ export default function FirmaDetayPage({
           );
         })()}
 
-        {/* Disabled tabs — tab-specific empty state */}
-        {DISABLED_TAB_MESSAGES[activeTab] && (
-          <EmptyState
-            title={DISABLED_TAB_MESSAGES[activeTab].title}
-            description={DISABLED_TAB_MESSAGES[activeTab].description}
-            size="tab"
-          />
-        )}
       </div>
 
-      {appointmentOpen && companyShell && ["yonetici", "operasyon"].includes(role) && (
+      {appointmentOpen && companyShell && access.calendar && (
         <NewAppointmentModal
           key={companyScope}
           open={appointmentOpen}
@@ -1911,7 +1864,7 @@ export default function FirmaDetayPage({
               {!paymentDraftText ? (
                 <button
                   onClick={() => {
-                    const tb = firmaFinancial ? { gecikmisAlacak: firmaFinancial.is_overdue ? (firmaFinancial.open_receivable ?? undefined) : undefined, kesilmemisBekleyen: firmaFinancial.unbilled_amount ?? undefined } : null;
+                    const tb = paymentContext;
                     if (!tb) return;
                     setPaymentDraftText(generatePaymentFollowup(firma.firmaAdi, tb));
                     setPaymentCopied(false);
@@ -1982,7 +1935,7 @@ export default function FirmaDetayPage({
                       });
                       setTemasDraftText(draft);
                     } else {
-                      const tb = firmaFinancial ? { gecikmisAlacak: firmaFinancial.is_overdue ? (firmaFinancial.open_receivable ?? undefined) : undefined, kesilmemisBekleyen: firmaFinancial.unbilled_amount ?? undefined } : null;
+                      const tb = paymentContext;
                       if (tb) {
                         setTemasDraftText(generatePaymentFollowup(firma.firmaAdi, tb));
                       }
@@ -2018,7 +1971,7 @@ export default function FirmaDetayPage({
           companyId={companyShell.id}
           companyName={companyShell.name}
           contracts={firmaSozlesmeler.map((c) => ({ id: c.id, name: c.name }))}
-          contractsState={role !== "yonetici" ? "restricted" : contractsResource.loading ? "loading" : contractsResource.error ? "error" : "ready"}
+          contractsState={!workspace.modules.contracts ? "disabled" : role !== "yonetici" ? "restricted" : contractsResource.loading ? "loading" : contractsResource.error ? "error" : "ready"}
           onRetryContracts={() => { void reloadSozlesmeler(); }}
           submitError={evrakUploadError}
           onClose={() => {
@@ -2039,141 +1992,4 @@ export default function FirmaDetayPage({
       )}
     </>
   );
-}
-
-// ---------------------------------------------------------------------------
-// EvrakUploadModal — page-local upload form.
-//
-// Server-action backed (see `./actions.ts > uploadCompanyDocumentAction`).
-// The component itself only collects inputs and forwards them as
-// FormData; identity / tenant / company / audit fields are set by the
-// action against the cookie-derived session. The browser never sees a
-// signed URL it can persist, never sees a service-role client, and
-// never writes directly to `documents`.
-// ---------------------------------------------------------------------------
-
-interface EvrakUploadModalProps {
-  companyId: string;
-  companyName: string;
-  contracts: { id: string; name: string }[];
-  contractsState: "loading" | "error" | "restricted" | "ready";
-  onRetryContracts: () => void;
-  submitError: string | null;
-  onClose: () => void;
-  onSubmitError: (err: string) => void;
-  onSuccess: (name: string) => void;
-}
-
-function EvrakUploadModal({companyId, companyName, contracts, contractsState, onRetryContracts, submitError, onClose, onSubmitError, onSuccess}: EvrakUploadModalProps) {
-  const formId = useId();
-  const [file, setFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState<DocumentCategory>("diger");
-  const [contractId, setContractId] = useState("");
-  const [validityDate, setValidityDate] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [discardOpen, setDiscardOpen] = useState(false);
-  const [reviewRequired, setReviewRequired] = useState(false);
-  const errorRef = useRef<HTMLParagraphElement>(null);
-  useEffect(() => {
-    if (submitError) { errorRef.current?.focus({ preventScroll: true }); errorRef.current?.scrollIntoView({ block: "nearest" }); }
-  }, [submitError]);
-  const saving = useRef(false);
-  const mounted = useRef(true);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  const contractVerified = contractsState === "ready" && contracts.some(c => c.id === contractId);
-  const canSubmit = !!file && name.trim().length > 0 && !submitting && !contractId && !reviewRequired;
-  const dirty = !!file || !!fileError || name !== "" || category !== "diger" || contractId !== "" || validityDate !== "";
-  function requestClose() {
-    if (saving.current) return;
-    if (dirty) setDiscardOpen(true);
-    else onClose();
-  }
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const picked = event.target.files?.[0] ?? null;
-    setFile(null); setFileError(null);
-    if (!picked) return;
-    const error = picked.type !== "application/pdf" ? "Sadece PDF dosyası yüklenebilir."
-      : picked.size === 0 ? "Boş dosya yüklenemez."
-      : picked.size > 10 * 1024 * 1024 ? "Dosya boyutu 10 MB'dan büyük olamaz." : null;
-    if (error) { setFileError(error); event.target.value = ""; return; }
-    setFile(picked);
-  }
-  async function handleSubmit() {
-    if (!canSubmit || !file || saving.current) return;
-    saving.current = true; setSubmitting(true); onSubmitError("");
-    const fd = new FormData();
-    fd.set("company_id", companyId); fd.set("name", name.trim()); fd.set("category", category);
-    if (contractId) fd.set("contract_id", contractId);
-    if (validityDate) fd.set("validity_date", validityDate);
-    fd.set("file", file);
-    try {
-      const result = await uploadCompanyDocumentAction(fd);
-      if (!mounted.current) return;
-      if (result.ok) onSuccess(name.trim());
-      else { setReviewRequired(result.reviewRequired === true); onSubmitError(result.error); }
-    } catch {
-      if (mounted.current) { setReviewRequired(true); onSubmitError("Yükleme sonucu alınamadı. Tekrar denemeden önce belge listesini kontrol edin."); }
-    } finally {
-      saving.current = false;
-      if (mounted.current) setSubmitting(false);
-    }
-  }
-  const fieldClass = "min-h-11 w-full min-w-0 px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50";
-  const labelClass = "block text-sm font-medium text-slate-700 mb-1";
-  return <>
-    <ModalShell open onClose={requestClose} closeDisabled={submitting} title="Belge Yükle" footer={<>
-      <button type="button" onClick={requestClose} disabled={submitting} className="min-h-11 px-4 py-2 text-sm border border-slate-200 rounded-md disabled:opacity-40">İptal</button>
-      <button type="submit" form={formId} disabled={!canSubmit} className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40">{submitting ? "Yükleniyor…" : "Yükle"}</button>
-    </>}>
-      <p className="mb-4 break-words text-sm text-slate-500">{companyName}</p>
-      <form id={formId} onSubmit={event => { event.preventDefault(); void handleSubmit(); }} aria-busy={submitting}>
-        <fieldset disabled={submitting} className="space-y-4 min-w-0">
-          <div>
-            <label htmlFor={`${formId}-name`} className={labelClass}>Belge Adı *</label>
-            <input id={`${formId}-name`} data-dialog-initial-focus required value={name} onChange={e => setName(e.target.value)} placeholder="Belge adını girin" className={fieldClass} />
-          </div>
-          <div>
-            <label htmlFor={`${formId}-file`} className={labelClass}>Dosya (PDF) *</label>
-            <input id={`${formId}-file`} type="file" accept="application/pdf" required onChange={handleFileChange} aria-describedby={`${formId}-file-hint`} className="min-h-11 w-full min-w-0 text-sm file:mr-2 file:min-h-11 file:rounded-md file:border file:border-slate-200 file:bg-slate-50" />
-            <p id={`${formId}-file-hint`} className="mt-1 text-xs text-slate-500">Maksimum 10 MB, sadece PDF.</p>
-            {file && <p className="mt-1 break-words text-xs text-slate-500">Seçilen: {file.name}</p>}
-            {fileError && <p role="alert" className="mt-1 text-sm text-red-600">{fileError}</p>}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><label htmlFor={`${formId}-category`} className={labelClass}>Kategori</label>
-              <select id={`${formId}-category`} value={category} onChange={e => setCategory(e.target.value as DocumentCategory)} className={fieldClass}>
-                {(Object.keys(DOCUMENT_CATEGORY_LABELS) as DocumentCategory[]).map(k => <option key={k} value={k}>{DOCUMENT_CATEGORY_LABELS[k]}</option>)}
-              </select>
-            </div>
-            <div><label htmlFor={`${formId}-date`} className={labelClass}>Geçerlilik (opsiyonel)</label>
-              <input id={`${formId}-date`} type="date" value={validityDate} onChange={e => setValidityDate(e.target.value)} className={fieldClass} />
-            </div>
-          </div>
-          <div>
-            <label htmlFor={`${formId}-contract`} className={labelClass}>Sözleşme dosyaları</label>
-            <select id={`${formId}-contract`} value={contractId} onChange={e => setContractId(e.target.value)} disabled={contractsState !== "ready"} className={fieldClass}>
-              <option value="">Firma belgesi yükle</option>
-              {contractId && !contractVerified && <option value={contractId}>Önceki seçim doğrulanamadı</option>}
-              {contractsState === "ready" && contracts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            {contractsState === "loading" && <p role="status" className="mt-2 text-sm text-slate-500">Sözleşmeler yükleniyor. Sözleşmeye bağlamadan yükleyebilirsiniz.</p>}
-            {contractsState === "error" && <div className="mt-2 text-sm"><p role="status">Sözleşmeler yüklenemedi. Sözleşmeye bağlamadan yükleyebilir veya yeniden deneyebilirsiniz.</p><button type="button" onClick={onRetryContracts} className="min-h-11 text-blue-700 underline">Sözleşmeleri yeniden dene</button></div>}
-            {contractsState === "restricted" && <p className="mt-2 text-sm text-slate-500">Bu rolde sözleşme seçilemez. Belge firmaya yüklenir.</p>}
-            {contractsState === "ready" && contracts.length === 0 && <p className="mt-2 text-sm text-slate-500">Bu firmaya ait sözleşme kaydı yok. Belge firmaya yüklenir.</p>}
-            {contractId && contractVerified && <div className="mt-2 space-y-2 text-sm">
-              <p>Sözleşmenin ana PDF ve eklerini sözleşme sayfasından yönetin. Seçilen dosya bu formda korunur; dosyayı açılan sayfada yeniden seçmeniz gerekir.</p>
-              <a href={`/sozlesmeler/${contractId}#belgeler`} target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center text-blue-700 underline">Sözleşme dosyalarını aç (yeni sekme)</a>
-              <button type="button" onClick={() => setContractId("")} className="min-h-11 block text-blue-700 underline">Firma belgesi olarak devam et</button>
-            </div>}
-            {contractId && !contractVerified && <div className="mt-2 text-sm"><p role="status">Seçilen sözleşme doğrulanmadan yükleme yapılamaz.</p><button type="button" onClick={() => setContractId("")} className="min-h-11 text-blue-700 underline">Sözleşme seçimini kaldır</button></div>}
-          </div>
-        </fieldset>
-        {submitting && <p role="status" className="mt-4 text-sm text-blue-700">Belge yükleniyor, lütfen bekleyin…</p>}
-        {submitError && <p ref={errorRef} tabIndex={-1} role="alert" className="mt-4 break-words text-sm text-red-600">{submitError}</p>}
-      </form>
-    </ModalShell>
-    {discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler" recordName="Belge yükleme taslağı" description="Seçilen dosya ve form bilgileri bırakılacak." confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)} onConfirm={async () => { if (!saving.current) onClose(); }} />}
-  </>;
 }

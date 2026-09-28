@@ -488,5 +488,9 @@
   {
     "file": "scripts/shared-module-screens.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/company-module-screen.test.mjs",
+    "suite": "application"
   }
 ]

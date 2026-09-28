@@ -87,12 +87,12 @@ export default function SozlesmeDetayPage({
   const { role } = useRole();
   const { loading, user } = useAuth();
   if (loading) return <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />;
-  if (!user || !["yonetici", "partner", "operasyon"].includes(role)) {
+  if (!user || !["yonetici", "operasyon"].includes(role)) {
     return <EmptyState title="Erişim kısıtlı" description="Bu ekran erişiminizin dışındadır." size="page" />;
   }
   // A fresh instance also protects A → B → A: old callbacks stay unmounted.
   const scope = JSON.stringify([id, user.id, user.app_metadata?.active_tenant, role]);
-  return <WorkspaceModuleBoundary requiredModule="contracts" allowedRoles={["yonetici", "partner", "operasyon"]}>{workspace => <ContractWorkspace key={scope} id={id} workspace={workspace} />}</WorkspaceModuleBoundary>;
+  return <WorkspaceModuleBoundary requiredModule="contracts" allowedRoles={["yonetici", "operasyon"]}>{workspace => <ContractWorkspace key={scope} id={id} workspace={workspace} />}</WorkspaceModuleBoundary>;
 }
 
 function ContractWorkspace({ id, workspace }: { id: string; workspace: WorkspaceModuleContext }) {

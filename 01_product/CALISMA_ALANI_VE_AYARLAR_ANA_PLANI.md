@@ -248,3 +248,13 @@ Ana ekran, randevular ve sözleşme detayı ortak doğrulanmış sayfa girişine
 550/550 uygulama testi, statik 0 FAIL/1 WARN, TypeScript ve üretim derlemesi geçti. Sekiz yeni test gerçek bileşen fonksiyonları/effect/callback'lerini sentetik hook/ağ sürücüsüyle çalıştırır; kimlikli tarayıcı/PostgREST smoke değildir. SQL değişmedi, DB testleri bu tur tekrarlanmadı. Rapor: `qa/tenant-module-shared-screens-20260928/README.md`.
 
 **Yerel; push/deploy veya üretim migration yok.** Modül kapatma hâlâ açılmadı. Sayfa giriş snapshot'ı canlı değişiklik yayını değildir; UI kapıları DB güvenliğinin yerini tutmaz. Firma detayında ayrı görev bölümü yok; buradaki diğer alanların modül kapıları, genel gezinme/cache yenileme ve diğer modüllerin DB/storage/export/cron erişimleri sıradaki işlerdir. M2c'nin kontrollü yayın sırası değişmedi.
+
+## Uygulama kaydı — 28 Eylül 2026, firma detayının modül bağlamı M2e
+
+Firma detayı ortak modül doğrulamasına bağlandı. Sekme/kart/aksiyon/okuyucu aynı erişim planını kullanıyor; kapalı modül veya uygun olmayan rol veri sorgusu başlatmıyor. Önceki seçili sekme artık görünür değilse Genel Bakış açılıyor. Repo policy'leriyle rol eşlemesi yapıldı: finans yönetici/muhasebe, talepler/randevu/sözleşme yönetici/operasyon; İK'nın eski kadro özeti erişimi korunuyor. Dashboard ve randevu/sözleşme girişindeki eski partner koşulları da aynı repo kurallarına çekildi; yeni yetki verilmedi.
+
+Sözleşmeler kapalıyken firma belge okuyucusu her sayfada contract_id IS NULL koşulu kullanıyor; firma belgesi yüklenebiliyor. Yükleme formu ayrı bileşene çıkarıldı. Kullanılamaz hale gelen eski sözleşme seçimi açıkça kaldırılıyor, dosya korunuyor. Finans okuması artık dar kolonlarla tenant/şirket doğruluyor; hata/boşluk/yükleme ayrılıyor, geç cevaplar eleniyor. Sıfır tutar ve bilinmeyen gecikme bilgisi sağlıklı/borçlu gibi yanlış sınıflandırılmıyor.
+
+560/560 uygulama testi, TypeScript, üretim derlemesi ve statik 0 FAIL/1 WARN. On yeni senaryo gerçek TS/TSX ve useScopedResource ile sentetik hook/ağ sürücüsünde koştu; DOM/kimlikli tarayıcı/PostgREST smoke değil. SQL değişmedi, DB suite'i bu tur tekrarlanmadı. Rapor: `qa/tenant-module-company-screen-20260928/README.md`.
+
+**Yerel; push/deploy/üretim migration yok.** UI ve sorgu filtresi DB/storage güvenliği sayılmaz. Diğer modüllerin RLS/RPC/direct-write/storage/export/cron/FK kapıları, üretim etkin izin ölçümü, bağımlılık/açık iş engelleri ve ayar mutasyonu + Modüller UI hâlâ açık. Genel gezinme/cache yenileme ve firma servislerinin tekrarlı tam satır çözümlemesini daraltma da sıradadır. Modül kapatma açılmadı; M2c/M2d kontrollü yayın sırası korunuyor.

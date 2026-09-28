@@ -190,7 +190,7 @@ const COLUMNS: ColumnDef<AppointmentListRow>[] = [
 const LIST_FILTER_DEFAULTS: FilterValues = { durum: "", firma: "", tip: "" };
 
 export default function RandevularPage() {
-  return <WorkspaceModuleBoundary requiredModule="calendar" allowedRoles={["yonetici", "partner", "operasyon"]}>{workspace => <AppointmentWorkspace workspace={workspace} />}</WorkspaceModuleBoundary>;
+  return <WorkspaceModuleBoundary requiredModule="calendar" allowedRoles={["yonetici", "operasyon"]}>{workspace => <AppointmentWorkspace workspace={workspace} />}</WorkspaceModuleBoundary>;
 }
 
 function AppointmentWorkspace({workspace}:{workspace:WorkspaceModuleContext}) {

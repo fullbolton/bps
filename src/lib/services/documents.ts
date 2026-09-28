@@ -105,10 +105,11 @@ function nullableTrim(value: string | undefined): string | null {
 export async function listDocumentsByLegacyCompanyId(
   client: Client,
   legacyMockId: string,
+  options?: {includeContractDocuments: boolean},
 ): Promise<DocumentRow[]> {
   const company = await requireCompanyByLegacyMockId(client, legacyMockId);
   const now = new Date();
-  return (await selectDocumentsByCompanyId(client, company.id)).map(row => withCurrentDocumentStatus(row, now));
+  return (await selectDocumentsByCompanyId(client, company.id, options)).map(row => withCurrentDocumentStatus(row, now));
 }
 
 /**
