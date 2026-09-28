@@ -1,0 +1,56 @@
+{
+  "status": "local_verified_not_published",
+  "baseCommit": "06085649388e99316ba5742774fc7d85e098b4fb",
+  "stage": "M2a_task_gateway",
+  "migrations": [
+    {
+      "path": "supabase/migrations/20260928001000_task_module_gateway.sql",
+      "sha256": "06203bb468435513f52989c3edbf9d6d58756a605cf40148d5e4f77371d795ad"
+    },
+    {
+      "path": "supabase/migrations/20260928001100_task_module_direct_write_cutover.sql",
+      "sha256": "b593cd6d149091037af475b89c73c92071fc8dfeeb9e92c968b3ff061c3411bc"
+    }
+  ],
+  "rollout": [
+    "foundation 000900 + expand 001000",
+    "frontend deploy and authenticated smoke",
+    "contract 001100 + old-DML probe"
+  ],
+  "productionApplied": false,
+  "moduleDisableAvailable": false,
+  "checks": {
+    "application": {
+      "passed": 531,
+      "failed": 0,
+      "pendingFeatureFilesExcluded": 7
+    },
+    "taskRegression": {
+      "passed": 29,
+      "failed": 0
+    },
+    "database": {
+      "engine": "PostgreSQL 17.10",
+      "passed": 27,
+      "failed": 0,
+      "foundationScenarios": 11,
+      "taskGatewayScenarios": 16
+    },
+    "typecheck": "pass",
+    "build": "pass",
+    "static": {
+      "fail": 0,
+      "warn": 2
+    },
+    "browserSmoke": "not_run",
+    "remoteCI": "not_run",
+    "legacyDockerSuites": "not_run"
+  },
+  "remaining": [
+    "definer task workflows and projections",
+    "service-role cron",
+    "cross-module and FK paths",
+    "other modules",
+    "settings mutation and UI"
+  ]
+}

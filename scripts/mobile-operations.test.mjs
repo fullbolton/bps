@@ -30,13 +30,12 @@ test('active tasks sort by due day with stable ties without mutating input',()=>
  assert.equal(taskDueLabel(task({status:'tamamlandi'}),'2026-09-15'),'Bitiş: 14.09.2026');
  assert.equal(taskDueLabel(task({due_date:null}),'2026-09-15'),'Tarih belirlenmedi');
 });
-function mock(reply){const calls=[],q={};for(const m of ['from','update','eq','in','select'])q[m]=(...args)=>{calls.push([m,...args]);return q;};q.maybeSingle=async()=>reply;return {calls,q};}
-test('completion keeps tenant, revision, active status and ownership in the same update',async()=>{
+function mock(reply){const calls=[],q={};for(const m of ['rpc'])q[m]=(...args)=>{calls.push([m,...args]);return q;};q.single=async()=>reply;return {calls,q};}
+test('completion sends scope and revision to the gateway; server resolves actual privileges',async()=>{
  const {calls,q}=mock({data:task(),error:null});await completeScopedTask(q,'task','tenant',4,'actor');
- assert.deepEqual(calls.filter(c=>['eq','in'].includes(c[0])),[['eq','id','task'],['eq','tenant_id','tenant'],['eq','revision',4],['in','status',['acik','devam_ediyor','gecikti']],['eq','assigned_to_user_id','actor']]);
- assert.deepEqual(calls.find(c=>c[0]==='update'),['update',{status:'tamamlandi'}]);
+ assert.deepEqual(calls,[['rpc','task_execute_v1',{p_action:'complete',p_task_id:'task',p_expected_tenant:'tenant',p_revision:4,p_expected_actor:'actor'}]]);
  const manager=mock({data:task(),error:null});await completeScopedTask(manager.q,'task','tenant',4,null);
- assert.equal(manager.calls.some(c=>c[1]==='assigned_to_user_id'),false);
+ assert.equal(manager.calls[0][2].p_expected_actor,undefined); // The database still verifies the actual role.
 });
 test('lost race, inaccessible task, transport error and invalid revision never succeed',async()=>{
  await assert.rejects(completeScopedTask(mock({data:null,error:null}).q,'a','t',1,'me'),e=>e.name==='TaskConflictError');

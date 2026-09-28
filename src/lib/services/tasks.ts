@@ -19,8 +19,8 @@ import {readCurrentRole as getCurrentUserRole} from './current-role';
  *   - Status changes are gated by the GorevDurumu whitelist.
  *   - Per ROLE_MATRIX: ik can create tasks and change status but CANNOT
  *     reassign (change assigned_to). goruntuleyici is similarly restricted.
- *     The service layer `updateTask` is the gate for this; RLS allows
- *     the broader UPDATE.
+ *     Both the service and task_execute_v1 enforce reassignment permission.
+ *     The gateway cutover revokes direct authenticated task writes.
  *
  * Error surface:
  *   - TaskValidationError              — blank title, invalid status
@@ -73,7 +73,7 @@ export class TaskValidationError extends Error {
 export class TaskReassignPermissionError extends Error {
   constructor(message?: string) {
     super(
-      message ?? "Bu rol ile görev atama değişikliği yapılamaz. Yalnızca yönetici veya partner atama değiştirebilir.",
+      message ?? "Bu rol ile görev atama değişikliği yapılamaz. Yalnızca yönetici veya operasyon kullanıcısı atama değiştirebilir.",
     );
     this.name = "TaskReassignPermissionError";
   }
@@ -101,12 +101,12 @@ function ensureStatus(value: string): GorevDurumu {
 }
 
 // ---------------------------------------------------------------------------
-// Roles that CANNOT reassign tasks (per ROLE_MATRIX)
+// Roles allowed to reassign tasks (also checked by the gateway)
 // ---------------------------------------------------------------------------
 
-const REASSIGN_BLOCKED_ROLES: ReadonlySet<UserRole> = new Set([
-  "ik",
-  "goruntuleyici",
+const REASSIGN_ALLOWED_ROLES: ReadonlySet<UserRole> = new Set([
+  "yonetici",
+  "operasyon",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -176,10 +176,8 @@ const UUID_SHAPE =
  *
  * Returns both as null for an explicit unassign, so callers that go through
  * this service cannot leave the identity cleared while a stale name lingers on
- * screen. That is an APPLICATION-level guarantee only — see the scope note in
- * `updateTask`: the tasks RLS UPDATE policy is broad, so a direct PostgREST
- * write can still set the two columns independently until the STEP 3 rewrite
- * constrains it.
+ * screen. task_execute_v1 also derives the pair from live membership and
+ * rejects unsupported input; direct writes are revoked by the cutover migration.
  *
  * TENANT SCOPE (2026-09-04): the assignee must be a member of the caller's
  * active tenant. Verified here through `is_active_tenant_member` — the SAME
@@ -323,10 +321,6 @@ export async function createTask(
   // The id is the sole assignee input; both columns are derived from it.
   const assignee = await resolveAssignee(client, input.assignedToUserId);
 
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-
   const payload: TaskInsert = {
     tenant_id: options.tenantId,
     company_id: company?.id ?? null,
@@ -340,7 +334,6 @@ export async function createTask(
     appointment_id: appointmentId,
     priority: (input.priority as OncelikSeviyesi) ?? "normal",
     status: "acik",
-    created_by: user?.id ?? null,
   };
 
   return insertTask(client, payload);
@@ -372,26 +365,20 @@ export async function updateTaskStatus(
  * Update an existing task. Validates title non-blank when included,
  * status against the whitelist when included.
  *
- * IMPORTANT per ROLE_MATRIX: ik and goruntuleyici can create tasks and
- * change status but CANNOT reassign. If the caller's role is in the
- * blocked set and the input includes an `assignedToUserId` change, this
- * function throws `TaskReassignPermissionError`.
- * This is the service-layer gate; RLS allows the broader UPDATE.
+ * İK can create and update tasks but cannot reassign. Viewer/partner/accounting
+ * roles cannot write tasks in the current database policy. Reassignment requires
+ * an explicitly allowed role; otherwise TaskReassignPermissionError is thrown.
+ * The SQL gateway repeats this check against the live membership.
  */
 export async function updateTask(
   client: Client,
   taskId: string,
   input: TaskUpdateInput,
 ): Promise<TaskRow> {
-  // Gate: if the assignee is being changed, check the caller's role.
-  // Fail closed: an unresolved company role (RPC failure / missing membership) must NOT skip the block — the tasks RLS UPDATE policy is
-  // deliberately broader, so this service gate is the only enforcement
-  // of the ROLE_MATRIX reassign rule.
-  // `assignedToUserId` is now the only way to change the assignee, so gating
-  // on it covers every reassignment path.
+  // Early user-facing validation; the gateway rechecks the live role after locking.
   if (input.assignedToUserId !== undefined) {
     const role = await getCurrentUserRole(client);
-    if (role === null || REASSIGN_BLOCKED_ROLES.has(role)) {
+    if (role === null || !REASSIGN_ALLOWED_ROLES.has(role)) {
       throw new TaskReassignPermissionError();
     }
   }
@@ -407,12 +394,7 @@ export async function updateTask(
   // and it would also let a caller point the name at someone other than the
   // person the task is actually assigned to.
   //
-  // SCOPE OF THIS GUARANTEE: it holds for the application paths, which all go
-  // through this service. It is NOT a database boundary — the tasks RLS UPDATE
-  // policy is deliberately broad, so a direct PostgREST write can still set
-  // assigned_to alone. Closing that belongs to the STEP 3 RLS rewrite, which
-  // must constrain direct task writes before anything relies on
-  // assigned_to_user_id as an ownership signal.
+  // The database gateway derives the final name from the identity again.
   if (input.assignedToUserId !== undefined) {
     const assignee = await resolveAssignee(client, input.assignedToUserId);
     patch.assigned_to_user_id = assignee.id;
@@ -436,25 +418,20 @@ export async function listTaskAssignmentHistory(client: Client, taskId: string) 
   return selectTaskAssignmentHistory(client, taskId);
 }
 
+function validateTaskCommandScope(id: string, actorId: string, tenantId: string): void {
+  if (![id, actorId, tenantId].every(value => typeof value === 'string' && UUID_SHAPE.test(value))) {
+    throw new TaskValidationError('Görev veya oturum bilgisi geçersiz.');
+  }
+}
+
 export async function claimTask(client:Client,id:string,revision:number,actorId:string,tenantId:string):Promise<TaskRow>{
-  const {data:{user},error}=await client.auth.getUser();
-  if(error||!user||user.id!==actorId)throw new Error('Oturum değişti. Sayfayı yenileyin.');
-  const role=await getCurrentUserRole(client);
-  if(role!=='yonetici'&&role!=='operasyon')throw new TaskReassignPermissionError('İşi yalnızca yönetici veya operasyon kullanıcısı üstlenebilir.');
-  const {data:tenant,error:tenantError}=await client.rpc('current_user_verified_tenant');
-  if(tenantError||!tenant||tenant!==tenantId)throw new Error('Çalışma alanı değişti. Sayfayı yenileyin.');
-  const assignee=await resolveAssignee(client,user.id);
-  return claimUnassignedTask(client,id,tenantId,revision,user.id,assignee.name);
+  validateTaskCommandScope(id, actorId, tenantId);
+  // One authenticated command; SQL verifies the expected actor/tenant and live role together.
+  return claimUnassignedTask(client,id,tenantId,revision,actorId);
 }
 
 /** Mobile quick completion; does not close a staffing request or confirm attendance. */
 export async function completeOperationTask(client: Client, id: string, revision: number, actorId: string, tenantId: string): Promise<TaskRow> {
-  if (![id, actorId, tenantId].every(value => typeof value === 'string' && UUID_SHAPE.test(value))) throw new TaskValidationError('Görev veya oturum bilgisi geçersiz.');
-  const { data: { user }, error } = await client.auth.getUser();
-  if (error || !user || user.id !== actorId) throw new Error('Oturum değişti. Sayfayı yenileyin.');
-  const role = await getCurrentUserRole(client);
-  if (!role || !['yonetici', 'operasyon', 'ik'].includes(role)) throw new Error('Bu işlemi yapma yetkiniz yok.');
-  const { data: tenant, error: tenantError } = await client.rpc('current_user_verified_tenant');
-  if (tenantError || !tenant || tenant !== tenantId) throw new Error('Çalışma alanı değişti. Sayfayı yenileyin.');
-  return completeScopedTask(client, id, tenantId, revision, role === 'yonetici' ? null : actorId);
+  validateTaskCommandScope(id, actorId, tenantId);
+  return completeScopedTask(client, id, tenantId, revision, actorId);
 }

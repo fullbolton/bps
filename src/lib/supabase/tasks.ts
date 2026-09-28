@@ -1,16 +1,7 @@
 /**
- * BPS — Raw Supabase access for the `tasks` table.
- *
- * This file is the thin translator between the typed Supabase client
- * and the service layer. It performs NO business logic:
- *   - No partner scope re-verification (lives in the service layer)
- *   - No status-transition gating (lives in the service layer)
- *   - No priority normalization (lives in the service layer)
- *   - No source_type validation (the service layer whitelists)
- *   - No content validation (the service layer trims, validates)
- *
- * Functions throw on supabase errors so the service layer can catch
- * and translate them to friendly Turkish messages.
+ * Task reads use the existing role/tenant RLS plus the module fence.
+ * Writes use task_execute_v1: module, live role, assignment and revision checks
+ * run together in PostgreSQL. Requires the expand migration before frontend deploy.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -25,15 +16,13 @@ import type {
 
 type Client = SupabaseClient<Database>;
 
-/** Conditional close: revision, tenant and (for operators) ownership stay in SQL. */
-export async function completeScopedTask(client: Client, id: string, tenantId: string, revision: number, ownerId: string | null): Promise<TaskRow> {
-  requireTaskRevision(revision);
-  let query = client.from('tasks').update({ status: 'tamamlandi' })
-    .eq('id', id).eq('tenant_id', tenantId).eq('revision', revision)
-    .in('status', ['acik', 'devam_ediyor', 'gecikti']);
-  if (ownerId) query = query.eq('assigned_to_user_id', ownerId);
-  const { data, error } = await query.select('*').maybeSingle();
-  if (error) throw new Error('İşlem sonucu doğrulanamadı. Tekrar denemeden önce listeyi yenileyin.');
+/** Controlled command: module, live role, ownership and revision are checked in SQL. */
+export async function completeScopedTask(client: Client, id: string, tenantId: string, revision: number, expectedActorId: string | null): Promise<TaskRow> {
+  const { data, error } = await client.rpc('task_execute_v1', {
+    p_action: 'complete', p_task_id: id, p_expected_tenant: tenantId,
+    p_revision: requireTaskRevision(revision), ...(expectedActorId ? { p_expected_actor: expectedActorId } : {}),
+  }).single();
+  if (error) throw taskWriteError(error);
   if (!data) throw new TaskConflictError();
   return data;
 }
@@ -130,31 +119,41 @@ export async function selectTasksByAppointmentId(
 // ---------------------------------------------------------------------------
 
 /**
- * Insert a single task row exactly as provided. The service layer is
+ * Create through the controlled gateway. The service layer is
  * responsible for resolving company_id, contract_id and appointment_id,
- * defaulting status, priority and source_type, stamping created_by from
- * the auth session, and validating shape.
+ * defaulting priority/source_type and validating user input. The database
+ * derives creator/assignee name and enforces the final authorization.
  */
-function taskWriteError(error: {code?:string;message:string}, action:string): Error {
+function taskWriteError(error: {code?:string;message:string}): Error {
+  if(error.code==='BT405')return new Error('Firma pasif olduğu için yeni görev oluşturulamaz.');
+  if(error.code==='BT409')return new TaskConflictError();
+  if(error.code==='BM001')return new Error('Bu işlem için gereken modül çalışma alanında kapalı.');
+  if(error.code==='BT403'||error.code==='42501')return new Error('Bu görev işlemi için erişiminiz yok. Çalışma alanınızı kontrol edin.');
+  if(error.code==='BT400'||error.code==='22007'||error.code==='22008'||error.code==='22P02'||error.code==='23514')return new Error('Görev bilgilerini kontrol edin. Başlık, tarih veya seçimlerden biri geçersiz.');
+  if(error.code==='55000')return new Error('Çalışma alanı ayarları doğrulanamadı. Yeniden deneyin.');
   if(error.code==='BP004')return new Error("İşlem güvenli biçimde tamamlanamadı. Sayfayı yenileyip tekrar deneyin.");
   if(error.code==='BP002')return new Error("Atanan kişi artık bu çalışma alanının üyesi değil. Geçerli bir üye seçin.");
   if(error.code==='BP003')return new Error("Atanan kişinin görev erişimi yok. Yönetici, operasyon veya İK üyesi seçin.");
-  return new Error(`tasks ${action} failed: ${error.message}`);
+  return new Error('İşlem sonucu doğrulanamadı. Tekrar denemeden önce listeyi yenileyin.');
 }
 
 export async function insertTask(
   client: Client,
   input: TaskInsert,
 ): Promise<TaskRow> {
-  const { data, error } = await client
-    .from("tasks")
-    .insert(input)
-    .select()
-    .single();
+  // Names, creator and timestamps are derived in the database, never trusted input.
+  const { company_id, contract_id, appointment_id, title, assigned_to_user_id,
+    due_date, source_type, source_ref, priority } = input;
+  const { data, error } = await client.rpc('task_execute_v1', {
+    p_action: 'create', p_expected_tenant: input.tenant_id,
+    p_input: { company_id, contract_id, appointment_id, title, assigned_to_user_id,
+      due_date, source_type, source_ref, priority },
+  }).single();
 
   if (error) {
-    throw taskWriteError(error,"insert");
+    throw taskWriteError(error);
   }
+  if (!data) throw new Error("Görev kaydı doğrulanamadı. Listeyi yenileyin.");
   return data;
 }
 
@@ -170,16 +169,15 @@ export async function updateTask(
   expectedRevision: number,
 ): Promise<TaskRow> {
   const revision = requireTaskRevision(expectedRevision);
-  const { data, error } = await client
-    .from("tasks")
-    .update(patch)
-    .eq("id", id)
-    .eq("revision", revision)
-    .select()
-    .maybeSingle();
+  const allowed = new Set(['title','assigned_to_user_id','assigned_to','due_date','priority','status']);
+  if (Object.keys(patch).some(key => !allowed.has(key))) throw new Error('Görev alanları doğrulanamadı.');
+  const { assigned_to: _displayName, ...input } = patch;
+  const { data, error } = await client.rpc('task_execute_v1', {
+    p_action: 'update', p_task_id: id, p_revision: revision, p_input: input,
+  }).single();
 
   if (error) {
-    throw taskWriteError(error,"update");
+    throw taskWriteError(error);
   }
   if (!data) throw new TaskConflictError();
   return data;
@@ -192,13 +190,13 @@ export async function selectTaskAssignmentHistory(client: Client, taskId: string
   return { rows: (data ?? []).slice(0,20), hasMore: (data ?? []).length > 20 };
 }
 
-/** Atomic compare-and-set: a simultaneous winner makes the other update match zero rows. */
-export async function claimUnassignedTask(client:Client,id:string,tenantId:string,revision:number,actorId:string,name:string|null):Promise<TaskRow>{
-  const {data,error}=await client.from('tasks').update({assigned_to_user_id:actorId,assigned_to:name})
-    .eq('id',id).eq('tenant_id',tenantId).eq('revision',requireTaskRevision(revision))
-    .is('assigned_to_user_id',null).is('assigned_to',null)
-    .in('status',['acik','devam_ediyor','gecikti']).select().maybeSingle();
-  if(error)throw taskWriteError(error,'update');
+/** Revision and unassigned predicates execute under the same database row lock. */
+export async function claimUnassignedTask(client:Client,id:string,tenantId:string,revision:number,actorId:string):Promise<TaskRow>{
+  const {data,error}=await client.rpc('task_execute_v1',{
+    p_action:'claim',p_task_id:id,p_expected_tenant:tenantId,p_expected_actor:actorId,
+    p_revision:requireTaskRevision(revision),
+  }).single();
+  if(error)throw taskWriteError(error);
   if(!data)throw new TaskConflictError();
   return data;
 }

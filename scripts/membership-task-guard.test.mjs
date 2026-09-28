@@ -7,7 +7,7 @@ const tasks=await importActualTypeScript(new URL('../src/lib/supabase/tasks.ts',
 test('active work rejection has a useful admin message without raw database text',async()=>{
   await assert.rejects(()=>admin.assignRoleAndTenant({rpc:async()=>({error:{code:'BP001',message:'private details'}})},{userId:id(11),role:'muhasebe',tenantId:id(1)}),e=>e instanceof admin.PlatformAdminError&&e.message.includes('görevleri devrettikten')&&!e.message.includes('private'));
 });
-function client(error){const q={insert:()=>q,update:()=>q,eq:()=>q,select:()=>q,single:async()=>({data:null,error}),maybeSingle:async()=>({data:null,error})};return {from:()=>q};}
+function client(error){const q={insert:()=>q,update:()=>q,eq:()=>q,select:()=>q,single:async()=>({data:null,error}),maybeSingle:async()=>({data:null,error})};return {from:()=>q,rpc:()=>q};}
 test('task guard membership and role failures remain distinct in create and update',async()=>{
   for(const [code,expected] of [['BP002',/üyesi değil/],['BP003',/görev erişimi yok/]]){
     await assert.rejects(()=>tasks.insertTask(client({code,message:'raw SQL'}),{}),expected);

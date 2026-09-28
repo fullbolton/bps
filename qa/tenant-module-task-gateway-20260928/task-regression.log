@@ -1,0 +1,37 @@
+✔ independent task inserts null company without company lookup and keeps assignment empty (2.090334ms)
+✔ independent tasks cannot borrow company-linked context (3.86525ms)
+✔ active work rejection has a useful admin message without raw database text (53.86225ms)
+✔ task guard membership and role failures remain distinct in create and update (9.684208ms)
+✔ transport failures are not translated into lost membership or role (0.759542ms)
+✔ operation day rolls over at Istanbul midnight regardless of device timezone (486.873375ms)
+✔ quick views distinguish current owner, truly unassigned, and closed work (0.662708ms)
+✔ active tasks sort by due day with stable ties without mutating input (46.4995ms)
+✔ completion sends scope and revision to the gateway; server resolves actual privileges (7.472167ms)
+✔ lost race, inaccessible task, transport error and invalid revision never succeed (9.889083ms)
+✔ overdue view derives lateness from date and excludes completed, future and undated tasks (0.4515ms)
+✔ desktop and mobile action availability preserves ownership and legacy assignee boundaries (0.50725ms)
+✔ task rejects wrong company, tenant, invisible relation and read failure before insert (3.112ms)
+✔ task accepts same company/tenant relation and queries explicit scope (3.607458ms)
+✔ task rejects company belonging to another tenant (0.60425ms)
+✔ appointment rejects wrong company, tenant, invisible relation and read failure before insert (1.995584ms)
+✔ appointment accepts same company/tenant relation and queries explicit scope (3.892459ms)
+✔ appointment rejects company belonging to another tenant (2.1055ms)
+✔ task appointment relation is independently validated before insert (3.070708ms)
+✔ no relation requires no extra relation reads and preserves nullable IDs (3.92025ms)
+✔ claim sends expected scope and revision to the atomic gateway; display names are not trusted (8.567416ms)
+✔ losing claim, inaccessible record and transport failure cannot report success (3.978ms)
+✔ claim and quick completion use one command rather than separate mutable role and tenant snapshots (1.976ms)
+✔ bad scope is rejected before a claim/completion command is sent (1.2165ms)
+✔ module disabled, missing configuration and transport failure remain distinct from a lost claim (0.863625ms)
+✔ invalid or missing revision fails before any raw request (7.079375ms)
+✔ update filters exact loaded revision and returns new row (3.208792ms)
+✔ zero rows is a conflict, transport/database error stays different (22.857875ms)
+✔ history has an honest twenty-row limit and extra-row indicator (0.644ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8653.383458

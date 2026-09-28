@@ -209,3 +209,14 @@ Plan uygulamaya alındı. İzole dal: `codex/tenant-modules-foundation-20260928`
 - Mevcut roller, shell/menu, kimlik RPC'si ve üretim davranışı değişmedi.
 - Uygulama sonucu ve test kanıtları: çalışma dalındaki `qa/tenant-modules-foundation-20260928/README.md`.
 - Sıradaki blok M2: ortak veri projeksiyonları, direct DML/RPC/RLS/storage/export/cron kapıları ve ayar değiştirme kilit protokolü. Bu bitmeden modül kapatma yok.
+
+
+## Uygulama kaydı — 28 Eylül 2026, görev modülü erişim geçişi M2a
+
+Aynı izole dalda ortak modül okuma/yazma kapıları, task_execute_v1 ve uygulamadaki dört görev yazma yolunun RPC geçişi tamamlandı. Şirketsiz görev, rol ve üyelik kuralları korunuyor; atananın adı/creator sunucuda belirleniyor. Config/profil/görev kilit sırası ve eşzamanlı üstlenme sentetik DB'de test edildi.
+
+531 uygulama testi, 27 PostgreSQL 17.10 testi, TypeScript ve build geçti. Rapor: çalışma dalında `qa/tenant-module-task-gateway-20260928/README.md`.
+
+**Henüz üretimde değil.** Yayın sırası: 000900 temel + 001000 expand → yeni frontend + kimlikli smoke → 001100 direct-write cutover. İki yeni dosya tek üretim DB adımında uygulanmaz. Genel modül kapatma hâlâ açılmadı.
+
+M2b açık: görev devri/sözleşme yenileme/randevu tamamlama definer yolları, dashboard ve cron okuyucuları, ortak projeksiyonlar/FK yan etkileri; ardından diğer modüller ve ayar mutasyonu/UI.
