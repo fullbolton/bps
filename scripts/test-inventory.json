@@ -492,5 +492,9 @@
   {
     "file": "scripts/company-module-screen.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/finance-module-db.test.mjs",
+    "suite": "database"
   }
 ]

@@ -1,0 +1,22 @@
+{
+  "baseCommit": "c00859b2423c9b64163258311a11dc35c9ed7d8d",
+  "status": "local-not-deployed",
+  "releaseExitCode": 0,
+  "databaseExitCode": 0,
+  "applicationTests": 560,
+  "databaseTests": 55,
+  "newDatabaseTests": 13,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "browserSmokeRun": false,
+  "productionMigrationApplied": false,
+  "files": {
+    ".github/workflows/module-foundation-db.yml": "fc2f8835de7ce629d5fe0123d662375c8e2c2b79cb8050ecfda3289c8afeae78",
+    "scripts/test-inventory.json": "626616178afdd0e07e6fc4f77fd0b15a0b45101da9eef9e70f6872fcaa9c648e",
+    "scripts/finance-module-db.test.mjs": "440c45213b0d7dd9374d9c53cf1353473d43ecbf7140d03a5f16f53d03fb021a",
+    "supabase/migrations/20260928001600_finance_module_access.sql": "0b31174a13f5cabfddf01b99281a26876014375b1958c6a462fc3e7938a51269",
+    "src/app/(main)/luca-import/page.tsx": "ee064200a8d19afe040dd22a3aeecfa672d8c5a6885284380f48fc258a999c97",
+    "src/app/(main)/finansal-ozet/page.tsx": "6ffb4816a789d87f000afb1ac6a68871361002367e84d68824c7d9b246de5d28",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "fc6ca272ea1553511017c891ebeb4391c6461183e708d18c4e607f248c0a5b0b"
+  }
+}

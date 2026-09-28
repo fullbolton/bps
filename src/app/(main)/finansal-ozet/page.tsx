@@ -1,4 +1,5 @@
 "use client";
+import WorkspaceModuleBoundary from '@/components/modules/WorkspaceModuleBoundary';
 import { formatTry } from "@/lib/display-values";
 
 import { useCallback, useEffect, useState } from "react";
@@ -22,6 +23,10 @@ import {
 } from "@/styles/tokens";
 
 export default function FinansalOzetPage() {
+  return <WorkspaceModuleBoundary requiredModule="finance" allowedRoles={["yonetici", "muhasebe"]}>{() => <FinancialWorkspace />}</WorkspaceModuleBoundary>;
+}
+
+function FinancialWorkspace() {
   const { role } = useRole();
   const { loading: authLoading } = useAuth();
   const supabase = createClient();

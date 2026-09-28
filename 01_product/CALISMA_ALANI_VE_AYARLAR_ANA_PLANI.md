@@ -258,3 +258,11 @@ Sözleşmeler kapalıyken firma belge okuyucusu her sayfada contract_id IS NULL 
 560/560 uygulama testi, TypeScript, üretim derlemesi ve statik 0 FAIL/1 WARN. On yeni senaryo gerçek TS/TSX ve useScopedResource ile sentetik hook/ağ sürücüsünde koştu; DOM/kimlikli tarayıcı/PostgREST smoke değil. SQL değişmedi, DB suite'i bu tur tekrarlanmadı. Rapor: `qa/tenant-module-company-screen-20260928/README.md`.
 
 **Yerel; push/deploy/üretim migration yok.** UI ve sorgu filtresi DB/storage güvenliği sayılmaz. Diğer modüllerin RLS/RPC/direct-write/storage/export/cron/FK kapıları, üretim etkin izin ölçümü, bağımlılık/açık iş engelleri ve ayar mutasyonu + Modüller UI hâlâ açık. Genel gezinme/cache yenileme ve firma servislerinin tekrarlı tam satır çözümlemesini daraltma da sıradadır. Modül kapatma açılmadı; M2c/M2d kontrollü yayın sırası korunuyor.
+
+## Uygulama kaydı — 28 Eylül 2026, finans erişim kapıları M2f
+
+Finans Özeti ve Luca aktarımı ortak modül/rol sınırına bağlandı. Luca onayı önizleme aktör/tenant bağlamını koruyor; modül hatasında belirsiz aktarımın idempotency kaydı silinmiyor. Yerel 001600 migration, atomik aktarıma profil ve iş kilitlerinden önce config kilidi ekliyor. Üç finans tablosu restrictive okumayla korunuyor; doğrudan yazımlar, service ham okumaları ve eski finans RPC'leri kapatılıyor. Fonksiyon/etkin yetki/overload sapması migration'ı geri alıyor.
+
+PostgreSQL 17.10 üzerinde 55/55 senaryo geçti (13 yeni finans); detay ve nihai release ölçümleri `qa/tenant-module-finance-access-20260928/README.md` ve `manifest.json` içinde. Eski finans RPC stub'larında algoritma değil yetki; gerçek atomik mizan gövdesinde çalışma ve yarış durumları test edildi.
+
+**Yerel; üretim SQL/push/deploy yok.** Canlı yetki/owner/entegrasyon ve tarayıcı/PostgREST kabulü açık. Finansın parent-FK etkileri ve diğer modül yolları tamamlanmadan modül kapatma açılmaz. 001600 ortak 000900/001000 sonrasında; eski görev 001100 cutover'ı frontend smoke sonrasında. Toplu kör migration uygulaması yapılmaz.

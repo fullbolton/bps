@@ -5,6 +5,9 @@
  * Yonetici-only. Management visibility. Not accounting truth.
  */
 
+import WorkspaceModuleBoundary from '@/components/modules/WorkspaceModuleBoundary';
+import type { WorkspaceModuleContext } from '@/lib/modules/context';
+import { moduleAccessMessage } from '@/lib/modules/errors';
 import { useState, useMemo, useRef } from "react";
 import { Upload, CheckCircle, XCircle, AlertTriangle, FileText, HelpCircle } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/ui";
@@ -34,14 +37,8 @@ function formatCurrency(n: number): string {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " TL";
 }
 
-// Upload size ceiling for the mizan file. Real Luca exports are well under
-// this (a 10k-row mizan is a couple of MB). The cap exists to bound the work
-// handed to SheetJS: xlsx@0.18.5 carries a known ReDoS advisory
-// (GHSA-5pgg-2g8v-p4x9) with no npm fix available — npm's `latest` IS 0.18.5,
-// because SheetJS publishes newer builds only on its own CDN. Parsing here is
-// browser-side and yonetici-only on an admin-chosen file, so the practical
-// exposure is small; this ceiling simply keeps a malformed or oversized file
-// from tying up the uploader's tab. Mirrors the 10 MB document-upload cap.
+// Bound browser-side parsing work for administrator-selected files.
+// Mirrors the 10 MB document-upload cap; the SQL command separately validates rows.
 const MAX_MIZAN_BYTES = 10 * 1024 * 1024;
 
 const MATCH_BADGE: Record<string, { label: string; color: string }> = {
@@ -51,6 +48,10 @@ const MATCH_BADGE: Record<string, { label: string; color: string }> = {
 };
 
 export default function LucaImportPage() {
+  return <WorkspaceModuleBoundary requiredModule="finance" allowedRoles={["yonetici"]}>{workspace => <LucaImportWorkspace workspace={workspace} />}</WorkspaceModuleBoundary>;
+}
+
+function LucaImportWorkspace({workspace}:{workspace:WorkspaceModuleContext}) {
   const { role } = useRole();
   const { loading: authLoading } = useAuth();
   const supabase = createClient();
@@ -143,7 +144,7 @@ export default function LucaImportPage() {
       const identity=await supabase.auth.getUser();
       const user=identity.data.user;
       const tenant=await supabase.rpc('current_user_verified_tenant');
-      if(identity.error||!user||tenant.error||typeof tenant.data!=='string')throw Error('Çalışma alanı doğrulanamadı. Oturumunuzu kontrol edin.');
+      if(identity.error||!user||tenant.error||typeof tenant.data!=='string'||user.id!==workspace.actorId||tenant.data!==workspace.tenantId)throw Error('Çalışma alanı doğrulanamadı. Oturumunuzu kontrol edin.');
       if(!command.current){
         if(!fileDigest.current)throw Error('Dosya kimliği doğrulanamadı. Dosyayı tekrar seçin.');
         const payload={fileName:parseResult.meta.fileName,reportPeriod:parseResult.meta.reportPeriod,reportDateRange:parseResult.meta.reportDateRange,rows:parseResult.rows};
@@ -155,6 +156,9 @@ export default function LucaImportPage() {
       if(pending.actorId!==user.id||pending.tenantId!==tenant.data)throw Error('Onay sırasında hesap veya çalışma alanı değişti. Dosyayı yeniden seçin.');
       const result=await supabase.rpc('confirm_mizan_atomic',{p_id:pending.id,p_tenant_id:pending.tenantId,p_payload:pending.payload});
       if(result.error){
+        const moduleMessage=moduleAccessMessage(result.error);
+        // Keep the original idempotency receipt: a previous uncertain attempt may exist.
+        if(moduleMessage)throw Error(moduleMessage);
         if(isRejectedMizanInput(result.error)){
           await settleMizan(pending,pending.id,localStorage,navigator.locks);command.current=null;
           throw Error('Dosya verisi veya firma eşlemesi reddedildi; yeni aktarım kaydedilmedi. Verileri düzeltip dosyayı yeniden seçin.');

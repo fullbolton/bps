@@ -1,0 +1,729 @@
+
+> bps@0.1.0 qa:release
+> npm run qa:test-inventory && npm run qa:unit && npm run qa:operations && npm run qa:static && tsc --noEmit && npm run build
+
+
+> bps@0.1.0 qa:test-inventory
+> node scripts/qa-test-suite.mjs inventory
+
+application: 106 files
+database: 8 files
+pending: 7 files
+
+> bps@0.1.0 qa:unit
+> node scripts/qa-unit.mjs
+
+BPS QA Unit — saf fonksiyon regresyonları
+
+isIsoDate  (kaynak: src/lib/calendar-date.ts)
+  PASS "2026-08-27"   → true
+  PASS "2024-02-29"   → true
+  PASS "2026-02-30"   → false
+  PASS "2025-02-29"   → false
+  PASS "2026-13-01"   → false
+  PASS "2026-00-10"   → false
+  PASS "27.08.2026"   → false
+  PASS "2026-8-27"    → false
+  PASS ""             → false
+  PASS null           → false
+  PASS undefined      → false
+  PASS "bugün"        → false
+
+safeThrown  (kaynak: src/lib/email/safe-error.ts)
+  PASS Error          → thrown=Error
+  PASS leak@example.c → thrown=Error
+  PASS TypeError      → thrown=TypeError
+  PASS RangeError     → thrown=RangeError
+  PASS "düz metin"    → thrown=unknown
+  PASS {"name":"leak@ → thrown=unknown
+  PASS null           → thrown=unknown
+
+safe-error.ts serbest metin okumuyor mu
+  PASS /err\.name/            okunmuyor
+  PASS /constructor\.name/    okunmuyor
+  PASS /error\.message/       okunmuyor
+  PASS /result\.error\b/      okunmuyor
+
+19 vaka + 4 statik kontrol · 0 FAIL
+qa:unit PASS
+
+> bps@0.1.0 qa:operations
+> node scripts/qa-test-suite.mjs application
+
+application: 106 files
+database: 8 files
+pending: 7 files
+Pending feature tests are NOT part of the passed application coverage.
+✔ calendar follows Istanbul day across UTC midnight and year rollover (47.638166ms)
+✔ agenda groups civil dates, sorts unknown time last, retains cancelled entries, never mutates source (2.373083ms)
+✔ truncated or uncounted appointment response cannot render a falsely empty calendar (1.635625ms)
+✔ bounded completion input is normalized; nonboolean cannot request a task (2.13625ms)
+✔ completion result must identify exact appointment and valid task/skip combination (0.487125ms)
+✔ service uses one scoped RPC with no sequential table fallback (0.395459ms)
+✔ transport failure is unverifiable, not already completed or unauthorized (0.475708ms)
+✔ scope and invalid input fail before calling RPC (0.283875ms)
+✔ status-only service cannot recreate split completion path (0.145ms)
+✔ links contain only the appointment UUID and round trip (0.64125ms)
+✔ unrelated query parameters do not become an appointment link (0.084417ms)
+✔ malformed, empty and duplicate IDs are rejected (0.178834ms)
+✔ attendance actions retain exact record and revision, undo appears only after a report (4.642959ms)
+✔ future dates and read-only/busy state disable every action including undo (4.422125ms)
+✔ contract days follow Istanbul midnight and preserve today/expired semantics (0.760125ms)
+✔ missing, malformed and impossible contract dates never turn into a plausible remaining-day count (0.140292ms)
+✔ actual company service enables candidate and active only, preserves input CRM statuses (2.598125ms)
+✔ company directory failures are not presented as empty success (1.643208ms)
+✔ company tabs intersect valid module states and current repository roles (46.744125ms)
+✔ company finance reader uses exact tenant/company and distinguishes absent, failed and malformed responses (6.062917ms)
+✔ company document reader filters contract files on every page before download and rejects an escaped row (1.345166ms)
+✔ actual company page skips closed module readers and falls back from a stale saved tab (269.151584ms)
+✔ actual company role gates match financial and workforce readers without healthy empty cards (640.161917ms)
+✔ actual finance error is not rendered as no data or no payment follow-up (143.292583ms)
+✔ company document screen passes closed-contract predicate and offers standalone upload (118.664417ms)
+✔ extracted upload form hides disabled contract selector and preserves standalone file payload (15.949917ms)
+✔ late financial response after company unmount cannot populate the old view (109.985416ms)
+✔ upload keeps its file but requires explicit clearing of a contract that becomes disabled (18.861708ms)
+✔ 1001 rows require three bounded requests; no clipping or redundant empty request (19.914417ms)
+✔ empty and exact page boundary terminate without an extra read (8.768666ms)
+✔ second-page failures never return the first page as a complete list (12.882958ms)
+✔ invalid identities, malformed totals and over-budget lists fail on first request (6.080542ms)
+✔ selectAllCriticalDates retains scope, exact count and unique ordering on all pages (0.567416ms)
+✔ selectAllWorkforceSummaries retains scope, exact count and unique ordering on all pages (0.321709ms)
+✔ selectWorkforceSummariesByCompanyIds retains scope, exact count and unique ordering on all pages (0.402167ms)
+✔ selectAllTasks retains scope, exact count and unique ordering on all pages (0.323583ms)
+✔ selectTasksByCompanyId retains scope, exact count and unique ordering on all pages (0.313417ms)
+✔ selectTasksByContractId retains scope, exact count and unique ordering on all pages (0.473666ms)
+✔ selectTasksByAppointmentId retains scope, exact count and unique ordering on all pages (4.376916ms)
+✔ selectAllAppointments retains scope, exact count and unique ordering on all pages (0.354667ms)
+✔ selectAppointmentsByCompanyId retains scope, exact count and unique ordering on all pages (0.9035ms)
+✔ selectAppointmentsByContractId retains scope, exact count and unique ordering on all pages (0.4045ms)
+✔ selectAppointmentsByCompanyIds retains scope, exact count and unique ordering on all pages (0.769584ms)
+✔ selectAllContracts retains scope, exact count and unique ordering on all pages (0.2755ms)
+✔ selectContractsByCompanyId retains scope, exact count and unique ordering on all pages (0.2195ms)
+✔ selectNotesByCompanyId retains scope, exact count and unique ordering on all pages (0.767041ms)
+✔ getActiveContractCountsByCompanyIds retains scope, exact count and unique ordering on all pages (0.721292ms)
+✔ real Supabase query builder sends bounded offsets, stable order and exact count (110.303959ms)
+✔ deadline expiry stops before the next page (1.033042ms)
+✔ selectNotesByCompanyId rejects clipped, null-count and failed results (9.559625ms)
+✔ selectAllContracts rejects clipped, null-count and failed results (0.968834ms)
+✔ selectContractsByCompanyId rejects clipped, null-count and failed results (2.47475ms)
+✔ getActiveContractCountsByCompanyIds rejects clipped, null-count and failed results (1.000458ms)
+✔ selectAllCriticalDates rejects clipped, null-count and failed results (0.317625ms)
+✔ selectAllAppointments rejects clipped, null-count and failed results (0.337ms)
+✔ selectAppointmentsByCompanyId rejects clipped, null-count and failed results (0.754291ms)
+✔ selectAppointmentsByContractId rejects clipped, null-count and failed results (2.889042ms)
+✔ selectAppointmentsByCompanyIds rejects clipped, null-count and failed results (0.422584ms)
+✔ selectAllWorkforceSummaries rejects clipped, null-count and failed results (0.720625ms)
+✔ selectWorkforceSummariesByCompanyIds rejects clipped, null-count and failed results (2.82925ms)
+✔ selectTasksByCompanyId rejects clipped, null-count and failed results (0.320125ms)
+✔ selectAllTasks rejects clipped, null-count and failed results (0.503958ms)
+✔ selectTasksByContractId rejects clipped, null-count and failed results (0.270083ms)
+✔ selectTasksByAppointmentId rejects clipped, null-count and failed results (2.9735ms)
+✔ active counts retain repeated company IDs in a complete result (2.392834ms)
+✔ empty company selection never fetches a broader workforce or appointment list (0.112583ms)
+✔ dashboard exact totals survive clipped lists while card rows remain unavailable (0.27875ms)
+✔ unavailable or malformed totals cannot become measured zero (0.479875ms)
+✔ report joins reject missing source or a missing company anywhere in the list (0.305ms)
+✔ report joins preserve measured empty lists and legitimate display names without text sentinels (0.068875ms)
+✔ appendix list distinguishes empty, malformed and wrong scope (6.670541ms)
+✔ keyset pagination has bounded continuation and rejects duplicates or borrowed preceding rows (2.3865ms)
+✔ document history rejects another document even within same contract (0.571166ms)
+✔ legacy main commands keep their storage key; appendix targets remain isolated (0.14925ms)
+✔ appendix title is command identity; main receipt cannot acknowledge appendix command (1.034083ms)
+✔ version download checks contract/document before signing any path (0.318208ms)
+✔ missing, unavailable and malformed versions never mean empty history (1.407125ms)
+✔ bounded history explicitly reports more and rejects unordered or duplicate evidence (0.78825ms)
+✔ signed download resolves version through scoped RPC, never arbitrary caller path (0.537875ms)
+✔ actual PDF replace service gates revision and uses CAS, zero rows is failure (0.58275ms)
+✔ creation validates real calendar dates, bounded revision and required basis (6.712ms)
+✔ unavailable or malformed snapshot never means no task (0.535041ms)
+✔ current task owner can be unassigned or unavailable without inventing a person (0.434375ms)
+✔ service uses one scoped RPC; malformed success and transport failure do not fall back (1.199917ms)
+✔ only exact known failure is definite; unknown responses keep retry command (0.189917ms)
+✔ strict command rejects forged identity/display/routing fields and missing fields (0.838042ms)
+✔ unicode PostgreSQL character boundary, Turkish text, line endings, NUL and broken UTF-16 (1.517458ms)
+✔ mentions are selected identifiers, canonical order, detached from caller array (0.965417ms)
+✔ retry comparison is stable but every scope/content change differs (0.456083ms)
+✔ null/string/mismatched receipt cannot acknowledge pending command (0.688542ms)
+✔ resolution requires matching scope and a recognized terminal result (0.454417ms)
+✔ failed RPC shapes are not empty successful reads (2.696167ms)
+✔ message shape requires safe identity, timestamp and explicit parent (0.437625ms)
+✔ inbox counts and source fields cannot be silently coerced (0.513792ms)
+✔ explicit empty optional critical-date fields clear stored content (3.462917ms)
+✔ omitted optional critical-date fields remain untouched (0.193667ms)
+✔ nonempty optional critical-date fields are trimmed (0.11925ms)
+✔ critical-date CAS preserves full database timestamp and rejects a losing edit (0.697209ms)
+✔ missing or malformed snapshot cannot update a critical date (0.210708ms)
+✔ malformed headers, widths and quotes never produce writable rows (1.878042ms)
+✔ valid BOM CRLF multiline escaped quotes and semicolon fields survive (1.358458ms)
+✔ invalid encodings and resource limits fail before preview (10.422084ms)
+✔ coverage, presence and missing reports remain distinct; historical removed attendance does not count (0.865792ms)
+✔ cancelled requests remain visible in all but never enter active action filters (0.10375ms)
+✔ fully assigned does not mean present and absent people remain assigned until replacement (0.080583ms)
+✔ search combines Turkish-normalized location, occupation and assigned staff terms (0.676041ms)
+✔ measured empty day accepted, unavailable or malformed RPC never becomes zero (6.087167ms)
+✔ real dates, leap years and strict format (2.194042ms)
+✔ required fields, counts and extra untrusted fields (0.307125ms)
+✔ daily coverage from zero to full (1.334833ms)
+✔ paused and cancelled are not active demand (0.5325ms)
+✔ corrupt aggregates fail rather than clamp (0.11675ms)
+✔ assignment eligibility failures stay distinct (0.173375ms)
+✔ missing or nonboolean verification never means available (0.09425ms)
+✔ activity empty differs from unavailable or malformed response (3.246542ms)
+✔ activity labels distinguish ownership events without claiming task completion (0.177291ms)
+✔ general document activity accepts only an internal document destination (0.170041ms)
+✔ contracts filter in SQL before five-row cap; no full-record transfer (38.120667ms)
+✔ documents include missing files and undated manual states before limiting; derive expiry now (1.464625ms)
+✔ critical dates include overdue and exactly thirty days; bounded stable order (2.559666ms)
+✔ smaller server cap, missing counts, duplicate rows and transport errors do not masquerade as complete cards (8.835958ms)
+✔ company names resolve only referenced IDs in batches; no task count tied to directory cap (3.336417ms)
+✔ money preserves zero, negative values, and missing versus malformed input (23.04725ms)
+✔ Istanbul variants share a display/filter key without changing other city names (0.213667ms)
+✔ role rejection touches neither document nor storage (2.776708ms)
+✔ read failure leaves both records untouched (0.457042ms)
+✔ missing read and zero-row delete explicitly report no confirmed deletion (0.664791ms)
+✔ blocked database deletion never removes the file (2.148209ms)
+✔ confirmed row deletion uses RETURNING path, after deleting the row (0.24575ms)
+✔ record without a file is a confirmed deletion with no storage operation (0.112583ms)
+✔ storage failure preserves confirmed deletion and warning, never suggests row retry (0.206667ms)
+✔ each existing category belongs to one folder; linked contracts stay together (0.923375ms)
+✔ moving changes category only, scoped by company, revision and unlinked contract (0.8905ms)
+✔ invalid category, denied/stale result, transport error and wrong identity never succeed (11.814084ms)
+✔ listAllDocuments derives expiry without mutating stored status (81.208625ms)
+✔ listDocumentsByLegacyCompanyId derives expiry without mutating stored status (67.736667ms)
+✔ single document derives expiry and preserves missing record (61.069916ms)
+✔ company compliance counts expired stored-complete files as non-compliant (21.861917ms)
+✔ Istanbul expiry includes day zero and thirty, expires on following day (1.9695ms)
+✔ expiry changes at Istanbul midnight instead of UTC midnight (0.697375ms)
+✔ stored complete does not keep an expired document green and mapping does not mutate raw data (0.453042ms)
+✔ missing file and explicit missing status take priority; undated manual state stays intact (0.456958ms)
+✔ initial snapshot and refresh are silent; only newly observed unread IDs sound (2.955792ms)
+✔ scope keys separate companies and users; response mismatch fails closed (0.669084ms)
+✔ links contain only a verified internal request target, company and date (2.622167ms)
+✔ two tabs observing the same event play once; rapid batches are consumed silently (0.425083ms)
+✔ storage or locking failure never falls back to uncoordinated sound (0.565666ms)
+✔ shared ledger stores only bounded event IDs and time, never message content (1.095ms)
+✔ duplicate inbox rows are rejected instead of doubling counters or cards (1.406041ms)
+✔ impossible calendar day cannot reach the date formatter or deep link (0.142125ms)
+✔ independent task inserts null company without company lookup and keeps assignment empty (0.663958ms)
+✔ independent tasks cannot borrow company-linked context (0.39525ms)
+✔ business day is independent of device timezone at Istanbul midnight (1.362166ms)
+✔ actual day hook observes timer, wake and visibility changes, then removes listeners (37.810791ms)
+✔ valid search and known filter values survive serialization (12.901292ms)
+✔ malformed, oversized and wrongly typed preferences recover to defaults (0.303208ms)
+✔ unknown keys and overlong fields cannot enter the filter state (0.111458ms)
+✔ keys separate list, account, tenant and role without separator ambiguity (1.401292ms)
+✔ distinguishes new, unchanged, changed and inactive without rewriting input (4.471667ms)
+✔ reads beyond first page and includes inactive rows (0.349875ms)
+✔ null codes do not match by name; leading zeros and case remain distinct (0.193334ms)
+✔ read failures and malformed pages never become new records (0.321209ms)
+✔ changing totals and duplicated records across pages fail closed (0.784ms)
+✔ oversized directory stops after first page; no partial preview (3.746041ms)
+✔ empty measured directory is allowed; duplicate input is rejected before reads (0.20725ms)
+✔ UTF8 BOM CRLF and leading zeros retained (1.581625ms)
+✔ quoted delimiter and escaped quotes (0.612584ms)
+✔ bad quoting columns and headers rejected (0.553333ms)
+✔ duplicate codes rejected, different leading zeros retained (0.498083ms)
+✔ empty oversize and more than 500 rows rejected (0.646167ms)
+✔ invalid cell types controls and empty text rejected (0.167917ms)
+✔ only editable fields survive; leading/trailing whitespace is trimmed (4.080917ms)
+✔ invalid identity, stale-token shapes and invalid text cannot become update commands (1.008875ms)
+✔ response requires identity, exact new values and one revision advance (0.684167ms)
+✔ max accepted revision advances safely and missing old values are unverifiable (0.110958ms)
+✔ real service forwards scope and normalized payload; RPC error or malformed success is never accepted (0.92425ms)
+✔ login preserves internal destination, query and hash after normalization (24.274166ms)
+✔ login rejects external, backslash, controls and normalized host prefixes (0.1575ms)
+✔ anonymous access request reaches handler while adjacent and protected paths redirect (4.9965ms)
+✔ redirect retains refreshed session cookie options (2.123125ms)
+✔ management date follows Istanbul midnight and owner/date filters stay server-side (26.656041ms)
+✔ saved search stores normalized filter not a page and rejects corrupt/duplicate data (1.119041ms)
+✔ availability rejects impossible dates, inverted and excessive intervals (0.728375ms)
+✔ past and superseded availability never becomes current via fallback (2.164125ms)
+✔ active work rejection has a useful admin message without raw database text (2.757292ms)
+✔ task guard membership and role failures remain distinct in create and update (0.44425ms)
+✔ transport failures are not translated into lost membership or role (0.125ms)
+✔ operation day rolls over at Istanbul midnight regardless of device timezone (21.335792ms)
+✔ quick views distinguish current owner, truly unassigned, and closed work (0.205166ms)
+✔ active tasks sort by due day with stable ties without mutating input (1.207875ms)
+✔ completion sends scope and revision to the gateway; server resolves actual privileges (0.252625ms)
+✔ lost race, inaccessible task, transport error and invalid revision never succeed (0.426542ms)
+✔ overdue view derives lateness from date and excludes completed, future and undated tasks (0.091791ms)
+✔ desktop and mobile action availability preserves ownership and legacy assignee boundaries (2.184083ms)
+✔ route remount uses current workspace; stale cleanup cannot remove its protection (2.192542ms)
+✔ navigation decision keeps the original event and synchronous cancellation (0.418125ms)
+✔ company IDs are chunked and each assignment batch is paged to the measured total (8.550417ms)
+✔ late assignment failure or unrelated company discards all previously read assignments (0.804625ms)
+✔ failed manager read yields no company recipients and never starts partner lookup (1.866333ms)
+✔ tasks candidate pages keep filters and never expose a partial source list (7.618125ms)
+✔ documents candidate pages keep filters and never expose a partial source list (0.56325ms)
+✔ appointments candidate pages keep filters and never expose a partial source list (0.504208ms)
+✔ task module snapshots require a complete distinct boolean response and propagate transport failure (0.407542ms)
+✔ task module snapshot chunks 501 distinct tenants without truncation (0.474458ms)
+✔ document batch reaches last source/membership rows and keeps tenant contents out of the other email (20.035625ms)
+✔ late documents error produces no sends or reservation writes (2.057333ms)
+✔ late tenant_memberships error produces no sends or reservation writes (3.019ms)
+✔ unacknowledged notification stamps are errors, never sent or counted as already sent (7.047292ms)
+✔ unverifiable task owner is not treated as unassigned or sent to the manager fallback (2.3735ms)
+✔ verified task owner receives the task while a truly unassigned task goes to its tenant manager (7.457208ms)
+✔ overdue tasks change day at Istanbul midnight, not three hours later at UTC midnight (2.243791ms)
+✔ appointment reminders use tomorrow in Istanbul when UTC is still on the previous day (5.72875ms)
+✔ tenant roles override global roles for document recipients (9.368916ms)
+✔ missing membership role fails closed before any transport or stamp (1.317209ms)
+✔ disabled task tenant never produces an email or a reservation (0.616292ms)
+✔ unverifiable task module before stamping stops the email without consuming a reservation (2.52675ms)
+✔ task module disabled after reservation is rechecked and reservation is rolled back before send (2.568167ms)
+✔ unverifiable post-stamp module state releases the reservation and sends nothing (3.067417ms)
+✔ notification names resolve all referenced companies in bounded deduplicated chunks (3.251416ms)
+✔ missing, truncated, duplicated or malformed company names fail instead of generating fallback mail (1.039208ms)
+✔ contract batch reads past limits and sends each contract only to its tenant and assigned partner (59.444459ms)
+✔ contract batch stops before stamps on a late read failure or missing company name (24.792625ms)
+✔ contract 30-day window opens at Istanbul midnight (5.899292ms)
+✔ a shared email in another tenant does not hide an eligible profile; same-tenant duplicates still get one copy (49.332625ms)
+✔ multi-workspace contracts use tenant roles for managers and assigned partners (23.659083ms)
+✔ contract recipients page managers, preserve email-only eligibility and restrict partner assignments/roles (6.68675ms)
+✔ contract recipient later page failure rejects instead of returning earlier managers (1.30025ms)
+✔ expiry contract reader reaches the last candidate past the server cap without selecting unused columns (5.201417ms)
+✔ contract read failure or incomplete later page rejects the entire candidate set (3.028625ms)
+✔ membership paging reaches the last row even when server cap is lower than requested (10.037042ms)
+✔ later page error, changing count, empty gap and duplicate rows discard the entire map (1.55875ms)
+✔ empty membership table is valid only with measured zero; thrown reads remain unavailable (0.228375ms)
+✔ profile IDs are deduplicated and chunked without losing the last owner (1.569875ms)
+✔ late error, count mismatch and unexpected or repeated profiles discard previous chunks (3.359416ms)
+✔ missing profiles and contactless profiles are measured omissions, empty input does not query (0.128458ms)
+✔ company recipients still exclude a former partner after shared profile lookup (4.816041ms)
+✔ role profile pagination includes the last eligible recipient and excludes missing contact (5.322416ms)
+✔ role profile errors and unexpected roles never expose a partial recipient list (0.416042ms)
+✔ notification reservation requires the expected acknowledgement; empty data is not already sent (4.0145ms)
+✔ unique conflict remains an idempotent skip and DB failures expose only their code (0.603458ms)
+✔ bounded matcher catches identity-like and Turkish mobile forms (1.482083ms)
+✔ ordinary dates, times, amounts and long identifiers remain usable; limits explicit (0.550291ms)
+✔ all four submission validators reject before calling a service (2.103208ms)
+✔ historical conversation and pending command resolution remain readable (0.671084ms)
+✔ validation errors are actionable without echoing private text (0.148792ms)
+✔ one request may have three signs but request count is unique (17.847375ms)
+✔ removed absence and cancelled demands do not create actions (0.345167ms)
+✔ future unknown does not count as outstanding but unfilled demand does (0.188625ms)
+✔ due date uses snapshot Istanbul day across UTC midnight boundary (0.284167ms)
+✔ wrong week or malformed snapshot never becomes clean checklist (0.236584ms)
+✔ empty verified week and fully present request have no signs (0.247083ms)
+✔ priority and search preserve overlap without summing people (0.429959ms)
+✔ selected day only, including year boundary week (0.365708ms)
+✔ query separates company locations and tenant workers (5.314875ms)
+✔ page preserves leading zero code and manual null code (0.967959ms)
+✔ partial page, duplicate identity or wrong filter fails instead of showing clean data (1.244125ms)
+✔ page beyond shrinking total is valid empty with true total (0.519667ms)
+✔ worker shape cannot be mistaken for a company location (2.321917ms)
+✔ activation keeps strict boolean and bounded expected revision (1.901291ms)
+✔ activation response must identify exact change and revision (0.65225ms)
+✔ command boundaries reject missing or invalid CAS, hash, bytes and filename (3.961917ms)
+✔ receipt identity and terminal states cannot be borrowed or interpreted loosely (0.474375ms)
+✔ invalid file is rejected before any RPC, including same-size different content (4.183791ms)
+✔ lost upload response reconciles bytes before finish; same command retry returns receipt without Storage (1.685792ms)
+✔ missing or mismatched Storage bytes cannot finish (1.158209ms)
+✔ cancelled command never uploads; cancel-before-prepare uses full immutable command (3.257875ms)
+✔ status distinguishes unknown transport, confirmed missing, malformed and published (0.316209ms)
+✔ bounded multipart accepts a file above Server Action default and exactly 10 MiB (144.372333ms)
+✔ body limit enforced on actual chunks despite missing or lying Content-Length (3.951417ms)
+✔ malformed successful RPC data remains an unverifiable result, not invalid caller input (0.91625ms)
+✔ fresh adapter after reload reuses persisted identity without storing form text (19.5135ms)
+✔ canonical object key order is stable; changed payload and kind are distinct (3.690292ms)
+✔ different account and tenant never borrow identity (4.261625ms)
+✔ concurrent tabs reserve a single identity through shared lock (2.064209ms)
+✔ acknowledgment removes only confirmed command; next identical intent has new identity (1.959875ms)
+✔ blocked read/write and missing locks reject without volatile fallback (3.194875ms)
+✔ malformed stored records fail closed (18.422625ms)
+✔ 50 pending limit preserves old identities and blocks new writes (43.450667ms)
+✔ failed acknowledgment retains original identity for safe retry (1.111916ms)
+✔ reconciliation clears only terminal requested IDs; unknown and concurrent additions survive (3.135333ms)
+✔ malformed, omitted, duplicate, foreign, and non-terminal-looking statuses preserve all pending identities (2.052625ms)
+✔ reconciliation storage failure keeps recoverable identity (1.379625ms)
+✔ read-only digest snapshot matches normalized intent without reserving or exposing payload (2.608916ms)
+✔ reload and concurrent tabs reuse identity without retaining financial text (46.664583ms)
+✔ changed file or mapping cannot silently allocate a second command (10.071917ms)
+✔ scope isolation; settlement clears only the proven command (3.911708ms)
+✔ storage failure and corrupt records fail closed (1.150334ms)
+✔ failed settlement retains original identity (8.076541ms)
+✔ only explicit input rejection permits clearing recovery; network/replay uncertainty preserves it (0.559417ms)
+✔ command payload allowlists fields and trims text (57.104459ms)
+✔ unknown commands including prototype properties are rejected (0.529166ms)
+✔ request boundary, date and identity validation (0.876084ms)
+✔ directory and assignment commands require their own fields (23.519041ms)
+✔ null and nonboolean board data cannot become an empty or available board (36.164292ms)
+✔ capacity and cancellation contradictions fail board validation (5.675708ms)
+✔ capacity edit requires valid old and new counts and strips unrelated fields (4.962625ms)
+✔ attendance requires exact status and nonnegative bounded revision (1.22175ms)
+✔ board cannot drop attendance or turn unknown into absence (3.713084ms)
+✔ request context round trips without dropping day, scope, or encoded job (50.20225ms)
+✔ malformed or duplicate context cannot initialize a placement journey (4.786166ms)
+✔ new, repeated and corrected files remain distinct (9.596542ms)
+✔ rejects other tenant/project/source/month and partial snapshots (16.209875ms)
+✔ both copies are blocked; changed source identity cannot duplicate work (18.783167ms)
+✔ missing is not zero; malformed dates and durations are blocked (1.743542ms)
+✔ omitted rows remain visible without deletion; corrupt snapshots fail (7.620208ms)
+✔ multiple slots are separate; leading zero codes are preserved (2.352ms)
+✔ preview rejects incomplete, duplicate, invalid duration or status rows (10.320209ms)
+✔ people response rejects duplicate codes and malformed candidates (3.134333ms)
+✔ monthly report rejects incomplete, inconsistent or wrong-scope totals (19.468625ms)
+✔ empty report is explicit and duration retains minutes (86.709792ms)
+✔ UTF-8 CSV preserves codes and explicitly converts hours (22.434292ms)
+✔ invalid encoding, duplicate columns, partial row fail (3.019416ms)
+✔ blank/formula/day-text/fractional-minute/out-of-range never become zero (17.47475ms)
+✔ wrong month, formula metadata and duplicate mapping block (1.367041ms)
+✔ incomplete lists, duplicates and wrong tenant fail (9.636125ms)
+✔ details reject impossible dates and incomplete child pages (15.060458ms)
+✔ page offsets are bounded and aligned (5.013042ms)
+✔ work details fail on missing pages, duplicates, wrong scope and invalid durations (8.966125ms)
+✔ Excel dates and zero-padded codes survive extraction (24.53075ms)
+✔ formulas remain flagged; merged, hidden-only and oversized sheets reject (5.01075ms)
+✔ task rejects wrong company, tenant, invisible relation and read failure before insert (20.129208ms)
+✔ task accepts same company/tenant relation and queries explicit scope (14.41375ms)
+✔ task rejects company belonging to another tenant (17.052417ms)
+✔ appointment rejects wrong company, tenant, invisible relation and read failure before insert (7.873458ms)
+✔ appointment accepts same company/tenant relation and queries explicit scope (5.971583ms)
+✔ appointment rejects company belonging to another tenant (1.064209ms)
+✔ task appointment relation is independently validated before insert (3.396166ms)
+✔ no relation requires no extra relation reads and preserves nullable IDs (0.967917ms)
+✔ replacement search is Turkish-normalized and excludes booked, inactive and current worker (11.026917ms)
+✔ selected available worker survives no matching search without inflating match count (3.228875ms)
+✔ selection cannot bypass availability and does not duplicate a matched worker (3.907084ms)
+✔ only an explicit scoped null latest is interpreted as no conversation (16.804042ms)
+✔ transport error cannot become a zero revision snapshot (0.6805ms)
+✔ latest revision and actor are validated before exposing the record (7.745667ms)
+✔ write retains scope, command ID and revision; validates response against submitted command (7.725667ms)
+✔ invalid input stops before RPC and write errors are preserved for reconciliation (16.949875ms)
+✔ eleven-digit numeric codes are blocked without collecting or validating identity (2.427208ms)
+✔ ordinary business codes, dates and UUIDs are not reclassified as identities (0.314916ms)
+✔ spreadsheet row is held with field message and no accepted value (2.485ms)
+✔ database rejection is translated without echoing the input (0.572333ms)
+✔ weekdays selected across year boundary and leap day (25.666958ms)
+✔ range limit is inclusive 31 days; reverse, empty weekday and invalid calendar rejected (4.602042ms)
+✔ payload normalization gives same dates and trimmed content for retry identity (14.385209ms)
+✔ malformed or excessive payload never reaches writes (8.146875ms)
+✔ removed preview days remain excluded from canonical payload (1.064792ms)
+✔ batch result must contain exact count and distinct identities for the same command (0.824084ms)
+✔ IDP period keeps original leave interval while excluding non-working preview days (6.333917ms)
+✔ all routes prohibit framing and set browser safety headers without breaking scripts (608.853083ms)
+✔ all valid module combinations intersect dashboard roles, without enabling dependent sections (291.545917ms)
+✔ shared loader rejects malformed/foreign snapshots and transport errors (131.500959ms)
+✔ page boundary never mounts business readers before validation; off, error and role denial remain distinct (634.948042ms)
+✔ page boundary retries failed settings and ignores a response after unmount (71.419417ms)
+✔ actual completion form explicitly sends task true, unchecked false, and unavailable false (412.214625ms)
+✔ failed completion preserves both result fields and shows a retryable error (121.018042ms)
+✔ actual dashboard skips disabled queries/cards; independent tasks work without company lookup (933.838583ms)
+✔ actual dashboard fetches enabled sections but never offers partner task access (993.593291ms)
+✔ late assignment skips prior checks and requires immediate call (7.281667ms)
+✔ last recorded event wins, not scheduled offset (4.731834ms)
+✔ past plan events cannot colour new plan (0.334375ms)
+✔ claimed arrival remains unverified at start even if all calls recorded (0.653375ms)
+✔ confirmation closes remaining calls without fabricating events; removal closes writes (0.370875ms)
+✔ unknown or malformed call outcome fails closed instead of hiding required action (7.875833ms)
+✔ all supported call results and extra call offset remain accepted (0.74225ms)
+✔ daily attendance conflict directs the operator to reopen independent confirmation (3.327041ms)
+✔ mobile next call suggests earliest due unrecorded step regardless of offset order (0.719167ms)
+✔ mobile next call never reopens closed/confirmed work or fabricates scheduled checks (0.504666ms)
+✔ known rejected command is removed only after terminal server closure (69.416042ms)
+✔ previous commit wins over a later rejection; never claims not saved (15.930875ms)
+✔ scope denial, unknown or malformed reconciliation preserve pending identity (14.220958ms)
+✔ network, lock and unknown errors never automatically close a command (15.17675ms)
+✔ storage failure after response keeps uncertainty rather than fake cleanup (5.743791ms)
+✔ input, witness, replay and plan errors have useful distinct explanations (0.391292ms)
+✔ zero assignments differs from zero outstanding tracking (11.678542ms)
+✔ full count survives first-page/top-three rendering (6.061708ms)
+✔ partial or wrong-scope response is not a healthy summary (0.796458ms)
+✔ confirmed or closed record cannot become an outstanding item (0.374916ms)
+✔ employee claim remains pending and lost responsibility is explicit (2.45325ms)
+✔ tracking link preserves exact day and enables only explicit action filter (0.307875ms)
+✔ tracking link preserves day and safely encodes worker search without enabling urgent filter (26.424292ms)
+✔ missing name and invalid day cannot produce an unrelated tracking destination (8.875709ms)
+✔ tracking preserves return company separately from the all-company query and chosen return day (7.037291ms)
+✔ return navigation rejects malformed company and impossible dates without accepting arbitrary URLs (1.346584ms)
+✔ future, due and overdue controls have distinct boundaries (3.151167ms)
+✔ claimed arrival never confirms; start deadline escalates even after all calls (0.422084ms)
+✔ cannot attend needs replacement; unreachable differs from absence (0.8395ms)
+✔ verified arrival skips remaining controls, retains recorded outcomes (0.829625ms)
+✔ removed assignment closes pending controls; invalid confirmation cannot green a row (4.829458ms)
+✔ midnight arithmetic and malformed schedules (4.523333ms)
+✔ onboarding access excludes operations while ordinary attachments remain available (5.943125ms)
+✔ metadata rejects path names, oversized files, PDF photos and forged properties (97.185584ms)
+✔ file signature is checked rather than trusting filename or browser MIME (0.964417ms)
+✔ lost upload response survives reload and reuses its command without storing file contents (19.70625ms)
+✔ upload references are isolated by actor, tenant, person, category and file fingerprint (7.508708ms)
+✔ blocked, silently discarded or corrupted browser storage prevents starting a new command (0.931583ms)
+✔ confirmation cannot clear a different command written by another tab (0.466917ms)
+✔ upload recovery accepts duplicate status 400 or 409 and lost responses only after database confirmation (5.684959ms)
+✔ a successful Storage response never substitutes for failed or non-boolean database confirmation (1.455417ms)
+✔ confirmed reserve replay avoids uploading twice; malformed reserve never uploads (9.55975ms)
+✔ two tabs reserve one upload command through the same exclusive lock (1.769583ms)
+✔ missing or rejected cross-tab lock never allocates an upload reference (3.031292ms)
+✔ attachment list distinguishes measured empty from missing or corrupt response (0.8455ms)
+✔ attachment list rejects wrong person, duplicate IDs and malformed file metadata (5.7805ms)
+✔ attachment list keeps the 51st pagination sentinel but rejects an unexpected oversized response (2.329458ms)
+✔ confirmation and reservation use the same lock; a queued new command survives cleanup (7.564542ms)
+✔ confirmation preserves recovery reference if cross-tab lock cannot be acquired (0.478084ms)
+✔ cancel cleanup only clears matching command inside the same actor tenant and person (5.70075ms)
+✔ explicit empty differs from missing, and every requested identity is accounted for (5.544292ms)
+✔ reject wrong tenant, actor, timestamps and job-specific decline in general summary (1.856167ms)
+✔ bound requests to one server page and accept empty page (5.530541ms)
+✔ conversation captures an outcome without manufacturing availability or a placement (7.072625ms)
+✔ declining a job requires that specific request; malformed values fail (1.520292ms)
+✔ response belongs to requested tenant/person and contains a real server actor/time (3.880875ms)
+✔ history rejects mixed people, duplicate ids and oversized responses (7.504834ms)
+✔ combined filters normalize without dropping constraints (5.293125ms)
+✔ invalid ranges, malformed filters and null values fail validation (3.6415ms)
+✔ demographics remain optional and omission is distinct from explicit clear (143.9595ms)
+✔ server response must echo every applied filter (4.64675ms)
+✔ availability requires date and state together; saved legacy filters remain valid (1.054ms)
+✔ person responses retain demographics through list, detail and edit validation (4.012709ms)
+✔ callback view survives validation and saved searches; response cannot silently use all (56.516416ms)
+✔ batch request preserves sparse physical row numbers and rejects malformed or duplicate decisions (1553.608875ms)
+✔ status must be complete and belong to the expected actor, company, batch and source (18.234125ms)
+✔ terminal receipt and blocked codes cannot be coerced or accepted for another row (14.810833ms)
+✔ services use scoped RPCs, validate inputs before calls, and never translate transport failures into success (285.138708ms)
+✔ unknown recovery stays distinct from closed and rejects another scope or reference (9.416334ms)
+✔ selected plan maps only approved fields and strips all held source information (202.93625ms)
+✔ history requires a complete scoped page and valid pending counts (3.286917ms)
+✔ result report includes each physical source row and distinguishes unsettled from saved (1.374833ms)
+✔ comparison snapshot distinguishes measured empty from incomplete, malformed and foreign results (6.384584ms)
+✔ read service sends only verified scope, not spreadsheet content, and validates response (1.851666ms)
+✔ Turkish phone formats match but do not imply identity (5.839375ms)
+✔ blank fields preserve existing data; new contacts are additive and old city conflicts visible (4.633166ms)
+✔ name and contact matching different people requires review; never prefer one silently (1.059625ms)
+✔ source issues remain blocking review even when no current match exists (0.632708ms)
+✔ many ambiguous matches are bounded and explicitly labelled; file rows are never merged (5.531125ms)
+✔ every source row is accounted for; no decision is guessed (36.350208ms)
+✔ existing identity selection never accepts field changes by default (9.066917ms)
+✔ source issues, unknown targets, illegal changes and matches cannot become new writes (6.602208ms)
+✔ two source rows targeting one person require resolution even for unchanged rows (0.981208ms)
+✔ new rows with normalized shared identity do not silently create duplicates (15.370916ms)
+✔ new row conflicting with another row resulting contact is also blocked (4.325208ms)
+✔ contact capacity and revision overflow cannot be hidden by review (0.855834ms)
+✔ existing city-only import excludes rejected source name and contact values from the actual request (80.607625ms)
+✔ selected email is retained, unchanged rows send only stored name, hold rows send no personal data (25.408167ms)
+✔ suggestions are conservative, duplicates and branch city are not guessed (122.707166ms)
+✔ calendar dates reject impossible days and ambiguous serials (11.42525ms)
+✔ repeated names and shared phones retain all physical source rows without merging (16.1285ms)
+✔ coverage statuses remain source history; invalid ranges and unmapped fields remain visible (5.706042ms)
+✔ missing, overlapping and wrong-scope mappings are rejected (0.856291ms)
+✔ real XLSX reader preserves hidden sheet, physical row numbers, dates and formula diagnostics (1094.413375ms)
+✔ CSV supports BOM CRLF quoted delimiters; bad encoding and renamed text fail (23.213667ms)
+✔ worksheet extents cannot silently truncate oversized sources (63.860791ms)
+✔ name-only source and unmapped formula can be explicitly prepared as new without merging (1068.616833ms)
+✔ mapped formula, error, invalid contact and missing name still block a new-person decision (25.607042ms)
+✔ ten long emails fit the workbook cell budget without truncation; over-limit cells fail (48.717625ms)
+✔ a large source is partitioned without losing or renumbering any source row (123.133667ms)
+✔ duplicate targets across partition boundary are rejected before any part can be sent (13.387208ms)
+✔ queue references reject corruption and duplicates instead of skipping parts (0.885291ms)
+✔ local import receipt distinguishes absent, valid, malformed JSON and old shape (16.942167ms)
+✔ blocked storage stays unavailable, is never treated as an empty receipt, and leaks no raw contents (2.258917ms)
+✔ person receipt retry preserves command identity and distinguishes malformed and blocked storage (5.604333ms)
+✔ resolved receipt removal failure preserves receipt and allows retry without leaking storage error (0.846292ms)
+✔ reference preserves exact command and stores no person fields (23.431542ms)
+✔ reference cannot recover into a different actor or tenant (8.310083ms)
+✔ corrupt, old or unconfirmed references fail closed (0.666042ms)
+✔ name-only records preserve unknown contacts, region and work type (10.3695ms)
+✔ invalid contacts, hidden extra fields and unsupported work types are rejected (3.201166ms)
+✔ page completeness, duplicate IDs, foreign scope and null RPC results fail closed (3.808083ms)
+✔ recovery only confirms the expected person, command and revision (0.536084ms)
+✔ UUID assignment displays the directory name even without legacy text (5.504334ms)
+✔ current directory name supersedes stale legacy text (0.513292ms)
+✔ loading, failure and missing directory entry never claim unassigned (1.32275ms)
+✔ blank profile name is still an assignment (0.211541ms)
+✔ name-only rows are clearly marked as legacy (4.872917ms)
+✔ only a row without UUID or legacy name says unassigned (0.25525ms)
+✔ claim sends expected scope and revision to the atomic gateway; display names are not trusted (5.473083ms)
+✔ losing claim, inaccessible record and transport failure cannot report success (8.855709ms)
+✔ claim and quick completion use one command rather than separate mutable role and tenant snapshots (2.539416ms)
+✔ bad scope is rejected before a claim/completion command is sent (2.31525ms)
+✔ module disabled, missing configuration and transport failure remain distinct from a lost claim (1.126583ms)
+✔ links contain only the task UUID and round trip (10.112833ms)
+✔ unrelated task-prefill parameters do not become a task link (6.1125ms)
+✔ malformed, empty and duplicate IDs are rejected (1.01075ms)
+✔ URL round trip carries only identifiers and date (10.558916ms)
+✔ ordinary tasks page has no prefill; partial and duplicate context rejected (1.523834ms)
+✔ reject malformed ids, impossible dates and unsupported date bounds (0.653792ms)
+✔ prefill derives fresh name and title from server data, no assignee/source FK or deadline inferred (0.509ms)
+✔ missing company/request/location and mismatched day fail without fallback (0.611875ms)
+✔ passive company and cancelled request cannot prepare a new followup (0.698708ms)
+✔ inactive location may still need a followup on an existing active request (2.7645ms)
+✔ invalid or missing revision fails before any raw request (12.606167ms)
+✔ update filters exact loaded revision and returns new row (6.966917ms)
+✔ zero rows is a conflict, transport/database error stays different (2.793625ms)
+✔ history has an honest twenty-row limit and extra-row indicator (1.244625ms)
+✔ command validates bounded unique integer revisions and canonical identities (86.771041ms)
+✔ snapshot normalization removes ordering and presentation from command identity (0.597542ms)
+✔ preview rejects silent omissions, duplicate rows, unsafe counts and wrong source (4.751084ms)
+✔ directory allows unnamed departed source, never absent arrays or duplicate targets (4.310334ms)
+✔ result must match exact command scope and moved count (1.753375ms)
+✔ service writes one RPC and has no iterative task fallback (5.904417ms)
+✔ invalid command fails before write and malformed successful response is uncertain (0.853917ms)
+✔ transport error cannot be mislabeled as nonmember or conflict (7.137792ms)
+✔ module rejection is definite but a transport error remains uncertain (0.724125ms)
+✔ task screen requires verified actor, tenant, live role and complete module snapshot (13.584958ms)
+✔ task company directory keeps narrow fields, ordered complete pagination and rejects wrong tenant (8.473666ms)
+✔ context navigation needs an enabled source module; missing state never defaults to all links (0.77ms)
+✔ actual task form hides disabled company controls instead of calling the company list empty (46.112584ms)
+✔ reverse formula rejects the historical negative-price case and below-baseline amounts (4.067459ms)
+✔ every numeric input rejects negative and non-finite values (5.43ms)
+✔ zero markup is valid and markup is applied to cost, not sales margin (0.382916ms)
+✔ form parser distinguishes missing required input from optional zero and rejects partial numeric strings (0.995458ms)
+✔ hard dependencies are a DAG; unknown, duplicate and self edges are rejected (3.188792ms)
+✔ talent, tasks and announcements stand alone; reporting and staffing do not require each other (4.364083ms)
+✔ every one of the 1024 configurations is accepted iff all required dependencies are enabled (465.693209ms)
+✔ partial, unknown, inherited and non-boolean module values never imply enabled (3.635417ms)
+✔ context keeps bigint revisions exact and discards unrelated response fields (14.581708ms)
+✔ actor/company/generation/role/protocol mismatches cannot supply a context (3.748583ms)
+✔ all existing member roles retain their role without receiving new privileges (1.09025ms)
+✔ an older response from another workspace is rejected and no RPC fallback runs (59.45775ms)
+✔ one bounded RPC returns the whole snapshot, without a client-selected tenant argument (8.574583ms)
+✔ migration catalog is generated from the same manifest, not a second hand-maintained graph (1.977833ms)
+✔ cancelled presence remains actual; removed unknown is not outstanding (6.36425ms)
+✔ no declarations cannot silently become zero attendance (1.240375ms)
+✔ duplicate or unmatched declarations fail verification (0.356625ms)
+✔ same worker on different days counts separate person days (0.179208ms)
+✔ absence total counts declarations, not unique people (0.368792ms)
+✔ Monday week boundaries include Sunday, leap day, year and minimum date (2.780833ms)
+✔ totals count person-days, exclude cancellations and retain unfilled requests (1.122833ms)
+✔ empty verified plan is accepted; null and wrong company/week are not (0.473041ms)
+✔ range, duplicate requests, capacity, missing staff and cancelled assignment contradictions fail closed (0.29275ms)
+✔ same worker on separate days allowed, double booking or repeated assignment ID rejected (0.249334ms)
+✔ CSV records scope/time and quotes delimiters, double quotes and embedded newlines (0.2705ms)
+✔ CSV neutralizes formula prefixes including whitespace before formula (0.206708ms)
+✔ CSV cancellations are opt-in and contribute zero active open (0.085125ms)
+✔ overnight is explicit; break reduces actual work; invalid time never becomes an estimate (2.571875ms)
+✔ 24 hour limit and zero-length work are distinct; no automatic overnight guessing (0.14875ms)
+✔ correction reason required and only valid scoped record can establish revision zero (1.259625ms)
+✔ net totals and contiguous latest audit history must agree with the record (0.678917ms)
+✔ receipt is matched to command, assignment, action and next revision (0.197834ms)
+✔ invalid write fails before RPC; exact payload and errors are preserved (0.392917ms)
+✔ company/day list rejects wrong scope, partial shape, duplicates and malformed totals (2.638334ms)
+✔ latest 20 audit entries are accepted only in contiguous descending revision order (0.776333ms)
+✔ declared per-entry and aggregate expansion are bounded (1.188917ms)
+✔ malformed directories, encryption, volume split and entry-count overflow fail (0.316792ms)
+✔ preparation preserves identity and explicit work kind; normalizes code (1.270542ms)
+✔ rejects malformed identities, revisions and unsupported work types (0.266125ms)
+✔ receipt must match command, person, next revision and real worker id (0.399833ms)
+✔ five surplus staff in one location cannot cancel five missing in another (2.988834ms)
+✔ zero target, fully staffed and empty sets remain distinct and nonnegative (0.133583ms)
+✔ workspace identity follows server data and never a user-editable company name (1.458083ms)
+✔ missing, malformed and mismatched company or actor responses fail closed (0.594458ms)
+✔ write target requires both the same actor and company (0.4415ms)
+✔ RPC errors and null success never invent a company or return a stale identity (0.441917ms)
+✔ company context request carries no caller-selected company and has a deadline (0.159ms)
+✔ UI company comes from verified workspace when getUser metadata lacks token-hook claims (0.127208ms)
+✔ role and company are accepted together and user metadata cannot supply authority (0.171833ms)
+✔ invitation parsing fails closed and excludes server extras (1.179166ms)
+✔ token has 256 random bits and transport failure is not labelled invalid invitation (0.943834ms)
+✔ setup accepts measured zeros but rejects unavailable/wrong-scope response (1.598667ms)
+✔ setup rejects coerced, missing, negative or unsafe counts and invalid calendar dates (0.199209ms)
+ℹ tests 560
+ℹ suites 0
+ℹ pass 560
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71174.724792
+
+> bps@0.1.0 qa:static
+> node scripts/qa-static.mjs
+
+BPS QA Mini Harness V1 — qa:static
+
+PASS service_role-confined              (FAIL-rule)  service_role only in cron/healthz/demo-request/access-request
+PASS browser-createContact-removed      (FAIL-rule)  no browser-context createContact( in src/app
+PASS contact-create-yonetici-only-action (FAIL-rule)  guard: roleData !== "yonetici", no partner in code
+PASS contact-create-yonetici-only-ui    (FAIL-rule)  Yetkili Ekle gate: role === "yonetici"
+PASS passivate-status-only              (FAIL-rule)  payload = { status: "pasif" }
+WARN package-migration-drift            (WARN-rule)  drift (human decides): supabase/migrations/20260928001600_finance_module_access.sql
+PASS upload-guard-before-storage        (WARN-rule)  guard precedes storage upload
+PASS contact-guard-before-insert        (WARN-rule)  guard precedes createContact insert
+PASS reactivate-status-only             (WARN-rule)  payload = { status: "aktif" }
+PASS stale-partner-comment              (WARN-rule)  no stale partner-scope create comment on create path
+PASS import-graph-browser-create        (WARN-rule)  page does not import browser createContact
+PASS pre-deploy-gates-recorded          (FAIL-rule)  G1/G2/G3 cleared with accepted values
+PASS table-rls-enabled                  (FAIL-rule)  77/77 created tables enable RLS explicitly
+WARN unreachable-component              (WARN-rule)  nothing renders: CapacityRiskCard, TimelineList
+PASS profiles-read-scoped               (FAIL-rule)  460 files parsed; no unscoped profiles reader; every raw chain keyed; pages read via scoped RPC
+PASS scan-integrity                     (FAIL-rule)  every walk() listed completely and every read() succeeded
+
+16 checks · 0 FAIL · 2 WARN
+scripts/qa-static.mjs — static only; run tsc + build separately (no lint configured).
+
+> bps@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.26
+   - Experiments (use with caution):
+     · middlewareClientMaxBodySize: "11mb"
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (215kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 34.1s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/29) ...
+   Generating static pages (7/29)
+   Generating static pages (14/29)
+   Generating static pages (21/29)
+ ✓ Generating static pages (29/29)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    48.7 kB         151 kB
+├ ○ /_not-found                             1 kB         104 kB
+├ ƒ /admin                               6.08 kB         109 kB
+├ ○ /aktif-isgucu                        6.93 kB         194 kB
+├ ƒ /api/access-request                    151 B         103 kB
+├ ƒ /api/contracts/pdf-upload              151 B         103 kB
+├ ƒ /api/cron/notifications                151 B         103 kB
+├ ƒ /api/demo-request                      151 B         103 kB
+├ ƒ /api/healthz                           151 B         103 kB
+├ ƒ /api/operations/weekly-export          151 B         103 kB
+├ ƒ /auth/callback                         151 B         103 kB
+├ ○ /ayarlar                             6.75 kB         188 kB
+├ ○ /dashboard                           13.7 kB         200 kB
+├ ○ /davet                                4.2 kB         182 kB
+├ ○ /evraklar                            9.24 kB         210 kB
+├ ○ /finansal-ozet                       7.85 kB         186 kB
+├ ○ /firmalar                             7.1 kB         191 kB
+├ ƒ /firmalar/[id]                        127 kB         332 kB
+├ ○ /gorevler                            17.9 kB         219 kB
+├ ○ /import                              7.96 kB         186 kB
+├ ○ /kayit                               1.75 kB         169 kB
+├ ○ /kurulum                             6.84 kB         188 kB
+├ ○ /kurumsal-tarihler                   7.47 kB         185 kB
+├ ○ /login                               3.75 kB         168 kB
+├ ○ /luca-import                          170 kB         348 kB
+├ ƒ /personel-havuzu                     33.2 kB         237 kB
+├ ƒ /personel-havuzu/aktarim             23.2 kB         199 kB
+├ ƒ /personel-havuzu/listeler            5.47 kB         191 kB
+├ ƒ /projeler                            2.17 kB         108 kB
+├ ƒ /projeler/[id]                       2.93 kB         109 kB
+├ ƒ /projeler/[id]/aktarim               9.01 kB         120 kB
+├ ƒ /projeler/[id]/rapor                   169 B         106 kB
+├ ƒ /projeler/[id]/rapor/kayitlar          169 B         106 kB
+├ ○ /randevular                          11.9 kB         213 kB
+├ ○ /raporlar                            7.07 kB         196 kB
+├ ○ /sirket-sec                          3.84 kB         168 kB
+├ ○ /sozlesmeler                         7.22 kB         205 kB
+├ ƒ /sozlesmeler/[id]                    15.9 kB         222 kB
+├ ○ /talepler                            8.33 kB         207 kB
+├ ƒ /talepler/dizin                      7.33 kB         192 kB
+├ ƒ /talepler/gunluk                     35.8 kB         230 kB
+├ ƒ /talepler/haftalik                   7.76 kB         189 kB
+├ ƒ /talepler/ise-baslama                10.7 kB         195 kB
+├ ○ /talepler/ise-baslama/onizleme       2.84 kB         171 kB
+├ ƒ /talepler/kadro                      8.37 kB         179 kB
+├ ƒ /talepler/kontrol                    5.42 kB         187 kB
+├ ƒ /talepler/planlar                     8.2 kB         179 kB
+└ ƒ /yonetim                             7.15 kB         197 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/8337-670d98be687c4cde.js      46.3 kB
+  ├ chunks/945200c1-3bdd3afc4617970b.js  54.2 kB
+  └ other shared chunks (total)          2.15 kB
+
+
+ƒ Middleware                             86.8 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
