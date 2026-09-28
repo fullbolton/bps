@@ -1,29 +1,5 @@
-/**
- * BPS QA — saf fonksiyon regresyon testleri.
- *
- * `qa:static` metin/desen kontrolü yapar; bu dosya DAVRANIŞ kontrol eder.
- * Bağımlılık yok, test framework'ü yok — projede kurulu değil ve tek bir
- * fonksiyon için kurmak orantısız olurdu. Koşum: `npm run qa:unit`.
- *
- * Buraya yalnız iki koşulu birden sağlayan şeyler girer:
- *   1. saf fonksiyon (I/O yok, DB yok),
- *   2. sessizce yanlış olabilir — hata vermeden kötü sonuç üretir.
- *
- * ---------------------------------------------------------------------------
- * KOPYA SORUNU VE ÇÖZÜMÜ
- * ---------------------------------------------------------------------------
- * Kaynak TypeScript, bu dosya düz JS — fonksiyon doğrudan import edilemiyor
- * (projede TS loader yok). Naif çözüm gövdeyi kopyalamaktır, ama o zaman test
- * KAYNAĞI değil KENDİ KOPYASINI doğrular ve kaynak değişince sessizce yeşil
- * kalır. Tam olarak REVIEW_STANDARD §9'un uyardığı sınıf.
- *
- * Bunun yerine iki adım:
- *   1. Kopya, davranış vakalarıyla test edilir.
- *   2. Kopyanın kaynakla AYNI OLDUĞU ayrıca doğrulanır (normalize edilmiş
- *      metin karşılaştırması). Kaynak değişirse test kırmızıya döner ve
- *      "kopyayı güncelle" der — sessizce geçmez.
- */
-
+import {importActualTypeScript} from './helpers/import-typescript.mjs';
+// Executes actual TypeScript exports; no duplicate implementation.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -31,15 +7,9 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 
 // ---------------------------------------------------------------------------
-// 1. Test edilen kopya — src/lib/notification-kinds.ts ile AYNI olmalı
+// 1. Test edilen kopya — src/lib/calendar-date.ts ile AYNI olmalı
 // ---------------------------------------------------------------------------
-function isIsoDate(value) {
-  if (!value) return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const t = Date.parse(`${value}T00:00:00Z`);
-  if (!Number.isFinite(t)) return false;
-  return new Date(t).toISOString().slice(0, 10) === value;
-}
+const {isIsoDate} = await importActualTypeScript(new URL('../src/lib/calendar-date.ts', import.meta.url));
 
 // ---------------------------------------------------------------------------
 // 2. Davranış vakaları
@@ -66,7 +36,7 @@ const cases = [
 
 let failed = 0;
 console.log("BPS QA Unit — saf fonksiyon regresyonları\n");
-console.log("isIsoDate  (kaynak: src/lib/notification-kinds.ts)");
+console.log("isIsoDate  (kaynak: src/lib/calendar-date.ts)");
 for (const [input, expected, why] of cases) {
   const got = isIsoDate(input);
   const ok = got === expected;
@@ -83,14 +53,7 @@ for (const [input, expected, why] of cases) {
 // Bu fonksiyonun ilk hâli `err.name` okuyordu ve `Error.name` YAZILABİLİR bir
 // instance alanı olduğu için serbest metni loga taşıyordu. Aşağıdaki ilk iki
 // vaka tam olarak o sızıntıyı temsil ediyor.
-function safeThrown(err) {
-  if (err instanceof TypeError) return "thrown=TypeError";
-  if (err instanceof RangeError) return "thrown=RangeError";
-  if (err instanceof SyntaxError) return "thrown=SyntaxError";
-  if (err instanceof ReferenceError) return "thrown=ReferenceError";
-  if (err instanceof Error) return "thrown=Error";
-  return "thrown=unknown";
-}
+const {safeThrown} = await importActualTypeScript(new URL('../src/lib/email/safe-error.ts', import.meta.url));
 
 const mutatedName = new Error("boom");
 mutatedName.name = "recipient@example.com";
@@ -129,39 +92,7 @@ for (const pat of forbidden) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Kopya ↔ kaynak eşitliği — testin kendi kopyasını doğrulamasını engeller
-// ---------------------------------------------------------------------------
-const norm = (s) => s.replace(/\s+/g, " ").trim();
-const src = readFileSync(join(here, "..", "src", "lib", "notification-kinds.ts"), "utf8");
-const found = src.match(/export function isIsoDate\([\s\S]*?\n\}/);
-
-console.log("\nkopya ↔ kaynak eşitliği");
-if (!found) {
-  console.log("  \x1b[31mFAIL\x1b[0m isIsoDate kaynakta bulunamadı (yeniden adlandırıldı mı?)");
-  failed++;
-} else {
-  // Kaynaktaki gövdeyi imza ve yorumlardan arındırıp karşılaştır.
-  const srcBody = norm(
-    found[0]
-      .replace(/^export function isIsoDate\([^)]*\)[^{]*\{/, "")
-      .replace(/\/\/[^\n]*/g, "")
-      .replace(/\}$/, ""),
-  );
-  const copyBody = norm(
-    isIsoDate.toString().replace(/^function isIsoDate\([^)]*\)\s*\{/, "").replace(/\}$/, ""),
-  );
-  if (srcBody === copyBody) {
-    console.log("  \x1b[32mPASS\x1b[0m kopya kaynakla birebir aynı");
-  } else {
-    failed++;
-    console.log("  \x1b[31mFAIL\x1b[0m KOPYA KAYNAKTAN SAPTI — bu test artık kaynağı doğrulamıyor.");
-    console.log(`       kaynak: ${srcBody}`);
-    console.log(`       kopya : ${copyBody}`);
-    console.log("       Düzelt: yukarıdaki kopyayı kaynakla eşitle, sonra vakaları gözden geçir.");
-  }
-}
-
-console.log(`\n${cases.length + thrownCases.length} vaka + 1 eşitlik + 4 statik kontrol · ${failed} FAIL`);
+console.log(`\n${cases.length + thrownCases.length} vaka + 4 statik kontrol · ${failed} FAIL`);
 if (failed > 0) {
   console.error("qa:unit FAILED");
   process.exit(1);

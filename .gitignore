@@ -26,3 +26,6 @@ apply_patches.py
 BPS./
 BPS/
 bps-vault/
+
+# Every local environment profile is private.
+.env*

@@ -1,0 +1,444 @@
+[
+  {
+    "file": "scripts/appointment-calendar.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/appointment-completion.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/appointment-link.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/attendance-controls.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/calendar-date.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/candidate-company.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/company-financial.test.mjs",
+    "suite": "pending",
+    "reason": "Tests an implementation not present in the accepted release; retain until its reviewed feature package ships.",
+    "requires": "src/lib/supabase/company-financial.ts"
+  },
+  {
+    "file": "scripts/company-identities.test.mjs",
+    "suite": "pending",
+    "reason": "Tests an implementation not present in the accepted release; retain until its reviewed feature package ships.",
+    "requires": "src/lib/supabase/company-identities.ts"
+  },
+  {
+    "file": "scripts/company-tenant-fence.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/complete-result.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/contract-appendices.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/contract-pdf.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/contract-renewal.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/conversation-command.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/conversation-read.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/critical-date-edit.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/csv-integrity.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/csv-reader.test.mjs",
+    "suite": "pending",
+    "reason": "Tests an implementation not present in the accepted release; retain until its reviewed feature package ships.",
+    "requires": "src/lib/import/csv-reader.worker.ts"
+  },
+  {
+    "file": "scripts/daily-board-view.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/daily-dashboard.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/daily-demand.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/dashboard-activity.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/display-values.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/document-delete.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/document-folders.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/document-status-service.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/document-validity.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/financial-overview.test.mjs",
+    "suite": "pending",
+    "reason": "Tests an implementation not present in the accepted release; retain until its reviewed feature package ships.",
+    "requires": "src/lib/supabase/financial-overview.ts"
+  },
+  {
+    "file": "scripts/independent-tasks.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/istanbul-day-watch.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/list-view-state.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/location-import-preview.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/location-import.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/location-update.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/login-boundary.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/management-talent-block.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/membership-task-guard.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/mizan-numeric-cell.test.mjs",
+    "suite": "pending",
+    "reason": "Tests an implementation not present in the accepted release; retain until its reviewed feature package ships.",
+    "requires": "src/lib/luca/numeric-cell.ts"
+  },
+  {
+    "file": "scripts/mizan-reader.test.mjs",
+    "suite": "pending",
+    "reason": "Tests an implementation not present in the accepted release; retain until its reviewed feature package ships.",
+    "requires": "src/lib/luca/read-mizan.ts"
+  },
+  {
+    "file": "scripts/mizan-workbook-limits.test.mjs",
+    "suite": "pending",
+    "reason": "Tests an implementation not present in the accepted release; retain until its reviewed feature package ships.",
+    "requires": "src/lib/luca/workbook-limits.ts"
+  },
+  {
+    "file": "scripts/mobile-operations.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/navigation-guard.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-assignments.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-batch-candidates.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-batch-integration.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-companies.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-contract-integration.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-contract-recipients.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-contracts.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-memberships.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-profiles.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/notification-stamp.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/operations-checklist.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/operations-directory.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/pdf-upload.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/pending-commands.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/pending-mizan.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/pilot-validation.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/pool-placement-link.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/project-actual-preview.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/project-foundation.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/project-import-view.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/project-import.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/project-monthly-view.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/project-source.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/project-view.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/project-work-details.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/project-workbook.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/related-company-record.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/replacement-options.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/replacement-outreach.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/request-batch.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/security-headers.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/start-board.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/start-failure.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/start-overview.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/start-tracking-link.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/start-tracking.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-attachments.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-contact-summary.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-conversations.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-filters.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-import-batches.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-import-compare.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-import-decisions.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-import-minimization.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-import-preview.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-import-queue.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-local-reference.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-merge-reference.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-people.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/task-assignee-label.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/task-claim.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/task-link.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/task-prefill.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/task-revision.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/task-transfer.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/teklif-validation.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/weekly-attendance.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/weekly-plan.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/work-approval.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/workbook-zip.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/worker-prepare.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/workforce-capacity.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/workspace-context.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/workspace-invitations.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/workspace-setup.test.mjs",
+    "suite": "application"
+  }
+]

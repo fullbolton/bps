@@ -30,6 +30,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireRelatedCompanyRecord } from "@/lib/services/related-company-record";
 import type { RandevuDurumu } from "@/types/ui";
 import type {
   Database,
@@ -211,6 +212,8 @@ export async function createAppointment(
   );
 
   const meetingDate = ensureMeetingDate(input.meetingDate);
+  const contractId = nullableTrim(input.contractId);
+  await requireRelatedCompanyRecord(client, "contracts", contractId, company, options.tenantId);
 
   const {
     data: { user },
@@ -219,7 +222,7 @@ export async function createAppointment(
   const payload: AppointmentInsert = {
     tenant_id: options.tenantId,
     company_id: company.id,
-    contract_id: nullableTrim(input.contractId),
+    contract_id: contractId,
     meeting_date: meetingDate,
     meeting_time: nullableTrim(input.meetingTime),
     meeting_type: (input.meetingType as AppointmentRow["meeting_type"]) ?? "ziyaret",
