@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{importActualTypeScript}from'./helpers/import-typescript.mjs';
+const {parseImportPreview,parseImportPeople}=await importActualTypeScript(new URL('../src/lib/project-reporting/import-view.ts',import.meta.url));
+const id='00000000-0000-4000-8000-000000000001';
+const row={sourceId:'r1',locationCode:'001',personCode:'007',day:'2026-09-10',slotCode:'day',minutes:480,locationId:id,personId:id,locationName:'Şube',personName:'Kişi',previousMinutes:null,status:'new'};
+test('preview rejects incomplete, duplicate, invalid duration or status rows',()=>{const v={batchId:id,status:'pending',rows:[row]};assert.equal(parseImportPreview(v).rows[0].personCode,'007');for(const data of [{...v,rows:[]},{...v,status:'unknown'},{...v,rows:[row,row]},{...v,rows:[{...row,minutes:null}]},{...v,rows:[{...row,personName:undefined}]}])assert.throws(()=>parseImportPreview(data));});
+test('people response rejects duplicate codes and malformed candidates',()=>{const v={revision:1,mappings:[{code:'007',personId:id,name:'Kişi'}],candidates:[{id,name:'Kişi',city:null}]};assert.equal(parseImportPeople(v).revision,1);assert.throws(()=>parseImportPeople({...v,mappings:[...v.mappings,...v.mappings]}));assert.throws(()=>parseImportPeople({...v,candidates:[{name:'Kişi'}]}));});

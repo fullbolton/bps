@@ -1,0 +1,77 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';
+const sql=q=>execFileSync('docker',['exec','-i','supabase_db_bps-supabase-acceptance','psql','-X','-qAt','-U','postgres','-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8',timeout:30000});
+test('staging, atomic approval, correction and closing gates on synthetic DB',()=>{
+ assert.equal(sql("select obj_description('public.tasks'::regclass)").trim(),'BPS synthetic task-prefill fixture v1');
+ assert.equal(sql("select to_regclass('public.reporting_projects') is null").trim(),'t');
+ const source=['01_foundation','02_actual_import','03_monthly_report','04_work_details','05_source_files'].map((n,i)=>readFileSync('supabase/migrations/20260928000'+(i+1)+'00_project_reporting_'+n.slice(3)+'.sql','utf8').replace(/^BEGIN;/m,'').replace(/COMMIT;\s*$/,'')).join('\n');
+ sql(`BEGIN;${source}
+CREATE FUNCTION pg_temp.expect_error(q text,marker text) RETURNS void LANGUAGE plpgsql AS $$ DECLARE caught boolean:=false;BEGIN BEGIN EXECUTE q;EXCEPTION WHEN OTHERS THEN IF position(marker IN SQLERRM)=0 THEN RAISE;END IF;caught:=true;END;IF NOT caught THEN RAISE EXCEPTION 'Expected %',marker;END IF;END $$;
+SELECT set_config('request.jwt.claims',jsonb_build_object('sub',user_id,'app_metadata',jsonb_build_object('active_tenant',tenant_id))::text,true) FROM tenant_memberships m JOIN profiles p ON p.id=m.user_id WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND role='operasyon' LIMIT 1;
+UPDATE profiles SET role='yonetici' WHERE id=auth.uid();
+INSERT INTO talent_people(id,tenant_id,name,source) VALUES('00000000-0000-4000-8000-000000008801','00000000-0000-4000-8000-000000000001','Synthetic import person','manual');
+UPDATE ops_locations SET external_code='IMP001' WHERE id='00000000-0000-4000-8000-000000000100';
+SET LOCAL ROLE authenticated;
+DO $$ DECLARE actor uuid:=auth.uid();t uuid:='00000000-0000-4000-8000-000000000001';pid uuid;batch uuid;r jsonb;rows jsonb;cmd uuid:=gen_random_uuid();rev integer;BEGIN
+ r:=reporting_project_execute(actor,t,gen_random_uuid(),'{"action":"create","companyId":"00000000-0000-4000-8000-000000000020","code":"IMP","name":"Import test","kind":"idp"}');pid:=(r->>'projectId')::uuid;
+ PERFORM reporting_project_execute(actor,t,gen_random_uuid(),jsonb_build_object('action','link_location','projectId',pid,'revision',1,'locationId','00000000-0000-4000-8000-000000000100','from','2026-09-01','until',null));
+ PERFORM reporting_project_execute(actor,t,gen_random_uuid(),jsonb_build_object('action','open_period','projectId',pid,'revision',2,'month','2026-09'));
+ r:=reporting_monthly_report(actor,t,pid,'2026-09');
+ IF r->'totals'->>'records'<>'0' THEN RAISE EXCEPTION 'Empty month';END IF;
+ PERFORM pg_temp.expect_error(format('select reporting_monthly_report(%L,%L,%L,%L)',actor,t,pid,'2026-10'),'REPORT_PERIOD_NOT_FOUND');
+ rows:='[{"sourceId":"r1","locationCode":"IMP001","personCode":"007","day":"2026-09-10","slotCode":"day","minutes":480}]';
+ PERFORM pg_temp.expect_error(format('select reporting_import_prepare(%L,%L,%L,%L,%L,%L,%L)',actor,t,pid,cmd,'2026-09','excel',rows),'REPORT_PERSON_UNMAPPED');
+ rev:=reporting_person_code_set(actor,t,pid,3,'excel','007','00000000-0000-4000-8000-000000008801');
+ r:=reporting_import_prepare(actor,t,pid,cmd,'2026-09','excel',rows);batch:=(r->>'batchId')::uuid;
+ IF reporting_monthly_report(actor,t,pid,'2026-09')->>'pending'<>'1' THEN RAISE EXCEPTION 'Pending count';END IF;
+ IF r<>reporting_import_prepare(actor,t,pid,cmd,'2026-09','excel',rows) THEN RAISE EXCEPTION 'Prepare retry';END IF;
+ PERFORM pg_temp.expect_error(format('select reporting_project_execute(%L,%L,%L,%L)',actor,t,gen_random_uuid(),jsonb_build_object('action','close_period','projectId',pid,'revision',rev,'month','2026-09','reason','Kapatma testi')),'REPORT_PENDING_IMPORT');
+ INSERT INTO storage.objects(bucket_id,name,metadata) VALUES('project-sources',t::text||'/'||batch::text||'/'||repeat('a',64)||'.csv','{"size":100}');
+ r:=reporting_source_file(actor,t,batch,'sentetik.csv',repeat('a',64),100,'csv');
+ IF r->>'name'<>'sentetik.csv' OR reporting_source_file(actor,t,batch)->>'size'<>'100' THEN RAISE EXCEPTION 'Source metadata';END IF;
+ PERFORM pg_temp.expect_error(format('select reporting_source_file(%L,%L,%L,%L,%L,100,%L)',actor,t,batch,'different.csv',repeat('b',64),'csv'),'REPORT_SOURCE_EXISTS');
+ IF public.reporting_source_access(t::text||'/'||batch::text||'/'||repeat('a',64)||'.csv',true) THEN RAISE EXCEPTION 'Source replacement permitted';END IF;
+ IF reporting_import_finish(actor,t,batch,true)<>'approved' OR reporting_import_finish(actor,t,batch,true)<>'approved' THEN RAISE EXCEPTION 'Approve retry';END IF;
+ r:=reporting_import_prepare(actor,t,pid,gen_random_uuid(),'2026-09','excel',rows);
+ IF r->'rows'->0->>'status'<>'unchanged' THEN RAISE EXCEPTION 'Same file';END IF;
+ PERFORM reporting_import_finish(actor,t,(r->>'batchId')::uuid,false);
+ rows:=jsonb_set(rows,'{0,minutes}','420');
+ r:=reporting_import_prepare(actor,t,pid,gen_random_uuid(),'2026-09','excel',rows);
+ IF r->'rows'->0->>'status'<>'changed' OR r->'rows'->0->>'previousMinutes'<>'480' THEN RAISE EXCEPTION 'Correction preview';END IF;
+ PERFORM reporting_import_finish(actor,t,(r->>'batchId')::uuid,true);
+ PERFORM pg_temp.expect_error(format('select reporting_import_prepare(%L,%L,%L,%L,%L,%L,%L)',actor,t,pid,gen_random_uuid(),'2026-09','excel',rows||rows),'REPORT_WORK_DUPLICATE');
+ PERFORM pg_temp.expect_error(format('select reporting_import_prepare(%L,%L,%L,%L,%L,%L,%L)',actor,t,pid,gen_random_uuid(),'2026-09','excel',jsonb_set(rows,'{0,sourceId}','"new-id"')),'REPORT_WORK_DUPLICATE');
+ rev:=(reporting_project_detail(actor,t,pid)->>'revision')::integer;
+ PERFORM pg_temp.expect_error(format('select reporting_project_execute(%L,%L,%L,%L)',actor,t,gen_random_uuid(),jsonb_build_object('action','edit_location','projectId',pid,'revision',rev,'locationId','00000000-0000-4000-8000-000000000100','originalFrom','2026-09-01','from','2026-09-11','until',null,'reason','Past work orphan test')),'REPORT_LINK_HAS_ACTUALS');
+ PERFORM pg_temp.expect_error(format('select reporting_import_prepare(%L,%L,%L,%L,%L,%L,%L)',actor,t,pid,gen_random_uuid(),'2026-09','excel',rows||jsonb_set(jsonb_set(rows,'{0,sourceId}','"r2"'),'{0,minutes}','null')),'REPORT_IMPORT_INPUT');
+ r:=reporting_import_prepare(actor,t,pid,gen_random_uuid(),'2026-09','excel',rows);batch:=(r->>'batchId')::uuid;
+ rev:=(reporting_project_detail(actor,t,pid)->>'revision')::integer;
+ PERFORM reporting_project_execute(actor,t,gen_random_uuid(),jsonb_build_object('action','edit_project','projectId',pid,'revision',rev,'name','Changed','kind','idp','reason','Concurrency simulation'));
+ PERFORM pg_temp.expect_error(format('select reporting_import_finish(%L,%L,%L,true)',actor,t,batch),'REPORT_CONFLICT');
+ PERFORM reporting_import_finish(actor,t,batch,false);
+ rev:=(reporting_project_detail(actor,t,pid)->>'revision')::integer;
+ PERFORM reporting_project_execute(actor,t,gen_random_uuid(),jsonb_build_object('action','close_period','projectId',pid,'revision',rev,'month','2026-09','reason','Kapatma testi'));
+ PERFORM pg_temp.expect_error(format('select reporting_import_prepare(%L,%L,%L,%L,%L,%L,%L)',actor,t,pid,gen_random_uuid(),'2026-09','excel',rows),'REPORT_PERIOD_CLOSED');
+ r:=reporting_monthly_report(actor,t,pid,'2026-09');
+ IF r->'totals'->>'minutes'<>'420' OR r->'totals'->>'records'<>'1' OR r->'totals'->>'people'<>'1' OR r->>'status'<>'closed' OR r->'rows'->0->>'minutes'<>'420' OR r->>'pending'<>'0' THEN RAISE EXCEPTION 'Monthly totals';END IF;
+ PERFORM pg_temp.expect_error(format('select reporting_monthly_report(%L,%L,%L,%L)',actor,'00000000-0000-4000-8000-000000000002',pid,'2026-09'),'REPORT_SCOPE');
+ PERFORM pg_temp.expect_error('select * from reporting_actuals','permission denied');
+END $$;
+RESET ROLE;
+DO $$ BEGIN
+ IF (SELECT count(*) FROM reporting_actuals)<>1 OR (SELECT minutes FROM reporting_actuals)<>420 OR (SELECT revision FROM reporting_actuals)<>2 THEN RAISE EXCEPTION 'Actual total/revision';END IF;
+ IF NOT EXISTS(SELECT 1 FROM reporting_imports WHERE previous_rows->0->>'minutes'='480') THEN RAISE EXCEPTION 'Lost correction history';END IF;
+END $$;
+INSERT INTO reporting_actuals(tenant_id,project_id,month,source,source_id,location_id,person_id,day,slot,minutes,batch_id)
+SELECT tenant_id,project_id,month,source,'r2',location_id,person_id,day,'night',60,batch_id FROM reporting_actuals;
+SET LOCAL ROLE authenticated;
+DO $$ DECLARE r jsonb;pid uuid;BEGIN
+ pid:=(reporting_project_list(auth.uid(),public.current_user_verified_tenant())->'rows'->0->>'id')::uuid;
+ r:=reporting_monthly_report(auth.uid(),public.current_user_verified_tenant(),pid,'2026-09');
+ r:=reporting_work_details(auth.uid(),public.current_user_verified_tenant(),pid,'2026-09');
+ IF r->>'total'<>'2' OR jsonb_array_length(r->'rows')<>2 THEN RAISE EXCEPTION 'Work details count';END IF;
+ r:=reporting_monthly_report(auth.uid(),public.current_user_verified_tenant(),pid,'2026-09');
+ IF r->'totals'->>'people'<>'1' OR r->'totals'->>'days'<>'1' OR r->'totals'->>'records'<>'2' OR r->'totals'->>'minutes'<>'480' THEN RAISE EXCEPTION 'Distinct monthly totals';END IF;
+END $$;
+ROLLBACK;`);
+ assert.equal(sql("select to_regclass('public.reporting_imports') is null").trim(),'t');
+});

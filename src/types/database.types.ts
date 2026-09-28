@@ -1226,6 +1226,20 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      reporting_import_people:{Args:{p_actor:string;p_tenant:string;p_project:string;p_source:string;p_codes:string[];p_search:string};Returns:Json};
+      reporting_person_code_set:{Args:{p_actor:string;p_tenant:string;p_project:string;p_revision:number;p_source:string;p_code:string;p_person:string};Returns:number};
+      reporting_import_prepare:{Args:{p_actor:string;p_tenant:string;p_project:string;p_command:string;p_month:string;p_source:string;p_rows:Json};Returns:Json};
+      reporting_import_finish:{Args:{p_actor:string;p_tenant:string;p_batch:string;p_approve:boolean};Returns:string};
+      reporting_import_read:{Args:{p_actor:string;p_tenant:string;p_batch:string};Returns:Json};
+      reporting_source_file:{Args:{p_actor:string;p_tenant:string;p_batch:string;p_name?:string;p_hash?:string;p_size?:number;p_extension?:string};Returns:Json};
+      reporting_work_details:{Args:{p_actor:string;p_tenant:string;p_project:string;p_month:string;p_location?:string;p_offset?:number};Returns:Json};
+      reporting_monthly_report:{Args:{p_actor:string;p_tenant:string;p_project:string;p_month:string;p_offset?:number};Returns:Json};
+      reporting_import_list:{Args:{p_actor:string;p_tenant:string;p_project:string;p_offset?:number};Returns:Json};
+      reporting_project_execute:{Args:{p_actor:string;p_tenant:string;p_command:string;p_input:Json};Returns:Json};
+      reporting_project_list:{Args:{p_actor:string;p_tenant:string;p_offset?:number};Returns:Json};
+      reporting_project_detail:{Args:{p_actor:string;p_tenant:string;p_project:string;p_locations_offset?:number;p_periods_offset?:number};Returns:Json};
+
+
       ops_fixed_roster_idp_create:{Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_roster_id:string;p_expected_revision:number;p_start:string;p_end:string;p_dates:Json};Returns:Json};
       ops_fixed_roster_history:{Args:{p_actor_id:string;p_tenant_id:string;p_id:string;p_offset?:number};Returns:Json};
       ops_fixed_roster_save:{Args:{p_actor_id:string;p_tenant_id:string;p_command_id:string;p_id:string;p_expected_revision:number;p_company_id:string;p_location_id:string;p_worker_id:string;p_service_line:string;p_position:string;p_starts_on:string;p_ends_on:string|null;p_reason:string;p_cancelled?:boolean};Returns:Json};

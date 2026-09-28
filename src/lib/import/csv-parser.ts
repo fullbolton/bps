@@ -56,73 +56,65 @@ function detectDelimiter(text: string): "," | ";" {
 // RFC-4180 character-level state machine. Unlike a split-on-newline
 // approach, a quoted field may contain the delimiter, escaped quotes
 // ("") and line breaks without fragmenting the row.
+export const CSV_LIMITS = { bytes: 10 * 1024 * 1024, rows: 10000, columns: 64, field: 2000 } as const;
+
+export function decodeCSV(bytes: ArrayBuffer): string {
+  if (!bytes.byteLength || bytes.byteLength > CSV_LIMITS.bytes) throw Error("CSV dosyası boş olmamalı ve 10 MB sınırını aşmamalı.");
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+  catch { throw Error("Dosya UTF-8 olarak okunamadı. Excel'den CSV UTF-8 biçiminde kaydedin."); }
+}
+
 function parseCSVText(text: string, delimiter: "," | ";"): string[][] {
   const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-
+  let row: string[] = [], field = "", quoted = false, closed = false, touched = false;
+  const fail = (message: string): never => { throw Error(`CSV kaydı ${rows.length + 1}: ${message}`); };
   const pushField = () => {
-    row.push(field.trim());
-    field = "";
+    row.push(field.trim()); field = ""; closed = false;
+    if (row.length > CSV_LIMITS.columns) fail("En fazla 64 sütun desteklenir.");
   };
   const pushRow = () => {
-    pushField();
-    rows.push(row);
-    row = [];
+    pushField(); rows.push(row); row = []; touched = false;
+    if (rows.length > CSV_LIMITS.rows + 1) fail("En fazla 10.000 veri satırı desteklenir.");
   };
-
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if (inQuotes) {
+    if (quoted) {
       if (ch === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += ch;
-      }
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { quoted = false; closed = true; }
+      } else field += ch;
+    } else if (ch === delimiter) { pushField(); touched = true; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      // Only physically empty lines are ignored; delimiter-only rows retain their width.
+      if (touched || field.length || row.length || closed) pushRow();
     } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === delimiter) {
-      pushField();
-    } else if (ch === "\n") {
-      pushRow();
-    } else if (ch === "\r") {
-      if (text[i + 1] === "\n") i++;
-      pushRow();
+      if (field.length || closed) fail("Tırnak yalnız alan başında kullanılabilir.");
+      quoted = true; touched = true;
     } else {
-      field += ch;
+      if (closed) fail("Kapanan tırnaktan sonra ayraç veya satır sonu bekleniyor.");
+      field += ch; touched = true;
     }
+    if (field.length > CSV_LIMITS.field) fail("Hücre 2.000 karakter sınırını aşıyor.");
   }
-  // Flush the final row when the file does not end with a newline.
-  if (field.length > 0 || row.length > 0) pushRow();
-
-  // Drop rows with no content at all (blank / trailing lines).
-  return rows.filter((r) => r.some((c) => c.length > 0));
+  if (quoted) fail("Kapanmamış tırnak var.");
+  if (touched || field.length || row.length || closed) pushRow();
+  return rows;
 }
 
 export function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
-  // Strip the UTF-8 BOM explicitly (Excel writes one).
+  if (text.length > CSV_LIMITS.bytes) throw Error("CSV metni boyut sınırını aşıyor.");
+  if (text.includes("\0")) throw Error("CSV içinde geçersiz boş karakter var; UTF-8 biçimini kontrol edin.");
   const clean = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   const table = parseCSVText(clean, detectDelimiter(clean));
-  if (table.length === 0) return { headers: [], rows: [] };
-
+  if (!table.length) return { headers: [], rows: [] };
   const headers = table[0];
-  const rows: Record<string, string>[] = [];
-
-  for (let i = 1; i < table.length; i++) {
-    const values = table[i];
-    const row: Record<string, string> = {};
-    for (let j = 0; j < headers.length; j++) {
-      row[headers[j]] = values[j] ?? "";
-    }
-    rows.push(row);
-  }
-
+  if (headers.some(h => !h)) throw Error("CSV başlıkları boş olamaz.");
+  if (new Set(headers).size !== headers.length) throw Error("CSV başlıkları tekrarlanamaz.");
+  const rows = table.slice(1).map((values, index) => {
+    if (values.length !== headers.length) throw Error(`CSV kaydı ${index + 2}: ${headers.length} sütun bekleniyor, ${values.length} bulundu.`);
+    return Object.fromEntries(headers.map((header, i) => [header, values[i]]));
+  });
   return { headers, rows };
 }
 

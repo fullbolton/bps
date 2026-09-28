@@ -39,6 +39,7 @@ interface MenuItem {
 const MENU_ITEMS: MenuItem[] = [
   { key: "dashboard", label: "Genel Bakış", href: "/dashboard", icon: LayoutDashboard },
   { key: "firmalar", label: "Firmalar", href: "/firmalar", icon: Building2 },
+  { key: "projeler", label: "Projeler", href: "/projeler", icon: FolderOpen, roles: ["yonetici", "operasyon", "ik", "muhasebe"] },
   { key: "sozlesmeler", label: "Sözleşmeler", href: "/sozlesmeler", icon: FileText, roles: ["yonetici", "partner", "operasyon"] },
   { key: "talepler", label: "Personel Talepleri", href: "/talepler", icon: Users, roles: ["yonetici", "partner", "operasyon"] },
   { key: "personel-havuzu", label: "Personel Havuzu", href: "/personel-havuzu", icon: Users, roles: ["yonetici", "operasyon", "ik"] },
@@ -83,7 +84,7 @@ export default function Sidebar() {
       <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 py-5">
         {[
           {label: "ÇALIŞMA ALANI", keys: ["dashboard", "talepler", "personel-havuzu", "aktif-isgucu", "gorevler", "randevular"]},
-          {label: "MÜŞTERİ VE HİZMET", keys: ["firmalar", "sozlesmeler", "evraklar"]},
+          {label: "MÜŞTERİ VE HİZMET", keys: ["firmalar", "projeler", "sozlesmeler", "evraklar"]},
           {label: "YÖNETİM", keys: ["yonetim", "finansal-ozet", "raporlar", "ayarlar"]},
         ].map(group => {
           const items = group.keys.flatMap(key => visibleItems.filter(item => item.key === key));
