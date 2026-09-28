@@ -11,15 +11,11 @@ export function readTaskNotificationCandidates(client: Client) {
 }
 export function readDocumentNotificationCandidates(client: Client, upper: string) {
   return readNotificationPages(
-    (from, to) => client.from('documents')
-      .select('id, name, validity_date, tenant_id', { count: 'exact' })
-      .not('validity_date', 'is', null).lte('validity_date', upper).order('id').range(from, to), identity,
+    (from, to) => client.rpc('document_notification_candidates_v1', {p_upper: upper}, {count: 'exact'}).order('id').range(from, to), identity,
   );
 }
 export function readAppointmentNotificationCandidates(client: Client, target: string) {
   return readNotificationPages(
-    (from, to) => client.from('appointments')
-      .select('id, meeting_type, attendee, meeting_date, company_id, tenant_id, status', { count: 'exact' })
-      .eq('status', 'planlandi').eq('meeting_date', target).order('id').range(from, to), identity,
+    (from, to) => client.rpc('appointment_notification_candidates_v1', {p_target: target}, {count: 'exact'}).order('id').range(from, to), identity,
   );
 }

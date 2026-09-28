@@ -1,3 +1,4 @@
+import { enabledNotificationDocuments } from "./document-module-access";
 import { enabledNotificationTenants } from './task-module-access';
 import {readTenantRoleDirectory,tenantCompanyRecipients,sameRecipientMembership,type TenantRoleDirectory} from './tenant-role-recipients';
 /**
@@ -386,6 +387,18 @@ function buildGroupedEmail(
   return { subject, text, html };
 }
 
+async function eligibleItems(client: Client, kind: NotificationKind, items: Item[]): Promise<Item[]> {
+  if (kind === 'document_expiry') {
+    const enabled = await enabledNotificationDocuments(client, items);
+    return items.filter(item => enabled.has(item.entityId));
+  }
+  if (kind === 'task_overdue' || kind === 'appointment_reminder') {
+    const enabled = await enabledNotificationTenants(client, items.map(item => item.tenantId), kind === 'task_overdue' ? 'tasks' : 'calendar');
+    return items.filter(item => enabled.has(item.tenantId));
+  }
+  throw Error('NOTIFICATION_KIND_UNSUPPORTED');
+}
+
 async function sendGrouped(
   client: Client,
   kind: NotificationKind,
@@ -408,17 +421,9 @@ async function sendGrouped(
       result.itemsDroppedCrossTenant += droppedByTenant;
     }
     if (scopedItems.length === 0) continue;
-    if (kind === 'task_overdue' || kind === 'appointment_reminder') {
-      try {
-        const enabled = await enabledNotificationTenants(client, scopedItems.map(i => i.tenantId), kind === "task_overdue" ? "tasks" : "calendar");
-        scopedItems = scopedItems.filter(i => enabled.has(i.tenantId));
-      } catch {
-        result.errors.push('notification modules unavailable before stamp; no email sent');
-        continue;
-      }
-      if (scopedItems.length === 0) continue;
-    }
-
+    try { scopedItems = await eligibleItems(client, kind, scopedItems); }
+    catch { result.errors.push('notification modules unavailable before stamp; no email sent'); continue; }
+    if (scopedItems.length === 0) continue;
 
     // 1. Kalem kalem damgala. Zaten damgalı olanlar bu mailin dışında kalır.
     let stamped: Item[] = [];
@@ -446,19 +451,16 @@ async function sendGrouped(
 
     // Recheck after reservations, immediately before building/sending the email.
     // HTTP transport is outside the SQL transaction; an in-flight send is not recallable.
-    if (kind === 'task_overdue' || kind === 'appointment_reminder') {
-      let enabled = new Set<string>();
-      try { enabled = await enabledNotificationTenants(client, stamped.map(i => i.tenantId), kind === "task_overdue" ? "tasks" : "calendar"); }
-      catch { result.errors.push('notification modules unavailable before send; no email sent'); }
-      const removed = stamped.filter(i => !enabled.has(i.tenantId));
-      for (const item of removed) {
-        const rollback = await rollbackStamp(client, { kind, entityId: item.entityId,
-          recipientProfileId: recipient.id, thresholdKey, tenantId: item.tenantId });
-        if (!rollback.ok) result.errors.push(`ROLLBACK FAILED (notification module/${item.entityId}/${recipient.id}): ${rollback.error ?? 'unknown'}`);
-      }
-      stamped = stamped.filter(i => enabled.has(i.tenantId));
-      if (stamped.length === 0) continue;
+    let eligible: Item[] = [];
+    try { eligible = await eligibleItems(client, kind, stamped); }
+    catch { result.errors.push('notification modules unavailable before send; no email sent'); }
+    const eligibleIds = new Set(eligible.map(item => item.entityId));
+    for (const item of stamped.filter(item => !eligibleIds.has(item.entityId))) {
+      const rollback = await rollbackStamp(client, {kind, entityId: item.entityId, recipientProfileId: recipient.id, thresholdKey, tenantId: item.tenantId});
+      if (!rollback.ok) result.errors.push(`ROLLBACK FAILED (notification module/${item.entityId}/${recipient.id}): ${rollback.error ?? 'unknown'}`);
     }
+    stamped = eligible;
+    if (stamped.length === 0) continue;
 
     // 2. Tek mail — bu koşuda yeni damgalanan kalemler.
     stamped.sort((a, b) => a.sortKey.localeCompare(b.sortKey));

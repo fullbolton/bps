@@ -16,7 +16,7 @@ for(const [,spec] of compiled.matchAll(/require\("([^"]+)"\)/g)){
  modules.set(spec,await importActualTypeScript(url));
 }
 function batch(sent,multi=false){const exports={};vm.runInNewContext(compiled,{exports,require:spec=>spec.endsWith('/resend-transport')?{sendEmail:async input=>{sent.push(input);return {ok:true,id:'synthetic'};}}:modules.get(spec),Date,Map,Set,process:{env:{NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:String(multi)}}});return exports.runNotificationBatch;}
-function fixture({failTable=null,missingStamp=false,tasks=[],appointments=[],companies=[],failOwners=false,moduleStates={A:true,B:true},moduleFailure=false,afterStamp=null}={}){
+function fixture({failTable=null,missingStamp=false,tasks=[],appointments=[],companies=[],failOwners=false,moduleStates={A:true,B:true},moduleFailure=false,contractStates={A:true,B:true},afterStamp=null}={}){
  const documents=Array.from({length:601},(_,i)=>({id:'d'+String(i).padStart(4,'0'),name:'A-DOC-'+i,validity_date:'2026-09-20',tenant_id:'A'}));
  documents.push({id:'z-document',name:'B-PRIVATE-DOC',validity_date:'2026-09-20',tenant_id:'B'});
  const profiles=[{id:'z-alice',email:'alice@example.invalid',display_name:'Alice',role:'yonetici'},{id:'z-bob',email:'bob@example.invalid',display_name:'Bob',role:'ik'}];
@@ -24,6 +24,9 @@ function fixture({failTable=null,missingStamp=false,tasks=[],appointments=[],com
  memberships.push({tenant_id:'A',user_id:'z-alice'},{tenant_id:'B',user_id:'z-bob'});
  const tables={documents,profiles,tasks,appointments,companies,tenant_memberships:memberships},stamps=[],ranges=[];
  const client={rpc(name,args,opts){
+  if(name==='document_notification_candidates_v1')return this.from('documents').select('id',opts).not('validity_date','is',null).lte('validity_date',args.p_upper).in('tenant_id',Object.keys(moduleStates).filter(k=>moduleStates[k]===true));
+  if(name==='appointment_notification_candidates_v1')return this.from('appointments').select('id',opts).eq('status','planlandi').eq('meeting_date',args.p_target).in('tenant_id',Object.keys(moduleStates).filter(k=>moduleStates[k]===true));
+  if(name==='document_notification_state_v1')return Promise.resolve(moduleFailure?{data:null,error:{code:'55000'}}:{data:args.p_ids.map((id,i)=>{const doc=documents.find(d=>d.id===id&&d.tenant_id===args.p_tenant_ids[i]);return {id,tenant_id:args.p_tenant_ids[i],enabled:moduleStates[args.p_tenant_ids[i]]===undefined?null:!!doc&&moduleStates[doc.tenant_id]&&(!doc.contract_id||contractStates[doc.tenant_id])};}),error:null});
   if(name==='task_notification_candidates_v1')return this.from('tasks').select('id',opts).in('status',['acik','devam_ediyor','gecikti']).in('tenant_id',Object.keys(moduleStates).filter(k=>moduleStates[k]===true));
   if(name==='notification_company_names_v1')return Promise.resolve({data:companies.filter(c=>args.p_company_ids.includes(c.id)).map(c=>({...c,tenant_id:c.tenant_id??'A'})),error:null});
   assert.ok(['task_notification_modules_v1','customer_notification_modules_v1'].includes(name));
@@ -131,4 +134,20 @@ for(const after of [false,true])test(`calendar off ${after?'after stamp':'before
  const sent=[],f=fixture({appointments,companies:[{id:'c1',name:'Synthetic'}],moduleStates:{A:!after?false:true,B:true},afterStamp:after?states=>{states.A=false;}:null});
  const result=await batch(sent)(f.client,'appointment_reminder',new Date('2026-09-15T09:00:00Z'),config);
  assert.equal(result.errors.length,0);assert.equal(sent.length,0);assert.equal(f.stamps.length,after?1:0);
+});
+
+test('document pre-send gate removes contract-linked documents while retaining company documents',async()=>{
+ const sent=[],f=fixture({contractStates:{A:false,B:true}});f.tables.documents[0].contract_id='contract';
+ const result=await batch(sent)(f.client,'document_expiry',new Date('2026-09-15T09:00:00Z'),config);
+ assert.equal(result.errors.length,0);const alice=sent.find(m=>m.to==='alice@example.invalid');assert.doesNotMatch(alice.text,/A-DOC-0(?:\n|<)/);assert.match(alice.text,/A-DOC-1/);assert.equal(f.stamps.some(s=>s.entity_id==='d0000'),false);
+});
+test('document module closure after reservation prevents send and releases every reservation',async()=>{
+ const sent=[],f=fixture({afterStamp:states=>{states.A=false;states.B=false;}}),deletes=[];
+ const original=f.client.from.bind(f.client);f.client.from=t=>{const q=original(t),remove=q.delete;q.delete=()=>{deletes.push(t);return remove();};return q;};
+ const result=await batch(sent)(f.client,'document_expiry',new Date('2026-09-15T09:00:00Z'),config);
+ assert.equal(result.errors.length,0);assert.equal(sent.length,0);assert.equal(f.stamps.length,601);assert.equal(deletes.length,601);
+});
+test('unverifiable document state before stamping sends nothing',async()=>{
+ const sent=[],f=fixture({moduleFailure:true});const result=await batch(sent)(f.client,'document_expiry',new Date('2026-09-15T09:00:00Z'),config);
+ assert.ok(result.errors.length);assert.equal(sent.length,0);assert.equal(f.stamps.length,0);
 });

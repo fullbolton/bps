@@ -20,7 +20,8 @@ function fixture({failTable=null,missingCompany=false,small=false,sharedEmail=fa
  if(sharedEmail)tenant_memberships.push({tenant_id:'A',user_id:'alice-twin'});
  const tables={contracts,profiles,tenant_memberships,companies:missingCompany?[]:[{id:'ca',name:'A-COMPANY'},{id:'cb',name:'B-COMPANY'}],partner_company_assignments:[{company_id:'cb',partner_user_id:'partner'}]};
  const stamps=[],ranges=[],deletes=[];
- const client={rpc(name,args){
+ const client={rpc(name,args,opts){
+ if(name==='contract_notification_candidates_v1')return this.from('contracts').select('id',opts).eq('status','aktif').not('end_date','is',null);
  if(name==='notification_company_names_v1')return Promise.resolve({data:tables.companies.filter(c=>args.p_company_ids.includes(c.id)).map(c=>({...c,tenant_id:c.id==='ca'?'A':'B'})),error:null});
  assert.equal(name,'customer_notification_modules_v1');assert.equal(args.p_module,'contracts');
  return Promise.resolve(moduleFailure?{data:null,error:{code:'55000'}}:{data:args.p_tenant_ids.map(tenant_id=>({tenant_id,enabled:moduleStates[tenant_id]})),error:null});

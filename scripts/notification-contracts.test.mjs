@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {importActualTypeScript} from './helpers/import-typescript.mjs';
 const {readExpiryContracts}=await importActualTypeScript(new URL('../src/lib/email/contract-candidates.ts',import.meta.url));
-const client=page=>({from:table=>{assert.equal(table,'contracts');return {select:(fields,opts)=>{assert.equal(fields,'id, tenant_id, company_id, name, end_date, responsible');assert.equal(opts.count,'exact');return {eq:(key,value)=>{assert.deepEqual([key,value],['status','aktif']);return {not:(...args)=>{assert.deepEqual(args,['end_date','is',null]);return {order:key=>{assert.equal(key,'id');return {range:page};}};}};}};}};}});
+const client=page=>({from(){throw Error('No raw contracts read');},rpc(name,args,opts){assert.equal(name,'contract_notification_candidates_v1');assert.deepEqual(args,{});assert.equal(opts.count,'exact');return {order(key){assert.equal(key,'id');return {range:page};}};}});
 test('expiry contract reader reaches the last candidate past the server cap without selecting unused columns',async()=>{
  const rows=Array.from({length:1001},(_,i)=>({id:'c'+i,tenant_id:'t',company_id:'company',name:'Sentetik',end_date:'2026-09-30',responsible:null}));
  const calls=[];

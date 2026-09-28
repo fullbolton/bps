@@ -7,9 +7,7 @@ export type ExpiryContract = Pick<ContractRow, 'id' | 'tenant_id' | 'company_id'
 /** Date-window calculation stays with the existing caller; read all candidates. */
 export function readExpiryContracts(client: SupabaseClient<Database>): Promise<ExpiryContract[]> {
   return readNotificationPages(
-    (from, to) => client.from('contracts')
-      .select('id, tenant_id, company_id, name, end_date, responsible', { count: 'exact' })
-      .eq('status', 'aktif').not('end_date', 'is', null)
+    (from, to) => client.rpc('contract_notification_candidates_v1', {}, {count: 'exact'})
       .order('id').range(from, to),
     row => typeof row.id === 'string' && row.id ? row.id : null,
   );

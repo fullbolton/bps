@@ -1226,6 +1226,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      appointment_notification_candidates_v1: {Args:{p_target:string};Returns:Pick<Database["public"]["Tables"]["appointments"]["Row"],"id"|"meeting_type"|"attendee"|"meeting_date"|"company_id"|"tenant_id"|"status">[]};
+      contract_notification_candidates_v1: {Args:Record<string,never>;Returns:Pick<Database["public"]["Tables"]["contracts"]["Row"],"id"|"tenant_id"|"company_id"|"name"|"end_date"|"responsible">[]};
+      document_notification_candidates_v1: {Args:{p_upper:string};Returns:Pick<Database["public"]["Tables"]["documents"]["Row"],"id"|"name"|"validity_date"|"tenant_id">[]};
+      document_notification_state_v1: {Args:{p_ids:string[];p_tenant_ids:string[]};Returns:{id:string;tenant_id:string;enabled:boolean}[]};
       customer_notification_modules_v1: {Args: {p_tenant_ids:string[];p_module:string};Returns:{tenant_id:string;enabled:boolean}[]};
       notification_company_names_v1: {Args: {p_company_ids:string[];p_tenant_ids:string[];p_module:string};Returns:{id:string;tenant_id:string;name:string}[]};
       contact_execute_v1: {

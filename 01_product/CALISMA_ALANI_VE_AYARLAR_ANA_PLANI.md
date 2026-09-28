@@ -306,3 +306,11 @@ Randevu/sözleşme bildirimleri ilgili tenant modülünü hazırlıkta, gönderi
 Sekiz yeni PostgreSQL ve yedi yeni uygulama senaryosu; nihai ölçümler `qa/tenant-module-customer-notifications-20260928/manifest.json`. Gerçek e-posta gönderilmedi. HTTP taşıma SQL ile atomik değil; yola çıkmış mail geri çağrılamaz. Aday randevu/sözleşme kayıtlarının ham servis okuması, evrak bildirimlerinin bağlı sözleşme ayrımı ve servis ham SELECT kesimi hâlâ sırada.
 
 **Yerel; üretim SQL/push/deploy yok.** Genel modül kapatma UI'si açılmadı. Parent-FK/açık iş/diğer modül/ayar mutasyonu/cache işleri sürüyor. Yeni 002400 ortak foundation ve 001300 snapshot sonrası, bildirim uygulama kodundan önce; önceki direct-DML cutover kabul sıraları değişmedi.
+
+## Uygulama kaydı — 28 Eylül 2026, bildirim adayları ve evrak sınırı M2l
+
+Randevu/sözleşme/evrak aday okumaları service-only SQL projeksiyonlarına taşındı. Evraklar açık, sözleşmeler kapalıysa yalnız firma evrakı bildirimde kalıyor. Bağlı sözleşmede tenant/firma eşleşmesi aranıyor. Evrak gönderim kaydı öncesi ve sonrası güncel id/tenant/sözleşme ilişkisi tekrar doğrulanıyor; kapanma veya silinmede rezervasyon geri alınıyor. Gruplanmış gönderimin uygunluk kontrolü ortaklaştırıldı.
+
+002500 expand ve altı tabloda service_role ham SELECT kesen 002600 contract hazır. Contract yalnız yeni worker kabulü ve repo dışı entegrasyon envanteri sonrası; etkin inherited/kolon izni kalırsa migration durur. Kaynak incelemesinde dört service-key rotası kontrol edildi; e-posta dizininde bu dört kaynak tabloyu doğrudan okuyan yol kalmadı. On yeni DB ve altı uygulama senaryosu; kesin sonuçlar `qa/tenant-module-notification-candidates-20260928/manifest.json` içinde.
+
+**Yerel; üretim SQL/push/deploy/gerçek mail yok.** Kimlikli tarayıcı/PostgREST kabulü ve canlı şema/izin ölçümü yapılmadı. Son kontrol ile HTTP arasında atomik iptal garantisi yok. Genel modül kapatma UI'si kapalı; parent-FK/diğer definer ve modül yolları, açık iş/bağımlılık, ayar mutasyonu/cache işleri sürüyor. Eski cutover sıraları korunur.

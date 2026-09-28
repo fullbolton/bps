@@ -18,6 +18,18 @@ before(async()=>{
  await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
  const snapshot=sqlFile('20260928001300_task_module_notifications.sql');await db.query(snapshot.slice(snapshot.indexOf('CREATE FUNCTION public.workspace_module_snapshot_v1'),snapshot.indexOf('CREATE FUNCTION public.task_notification_modules_v1')));
  await db.query(sqlFile('20260928002400_customer_notification_modules.sql'));
+ await db.query(`
+ CREATE TABLE contracts(id uuid PRIMARY KEY,tenant_id uuid,company_id uuid,name text,status text,end_date date,responsible text);
+ CREATE TABLE appointments(id uuid PRIMARY KEY,tenant_id uuid,company_id uuid,meeting_type text,attendee text,meeting_date date,status text);
+ CREATE TABLE documents(id uuid PRIMARY KEY,tenant_id uuid,company_id uuid,contract_id uuid,name text,validity_date date);
+ INSERT INTO contracts VALUES('${id(201)}','${id(1)}','${id(101)}','Contract A','aktif','2026-10-15',NULL),('${id(202)}','${id(2)}','${id(102)}','Contract B','aktif','2026-10-15',NULL),('${id(203)}','${id(1)}','${id(101)}','Draft','taslak','2026-10-15',NULL);
+ INSERT INTO appointments VALUES('${id(301)}','${id(1)}','${id(101)}','ziyaret',NULL,'2026-10-01','planlandi'),('${id(302)}','${id(2)}','${id(102)}','ziyaret',NULL,'2026-10-01','planlandi'),('${id(303)}','${id(1)}','${id(101)}','ziyaret',NULL,'2026-10-01','iptal');
+ INSERT INTO documents VALUES('${id(401)}','${id(1)}','${id(101)}',NULL,'Company A','2026-10-01'),('${id(402)}','${id(1)}','${id(101)}','${id(201)}','Contract doc A','2026-10-01'),('${id(403)}','${id(2)}','${id(102)}',NULL,'Company B','2026-10-01'),('${id(404)}','${id(1)}','${id(101)}',NULL,'No expiry',NULL);
+ `);
+ await db.query(sqlFile('20260928002500_notification_candidate_projections.sql'));
+ await db.query('CREATE TABLE contacts(id uuid); CREATE TABLE notes(id uuid); GRANT SELECT ON companies,contacts,notes,contracts,appointments,documents TO service_role');
+ await db.query(sqlFile('20260928002600_notification_service_read_cutover.sql'));
+
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${name} WITH(FORCE)`);await admin.end();}});
 test('only service role can execute the two notification projections',async()=>{
@@ -49,4 +61,39 @@ test('company arrays must be bounded, unique and pairwise complete',async()=>{
 test('unknown tenant configuration and missing company fail closed',async()=>{
  await rollback(async()=>{await db.query('SET LOCAL ROLE service_role');await assert.rejects(modules([id(99)]),e=>e.code==='55000');});
  await rollback(async()=>{await db.query('SET LOCAL ROLE service_role');await assert.rejects(names([id(999)]),e=>e.code==='42501');});
+});
+
+const candidates={appointments:()=>db.query("SELECT * FROM appointment_notification_candidates_v1('2026-10-01') ORDER BY id"),contracts:()=>db.query('SELECT * FROM contract_notification_candidates_v1() ORDER BY id'),documents:()=>db.query("SELECT * FROM document_notification_candidates_v1('2026-10-01') ORDER BY id")};
+const documentState=(ids=[id(401),id(402)],tenants=[id(1),id(1)])=>db.query('SELECT * FROM document_notification_state_v1($1,$2)',[ids,tenants]);
+test('all candidate and document-state RPCs are service-only',async()=>{
+ for(const role of ['anon','authenticated'])for(const fn of [...Object.values(candidates),documentState])await rollback(async()=>{await db.query(`SET LOCAL ROLE ${role}`);await assert.rejects(fn(),e=>e.code==='42501');});
+});
+test('SQL candidates preserve source date/status filters and expose only notification columns',async()=>{
+ await rollback(async()=>{await db.query('SET LOCAL ROLE service_role');assert.deepEqual((await candidates.appointments()).rows.map(r=>r.id),[id(301),id(302)]);assert.deepEqual((await candidates.contracts()).rows.map(r=>r.id),[id(201),id(202)]);const docs=(await candidates.documents()).rows;assert.deepEqual(docs.map(r=>r.id),[id(401),id(402),id(403)]);assert.deepEqual(Object.keys(docs[0]).sort(),['id','name','tenant_id','validity_date']);assert.equal((await db.query("SELECT * FROM appointment_notification_candidates_v1('2026-10-02')")).rowCount,0);});
+});
+test('contract off preserves company documents but removes linked documents and contract candidates',async()=>{
+ await rollback(async()=>{await db.query("UPDATE tenant_module_settings SET enabled=false WHERE tenant_id=$1 AND module_key='contracts'",[id(1)]);await db.query('SET LOCAL ROLE service_role');assert.deepEqual((await candidates.documents()).rows.map(r=>r.id),[id(401),id(403)]);assert.deepEqual((await candidates.contracts()).rows.map(r=>r.id),[id(202)]);assert.deepEqual((await documentState()).rows.map(r=>r.enabled),[true,false]);});
+});
+test('documents/calendar off prevents SQL candidates for only that tenant',async()=>{
+ await rollback(async()=>{await db.query("UPDATE tenant_module_settings SET enabled=false WHERE tenant_id=$1 AND module_key IN ('documents','contracts','calendar')",[id(1)]);await db.query('SET LOCAL ROLE service_role');assert.deepEqual((await candidates.documents()).rows.map(r=>r.id),[id(403)]);assert.deepEqual((await candidates.appointments()).rows.map(r=>r.id),[id(302)]);assert.deepEqual((await documentState()).rows.map(r=>r.enabled),[false,false]);});
+});
+test('foreign-company or foreign-tenant contract links are excluded, not projected',async()=>{
+ await rollback(async()=>{await db.query('UPDATE documents SET contract_id=$1 WHERE id=$2',[id(202),id(402)]);await db.query('SET LOCAL ROLE service_role');assert.deepEqual((await candidates.documents()).rows.map(r=>r.id),[id(401),id(403)]);assert.equal((await documentState()).rows[1].enabled,false);});
+});
+test('document state uses current relationship and acknowledges removed records as ineligible',async()=>{
+ await rollback(async()=>{await db.query("UPDATE tenant_module_settings SET enabled=false WHERE tenant_id=$1 AND module_key='contracts'",[id(1)]);assert.equal((await documentState()).rows[0].enabled,true);await db.query('UPDATE documents SET contract_id=$1 WHERE id=$2',[id(201),id(401)]);assert.equal((await documentState()).rows[0].enabled,false);await db.query('DELETE FROM documents WHERE id=$1',[id(402)]);await db.query('SET LOCAL ROLE service_role');assert.deepEqual((await documentState()).rows.map(r=>r.enabled),[false,false]);assert.equal((await documentState([id(403)],[id(1)])).rows[0].enabled,false);});
+});
+test('candidate readers fail on incomplete configuration instead of silently treating it as disabled',async()=>{
+ for(const fn of [...Object.values(candidates),documentState])await rollback(async()=>{await db.query("DELETE FROM tenant_module_settings WHERE tenant_id=$1 AND module_key='tasks'",[id(1)]);await db.query('SET LOCAL ROLE service_role');await assert.rejects(fn(),e=>e.code==='55000');});
+});
+test('document-state inputs reject missing, excessive and duplicate pairs',async()=>{
+ for(const [ids,tenants] of [[[],[]],[[id(401)],[]],[[null],[id(1)]],[[id(401),id(401)],[id(1),id(1)]],[Array(501).fill(id(401)),Array(501).fill(id(1))]])await rollback(async()=>{await db.query('SET LOCAL ROLE service_role');await assert.rejects(documentState(ids,tenants),e=>e.code==='22023');});
+});
+
+test('service raw SELECT is denied after cutover while all notification projections remain usable',async()=>{
+ for(const table of ['companies','contacts','notes','contracts','appointments','documents'])await rollback(async()=>{await db.query('SET LOCAL ROLE service_role');await assert.rejects(db.query('SELECT * FROM '+table),e=>e.code==='42501');});
+ await rollback(async()=>{await db.query('SET LOCAL ROLE service_role');assert.equal((await names()).rowCount,1);assert.equal((await candidates.appointments()).rowCount,2);assert.equal((await candidates.contracts()).rowCount,2);assert.equal((await candidates.documents()).rowCount,3);assert.equal((await documentState()).rowCount,2);});
+});
+test('service read cutover rejects inherited column access instead of claiming closure',async()=>{
+ await rollback(async()=>{await db.query(`CREATE ROLE notification_read_${process.pid}; GRANT SELECT(name) ON companies TO notification_read_${process.pid}; GRANT notification_read_${process.pid} TO service_role`);await assert.rejects(db.query(sqlFile('20260928002600_notification_service_read_cutover.sql').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'')),/NOTIFICATION_READ_PRIVILEGE_DRIFT/);});
 });

@@ -1,0 +1,33 @@
+{
+  "baseCommit": "f7bce27d397d90cca644649a6833f73e80ecb5a6",
+  "status": "local-not-deployed",
+  "releaseExitCode": 0,
+  "databaseExitCode": 0,
+  "applicationTests": 604,
+  "databaseTests": 123,
+  "newApplicationTests": 6,
+  "newDatabaseTests": 10,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "browserSmokeRun": false,
+  "productionMigrationApplied": false,
+  "realEmailsSent": false,
+  "serviceReadCutoverTestedLocally": true,
+  "files": {
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "8bdc4bb145e515329513745c43a8403e059c623ddb4add56fab55976be4c8156",
+    "scripts/customer-notifications-db.test.mjs": "a9a682d68b6a07db83fb954e5af137ef8826b8ea57c1453b2e9473a8bfb5cfae",
+    "scripts/notification-batch-candidates.test.mjs": "fa006f3ea2f17fb8dcdc1bca1b9e734e9eeb6150fb945162f3d86e0ff1362be8",
+    "scripts/notification-batch-integration.test.mjs": "92d452a29e610d21fcbd6ac81a5df2cc0b37cbe95dabac756837e8f74d912903",
+    "scripts/notification-contract-integration.test.mjs": "c1a00ccb0cbd28698fb0fa09bda6b9a499984979cdfc6dba12d94143252ac15f",
+    "scripts/notification-contracts.test.mjs": "0ee3e1de54a790a9d1c672d382a0c5473a839dfc4229b8f6c50b4310ec14e6ac",
+    "scripts/test-inventory.json": "2dc3edf21594975578a023f62443ab3911199564cacad5811be40ca9d4ad5005",
+    "src/lib/email/batch-candidates.ts": "4895eed67321471d6ed91558469c3d0329a6c6a107ccac2b6f9435baee57069a",
+    "src/lib/email/contract-candidates.ts": "69f72385b842d22776f0b0116518a832c512af3dcf7954732a80c7763c65f27a",
+    "src/lib/email/notification-batches.ts": "afe68d6350e1f9226001dd8c94bac3cf291dba2c26a84412cc4aab988e00f7fa",
+    "src/types/database.types.ts": "658184b1958ccae123c9969a91c4d6fba01da1d4a6f5343a96e7af25fc04245b",
+    "scripts/document-notification-state.test.mjs": "86651733c77891dff39cf8854d0d7f061009aebf476f1472a2428d8541140ada",
+    "src/lib/email/document-module-access.ts": "6bbc62d60243bc06fbc4d1cbd8560ad0e24c95e1ae79bdd30dda58ada9cc00b8",
+    "supabase/migrations/20260928002500_notification_candidate_projections.sql": "17d355bca9c9e37acd52de28ada2af3e5e2232a7f661e5d558b17d0ab382c875",
+    "supabase/migrations/20260928002600_notification_service_read_cutover.sql": "49038d39017a14ac0b1193ec482c03b207e0dab92729e10466145243c5292bce"
+  }
+}

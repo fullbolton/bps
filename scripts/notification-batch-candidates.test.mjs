@@ -3,7 +3,17 @@ import assert from 'node:assert/strict';
 import {importActualTypeScript} from './helpers/import-typescript.mjs';
 const m=await importActualTypeScript(new URL('../src/lib/email/batch-candidates.ts',import.meta.url));
 const cases=[['tasks',m.readTaskNotificationCandidates,[['in','status',['acik','devam_ediyor','gecikti']]],undefined],['documents',m.readDocumentNotificationCandidates,[['not','validity_date','is',null],['lte','validity_date','2026-10-15']],'2026-10-15'],['appointments',m.readAppointmentNotificationCandidates,[['eq','status','planlandi'],['eq','meeting_date','2026-09-16']],'2026-09-16']];
-function client(table,filters,page){return {rpc(name,args,opts){assert.equal(name,'task_notification_candidates_v1');assert.deepEqual(args,{});return this.from('tasks').select('id',opts).in('status',['acik','devam_ediyor','gecikti']);},from(name){assert.equal(name,table);return {select(fields,opts){assert.equal(opts.count,'exact');assert.ok(!fields.includes('*'));const calls=[];const q={in(...a){calls.push(['in',...a]);return q;},not(...a){calls.push(['not',...a]);return q;},lte(...a){calls.push(['lte',...a]);return q;},eq(...a){calls.push(['eq',...a]);return q;},order(key){assert.equal(key,'id');return q;},range(from,to){assert.deepEqual(calls,filters);assert.equal(to-from,499);return page(from);}};return q;}};}};}
+function client(table, filters, page) {
+ return {
+  from() { throw Error('Raw candidate read is forbidden'); },
+  rpc(name,args,opts) {
+   assert.equal(name,{tasks:'task_notification_candidates_v1',documents:'document_notification_candidates_v1',appointments:'appointment_notification_candidates_v1'}[table]);
+   assert.deepEqual(args,table==='tasks'?{}:table==='documents'?{p_upper:'2026-10-15'}:{p_target:'2026-09-16'});
+   assert.equal(opts.count,'exact');
+   return {order(key) {assert.equal(key,'id');return {range(from,to) {assert.equal(to-from,499);return page(from);}};}};
+  }
+ };
+}
 for(const [table,read,filters,arg]of cases)test(`${table} candidate pages keep filters and never expose a partial source list`,async()=>{
  const data=Array.from({length:1001},(_,i)=>({id:'id'+i})),offsets=[];
  const rows=await read(client(table,filters,async offset=>{offsets.push(offset);return {data:data.slice(offset,offset+400),count:1001,error:null};}),arg);

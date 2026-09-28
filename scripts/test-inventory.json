@@ -536,5 +536,9 @@
   {
     "file": "scripts/customer-notifications-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/document-notification-state.test.mjs",
+    "suite": "application"
   }
 ]
