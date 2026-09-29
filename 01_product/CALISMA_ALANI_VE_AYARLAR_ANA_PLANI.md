@@ -328,3 +328,11 @@ Randevu/sözleşme/evrak aday okumaları service-only SQL projeksiyonlarına ta�
 Sekiz yeni PostgreSQL senaryosu ve ortak modül suite'leri; kesin ölçümler `qa/tenant-module-business-history-20260929/manifest.json`. TS/TSX değişmedi; önceki uygulama testi/derleme yeniden koşulmuş sayılmıyor.
 
 **Yerel; üretim SQL/push/deploy yok.** Canlı katalog/kimlikli tarayıcı/PostgREST kabulü yapılmadı. Diğer parent/FK/definer ve modül yolları, açık iş/bağımlılık, ayar mutasyonu/cache açık; genel modül kapatma UI'si kapalı. Düşük trafikte kontrollü uygulama, okuyucu/yazar kilit maliyeti ve rollback koşulları raporda. Önceki cutover sıraları korunuyor.
+
+## Uygulama kaydı — 29 Eylül 2026, modül değişiklik önizlemesi M2o
+
+20260929000200 read-only expand: yöneticiye tenant/actor/revision doğrulamalı tek snapshot üzerinden taslak, bağımlılıklar ve 15 bilinen açık iş kontrolü. Görev/randevu/sözleşme, aktarım, operasyon kadro/plan/onay ve proje dönemleri; firma/randevu/sözleşmeye bağlı açık görevler dahil. Veri silmez veya ayar değiştirmez. İstemci bütün kontrol listesini ve bağlamı doğrular; hata/eksik ölçüm boş başarıya dönüşmez. EXISTS sorguları yalnız kapanacak modüllerde, İstanbul gün sınırıyla çalışır.
+
+611/611 uygulama ve 164/164 modül PostgreSQL testi; 7 yeni uygulama + 25 yeni DB senaryosu. TypeScript ve test envanteri başarılı; statik 0 FAIL / 2 WARN. Rapor: `qa/tenant-module-change-preview-20260929/README.md`.
+
+**Yerel; push/deploy/üretim SQL/tarayıcı kabulü yok.** Yeni UI veya kaydetme yetkisi açılmadı. Önizleme tüm açık iş türlerinin eksiksiz kabulü değildir; evrak/finans/duyuru ve kalan çapraz yollar ayrıca incelenecek. Kayıt anında kilit/revizyon/üyelik/engel tekrarı zorunlu; diğer modül erişimleri ve direct-writer dönüşümü tamamlanmadan kapatma yok. Üretim derlemesi bu tur çalıştırılmadı. Önceki cutover sıraları korunur.

@@ -1,3 +1,4 @@
+import { parseRequestedModules, parseModuleChangePreview } from '@/lib/modules/change-preview';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { WorkspaceScope } from '@/lib/workspace-context';
 import type { Database } from '@/types/database.types';
@@ -21,4 +22,15 @@ export async function loadCurrentWorkspaceModules(client: SupabaseClient<Databas
   } catch {
     throw Error("Çalışma alanı ayarları doğrulanamadı. Sayfayı yenileyin.");
   }
+}
+
+/** Advisory snapshot; caller must not interpret empty blockers as permission to save. */
+export async function previewWorkspaceModules(client: SupabaseClient<Database>, expected: ModuleContextExpectation, revision: string, requested: unknown) {
+  const modules = parseRequestedModules(requested);
+  const {data, error} = await client.rpc('preview_workspace_modules_v1', {
+    p_expected_actor: expected.actorId, p_expected_tenant: expected.tenantId,
+    p_expected_revision: revision, p_modules: modules,
+  }).abortSignal(AbortSignal.timeout(12_000));
+  if (error) throw error;
+  return parseModuleChangePreview(data, expected, revision, modules);
 }

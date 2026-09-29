@@ -1322,6 +1322,10 @@ export interface Database {
         Args: {p_action: string; p_task_id?: string; p_revision?: number; p_input?: Json; p_expected_tenant?: string; p_expected_actor?: string};
         Returns: TaskRow[];
       };
+      preview_workspace_modules_v1: {
+        Args: {p_expected_actor:string;p_expected_tenant:string;p_expected_revision:string;p_modules:Json};
+        Returns: Json;
+      };
       current_workspace_modules_v1: {
         Args: Record<string, never>;
         Returns: Json;

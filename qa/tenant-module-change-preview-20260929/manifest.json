@@ -1,0 +1,24 @@
+{
+  "baseCommit": "b2ba16c99d3e9090fc1ba9daadcbec240684e05d",
+  "applicationTests": 611,
+  "databaseTests": 164,
+  "newApplicationTests": 7,
+  "newDatabaseTests": 25,
+  "typecheckPassed": true,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "productionMigrationApplied": false,
+  "browserSmokeRun": false,
+  "productionBuildRerun": false,
+  "hashes": {
+    ".github/workflows/module-foundation-db.yml": "08443a134de8f6fc06bca0c2afb72ff0e20de549d9010c73394d8b2555e8e301",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "43dd318b30746fedb096c7834a2b2451fa36f6f349bf69399c2a052402378e55",
+    "scripts/module-change-preview-db.test.mjs": "a81ab9ab59ad276ede1dfe4b8480498fca211da0ff1211ea939b9951b790bebf",
+    "scripts/module-change-preview.test.mjs": "70881ec7e9548ff3672f0bab406d86f5e8571ae1a9a44ca04ede8ccc248943d2",
+    "scripts/test-inventory.json": "c284065fee273ee777caa9fe7b8f9da32305035691615d39e4f2572dbe00bf26",
+    "src/lib/modules/change-preview.ts": "a3d4e45c9e443a9ab2a7714397633b5dbdf6e05dd3b178f39d48e0cdc5eeebeb",
+    "src/lib/services/workspace-modules.ts": "da49c71e119e38ca802c57106407f3aeb587213fac3b65bf11b608b57e1f64a5",
+    "src/types/database.types.ts": "acc05a6d8d46fc2ab6407011cf755f4116b3666b087b8d99eb95f8ababad81e4",
+    "supabase/migrations/20260929000200_module_change_preview.sql": "49a413d2809bc920a62ec82680667dbde067f5e1ad9d02d6f9fb2bd709b807e4"
+  }
+}

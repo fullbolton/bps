@@ -548,5 +548,13 @@
   {
     "file": "scripts/business-history-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/module-change-preview.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/module-change-preview-db.test.mjs",
+    "suite": "database"
   }
 ]
