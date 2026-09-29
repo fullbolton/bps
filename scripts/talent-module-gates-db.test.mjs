@@ -101,3 +101,43 @@ test('enabled write executes original archive operation without losing authoriza
  await db.query(`SELECT talent_shared_view_archive('${id(11)}','${id(1)}','${id(70)}')`);await db.query('RESET ROLE');
  assert.ok((await db.query(`SELECT archived_at FROM talent_shared_views WHERE id='${id(70)}'`)).rows[0].archived_at);
 }));
+
+test('actual person detail withholds assignments when staffing is off and restores them when on',()=>run(async()=>{
+ const projection=await import('./talent-assignment-projection.mjs');
+ await db.query(projection.render().replace(/\nBEGIN;\n/,'\n').replace(/COMMIT;\n$/,''));
+ await db.query(`ALTER TABLE talent_people ADD COLUMN worker_id uuid;
+ ALTER TABLE profiles ADD COLUMN display_name text;
+ CREATE TABLE talent_person_events(id bigint,kind text,revision integer,changed_fields text[],occurred_at timestamptz,actor_id uuid,tenant_id uuid,person_id uuid);
+ CREATE TABLE ops_assignments(id uuid,tenant_id uuid,request_id uuid,worker_id uuid,work_date date,removed_at timestamptz);
+ CREATE TABLE ops_daily_requests(id uuid,tenant_id uuid,company_id uuid,location_id uuid,position text,lifecycle text);
+ CREATE TABLE companies(id uuid,tenant_id uuid,name text);
+ CREATE TABLE ops_locations(id uuid,tenant_id uuid,company_id uuid,name text);
+ CREATE FUNCTION talent_canonical_person(uuid,uuid) RETURNS uuid LANGUAGE sql AS $$SELECT $2$$;
+ CREATE FUNCTION talent_person_family(uuid,uuid) RETURNS SETOF uuid LANGUAGE sql AS $$SELECT $2$$;
+ CREATE FUNCTION talent_person_json(public.talent_people) RETURNS jsonb LANGUAGE sql AS $$SELECT to_jsonb($1)$$;
+ INSERT INTO talent_people(id,tenant_id,worker_id) VALUES('${id(80)}','${id(1)}','${id(81)}');
+ INSERT INTO companies VALUES('${id(82)}','${id(1)}','Company');
+ INSERT INTO ops_locations VALUES('${id(83)}','${id(1)}','${id(82)}','Branch');
+ INSERT INTO ops_daily_requests VALUES('${id(84)}','${id(1)}','${id(82)}','${id(83)}','Guard','active');
+ INSERT INTO ops_assignments VALUES('${id(85)}','${id(1)}','${id(84)}','${id(81)}','2026-09-29',NULL);`);
+ await claims();
+ const fetch=async()=>{await db.query('SET LOCAL ROLE authenticated');const v=(await db.query(`SELECT talent_person_detail('${id(11)}','${id(1)}','${id(80)}') v`)).rows[0].v;await db.query('RESET ROLE');return v;};
+ assert.equal((await fetch()).assignments.length,1);
+ await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='staffing'`);
+ const off=await fetch();assert.equal(off.staffingAvailable,false);assert.deepEqual(off.assignments,[]);assert.equal(off.person.worker_id,id(81));
+ // Prove the disabled branch never executes the assignment query, even through SECURITY DEFINER.
+ await db.query('DROP TABLE ops_assignments');assert.deepEqual((await fetch()).assignments,[]);
+ await db.query(`CREATE TABLE ops_assignments(id uuid,tenant_id uuid,request_id uuid,worker_id uuid,work_date date,removed_at timestamptz);
+ INSERT INTO ops_assignments VALUES('${id(85)}','${id(1)}','${id(84)}','${id(81)}','2026-09-29',NULL);
+ UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='staffing'`);
+ const on=await fetch();assert.equal(on.staffingAvailable,true);assert.equal(on.assignments[0].companyName,'Company');
+ await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='talent'`);
+ await db.query('SET LOCAL ROLE authenticated');await assert.rejects(db.query(`SELECT talent_person_detail('${id(11)}','${id(1)}','${id(80)}')`),e=>e.code==='BM001');
+}));
+
+test('assignment projection rejects an unexpected source body without changing it',()=>run(async()=>{
+ const p=await import('./talent-assignment-projection.mjs');
+ await db.query(`CREATE OR REPLACE FUNCTION talent_person_detail(p_actor_id uuid,p_tenant_id uuid,p_person_id uuid) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$BEGIN RETURN '{}'::jsonb;END$$`);
+ await db.query('SAVEPOINT patch');await assert.rejects(db.query(p.render().replace(/\nBEGIN;\n/,'\n').replace(/COMMIT;\n$/,'')),e=>e.message.includes('BODY_DRIFT'));
+ await db.query('ROLLBACK TO patch');assert.equal((await db.query('SELECT prosrc FROM pg_proc WHERE oid=$1::regprocedure',[p.signature])).rows[0].prosrc,"BEGIN RETURN '{}'::jsonb;END");
+}));

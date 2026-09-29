@@ -15,3 +15,11 @@ test('known module denials are clear, while transport uncertainty remains distin
  assert.match(talentError({code:'55000',message:'MODULE_CONFIG_MISSING'}),/ayarları doğrulanamadı/);
  assert.match(talentError(new Error('fetch failed')),/İşlem sonucu doğrulanamadı/);
 });
+
+test('assignment projection migration is generated against the already gated body',async()=>{
+ const p=await import('./talent-assignment-projection.mjs');
+ assert.equal(readFileSync(p.migrationUrl,'utf8'),p.render());
+ const entry=entries.find(e=>e.name==='talent_person_detail');
+ assert.equal(p.previous,entry.body.replace(entry.anchor,()=>entry.anchor+entry.guard));
+ assert.ok(p.body.includes(entry.guard));
+});

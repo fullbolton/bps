@@ -16,6 +16,7 @@ on:
       - 'scripts/business-history-db.test.mjs'
       - 'scripts/module-change-preview-db.test.mjs'
       - 'scripts/talent-module-gates*'
+      - 'scripts/talent-assignment-projection.mjs'
       - 'scripts/operations-module-gates*'
       - 'scripts/legacy-operations-module-gates*'
       - 'scripts/helpers/operations-function-history.mjs'
@@ -39,6 +40,7 @@ on:
       - 'scripts/business-history-db.test.mjs'
       - 'scripts/module-change-preview-db.test.mjs'
       - 'scripts/talent-module-gates*'
+      - 'scripts/talent-assignment-projection.mjs'
       - 'scripts/operations-module-gates*'
       - 'scripts/legacy-operations-module-gates*'
       - 'scripts/helpers/operations-function-history.mjs'
@@ -76,6 +78,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: node scripts/module-catalog-sql.mjs --check
+      - run: node scripts/talent-assignment-projection.mjs --check
       - run: node scripts/talent-module-gates.mjs --check
       - run: node scripts/operations-module-gates.mjs --check
       - run: node scripts/legacy-operations-module-gates.mjs --check

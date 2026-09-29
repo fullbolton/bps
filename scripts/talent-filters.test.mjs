@@ -58,3 +58,13 @@ test('callback view survives validation and saved searches; response cannot sile
  const scope={tenantId:'00000000-0000-4000-8000-000000000001',actorId:'00000000-0000-4000-8000-000000000002'};
  assert.throws(()=>m.parsePeoplePage({tenantId:scope.tenantId,query:{...q,view:'all'},total:0,rows:[],generatedAt:new Date().toISOString()},scope,q));
 });
+
+test('detail distinguishes unavailable staffing from no assignments and rejects contradictory data',()=>{
+ const scope={tenantId:'00000000-0000-4000-8000-000000000001',actorId:'00000000-0000-4000-8000-000000000002'};
+ const person={...m.emptyPerson,id:'00000000-0000-4000-8000-000000000003',tenantId:scope.tenantId,name:'Sentetik',revision:0,workerId:null,workerCode:null,workerActive:null,source:'manual',createdAt:'2026-09-01T00:00:00Z',updatedAt:'2026-09-01T00:00:00Z'};
+ const base={person,events:[],assignments:[]},parse=x=>m.parsePersonDetail(x,scope,person.id);
+ assert.equal(parse(base).staffingAvailable,null);
+ for(const value of [true,false])assert.equal(parse({...base,staffingAvailable:value}).staffingAvailable,value);
+ for(const value of [null,'true',0,{}])assert.throws(()=>parse({...base,staffingAvailable:value}));
+ assert.throws(()=>parse({...base,staffingAvailable:false,assignments:[{}]}));
+});

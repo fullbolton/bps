@@ -362,3 +362,12 @@ Yeni 20260929000500: yedi eski ops_mutate/import/board/week/attendance_week/dire
 624/624 uygulama, PostgreSQL 17.10 üzerinde 281/281 modül DB testi; 3 yeni uygulama + 16 yeni DB senaryosu. TypeScript/envanter başarılı, statik 0 FAIL / 2 WARN. Rapor: `qa/tenant-module-legacy-operations-20260929/README.md`, 47 endpoint kaynak envanteri, manifest ve loglar. İlk runtime kurulumunda gelen PostgreSQL 18 eski FK hata metni beklentileriyle uyuşmadı; nihai kabul CI ile aynı 17 üzerinde. 18 uyumluluğu iddia edilmez.
 
 **Yerel; üretim SQL/push/deploy/tarayıcı kabulü yok.** Service/trigger/FK yan yolları, ops→talent sync, çapraz projeksiyonlar, raporlama/diğer modüller ve ayar mutasyonu/UI/canlı kabul açık. Genel modül kapatma açılmadı. 14 modül DB suite koşuldu, beş eski bağımsız DB suite ve üretim build bu tur koşulmadı. Kontrollü cutover sıraları korunuyor.
+
+
+### M2s — 2026-09-29: aday kartı atama ayrımı (yerel)
+
+`20260929000600` detail gövdesini önceki talent kapısından sonraki hash ile doğrular. Staffing kapalıyken atama sorgusu çalışmaz, açık/kapalı bilgisi ayrı döner; havuzdaki personel bağlantısı korunur. Arayüz atamalar/hazırlama/talebe dönüşü yalnız doğrulanmış açık durumda gösterir. Eski yanıt bilinmeyen kabul edilir; migration arayüzden önce uygulanmalı.
+
+626 uygulama ve 54 talent DB testi geçti; TypeScript temiz, statik 0 FAIL / 2 WARN. Kanıt: `qa/tenant-talent-projection-20260929/`. Diğer DB süitleri ve tarayıcı bu turda tekrarlanmadı. Üretime SQL/push/deploy yok.
+
+Kalan: görüşmelerin talep bağlamı, personel JSON/list/merge projeksiyonları ve ops→talent senkronizasyon kararı; reporting ve diğer kapılar; tam blocker listesi; ayar mutation/UI ve uçtan uca kabul. Bu parça tüm çapraz modül erişimlerini kapatmaz.

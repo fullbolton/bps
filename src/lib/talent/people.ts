@@ -10,7 +10,7 @@ export type PeopleQuery={search:string;city:string;skill:string;district?:string
 export type PeoplePage={tenantId:string;query:PeopleQuery;total:number;rows:Person[];generatedAt:string};
 export type PersonEvent={id:string;kind:'created'|'updated'|'worker_synced';revision:number;changedFields:string[];occurredAt:string;actorName:string|null};
 export type PersonAssignment={id:string;workDate:string;companyName:string;locationName:string;position:string;removed:boolean};
-export type PersonDetail={person:Person;events:PersonEvent[];assignments:PersonAssignment[];redirectedFromId:string|null;mergedSourceCount:number};
+export type PersonDetail={staffingAvailable:boolean|null;person:Person;events:PersonEvent[];assignments:PersonAssignment[];redirectedFromId:string|null;mergedSourceCount:number};
 export type SavePerson={commandId:string;personId:string|null;expectedRevision:number|null;input:PersonInput};
 export type SaveReceipt={id:string;commandId:string;revision:number};
 export type PendingPerson=Omit<SavePerson,'input'>;
@@ -84,6 +84,9 @@ export function parsePeoplePage(x:unknown,scope:TalentScope,query:PeopleQuery):P
 }
 export function parsePersonDetail(x:unknown,scope:TalentScope,id:string):PersonDetail{
  if(!record(x)||!Array.isArray(x.events)||x.events.length>20||!Array.isArray(x.assignments)||x.assignments.length>10)return bad();
+ // Legacy responses are unknown, never evidence that staffing is enabled.
+ const staffingAvailable=x.staffingAvailable===undefined?null:x.staffingAvailable;
+ if(staffingAvailable!==null&&typeof staffingAvailable!=='boolean'||x.staffingAvailable===null||staffingAvailable===false&&x.assignments.length>0)return bad();
  const person=parsePerson(x.person,scope.tenantId);
  const redirectedFromId=x.redirectedFromId===undefined?null:x.redirectedFromId;
  const mergedSourceCount=x.mergedSourceCount===undefined?0:x.mergedSourceCount;
@@ -92,7 +95,7 @@ export function parsePersonDetail(x:unknown,scope:TalentScope,id:string):PersonD
  if(person.id===id?redirectedFromId!==null:redirectedFromId!==id||mergedSourceCount<1)return bad();
  for(const e of x.events){if(!record(e)||typeof e.id!=='string'||!/^\d+$/.test(e.id)||!['created','updated','worker_synced'].includes(e.kind as string)||!revision(e.revision)||!Array.isArray(e.changedFields)||e.changedFields.some(v=>typeof v!=='string')||!date(e.occurredAt)||(e.actorName!==null&&typeof e.actorName!=='string'))return bad();}
  for(const a of x.assignments){if(!record(a)||!isUuid(a.id)||typeof a.workDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(a.workDate)||!clean(a.companyName,500)||!clean(a.locationName,160)||!clean(a.position,80)||typeof a.removed!=='boolean')return bad();}
- return {person,events:x.events as PersonEvent[],assignments:x.assignments as PersonAssignment[],redirectedFromId:redirectedFromId as string|null,mergedSourceCount};
+ return {staffingAvailable,person,events:x.events as PersonEvent[],assignments:x.assignments as PersonAssignment[],redirectedFromId:redirectedFromId as string|null,mergedSourceCount};
 }
 export function parseSaveReceipt(x:unknown,command:PendingPerson):SaveReceipt{
  if(!record(x)||x.commandId!==command.commandId||x.id!==(command.personId??command.commandId)||x.revision!==(command.expectedRevision===null?0:command.expectedRevision+1))return bad();
