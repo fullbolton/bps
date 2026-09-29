@@ -564,5 +564,13 @@
   {
     "file": "scripts/talent-module-gates-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/operations-module-gates.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/operations-module-gates-db.test.mjs",
+    "suite": "database"
   }
 ]

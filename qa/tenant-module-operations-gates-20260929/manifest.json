@@ -1,0 +1,31 @@
+{
+  "baseCommit": "9d7f8ead1304e48d30f80973dfca3c99dd8fee64",
+  "applicationTests": 621,
+  "databaseTests": 265,
+  "newApplicationTests": 7,
+  "newDatabaseTests": 49,
+  "rpcEntries": 40,
+  "readEntries": 15,
+  "barrierEntries": 25,
+  "typecheckPassed": true,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "productionMigrationApplied": false,
+  "browserSmokeRun": false,
+  "productionBuildRerun": false,
+  "hashes": {
+    ".github/workflows/module-foundation-db.yml": "9125a6545bb0f5a1b59962c009eaecf26b9614df74dc4276021eef7925a2b5f4",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "2f56adeb0b92d799c33fe5ba5be1392b9cfbd5041062706132ba2dee1c208456",
+    "scripts/operations-module-gates-db.test.mjs": "9cf995eef5c85eba605a0fa065f08e357feaba257b765fc9584d98192481e3f7",
+    "scripts/operations-module-gates.mjs": "916c858e49bbcab716ec2ccd2f8ff275e21a7f801090027b2611f57c0eb6d17c",
+    "scripts/operations-module-gates.test.mjs": "1168e411127124c5e4ec07afd0a1542f9a164e674d5c262527403816771bf402",
+    "scripts/talent-module-gates.mjs": "517dc52c63c96af306fbd82be2dcf90421b8e1bbc745f1e158d34722d0342e1c",
+    "scripts/test-inventory.json": "830aa7aa4d02e5de5567f0644f7b0daf228f6e62e3f77787b68802bf5f41947d",
+    "src/lib/operations/fixed-roster.ts": "cf84b0181558d75755be9397d30f9cd8bb02555c4d266b95f94ca9e7f2ebb2da",
+    "src/lib/operations/recurring-schedules.ts": "877e2fe9e741b5b558933cdf5d72161fe26fb0d70eba9755133a4825b3403645",
+    "src/lib/operations/start-board.ts": "d2fcc3246140250761863d7b26679d6d42ddb3628bbf0c85d2db9fc7891ab0f0",
+    "src/lib/operations/work-approval.ts": "e2301e63001f6cb10509aa5dbfa92f001a345a1728903ec19280f982a85f735e",
+    "src/lib/services/daily-operations.ts": "3b6d5962f0507a4d42bbbc115c4bcebdae55830edd80bcc6ee77a1c238a87d4b",
+    "supabase/migrations/20260929000400_operations_module_rpc_gates.sql": "9569b88749bf193e950c7f982086df4f0fb0e3b574c71eaaf4278733474614d6"
+  }
+}

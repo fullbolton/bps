@@ -1,3 +1,4 @@
+import {moduleAccessMessage} from '@/lib/modules/errors';
 import {isUuid} from './pilot-validation';
 import {isWorkDate} from './daily-demand';
 
@@ -22,6 +23,7 @@ export function validateFixedRosterInput(value: unknown): FixedRosterInput {
 }
 
 export function fixedRosterError(error: unknown): string {
+  const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return moduleMessage;
   const raw = object(error) && typeof error.message === 'string' ? error.message : '';
   const messages: Record<string, string> = {
     ROSTER_LEAVE_ASSIGNED: 'Personelin izin aralığında günlük görevlendirmesi veya Geldi kaydı var. Önce ilgili günlük kaydı kontrol edin.',

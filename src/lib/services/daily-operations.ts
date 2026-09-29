@@ -1,3 +1,4 @@
+import {moduleAccessMessage} from '@/lib/modules/errors';
 import {fixedRosterError} from '@/lib/operations/fixed-roster';
 import {validateLocationUpdate,parseLocationUpdate} from "@/lib/operations/location-update";
 import {updateLocation} from "@/lib/supabase/daily-operations";
@@ -35,6 +36,7 @@ export async function runPilotCommand(client:Client,id:string,kind:PilotKind,pay
   return {id:data.id,commandId:id};
 }
 export function pilotError(error:unknown,fallback="İşlem doğrulanamadı. Bağlantıyı kontrol edin; kayıt gönderdiyseniz aynı formu değiştirmeden tekrar deneyin.") {
+  const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return moduleMessage;
   const raw=error && typeof error==="object" && "message" in error ? String(error.message):"";
   if(raw.startsWith("ROSTER_"))return fixedRosterError(error);
   const messages:Record<string,string>={

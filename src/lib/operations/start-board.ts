@@ -1,3 +1,4 @@
+import {moduleAccessMessage} from '@/lib/modules/errors';
 import {isUuid} from './pilot-validation';
 import type {CheckOutcome} from './start-tracking';
 export const startOutcomes:Record<CheckOutcome,string>={preparing:'Hazırlanıyor',on_way:'Yolda',claimed_arrival:'Şubede olduğunu söylüyor',unreachable:'Ulaşılamadı',cannot_attend:'Gelemeyecek'};
@@ -56,7 +57,7 @@ export function isStartRejection(e:unknown){
  const error=e as {code?:string;message?:string}|null;
  return error?.code==='P0001'&&typeof error.message==='string'&&Object.hasOwn(startErrors,error.message);
 }
-export function startError(e:unknown){const m=(e as {message?:string}|null)?.message??'';return startErrors[m]??'İşlem doğrulanamadı. Bekleyen işlemleri kontrol edin; bağlantı hatası kaydın yapılmadığı anlamına gelmez.';}
+export function startError(e:unknown){const moduleMessage=moduleAccessMessage(e);if(moduleMessage)return moduleMessage;const m=(e as {message?:string}|null)?.message??'';return startErrors[m]??'İşlem doğrulanamadı. Bekleyen işlemleri kontrol edin; bağlantı hatası kaydın yapılmadığı anlamına gelmez.';}
 
 /** Suggest an unrecorded, due check; never imply a phone call or confirmation occurred. */
 export function nextStartCallOffset(row:StartRow,now:number):number|null{

@@ -49,11 +49,11 @@ export function source(name,file,mode){
  const matches=[...sql.matchAll(pattern)];if(matches.length!==(name==='talent_merge_review'?2:1))throw Error('Ambiguous source '+name);
  const m=matches.at(-1),start=m.index+m[0].length,end=sql.indexOf(m[3],start);if(end<0)throw Error('Missing body '+name);
  const body=sql.slice(start,end),args=m[1].replaceAll('"','').split(',').map(a=>a.trim().split(/\s+/));
- if(args.some(a=>!['uuid','integer','jsonb','text','boolean','date','uuid[]','text[]'].includes(a[1]))||!body.includes('\nBEGIN\n'))throw Error('Unsupported source '+name);
+ if(args.some(a=>!['uuid','integer','jsonb','text','boolean','date','uuid[]','text[]'].includes(a[1]))||!body.match(/\nBEGIN(?:\n| )/))throw Error('Unsupported source '+name);
  const signature='public.'+name+'('+args.map(a=>a[1]).join(',')+')';
  const modules=name==='talent_prepare_worker'?['talent','staffing']:['talent'];
  const guard=`\n PERFORM public.talent_assert_scope(${args[0][0]},${args[1][0]});\n PERFORM public.workspace_require_module_${mode}_v1(${args[1][0]},ARRAY[${modules.map(k=>"'"+k+"'").join(',')}]);\n`;
- return {name,file,mode,signature,body,guard,hash:createHash('sha256').update(body).digest('hex'),declaration:sql.slice(m.index,end+m[3].length)+';'};
+ return {name,file,mode,signature,body,guard,anchor:body.match(/\nBEGIN(?:\n| )/)[0],hash:createHash('sha256').update(body).digest('hex'),declaration:sql.slice(m.index,end+m[3].length)+';'};
 }
 export const entries=targets.map(t=>source(...t));
 export const migrationUrl=new URL('../supabase/migrations/20260929000300_talent_module_rpc_gates.sql',import.meta.url);

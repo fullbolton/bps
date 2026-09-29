@@ -1,3 +1,4 @@
+import {moduleAccessMessage} from '@/lib/modules/errors';
 import {requireOperationalText,privateTextError} from '@/lib/privacy/operational-text';
 import {shiftDuration} from './shift-window';
 import {isUuid} from './pilot-validation';
@@ -41,6 +42,7 @@ export function parseWorkReceipt(value:unknown,commandId:string,assignmentId:str
  return {commandId,revision:r.revision as number,status:expected as WorkStatus};
 }
 export function workError(error:unknown){
+ const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return moduleMessage;
  const privacy=privateTextError(error);if(privacy)return privacy;
  const code=error&&typeof error==='object'&&'message' in error?String(error.message):'';
  const messages:Record<string,string>={WORK_STALE:'Kayıt değişti. Son kaydı yenileyip taslağınızı karşılaştırın.',WORK_FORBIDDEN:'Bu onay işlemi için yönetici yetkisi gerekir.',WORK_ATTENDANCE:'Onaya göndermek için Geldi kaydı bulunmalı.',WORK_NOT_FINISHED:'Bitiş zamanı henüz gelmedi; tamamlanmamış çalışma onaya gönderilemez.',WORK_LOCKED:'Onaydaki kayıt doğrudan değiştirilemez. Önce gerekçeyle düzeltmeye açın.',WORK_STATE:'Kayıt bu işleme uygun durumda değil; yenileyin.',WORK_CLOSED:'Atama kapalı veya talep iptal edilmiş.',WORK_REASON:'Düzeltme gerekçesi yazın.',WORK_APPROVAL_LOCKED:'Çalışma onayda veya onaylı. Önce çalışma kaydını gerekçeyle düzeltmeye açın.'};
