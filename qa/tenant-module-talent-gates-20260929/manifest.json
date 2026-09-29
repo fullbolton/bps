@@ -1,0 +1,26 @@
+{
+  "baseCommit": "4caa056d0d9cb78d4c36ae554b81d7f6add8fb9c",
+  "applicationTests": 614,
+  "databaseTests": 216,
+  "newApplicationTests": 3,
+  "newDatabaseTests": 52,
+  "rpcEntries": 39,
+  "readEntries": 19,
+  "writeEntries": 20,
+  "typecheckPassed": true,
+  "staticFailures": 0,
+  "staticWarnings": 2,
+  "productionMigrationApplied": false,
+  "browserSmokeRun": false,
+  "productionBuildRerun": false,
+  "hashes": {
+    ".github/workflows/module-foundation-db.yml": "127ff537d971f5a54c839af15b2beb1aba9fa363cd4ae2c6a53d174cca57cbf5",
+    "01_product/CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md": "e1dc653aa1cdb49daab46b2b5f2d0840ad99f0a3bb0db9b904a5a2d2fbf9a130",
+    "scripts/talent-module-gates-db.test.mjs": "4bb9032e3f898f095ba0bb3572799ceffe7146e540759c6f9847ded7ef8aab25",
+    "scripts/talent-module-gates.mjs": "f5584b23d4ef92d3f133fc71bf00cd5513de56be60bfcd4b57bf8920463e2ca8",
+    "scripts/talent-module-gates.test.mjs": "9346f58ac9439bed214be3771fde39a88becf66a9b81052ca4548ad72d7289bd",
+    "scripts/test-inventory.json": "af92e0a36bfe64cf4c7d457be98502e23279dd71ab00a7baffb130dc554fcd71",
+    "src/lib/services/talent.ts": "383239baf7a96833db8aa969217780805967de2956f41bc5fb21ea94db5d3573",
+    "supabase/migrations/20260929000300_talent_module_rpc_gates.sql": "a597a1b35ac1adb7e860fec4cd4eca9cf0e60cb908fe37b6414d8ed9b5867499"
+  }
+}

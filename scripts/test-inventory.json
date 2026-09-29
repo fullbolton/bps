@@ -556,5 +556,13 @@
   {
     "file": "scripts/module-change-preview-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/talent-module-gates.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/talent-module-gates-db.test.mjs",
+    "suite": "database"
   }
 ]

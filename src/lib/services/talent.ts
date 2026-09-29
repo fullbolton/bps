@@ -1,3 +1,4 @@
+import {moduleAccessMessage} from '@/lib/modules/errors';
 import {privateTextError} from '@/lib/privacy/operational-text';
 import {parseCompareSnapshot} from '@/lib/talent/import-compare';
 import {selectTalentCompareSnapshot} from '@/lib/supabase/talent';
@@ -20,6 +21,7 @@ export async function writeTalentPerson(c:Client,scope:unknown,command:unknown){
  const s=checkTalentScope(scope),x=validateSavePerson(command);return parseSaveReceipt(await saveTalentPerson(c,s,x),x);
 }
 export function talentError(error:unknown):string{
+ const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return moduleMessage;
  const privacy=privateTextError(error);if(privacy)return privacy;
  const message=error&&typeof error==='object'&&'message' in error?String(error.message):'';
  if(message.includes('TALENT_IMPORT_CLOSED'))return 'Bu aktarım güvenli şekilde kapatıldı. Sonucu kontrol edin.';

@@ -1,0 +1,275 @@
+[
+  {
+    "name": "talent_people_page",
+    "file": "20260927000600_pool_query_performance.sql",
+    "mode": "read",
+    "signature": "public.talent_people_page(uuid,uuid,jsonb)",
+    "hash": "eed98ec69b5b4db33e879be7612c5b373902c3f66555845d3ff30d985b4040d2"
+  },
+  {
+    "name": "talent_person_detail",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "read",
+    "signature": "public.talent_person_detail(uuid,uuid,uuid)",
+    "hash": "3ddc78b39771d8e955444d785bd8b319cbbaa426a04c699bdc2592f59246496b"
+  },
+  {
+    "name": "talent_save_person",
+    "file": "20260915000500_talent_filters.sql",
+    "mode": "write",
+    "signature": "public.talent_save_person(uuid,uuid,uuid,uuid,integer,jsonb)",
+    "hash": "efa2ebcf9d85a455509dd5e60cf0bc292c776b2c8bb5c86dfa911fff200cc024"
+  },
+  {
+    "name": "talent_resolve_person_command",
+    "file": "20260914000200_talent_people.sql",
+    "mode": "write",
+    "signature": "public.talent_resolve_person_command(uuid,uuid,uuid)",
+    "hash": "185aa774bd909a56ec6bffd510ffa5204aa793359dc97ff68a291f13a153ec27"
+  },
+  {
+    "name": "talent_compare_snapshot",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "read",
+    "signature": "public.talent_compare_snapshot(uuid,uuid)",
+    "hash": "06964ce898a23a70853c532d6722c7835ddf7ef1f38aca68b0faec38212ed3ea"
+  },
+  {
+    "name": "talent_import_status",
+    "file": "20260914000500_talent_import_batches.sql",
+    "mode": "read",
+    "signature": "public.talent_import_status(uuid,uuid,uuid)",
+    "hash": "64d3432e1525094b74851fbd4e44d02edc6bf4d31bc560e2e9f6208c68224a77"
+  },
+  {
+    "name": "talent_import_prepare",
+    "file": "20260914000600_talent_import_recovery.sql",
+    "mode": "write",
+    "signature": "public.talent_import_prepare(uuid,uuid,uuid,text,jsonb)",
+    "hash": "4363e5ef8957004155b4ed0fc993fd9da26b1defdb8d122a9bb3210d1ee05cd8"
+  },
+  {
+    "name": "talent_import_apply_row",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "write",
+    "signature": "public.talent_import_apply_row(uuid,uuid,uuid,integer)",
+    "hash": "b655807abec0dc18eb35b588b88d0d50e6a662ba21f4431a1b511e38c4a2d302"
+  },
+  {
+    "name": "talent_import_cancel",
+    "file": "20260914000500_talent_import_batches.sql",
+    "mode": "write",
+    "signature": "public.talent_import_cancel(uuid,uuid,uuid)",
+    "hash": "af064a5af0e738a230d33272e7dd63bf286b226478696176d3b04b9867394896"
+  },
+  {
+    "name": "talent_import_recover",
+    "file": "20260914000600_talent_import_recovery.sql",
+    "mode": "read",
+    "signature": "public.talent_import_recover(uuid,uuid,uuid,text,integer)",
+    "hash": "74035e901893d1c972956ac691c231de7135a1139d272614576861ae7ead8691"
+  },
+  {
+    "name": "talent_import_close",
+    "file": "20260914000600_talent_import_recovery.sql",
+    "mode": "write",
+    "signature": "public.talent_import_close(uuid,uuid,uuid,text,integer)",
+    "hash": "8f2c5327a57f29dfbef214d1af40443e906e8689d3444db1f9ff084b876391d2"
+  },
+  {
+    "name": "talent_import_history",
+    "file": "20260914000700_talent_import_history.sql",
+    "mode": "read",
+    "signature": "public.talent_import_history(uuid,uuid,integer)",
+    "hash": "4ed463758b2cef1bb2cf7010f0bb701468a3bca8ad15290d9d6b0884620d16ec"
+  },
+  {
+    "name": "talent_conversation_save",
+    "file": "20260915000300_talent_conversations.sql",
+    "mode": "write",
+    "signature": "public.talent_conversation_save(uuid,uuid,jsonb)",
+    "hash": "33b1c49b4ce52fc694507e864988564083be668bd38769ae6e14f5e2f3771614"
+  },
+  {
+    "name": "talent_attachment_reserve",
+    "file": "20260915000400_talent_attachments.sql",
+    "mode": "write",
+    "signature": "public.talent_attachment_reserve(uuid,uuid,jsonb)",
+    "hash": "49197247e6ff639d2d1308d713f928cfea4cc0888340825a15f360a882d914ce"
+  },
+  {
+    "name": "talent_attachment_finish",
+    "file": "20260915000400_talent_attachments.sql",
+    "mode": "write",
+    "signature": "public.talent_attachment_finish(uuid,uuid,uuid)",
+    "hash": "f10db00e6516887fc18a3f69d3a9d9f7bdb94a7f447156ad8096c7c6874cbd06"
+  },
+  {
+    "name": "talent_attachment_list",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "read",
+    "signature": "public.talent_attachment_list(uuid,uuid,uuid)",
+    "hash": "0ef27cee38955a02f9969e66949bc9893fa606633cd7a6625632f3ed14c592e4"
+  },
+  {
+    "name": "talent_attachment_pending",
+    "file": "20260923000300_talent_attachment_cancellation.sql",
+    "mode": "read",
+    "signature": "public.talent_attachment_pending(uuid,uuid,uuid)",
+    "hash": "e4cfc5bbe1287d56b52912689b6b2ed33010e7d50ae548c7f51a6e29c36f0de7"
+  },
+  {
+    "name": "talent_attachment_cancel",
+    "file": "20260923000300_talent_attachment_cancellation.sql",
+    "mode": "write",
+    "signature": "public.talent_attachment_cancel(uuid,uuid,uuid,boolean)",
+    "hash": "262c4af603452b728c7b5a2b34713e9bce6d6dd13f5bc98627de51b68791e9d5"
+  },
+  {
+    "name": "talent_availability_read",
+    "file": "20260923000400_talent_availability.sql",
+    "mode": "read",
+    "signature": "public.talent_availability_read(uuid,uuid,uuid)",
+    "hash": "7b1ebf8cfd8ffe9af33abc8816e0e3000117d4b5bf26900cccc89332d3dbb2de"
+  },
+  {
+    "name": "talent_availability_save",
+    "file": "20260923000400_talent_availability.sql",
+    "mode": "write",
+    "signature": "public.talent_availability_save(uuid,uuid,uuid,uuid,integer,text,date,date)",
+    "hash": "99f52fbe9d50b4bae0c2575e0203dc306e05b7b226f64c0c3238b09af1d3e055"
+  },
+  {
+    "name": "talent_prepare_worker",
+    "file": "20260924000200_talent_worker_prepare.sql",
+    "mode": "write",
+    "signature": "public.talent_prepare_worker(uuid,uuid,uuid,uuid,integer,text,text)",
+    "hash": "80b1e0e5ad8b0feb6a2a1ea16ef76f77bb2b47fae6ea01c7ab97aa1144159d42"
+  },
+  {
+    "name": "talent_match_source",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "read",
+    "signature": "public.talent_match_source(uuid,uuid,jsonb)",
+    "hash": "ba3d86d4d248877b5d3a351bd6576af377733a94da27c15d6028ed967ee9d576"
+  },
+  {
+    "name": "talent_work_copy_page",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "read",
+    "signature": "public.talent_work_copy_page(uuid,uuid,uuid,text)",
+    "hash": "d8bf110b9b9466295acf6d336097a63d9240bff6bcf7da92d6a241856ef2fffb"
+  },
+  {
+    "name": "talent_import_change_review",
+    "file": "20260927000400_talent_import_undo.sql",
+    "mode": "read",
+    "signature": "public.talent_import_change_review(uuid,uuid,uuid,integer)",
+    "hash": "ac98359b30e508a563a6f229fc6610ed32c3cfdcdb4bd103248c9b5318184c1c"
+  },
+  {
+    "name": "talent_import_undo_update",
+    "file": "20260927000400_talent_import_undo.sql",
+    "mode": "write",
+    "signature": "public.talent_import_undo_update(uuid,uuid,uuid,integer)",
+    "hash": "cfe4845c11c74f7489888f486765656a8238831bd044336fc868cc1de899a7d2"
+  },
+  {
+    "name": "talent_merge_review",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "read",
+    "signature": "public.talent_merge_review(uuid,uuid,uuid,uuid)",
+    "hash": "d16537278e606a973bfc39d1170f27e399ea77559cb74fc13ba341415456b100"
+  },
+  {
+    "name": "talent_merge_apply",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "write",
+    "signature": "public.talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)",
+    "hash": "09a605a9136da745cfe92e3b5a76e49cfcc592e371255ecd89a627ac425fc465"
+  },
+  {
+    "name": "talent_merge_resolve",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "write",
+    "signature": "public.talent_merge_resolve(uuid,uuid,uuid)",
+    "hash": "116d635a7b91cdcbe3cb2f5341b6313fa14205505ef10fa10cadf0a917e8b3a6"
+  },
+  {
+    "name": "talent_merged_availability",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "read",
+    "signature": "public.talent_merged_availability(uuid,uuid,uuid,integer)",
+    "hash": "39fe7554d8c74efea149ab89cc49755efe0447acb2412a2902dfaa1b85094297"
+  },
+  {
+    "name": "talent_contact_summaries",
+    "file": "20260927000500_pool_merge_and_contacts.sql",
+    "mode": "read",
+    "signature": "public.talent_contact_summaries(uuid,uuid,uuid[])",
+    "hash": "564e1e9065a04dfeb100688ff0c1e382647c00e585d5030735fc585d9f08f79e"
+  },
+  {
+    "name": "talent_shared_views_read",
+    "file": "20260927000700_talent_shared_views.sql",
+    "mode": "read",
+    "signature": "public.talent_shared_views_read(uuid,uuid)",
+    "hash": "599b441b0c6678ece115a6e4cff435a40b08fc2c0e5c2246d3b74aba944a7d3b"
+  },
+  {
+    "name": "talent_shared_view_create",
+    "file": "20260927000700_talent_shared_views.sql",
+    "mode": "write",
+    "signature": "public.talent_shared_view_create(uuid,uuid,uuid,text,jsonb)",
+    "hash": "b73096ccb88e2cb944112323611171612a431ffa5325077f5298e0355c169be0"
+  },
+  {
+    "name": "talent_shared_view_archive",
+    "file": "20260927000700_talent_shared_views.sql",
+    "mode": "write",
+    "signature": "public.talent_shared_view_archive(uuid,uuid,uuid)",
+    "hash": "5e5210728e28415e1fec0c19fad01eb74a8d3a52bb2e40cd8f53f01aa92f0bd7"
+  },
+  {
+    "name": "talent_call_lists_read",
+    "file": "20260927000800_talent_call_lists.sql",
+    "mode": "read",
+    "signature": "public.talent_call_lists_read(uuid,uuid)",
+    "hash": "4657481fc747aea39ba7a69571d5caaa4d220a5d2f30028cc1952003cba6ffee"
+  },
+  {
+    "name": "talent_call_list_create",
+    "file": "20260927000800_talent_call_lists.sql",
+    "mode": "write",
+    "signature": "public.talent_call_list_create(uuid,uuid,uuid,text,uuid[])",
+    "hash": "81cece2057c666b20dc1992c7231d60cc0e963727a9e55d144750d0e7a215833"
+  },
+  {
+    "name": "talent_call_list_archive",
+    "file": "20260927000800_talent_call_lists.sql",
+    "mode": "write",
+    "signature": "public.talent_call_list_archive(uuid,uuid,uuid)",
+    "hash": "f45c862bd1c52924477c5b7f47317affd8dc9b0025566c43e0a67de24abe15d3"
+  },
+  {
+    "name": "talent_call_list_edit",
+    "file": "20260927000900_call_list_edit_and_conversation_context.sql",
+    "mode": "write",
+    "signature": "public.talent_call_list_edit(uuid,uuid,uuid,uuid,integer,text,text,uuid[])",
+    "hash": "223768184650c8f4e4affc50f4e0e15dc3672ad6fa3b86b96a1101604f2f2d29"
+  },
+  {
+    "name": "talent_conversation_list",
+    "file": "20260927000900_call_list_edit_and_conversation_context.sql",
+    "mode": "read",
+    "signature": "public.talent_conversation_list(uuid,uuid,uuid,integer)",
+    "hash": "f4d4a8f3ea8d57c6791f06928217af61451588e21f7446ace3186278910018d6"
+  },
+  {
+    "name": "talent_call_list_people",
+    "file": "20260927000900_call_list_edit_and_conversation_context.sql",
+    "mode": "read",
+    "signature": "public.talent_call_list_people(uuid,uuid,uuid)",
+    "hash": "a1f9d578caf48b1210f9c3042f375d82208bb9b5fb1fea446e09153fe7b7ee54"
+  }
+]

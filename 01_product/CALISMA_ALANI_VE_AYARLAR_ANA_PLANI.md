@@ -336,3 +336,11 @@ Sekiz yeni PostgreSQL senaryosu ve ortak modül suite'leri; kesin ölçümler `q
 611/611 uygulama ve 164/164 modül PostgreSQL testi; 7 yeni uygulama + 25 yeni DB senaryosu. TypeScript ve test envanteri başarılı; statik 0 FAIL / 2 WARN. Rapor: `qa/tenant-module-change-preview-20260929/README.md`.
 
 **Yerel; push/deploy/üretim SQL/tarayıcı kabulü yok.** Yeni UI veya kaydetme yetkisi açılmadı. Önizleme tüm açık iş türlerinin eksiksiz kabulü değildir; evrak/finans/duyuru ve kalan çapraz yollar ayrıca incelenecek. Kayıt anında kilit/revizyon/üyelik/engel tekrarı zorunlu; diğer modül erişimleri ve direct-writer dönüşümü tamamlanmadan kapatma yok. Üretim derlemesi bu tur çalıştırılmadı. Önceki cutover sıraları korunur.
+
+## Uygulama kaydı — 29 Eylül 2026, personel havuzu modül kapıları M2p
+
+20260929000300 yerel migration: 39 açık RPC girişinde 19 okuma/20 yazma denetimi; talent hazırlama operasyona geçerken staffing de ister. Yazma config SHARE kilidi eski profil/iş kilidinden önce; bekleme sonrası güncel ayar doğrulanır. Ortak talent_assert_scope nötr kalır, operasyon sırf havuz kapalı diye durmaz. Fotoğraf/ek dosya Storage yardımcısında modül kapısı ve upload yazma bariyeri; dosya sahibi/tenant/onboarding sınırları korunur. Ortak hata mesajında kapalı modül açıkça ayrılır.
+
+Kaynak gövdesi hash doğrulamalı üretici, exact signature, üç implementation alias ACL ve beklenmeyen yeni actor-scoped endpoint denetimi; katalog sapmasında tüm transaction rollback. 52 yeni DB + 3 yeni uygulama testi. Ortak sonuç: 216/216 modül DB ve 614/614 uygulama testi; TypeScript/envanter başarılı, statik 0 FAIL / 2 WARN. Kanıt: `qa/tenant-module-talent-gates-20260929/README.md`, endpoint envanteri, manifest ve loglar.
+
+**Yerel; üretim SQL/push/deploy/tarayıcı kabulü yok.** Fixture tüm eski iş algoritmalarını enabled modda uçtan uca çalıştırmaz; çoğu hedefte gate reddi + kaynak gövdesi koruması, saved-view okuma/arşivde gerçek enabled davranış sınandı. İmzalı eski URL süresinden önce iptal garantisi yok. Havuzun operasyon projeksiyonları, worker→talent sync, kalan doğrudan veri/service/trigger/FK yolları ve operasyon/reporting giriş kapıları hâlâ açık. Genel modül kaydetme/kapatma UI'si açılmadı. Üretim derlemesi bu tur yeniden çalıştırılmadı; kontrollü cutover sıraları değişmedi.
