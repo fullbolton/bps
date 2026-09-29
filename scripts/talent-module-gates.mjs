@@ -52,7 +52,7 @@ export function source(name,file,mode){
  if(args.some(a=>!['uuid','integer','jsonb','text','boolean','date','uuid[]','text[]'].includes(a[1]))||!body.match(/\nBEGIN(?:\n| )/))throw Error('Unsupported source '+name);
  const signature='public.'+name+'('+args.map(a=>a[1]).join(',')+')';
  const modules=name==='talent_prepare_worker'?['talent','staffing']:['talent'];
- const guard=`\n PERFORM public.talent_assert_scope(${args[0][0]},${args[1][0]});\n PERFORM public.workspace_require_module_${mode}_v1(${args[1][0]},ARRAY[${modules.map(k=>"'"+k+"'").join(',')}]);\n`;
+ const guard=args.length<2?'':`\n PERFORM public.talent_assert_scope(${args[0][0]},${args[1][0]});\n PERFORM public.workspace_require_module_${mode}_v1(${args[1][0]},ARRAY[${modules.map(k=>"'"+k+"'").join(',')}]);\n`;
  return {name,file,mode,signature,body,guard,anchor:body.match(/\nBEGIN(?:\n| )/)[0],hash:createHash('sha256').update(body).digest('hex'),declaration:sql.slice(m.index,end+m[3].length)+';'};
 }
 export const entries=targets.map(t=>source(...t));

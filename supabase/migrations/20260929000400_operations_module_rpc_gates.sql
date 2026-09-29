@@ -32,7 +32,7 @@ BEGIN
 ','write','
 BEGIN
 '),
- ('public.ops_record_attendance(uuid,uuid,uuid,uuid,integer,text)','e5477c5e00f36589ae476cb6723fb2eabf6368bff6402837610120817acbe3bf','
+ ('public.ops_record_attendance(uuid,uuid,uuid,uuid,integer,text)','d52c70c2c5b4059db1762a92cd4afca4450a66e1f26c5555401bcc09a82b8a63','
  IF auth.uid() IS NULL OR p_actor_id IS DISTINCT FROM auth.uid() OR p_tenant_id IS NULL OR p_tenant_id IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION ''OPS_SCOPE_CHANGED'' USING ERRCODE=''42501'';END IF;
  PERFORM public.workspace_require_module_write_v1(p_tenant_id,ARRAY[''staffing'']);
 ','write','
@@ -50,31 +50,31 @@ BEGIN
 ','write','
 BEGIN
 '),
- ('public.ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)','5a5719d0219ee34ca4e8f61df62da297b8117e78318d96e38ecf566ae12ba3a5','
+ ('public.ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)','78d7ac27f055eb4ed49769c89fce52644f56482c302a6748dc48d479990f4655','
  IF auth.uid() IS NULL OR p_actor_id IS DISTINCT FROM auth.uid() OR p_tenant_id IS NULL OR p_tenant_id IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION ''OPS_SCOPE_CHANGED'' USING ERRCODE=''42501'';END IF;
  PERFORM public.workspace_require_module_write_v1(p_tenant_id,ARRAY[''staffing'']);
 ','write','
 BEGIN
 '),
- ('public.ops_start_board(uuid,uuid,date,integer)','78edeccbe0dd24f237e15db7a85b9ce529f19158f7318c0fb57edfcb129aaa76','
+ ('public.ops_start_board(uuid,uuid,date,integer)','d164bf1bcf870a0205adc94644efb3a6cb8adc7def1310887229ec42f87d100d','
  IF auth.uid() IS NULL OR p_actor_id IS DISTINCT FROM auth.uid() OR p_tenant_id IS NULL OR p_tenant_id IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION ''OPS_SCOPE_CHANGED'' USING ERRCODE=''42501'';END IF;
  PERFORM public.workspace_require_module_read_v1(p_tenant_id,ARRAY[''staffing'']);
 ','read','
 BEGIN
 '),
- ('public.ops_start_board_filtered(uuid,uuid,date,integer,text,boolean,boolean)','7670c4aa336b86d27204b3f1f3fc8ec368fbd7e20bc3246ebe29683382aac570','
+ ('public.ops_start_board_filtered(uuid,uuid,date,integer,text,boolean,boolean)','563b156e3c4d1f07d43e6763fec3ae273a545a5dd15b781cc511f31b33a51194','
  IF auth.uid() IS NULL OR p_actor_id IS DISTINCT FROM auth.uid() OR p_tenant_id IS NULL OR p_tenant_id IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION ''OPS_SCOPE_CHANGED'' USING ERRCODE=''42501'';END IF;
  PERFORM public.workspace_require_module_read_v1(p_tenant_id,ARRAY[''staffing'']);
 ','read','
 BEGIN
 '),
- ('public.ops_replace_assignment_before_start(uuid,uuid,uuid,uuid,uuid,integer)','b878a47942b74e0109a76c4804d4d6e146b5403fae643f22f91436c6cf9b26c6','
+ ('public.ops_replace_assignment_before_start(uuid,uuid,uuid,uuid,uuid,integer)','4b57c170a8062add123141a62c7dafb620fa6741c61535f14bc676ade8c23d7b','
  IF auth.uid() IS NULL OR p_actor_id IS DISTINCT FROM auth.uid() OR p_tenant_id IS NULL OR p_tenant_id IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION ''OPS_SCOPE_CHANGED'' USING ERRCODE=''42501'';END IF;
  PERFORM public.workspace_require_module_write_v1(p_tenant_id,ARRAY[''staffing'']);
 ','write','
 BEGIN
 '),
- ('public.ops_comment_send(uuid,uuid,uuid,uuid,text,uuid,uuid[])','d083714ed52cdb263133a5936b87d1ee9c482cb60506cf503464cd1f3dd3ea93','
+ ('public.ops_comment_send(uuid,uuid,uuid,uuid,text,uuid,uuid[])','a27f5553f7507400e93ba17e38ae0f3373f90b04bea693048bcfdc2c158ab78f','
  IF auth.uid() IS NULL OR p_actor_id IS DISTINCT FROM auth.uid() OR p_tenant_id IS NULL OR p_tenant_id IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION ''OPS_SCOPE_CHANGED'' USING ERRCODE=''42501'';END IF;
  PERFORM public.workspace_require_module_write_v1(p_tenant_id,ARRAY[''staffing'']);
 ','write','
@@ -98,7 +98,7 @@ BEGIN
 ','write','
 BEGIN
 '),
- ('public.ops_comment_people(uuid,uuid,uuid)','7a4d0bbbac56148eedfef521fbbb1eeb47d3265e7e38a595479e62f99f41a321','
+ ('public.ops_comment_people(uuid,uuid,uuid)','8c6680fe26095270315d24fdec87b11a2f85ec6896b91ddbd8fa6e9465ab8bbf','
  IF auth.uid() IS NULL OR p_actor_id IS DISTINCT FROM auth.uid() OR p_tenant_id IS NULL OR p_tenant_id IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION ''OPS_SCOPE_CHANGED'' USING ERRCODE=''42501'';END IF;
  PERFORM public.workspace_require_module_read_v1(p_tenant_id,ARRAY[''staffing'']);
 ','read','
@@ -212,7 +212,7 @@ BEGIN
 ','read','
 BEGIN
 '),
- ('public.ops_fixed_roster_idp_create(uuid,uuid,uuid,uuid,integer,date,date,jsonb)','411249d6ac5fa1ff9e042b06969b6b77b6868016b79d19184e12964dd873684a','
+ ('public.ops_fixed_roster_idp_create(uuid,uuid,uuid,uuid,integer,date,date,jsonb)','6b51cf4664ca29698d11090810ed135d2234cd6a66f1b9ceed0df7e99e3e01d6','
  IF auth.uid() IS NULL OR p_actor_id IS DISTINCT FROM auth.uid() OR p_tenant_id IS NULL OR p_tenant_id IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION ''OPS_SCOPE_CHANGED'' USING ERRCODE=''42501'';END IF;
  PERFORM public.workspace_require_module_write_v1(p_tenant_id,ARRAY[''staffing'']);
 ','write','

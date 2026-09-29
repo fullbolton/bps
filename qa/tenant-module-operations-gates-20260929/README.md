@@ -1,5 +1,7 @@
 # M2q — Operasyonun kimlik/şirket kapsamlı RPC girişleri
 
+> Düzeltme: tarihsel workspace/shift SQL değişiklikleri önceki fixture temelinde eksikti. Yerel 000400 ve test kurulumu M2r ile düzeltildi. Güncel kanıt: `../tenant-module-legacy-operations-20260929/README.md`.
+
 Yerel geliştirme; üretim SQL, push/deploy, tarayıcı ve PostgREST kabulü yapılmadı.
 
 ## Tamamlanan blok

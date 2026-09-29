@@ -572,5 +572,13 @@
   {
     "file": "scripts/operations-module-gates-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/legacy-operations-module-gates.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/legacy-operations-module-gates-db.test.mjs",
+    "suite": "database"
   }
 ]

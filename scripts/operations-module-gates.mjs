@@ -1,3 +1,4 @@
+import {withOperationsHistory} from './helpers/operations-function-history.mjs';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {source} from './talent-module-gates.mjs';
 // Explicit reviewed entrypoints; legacy unscoped RPCs are a separate rollout block.
@@ -204,7 +205,7 @@ export const targets = [
   ]
 ];
 export const entries=targets.map(t=>{
- const e=source(...t); // Use declared argument names, not client-controlled SQL.
+ const e=withOperationsHistory(source(...t)); // Use declared argument names, not client-controlled SQL.
  const names=e.declaration.match(/\((.*?)\)/s)[1].replaceAll('"','').split(',').map(a=>a.trim().split(/\s+/)[0]);
  const [actor,tenant]=names;
  return {...e,guard:`\n IF auth.uid() IS NULL OR ${actor} IS DISTINCT FROM auth.uid() OR ${tenant} IS NULL OR ${tenant} IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION 'OPS_SCOPE_CHANGED' USING ERRCODE='42501';END IF;\n PERFORM public.workspace_require_module_${e.mode}_v1(${tenant},ARRAY['staffing']);\n`};

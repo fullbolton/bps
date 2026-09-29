@@ -1,0 +1,378 @@
+[
+  {
+    "name": "ops_execute_scoped",
+    "file": "20260909000300_scoped_operation_command.sql",
+    "mode": "write",
+    "signature": "public.ops_execute_scoped(uuid,uuid,uuid,text,jsonb)",
+    "hash": "8e2e9d7f2e04997fb7b4382b032e9c7d6359411890a1a2d85cad1d82080beef7",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_reconcile_commands",
+    "file": "20260909000400_command_reconciliation.sql",
+    "mode": "write",
+    "signature": "public.ops_reconcile_commands(uuid,uuid,uuid[],boolean)",
+    "hash": "da5e183bddaee0a883443199234675f041d150f98506e477ae3a2db877b496ea",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_create_request_batch",
+    "file": "20260910000100_candidate_company_operations.sql",
+    "mode": "write",
+    "signature": "public.ops_create_request_batch(uuid,uuid,uuid,jsonb)",
+    "hash": "c357d35a43f893cdea6041694707ff406e2987ac411102ba06b297bd4a838fde",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_resize_request",
+    "file": "20260910000100_candidate_company_operations.sql",
+    "mode": "write",
+    "signature": "public.ops_resize_request(uuid,uuid,uuid,uuid,integer,integer)",
+    "hash": "f779c58c30421580d85d615eb4ea3dff892b731a542605cfa9c584a333767f47",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_record_attendance",
+    "file": "20260909000800_attendance.sql",
+    "mode": "write",
+    "signature": "public.ops_record_attendance(uuid,uuid,uuid,uuid,integer,text)",
+    "hash": "d52c70c2c5b4059db1762a92cd4afca4450a66e1f26c5555401bcc09a82b8a63",
+    "appliedHistoryCount": 1
+  },
+  {
+    "name": "ops_replace_assignment",
+    "file": "20260909002700_start_tracking.sql",
+    "mode": "write",
+    "signature": "public.ops_replace_assignment(uuid,uuid,uuid,uuid,uuid,integer)",
+    "hash": "627d566cb649398863493ae35858e284ed73bdf4a85a7d9e82c27f4a42d09dea",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_set_directory_active",
+    "file": "20260910000100_candidate_company_operations.sql",
+    "mode": "write",
+    "signature": "public.ops_set_directory_active(uuid,uuid,uuid,text,uuid,integer,boolean)",
+    "hash": "8c431f32f4d702a2551b0382658cf28730c74c97fb22f834299a56812e0d1006",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_start_execute",
+    "file": "20260909002900_start_event_validation.sql",
+    "mode": "write",
+    "signature": "public.ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+    "hash": "78d7ac27f055eb4ed49769c89fce52644f56482c302a6748dc48d479990f4655",
+    "appliedHistoryCount": 2
+  },
+  {
+    "name": "ops_start_board",
+    "file": "20260909002700_start_tracking.sql",
+    "mode": "read",
+    "signature": "public.ops_start_board(uuid,uuid,date,integer)",
+    "hash": "d164bf1bcf870a0205adc94644efb3a6cb8adc7def1310887229ec42f87d100d",
+    "appliedHistoryCount": 2
+  },
+  {
+    "name": "ops_start_board_filtered",
+    "file": "20260909002800_start_board_filters.sql",
+    "mode": "read",
+    "signature": "public.ops_start_board_filtered(uuid,uuid,date,integer,text,boolean,boolean)",
+    "hash": "563b156e3c4d1f07d43e6763fec3ae273a545a5dd15b781cc511f31b33a51194",
+    "appliedHistoryCount": 3
+  },
+  {
+    "name": "ops_replace_assignment_before_start",
+    "file": "20260910000100_candidate_company_operations.sql",
+    "mode": "write",
+    "signature": "public.ops_replace_assignment_before_start(uuid,uuid,uuid,uuid,uuid,integer)",
+    "hash": "4b57c170a8062add123141a62c7dafb620fa6741c61535f14bc676ade8c23d7b",
+    "appliedHistoryCount": 1
+  },
+  {
+    "name": "ops_comment_send",
+    "file": "20260910000400_comment_command_recovery.sql",
+    "mode": "write",
+    "signature": "public.ops_comment_send(uuid,uuid,uuid,uuid,text,uuid,uuid[])",
+    "hash": "a27f5553f7507400e93ba17e38ae0f3373f90b04bea693048bcfdc2c158ab78f",
+    "appliedHistoryCount": 1
+  },
+  {
+    "name": "ops_comment_list",
+    "file": "20260910000200_request_conversation.sql",
+    "mode": "read",
+    "signature": "public.ops_comment_list(uuid,uuid,uuid,uuid)",
+    "hash": "bcd464eb36b641f989b49e65dbcb20665964ab79d1aea96ad0566b31f4fc809a",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_comment_inbox",
+    "file": "20260910000200_request_conversation.sql",
+    "mode": "read",
+    "signature": "public.ops_comment_inbox(uuid,uuid)",
+    "hash": "ef6656ed9f27f4a007986a6bceebefa97eea39d80600bebbbe806810277dd88f",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_comment_read",
+    "file": "20260910000200_request_conversation.sql",
+    "mode": "write",
+    "signature": "public.ops_comment_read(uuid,uuid,uuid)",
+    "hash": "80ee830db5e2c44d7c0399bd2b38b4b800072a3174e1485839f14228445ad572",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_comment_people",
+    "file": "20260910000300_conversation_read_surfaces.sql",
+    "mode": "read",
+    "signature": "public.ops_comment_people(uuid,uuid,uuid)",
+    "hash": "8c6680fe26095270315d24fdec87b11a2f85ec6896b91ddbd8fa6e9465ab8bbf",
+    "appliedHistoryCount": 1
+  },
+  {
+    "name": "ops_comment_inbox_page",
+    "file": "20260910000300_conversation_read_surfaces.sql",
+    "mode": "read",
+    "signature": "public.ops_comment_inbox_page(uuid,uuid,uuid)",
+    "hash": "ebf16d1f0b21d0578d2532845d5b197441ccea0b3bc764b43a117bf955aed3c5",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_comment_resolve",
+    "file": "20260910000400_comment_command_recovery.sql",
+    "mode": "write",
+    "signature": "public.ops_comment_resolve(uuid,uuid,uuid,uuid,text,uuid,uuid[])",
+    "hash": "c3028c3c9dc0de2bdc77780a4c312ad938cb86e4d2cd44415a058da589acba54",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_update_location",
+    "file": "20260914000100_location_metadata_update.sql",
+    "mode": "write",
+    "signature": "public.ops_update_location(uuid,uuid,uuid,uuid,uuid,integer,text,text)",
+    "hash": "5121fd404b24b30fc3794d7429cbceb4709e9051e0ed43bb77993f39ce711b2d",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_record_replacement_outreach",
+    "file": "20260915000800_replacement_outreach.sql",
+    "mode": "write",
+    "signature": "public.ops_record_replacement_outreach(uuid,uuid,uuid,uuid,uuid,integer,text,text)",
+    "hash": "9d8ac19ca26a0e2dfb22ec8440e132debc92645114b6f28e6b87df0d9423c30b",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_replacement_outreach_history",
+    "file": "20260915000800_replacement_outreach.sql",
+    "mode": "read",
+    "signature": "public.ops_replacement_outreach_history(uuid,uuid,uuid,integer)",
+    "hash": "091b835af2126a11398d336f1b79b0bd87cc56b9d258d78797527eedc8db3793",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_replacement_outreach_latest",
+    "file": "20260915000800_replacement_outreach.sql",
+    "mode": "read",
+    "signature": "public.ops_replacement_outreach_latest(uuid,uuid,uuid,uuid)",
+    "hash": "e156312b4da76cb01f81dc2a7d48b13bce821861969b3e009ceae40482c23399",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_work_record_execute",
+    "file": "20260915000900_work_approval.sql",
+    "mode": "write",
+    "signature": "public.ops_work_record_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+    "hash": "f5c3987690063ee051ac4d8216efe63dad448b477ef60eacfa4fcbb5c64cfe48",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_work_record_read",
+    "file": "20260915000900_work_approval.sql",
+    "mode": "read",
+    "signature": "public.ops_work_record_read(uuid,uuid,uuid)",
+    "hash": "7897c45aab830bdc0b676802ceaa469938d89d375554e87d8c9940c64506e369",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_work_record_list",
+    "file": "20260915000900_work_approval.sql",
+    "mode": "read",
+    "signature": "public.ops_work_record_list(uuid,uuid,uuid,date)",
+    "hash": "a91d31410ba5be40ad1862d1f5510f3db99041b058ccdcf3075aec43e5ec7808",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_idp_read",
+    "file": "20260924000300_idp_request_context.sql",
+    "mode": "read",
+    "signature": "public.ops_idp_read(uuid,uuid,uuid)",
+    "hash": "1553819777002cec32ca0a94eafa118b2fec48b9e72d47b55721ce49f7dac881",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_idp_save",
+    "file": "20260924000300_idp_request_context.sql",
+    "mode": "write",
+    "signature": "public.ops_idp_save(uuid,uuid,uuid,uuid,integer,text,date,date)",
+    "hash": "af921df4cb78de47681a21c6889295a010e5cd3b60f055f564080878a33e0aef",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_idp_period_create",
+    "file": "20260924000500_idp_period_management.sql",
+    "mode": "write",
+    "signature": "public.ops_idp_period_create(uuid,uuid,uuid,jsonb)",
+    "hash": "4808f94487175dcaeffc74846a08b203fb44e8558310898ab198704122d3e4b7",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_idp_period_read",
+    "file": "20260926000200_fixed_roster.sql",
+    "mode": "read",
+    "signature": "public.ops_idp_period_read(uuid,uuid,uuid)",
+    "hash": "74b36d35c5941ca309f5891c5668f3462c64880bc2f13560c2ad8e576af30b7c",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_idp_period_manage",
+    "file": "20260924000500_idp_period_management.sql",
+    "mode": "write",
+    "signature": "public.ops_idp_period_manage(uuid,uuid,uuid,uuid,integer,jsonb)",
+    "hash": "44a04b9dd43825d082556b3ad94358a9147d246b32f4358d6c71484761889e2a",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_idp_period_history",
+    "file": "20260925000100_idp_period_history.sql",
+    "mode": "read",
+    "signature": "public.ops_idp_period_history(uuid,uuid,uuid,integer)",
+    "hash": "81af77f02fa3c474b35451db6a483e6e7ac7c6f8ebdaf5d116f4b664732e9017",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_fixed_roster_save",
+    "file": "20260926000200_fixed_roster.sql",
+    "mode": "write",
+    "signature": "public.ops_fixed_roster_save(uuid,uuid,uuid,uuid,integer,uuid,uuid,uuid,text,text,date,date,text,boolean)",
+    "hash": "b22cda47ac3c438a44589cd3ebb8d4077fb4b0a12506473f018a373766eba90f",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_fixed_roster_list",
+    "file": "20260926000200_fixed_roster.sql",
+    "mode": "read",
+    "signature": "public.ops_fixed_roster_list(uuid,uuid,uuid,uuid,date,integer,boolean)",
+    "hash": "a9ec84dd8ffb12b2d93f9a55a3472a5721ff2a5856fa205c449697f634808ded",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_fixed_roster_history",
+    "file": "20260926000200_fixed_roster.sql",
+    "mode": "read",
+    "signature": "public.ops_fixed_roster_history(uuid,uuid,uuid,integer)",
+    "hash": "98d9bf4bc4b62d6fc54ac71e2bdc121cdb7b0f8b5e419c8523cb892cfc53ae57",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_fixed_roster_idp_create",
+    "file": "20260926000200_fixed_roster.sql",
+    "mode": "write",
+    "signature": "public.ops_fixed_roster_idp_create(uuid,uuid,uuid,uuid,integer,date,date,jsonb)",
+    "hash": "6b51cf4664ca29698d11090810ed135d2234cd6a66f1b9ceed0df7e99e3e01d6",
+    "appliedHistoryCount": 1
+  },
+  {
+    "name": "ops_create_timed_requests",
+    "file": "20260927000100_shift_scheduling.sql",
+    "mode": "write",
+    "signature": "public.ops_create_timed_requests(uuid,uuid,uuid,jsonb)",
+    "hash": "d24e0f1daf1ef459732921bee7b5c3715a9d2efb78188fa1c5a7eabf44d9511b",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_schedule_save",
+    "file": "20260927000200_recurring_schedules.sql",
+    "mode": "write",
+    "signature": "public.ops_schedule_save(uuid,uuid,uuid,uuid,integer,jsonb,boolean)",
+    "hash": "459bef90b8c45551dbef1f06c6c11211a9a5325c656f76e50e0d06fc92a10d7d",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_schedule_list",
+    "file": "20260927000200_recurring_schedules.sql",
+    "mode": "write",
+    "signature": "public.ops_schedule_list(uuid,uuid,uuid,integer)",
+    "hash": "13918905e8a61d2405f1a0ea3228cf238cd528b4d4dbb7735ea07ef739978dc0",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_schedule_preview",
+    "file": "20260927000200_recurring_schedules.sql",
+    "mode": "write",
+    "signature": "public.ops_schedule_preview(uuid,uuid,uuid,integer,date,date)",
+    "hash": "7e73c6a348a27826f38d4707c9cf564acbdf46901aba1bb8566a2b3ecf03f450",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_schedule_generate",
+    "file": "20260927000200_recurring_schedules.sql",
+    "mode": "write",
+    "signature": "public.ops_schedule_generate(uuid,uuid,uuid,uuid,integer,date,date)",
+    "hash": "3b57d0dda86fc161be69a5baba45e58e7af171dc436a89aee9dfe24ba3338773",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_mutate",
+    "file": "20260910000100_candidate_company_operations.sql",
+    "mode": "write",
+    "signature": "public.ops_mutate(uuid,text,jsonb)",
+    "hash": "578a45d9118eecd72a9965742de25ae3151fc303018290797aa558ba80a3e388",
+    "appliedHistoryCount": 1
+  },
+  {
+    "name": "ops_import_locations",
+    "file": "20260910000100_candidate_company_operations.sql",
+    "mode": "write",
+    "signature": "public.ops_import_locations(uuid,uuid,jsonb)",
+    "hash": "6db30e877bf6ebafdaea9be405d0c9d561df45dca13133910367bb461ee7430f",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_board",
+    "file": "20260909000800_attendance.sql",
+    "mode": "read",
+    "signature": "public.ops_board(uuid,date)",
+    "hash": "4fe69944deb6340948ec0270dddc1571d769b4b17147c70cb1c221d330612826",
+    "appliedHistoryCount": 2
+  },
+  {
+    "name": "ops_week",
+    "file": "20260909000500_weekly_operations.sql",
+    "mode": "read",
+    "signature": "public.ops_week(uuid,date)",
+    "hash": "5308bed67c6227f9037125cbc772eecd724988ac07f76516bc08d617731968fc",
+    "appliedHistoryCount": 2
+  },
+  {
+    "name": "ops_attendance_week",
+    "file": "20260909001000_attendance_week.sql",
+    "mode": "read",
+    "signature": "public.ops_attendance_week(uuid,date)",
+    "hash": "bb3cd89420f06e561e430da87bef3b5294dbc1d204df5f948afd0b8c602d99b4",
+    "appliedHistoryCount": 2
+  },
+  {
+    "name": "ops_directory",
+    "file": "20260909001200_directory_activation.sql",
+    "mode": "read",
+    "signature": "public.ops_directory(text,uuid,text,text,integer)",
+    "hash": "083ae120bb4aba9836c2374f3f2be41e6d74c7bec8ac60971ac38c7457d1a799",
+    "appliedHistoryCount": 0
+  },
+  {
+    "name": "ops_idp_list",
+    "file": "20260924000300_idp_request_context.sql",
+    "mode": "read",
+    "signature": "public.ops_idp_list(uuid,date)",
+    "hash": "dd6ba4831fe5f418c3d8aa531809769d800560d14251a638d5ac8ea84679caf0",
+    "appliedHistoryCount": 0
+  }
+]

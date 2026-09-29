@@ -352,3 +352,13 @@ Kaynak gövdesi hash doğrulamalı üretici, exact signature, üç implementatio
 Exact-source/signature/ACL kontrolü, beklenmeyen yeni actor-scoped endpoint reddi ve transaction rollback. 49 yeni DB + 7 yeni uygulama testi. Ortak 265/265 modül DB ve 621/621 uygulama testi; TypeScript/envanter başarılı, statik 0 FAIL / 2 WARN. Kanıt: `qa/tenant-module-operations-gates-20260929/README.md`, endpoint listesi, manifest ve loglar.
 
 **Yerel; üretim SQL/push/deploy/tarayıcı kabulü yok.** Fixture tüm eski iş algoritmalarını enabled modda sınamaz; IDP okuma ve bildirim okundu yazması gerçek enabled gövdelerle, diğerleri giriş reddi/kaynak korumasıyla doğrulandı. Eski actor parametresiz ops_mutate/import/board/week/directory/idp_list yolları ve doğrudan ops tablo okumaları ayrı blokta; raporlama/çapraz projeksiyon/senkronizasyon/FK yolları açık. Genel modül kaydetme/kapatma hâlâ yok. Üretim derlemesi bu tur yeniden çalıştırılmadı; eski cutover sıraları korunuyor.
+
+## Uygulama kaydı — 29 Eylül 2026, eski operasyon yolları ve tarihsel temel M2r
+
+Önemli düzeltme: M2q kaynak üreticisi iki eski migration'ın dinamik rol/vardiya değişikliklerini kaçırıyordu. Sekiz scoped fonksiyonun hash'i gerçek migration zinciriyle uyuşmayıp uygulamayı BODY_DRIFT ile durduracaktı; üretime uygulanmadı. Yerel 000400 düzeltildi; fixture artık asıl tarihsel SQL bloklarını yürütür, eski temel açıkça reddedilir. Eski M2q raporunun temel/hash kapsamı bu kayıtla düzeltilmiştir.
+
+Yeni 20260929000500: yedi eski ops_mutate/import/board/week/attendance_week/directory/idp_list girişinde staffing kontrolü; invoker kimlikleri definer yapılmaz. ops_locations/workers/daily_requests/assignments doğrudan SELECT yollarında restrictive tenant+modül politikası. Eski rol/grant sınırları korunur. ACCESS EXCLUSIVE okuyucu/yazıcı maliyeti ve uygulama önkoşulları raporda.
+
+624/624 uygulama, PostgreSQL 17.10 üzerinde 281/281 modül DB testi; 3 yeni uygulama + 16 yeni DB senaryosu. TypeScript/envanter başarılı, statik 0 FAIL / 2 WARN. Rapor: `qa/tenant-module-legacy-operations-20260929/README.md`, 47 endpoint kaynak envanteri, manifest ve loglar. İlk runtime kurulumunda gelen PostgreSQL 18 eski FK hata metni beklentileriyle uyuşmadı; nihai kabul CI ile aynı 17 üzerinde. 18 uyumluluğu iddia edilmez.
+
+**Yerel; üretim SQL/push/deploy/tarayıcı kabulü yok.** Service/trigger/FK yan yolları, ops→talent sync, çapraz projeksiyonlar, raporlama/diğer modüller ve ayar mutasyonu/UI/canlı kabul açık. Genel modül kapatma açılmadı. 14 modül DB suite koşuldu, beş eski bağımsız DB suite ve üretim build bu tur koşulmadı. Kontrollü cutover sıraları korunuyor.

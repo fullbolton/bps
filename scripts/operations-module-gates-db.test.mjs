@@ -1,3 +1,4 @@
+import {historicalOperationsSql} from './helpers/operations-function-history.mjs';
 import test,{before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
@@ -22,10 +23,11 @@ before(async()=>{
  await db.query(source('workspace_require_module_write_v1','20260928001000_task_module_gateway.sql','write').declaration);
  await db.query(source('workspace_require_module_read_v1','20260929000300_talent_module_rpc_gates.sql','read').declaration);
  await db.query('REVOKE ALL ON FUNCTION workspace_require_module_write_v1(uuid,text[]),workspace_require_module_read_v1(uuid,text[]) FROM PUBLIC,anon,authenticated,service_role');
- for(const e of entries){await db.query(e.declaration);await db.query(`REVOKE ALL ON FUNCTION ${e.signature} FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION ${e.signature} TO authenticated`);}
+ for(const e of entries){await db.query(e.baseDeclaration);await db.query(`REVOKE ALL ON FUNCTION ${e.signature} FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION ${e.signature} TO authenticated`);}
  await db.query(source('ops_comment_context','20260910000200_request_conversation.sql','read').declaration);
  await db.query('REVOKE ALL ON FUNCTION ops_comment_context(uuid,uuid) FROM PUBLIC,anon,authenticated,service_role');
  await db.query('CREATE TABLE ops_message_notifications(tenant_id uuid,recipient_id uuid,message_id uuid,read_at timestamptz)');
+ await db.query(historicalOperationsSql(entries.map(e=>e.signature)));
  await db.query(render());
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${dbName} WITH(FORCE)`);await admin.end();}});
@@ -79,4 +81,8 @@ test('enabled notification write keeps original recipient boundary and does not 
  await db.query('SET LOCAL ROLE authenticated');await db.query(sql);await db.query('RESET ROLE');
  const rows=(await db.query('SELECT recipient_id,read_at FROM ops_message_notifications ORDER BY recipient_id')).rows;
  assert.equal(rows[0].read_at.toISOString(),first.toISOString());assert.equal(rows[1].read_at,null);
+}));
+test('pre-history fixture is rejected rather than accepted as the deployed baseline',()=>run(async()=>{
+ for(const e of entries)await db.query(e.baseDeclaration.replace(/^CREATE (?:OR REPLACE )?FUNCTION/i,'CREATE OR REPLACE FUNCTION'));
+ await assert.rejects(db.query(migrationBody()),e=>e.message.includes('BODY_DRIFT'));
 }));
