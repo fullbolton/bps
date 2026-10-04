@@ -67,3 +67,8 @@ test('multi-workspace contracts use tenant roles for managers and assigned partn
  assert.ok(sent.filter(m=>m.to==='alice@example.invalid').every(m=>!m.text.includes('B-PRIVATE-CONTRACT')));
  assert.equal(sent.filter(m=>m.to==='bob@example.invalid').length,1);
 });
+
+test('contract batch reserves the actual expiry date and renewal changes its key',async()=>{
+ const sent=[],f=fixture({small:true});await runner(sent)(f.client,new Date('2026-09-20T09:00:00Z'));assert.equal(f.stamps[0].threshold_key,'30d:2026-10-15');
+ f.tables.contracts[0].end_date='2027-10-15';await runner(sent)(f.client,new Date('2027-09-20T09:00:00Z'));assert.equal(f.stamps.at(-1).threshold_key,'30d:2027-10-15');
+});

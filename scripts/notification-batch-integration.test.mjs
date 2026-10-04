@@ -94,3 +94,8 @@ test('missing membership role fails closed before any transport or stamp',async(
  const result=await batch(sent,true)(f.client,'document_expiry',new Date('2026-09-15T09:00:00Z'),config);
  assert.ok(result.errors.length);assert.equal(sent.length,0);assert.equal(f.stamps.length,0);
 });
+
+test('document batch reservations follow each documents expiry date',async()=>{
+ const sent=[],f=fixture();await batch(sent)(f.client,'document_expiry',new Date('2026-09-15T09:00:00Z'),config);assert.ok(f.stamps.every(s=>s.threshold_key==='30d:2026-09-20'));
+ f.tables.documents.forEach(d=>d.validity_date='2027-09-20');await batch(sent)(f.client,'document_expiry',new Date('2027-09-15T09:00:00Z'),config);assert.equal(f.stamps.at(-1).threshold_key,'30d:2027-09-20');
+});

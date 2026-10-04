@@ -476,5 +476,9 @@
   {
     "file": "scripts/attendance-lifecycle-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/expiry-notification-db.test.mjs",
+    "suite": "database"
   }
 ]
