@@ -205,26 +205,47 @@ END $patch$;
 DO $storage$
 BEGIN
  IF (SELECT prosrc FROM pg_proc WHERE oid=to_regprocedure('public.talent_attachment_access(uuid,boolean)')) IS DISTINCT FROM '
- SELECT EXISTS(SELECT 1 FROM public.talent_attachments a
- WHERE a.id=p_id AND a.tenant_id=public.current_user_verified_tenant()
- AND (public.current_user_role() IN (''yonetici'',''ik'') OR (public.current_user_role()=''operasyon'' AND a.category<>''onboarding''))
- AND CASE WHEN p_upload THEN a.actor_id=auth.uid() AND NOT a.ready ELSE a.ready END)
-' THEN RAISE EXCEPTION 'TALENT_STORAGE_BODY_DRIFT';END IF;
+DECLARE a public.talent_attachments;
+BEGIN
+ -- Share lock spans the Storage metadata INSERT transaction. Cancellation waits
+ -- for an accepted upload; a later upload sees the tombstone and is rejected.
+ IF p_upload THEN SELECT * INTO a FROM public.talent_attachments WHERE id=p_id AND tenant_id=public.current_user_verified_tenant() AND actor_id=auth.uid() FOR SHARE;
+ ELSE SELECT * INTO a FROM public.talent_attachments WHERE id=p_id; END IF;
+ IF NOT FOUND OR a.tenant_id IS DISTINCT FROM public.current_user_verified_tenant() OR a.cancelled THEN RETURN false; END IF;
+ IF coalesce(public.current_user_role(),'''') NOT IN (''yonetici'',''ik'',''operasyon'') OR (a.category=''onboarding'' AND public.current_user_role()=''operasyon'') THEN RETURN false; END IF;
+ RETURN CASE WHEN p_upload THEN a.actor_id=auth.uid() AND NOT a.ready ELSE a.ready END;
+END ' THEN RAISE EXCEPTION 'TALENT_STORAGE_BODY_DRIFT';END IF;
+ IF (SELECT prosrc FROM pg_proc WHERE oid=to_regprocedure('public.talent_attachment_can_cleanup(uuid)')) IS DISTINCT FROM '
+ SELECT EXISTS(SELECT 1 FROM public.talent_attachments a WHERE a.id=p_id AND a.actor_id=auth.uid()
+ AND a.tenant_id=public.current_user_verified_tenant() AND a.cancelled AND NOT a.ready
+ AND (public.current_user_role() IN (''yonetici'',''ik'') OR (public.current_user_role()=''operasyon'' AND a.category<>''onboarding'')))
+' THEN RAISE EXCEPTION 'TALENT_CLEANUP_BODY_DRIFT';END IF;
 END $storage$;
 CREATE OR REPLACE FUNCTION public.talent_attachment_access(p_id uuid,p_upload boolean DEFAULT false)
 RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $access$
-DECLARE context jsonb; allowed boolean;
+DECLARE a public.talent_attachments;
 BEGIN
- context:=public.current_workspace_modules_v1();
- IF NOT (context->'modules'->>'talent')::boolean THEN RETURN false;END IF;
- IF p_upload THEN
-  PERFORM public.workspace_require_module_write_v1((context->>'tenantId')::uuid,ARRAY['talent']);
- END IF;
- SELECT EXISTS(SELECT 1 FROM public.talent_attachments a
- WHERE a.id=p_id AND a.tenant_id=public.current_user_verified_tenant()
- AND (public.current_user_role() IN ('yonetici','ik') OR (public.current_user_role()='operasyon' AND a.category<>'onboarding'))
- AND CASE WHEN p_upload THEN a.actor_id=auth.uid() AND NOT a.ready ELSE a.ready END ) INTO allowed;
- RETURN allowed;
+
+ IF NOT (public.current_workspace_modules_v1()->'modules'->>'talent')::boolean THEN RETURN false;END IF;
+ IF p_upload THEN PERFORM public.workspace_require_module_write_v1(public.current_user_verified_tenant(),ARRAY['talent']);END IF;
+ -- Share lock spans the Storage metadata INSERT transaction. Cancellation waits
+ -- for an accepted upload; a later upload sees the tombstone and is rejected.
+ IF p_upload THEN SELECT * INTO a FROM public.talent_attachments WHERE id=p_id AND tenant_id=public.current_user_verified_tenant() AND actor_id=auth.uid() FOR SHARE;
+ ELSE SELECT * INTO a FROM public.talent_attachments WHERE id=p_id; END IF;
+ IF NOT FOUND OR a.tenant_id IS DISTINCT FROM public.current_user_verified_tenant() OR a.cancelled THEN RETURN false; END IF;
+ IF coalesce(public.current_user_role(),'') NOT IN ('yonetici','ik','operasyon') OR (a.category='onboarding' AND public.current_user_role()='operasyon') THEN RETURN false; END IF;
+ RETURN CASE WHEN p_upload THEN a.actor_id=auth.uid() AND NOT a.ready ELSE a.ready END;
 END $access$;
-REVOKE ALL ON FUNCTION public.talent_attachment_access(uuid,boolean) FROM PUBLIC,anon,service_role;
+CREATE OR REPLACE FUNCTION public.talent_attachment_can_cleanup(p_id uuid)
+RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $cleanup$
+BEGIN
+ IF NOT (public.current_workspace_modules_v1()->'modules'->>'talent')::boolean THEN RETURN false;END IF;
+ -- Storage SELECT/DELETE share this helper; acquire config before touching attachment rows.
+ PERFORM public.workspace_require_module_write_v1(public.current_user_verified_tenant(),ARRAY['talent']);
+ RETURN (SELECT EXISTS(SELECT 1 FROM public.talent_attachments a WHERE a.id=p_id AND a.actor_id=auth.uid()
+ AND a.tenant_id=public.current_user_verified_tenant() AND a.cancelled AND NOT a.ready
+ AND (public.current_user_role() IN ('yonetici','ik') OR (public.current_user_role()='operasyon' AND a.category<>'onboarding'))));
+END
+$cleanup$;
+REVOKE ALL ON FUNCTION public.talent_attachment_access(uuid,boolean),public.talent_attachment_can_cleanup(uuid) FROM PUBLIC,anon,service_role;
 COMMIT;

@@ -49,6 +49,10 @@ BEGIN
   SELECT EXISTS(SELECT FROM public.talent_import_rows WHERE tenant_id=tenant AND (status IS NULL OR status NOT IN ('created','updated','unchanged','held','blocked','cancelled','reverted'))) INTO present;
   checks:=checks||jsonb_build_array(jsonb_build_object('module','talent','code','pending_talent_import','blocking',present));
  END IF;
+ IF 'talent'=ANY(disabled) THEN
+  SELECT EXISTS(SELECT FROM public.talent_attachments WHERE tenant_id=tenant AND ready IS NOT TRUE AND cleaned IS NOT TRUE) INTO present;
+  checks:=checks||jsonb_build_array(jsonb_build_object('module','talent','code','pending_talent_files','blocking',present));
+ END IF;
  IF 'staffing'=ANY(disabled) THEN
   SELECT EXISTS(SELECT FROM public.staffing_demands WHERE tenant_id=tenant AND (status IS NULL OR status NOT IN ('tamamen_doldu','iptal'))) INTO present;
   checks:=checks||jsonb_build_array(jsonb_build_object('module','staffing','code','open_staffing_demands','blocking',present));

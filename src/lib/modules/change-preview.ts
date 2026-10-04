@@ -7,6 +7,7 @@ export const MODULE_CHANGE_CHECKS = [
   { module: 'calendar', code: 'unfinished_appointments', label: 'Tamamlanmamış veya ertelenmiş randevular var.', href: '/randevular' },
   { module: 'contracts', code: 'unfinished_contracts', label: 'Aktif, taslak veya imza bekleyen sözleşmeler var.', href: '/sozlesmeler' },
   { module: 'talent', code: 'pending_talent_import', label: 'İşlenmeyi bekleyen personel aktarım satırları var.', href: '/personel-havuzu/aktarim' },
+  { module: 'talent', code: 'pending_talent_files', label: 'Yüklemesi veya iptal temizliği tamamlanmamış personel dosyaları var.', href: '/personel-havuzu' },
   { module: 'staffing', code: 'open_staffing_demands', label: 'Karşılanmamış personel talepleri var.', href: '/talepler' },
   { module: 'staffing', code: 'upcoming_requests', label: 'Bugün veya sonrası için personel talepleri var.', href: '/talepler/gunluk' },
   { module: 'staffing', code: 'upcoming_assignments', label: 'Bugün veya sonrası için görevlendirmeler var.', href: '/talepler/gunluk' },

@@ -1,7 +1,7 @@
 import test,{before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {entries,source,render,attachmentBody} from './talent-module-gates.mjs';
+import {entries,source,render,attachmentBody,cleanupBody} from './talent-module-gates.mjs';
 import {sqlFile,fixture,active,verified,workspace} from './fixtures/module-database.mjs';
 const {Client}=createRequire(import.meta.url)('pg');
 const url=new URL(process.env.BPS_MODULE_TEST_DATABASE_URL??'postgres://bps_module_test@127.0.0.1:55439/postgres');
@@ -24,7 +24,9 @@ before(async()=>{
  const barrier=source('workspace_require_module_write_v1','20260928001000_task_module_gateway.sql','write');await db.query(barrier.declaration);await db.query('REVOKE ALL ON FUNCTION workspace_require_module_write_v1(uuid,text[]) FROM PUBLIC,anon,authenticated,service_role');
  for(const e of entries){await db.query(e.declaration);await db.query(`REVOKE ALL ON FUNCTION ${e.signature} FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION ${e.signature} TO authenticated`);}
  for(const signature of ['talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb)','talent_call_list_people_base(uuid,uuid,uuid)','talent_conversation_list_base(uuid,uuid,uuid,integer)'])await db.query(`CREATE FUNCTION public.${signature} RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;REVOKE ALL ON FUNCTION public.${signature} FROM PUBLIC,anon,authenticated,service_role`);
- await db.query(`CREATE FUNCTION public.talent_attachment_access(p_id uuid,p_upload boolean DEFAULT false) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$${attachmentBody}$body$;REVOKE ALL ON FUNCTION talent_attachment_access(uuid,boolean) FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION talent_attachment_access(uuid,boolean) TO authenticated`);
+ await db.query(`ALTER TABLE talent_attachments ADD COLUMN cancelled boolean NOT NULL DEFAULT false,ADD COLUMN cleaned boolean NOT NULL DEFAULT false`);
+ await db.query(`CREATE FUNCTION public.talent_attachment_access(p_id uuid,p_upload boolean DEFAULT false) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $body$${attachmentBody}$body$;REVOKE ALL ON FUNCTION talent_attachment_access(uuid,boolean) FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION talent_attachment_access(uuid,boolean) TO authenticated`);
+ await db.query(`CREATE FUNCTION public.talent_attachment_can_cleanup(p_id uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$${cleanupBody}$body$;REVOKE ALL ON FUNCTION talent_attachment_can_cleanup(uuid) FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION talent_attachment_can_cleanup(uuid) TO authenticated`);
  await db.query(render());
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${dbName} WITH(FORCE)`);await admin.end();}});
@@ -66,7 +68,8 @@ test('write after waiting on settings lock observes committed disabled state',as
 
 async function originalState(){
  await db.query('DROP FUNCTION workspace_require_module_read_v1(uuid,text[])');
- await db.query(`CREATE OR REPLACE FUNCTION public.talent_attachment_access(p_id uuid,p_upload boolean DEFAULT false) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$${attachmentBody}$body$`);
+ await db.query(`CREATE OR REPLACE FUNCTION public.talent_attachment_access(p_id uuid,p_upload boolean DEFAULT false) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $body$${attachmentBody}$body$`);
+ await db.query(`CREATE OR REPLACE FUNCTION public.talent_attachment_can_cleanup(p_id uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$${cleanupBody}$body$`);
  for(const e of entries)await db.query(e.declaration.replace(/^CREATE (?:OR REPLACE )?FUNCTION/i,'CREATE OR REPLACE FUNCTION'));
 }
 const migrationBody=()=>render().replace(/\nBEGIN;\n/,'\n').replace(/COMMIT;\n$/,'');
@@ -272,4 +275,22 @@ test('preparing an existing person reuses their card through the real trigger an
  assert.deepEqual((await db.query('SELECT id,worker_id,revision FROM talent_people WHERE id=$1',[id(97)])).rows[0],{id:id(97),worker_id:first.workerId,revision:1});
  assert.equal((await db.query('SELECT count(*)::integer n FROM talent_people WHERE worker_id=$1',[first.workerId])).rows[0].n,1);
  assert.equal((await db.query('SELECT count(*)::integer n FROM talent_person_events WHERE person_id=$1',[id(97)])).rows[0].n,1);
+}));
+
+test('current cancellation body retains tombstone denial and row lock; old SQL body cannot pass migration',()=>run(async()=>{
+ await db.query(`INSERT INTO talent_attachments(id,tenant_id,actor_id,ready,category,cancelled) VALUES('${id(60)}','${id(1)}','${id(11)}',false,'photo',true)`);await claims();await db.query('SET LOCAL ROLE authenticated');
+ assert.deepEqual((await db.query(`SELECT talent_attachment_access('${id(60)}',true) upload,talent_attachment_access('${id(60)}',false) download,talent_attachment_can_cleanup('${id(60)}') cleanup`)).rows[0],{upload:false,download:false,cleanup:true});
+ await db.query('RESET ROLE');await originalState();
+ const originalSql=sqlFile('20260915000400_talent_attachments.sql').split("RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$")[1].split('$$;')[0];
+ await db.query(`CREATE OR REPLACE FUNCTION talent_attachment_access(p_id uuid,p_upload boolean DEFAULT false) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$${originalSql}$body$`);
+ await db.query('SAVEPOINT stale');await assert.rejects(db.query(migrationBody()),e=>e.message.includes('STORAGE_BODY_DRIFT'));await db.query('ROLLBACK TO stale');
+}));
+test('actual cancellation Storage policies cannot reveal or delete files when talent is disabled',()=>run(async()=>{
+ await db.query(`CREATE SCHEMA storage;CREATE TABLE storage.objects(bucket_id text,name text);ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;GRANT USAGE ON SCHEMA storage TO authenticated;GRANT SELECT,DELETE ON storage.objects TO authenticated;
+ INSERT INTO talent_attachments(id,tenant_id,actor_id,ready,category,cancelled) VALUES('${id(60)}','${id(1)}','${id(11)}',false,'photo',true);
+ INSERT INTO storage.objects VALUES('person-files','${id(60)}');`);
+ const policies=sqlFile('20260923000300_talent_attachment_cancellation.sql').match(/^CREATE POLICY person_files_(?:no_delete|cancel_delete|cancel_read|read_fence) .*;$/gm);assert.equal(policies.length,4);for(const p of policies)await db.query(p);
+ await claims();await db.query('SET LOCAL ROLE authenticated');assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,1);
+ await db.query('RESET ROLE');await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='talent'`);await db.query('SET LOCAL ROLE authenticated');assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,0);assert.equal((await db.query('DELETE FROM storage.objects')).rowCount,0);
+ await db.query('RESET ROLE');await db.query(`UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='talent'`);await db.query('SET LOCAL ROLE authenticated');assert.equal((await db.query('DELETE FROM storage.objects')).rowCount,1);
 }));

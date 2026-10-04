@@ -11,7 +11,7 @@ const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const keys=['customers','tasks','calendar','documents','contracts','talent','staffing','reporting','finance','announcements'];
 const all=v=>Object.fromEntries(keys.map(k=>[k,v]));
 let admin,db,created=false;
-const tables={tasks:'status text,company_id uuid,appointment_id uuid,contract_id uuid',appointments:'status text',contracts:'status text',talent_import_rows:'status text',staffing_demands:'status text',ops_daily_requests:'lifecycle text,work_date date',ops_assignments:'removed_at timestamptz,work_date date',ops_work_records:'status text',ops_fixed_roster:'cancelled boolean,ends_on date',ops_schedules:'plan jsonb',reporting_periods:'status text',reporting_imports:'status text'};
+const tables={talent_attachments:'ready boolean,cleaned boolean',tasks:'status text,company_id uuid,appointment_id uuid,contract_id uuid',appointments:'status text',contracts:'status text',talent_import_rows:'status text',staffing_demands:'status text',ops_daily_requests:'lifecycle text,work_date date',ops_assignments:'removed_at timestamptz,work_date date',ops_work_records:'status text',ops_fixed_roster:'cancelled boolean,ends_on date',ops_schedules:'plan jsonb',reporting_periods:'status text',reporting_imports:'status text'};
 before(async()=>{
  admin=new Client({connectionString:url.href});await admin.connect();await admin.query(`CREATE DATABASE ${dbName}`);created=true;
  const target=new URL(url);target.pathname='/'+dbName;db=new Client({connectionString:target.href,query_timeout:10000});await db.connect();
@@ -25,8 +25,8 @@ async function claims(actor=11,tenant=1){await db.query("SELECT set_config('requ
 async function preview(states=all(false),actor=11,tenant=1,revision='1'){
  return (await db.query('SELECT public.preview_workspace_modules_v1($1,$2,$3,$4) value',[id(actor),id(tenant),revision,states])).rows[0].value;
 }
-test('manager sees all fifteen checks with no settings mutation or save authorization',()=>run(async()=>{
- await claims();await db.query('SET LOCAL ROLE authenticated');const value=await preview();assert.equal(value.checks.length,15);assert.ok(value.checks.every(c=>c.blocking===false));assert.equal(value.mutationAvailable,false);assert.equal(value.advisoryOnly,true);
+test('manager sees all sixteen checks with no settings mutation or save authorization',()=>run(async()=>{
+ await claims();await db.query('SET LOCAL ROLE authenticated');const value=await preview();assert.equal(value.checks.length,16);assert.ok(value.checks.every(c=>c.blocking===false));assert.equal(value.mutationAvailable,false);assert.equal(value.advisoryOnly,true);
  await db.query('RESET ROLE');assert.equal((await db.query('SELECT count(*)::int n FROM tenant_module_changes')).rows[0].n,2);
  assert.ok((await db.query('SELECT enabled FROM tenant_module_settings')).rows.every(r=>r.enabled));
 }));
@@ -91,7 +91,7 @@ test('real SQL response satisfies the application parser contract',()=>run(async
  const {parseModuleChangePreview}=await importActualTypeScript(new URL('../src/lib/modules/change-preview.ts',import.meta.url));
  await claims();await db.query('SET LOCAL ROLE authenticated');const value=await preview();
  const result=parseModuleChangePreview(value,{actorId:id(11),tenantId:id(1),membershipVersion:id(31),selectionVersion:null},'1',all(false));
- assert.equal(result.checks.length,15);assert.equal(result.mutationAvailable,false);
+ assert.equal(result.checks.length,16);assert.equal(result.mutationAvailable,false);
 }));
 
 test('customer_linked_tasks: dependent open task is visible even when tasks stays enabled',()=>run(async()=>{
@@ -116,4 +116,12 @@ test('contract_linked_tasks: dependent open task is visible even when tasks stay
  let v=await preview(draft);assert.equal(v.checks.find(c=>c.code==='contract_linked_tasks').blocking,true);assert.ok(!v.disabled.includes('tasks'));
  await db.query('RESET ROLE');await db.query("UPDATE tasks SET status='tamamlandi'");await db.query('SET LOCAL ROLE authenticated');
  v=await preview(draft);assert.equal(v.checks.find(c=>c.code==='contract_linked_tasks').blocking,false);
+}));
+
+test('unfinished file uploads or cancellation cleanup block talent closure until ready or cleaned',()=>run(async()=>{
+ await claims();const check=async()=> (await preview()).checks.find(c=>c.code==='pending_talent_files').blocking;
+ await db.query(`INSERT INTO talent_attachments VALUES('${id(2)}',false,false)`);assert.equal(await check(),false);
+ await db.query(`INSERT INTO talent_attachments VALUES('${id(1)}',false,false)`);assert.equal(await check(),true);
+ await db.query(`UPDATE talent_attachments SET cleaned=true WHERE tenant_id='${id(1)}'`);assert.equal(await check(),false);
+ await db.query(`UPDATE talent_attachments SET cleaned=false,ready=true WHERE tenant_id='${id(1)}'`);assert.equal(await check(),false);
 }));

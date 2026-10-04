@@ -403,3 +403,11 @@ Sırada worker kodu/aktiflik projeksiyonları ve reporting; ardından kalan kap�
 Yeni açık uç nokta/iç yardımcı ACL/gövde driftinde migration durur. UI BM001'i açık modül mesajı ve bilinen ret olarak ayırır. 631 uygulama + 20 reporting DB testi geçti, TypeScript temiz, statik 0 FAIL / 2 WARN. Gerçek config bekleme/commit sonrası ret ölçüldü. Kanıt `qa/tenant-reporting-gates-20261004/`.
 
 Tam aktarım algoritması, gerçek Storage HTTP/politika birleşimi, canlı/tarayıcı/build ve diğer DB süitleri bu turda tekrarlanmadı. Ortak kişi/şube projeksiyonları ayrı inceleme. Kalan: diğer kapılar, tam blocker, ayar mutation/UI, servis tüketici/şema/ACL ön kontrolü ve uçtan uca kabul. Üretime yayın yok.
+
+### M2x — 2026-10-04: dosya lifecycle kaynak düzeltmesi ve 16. kapatma kontrolü
+
+M2p attachment helper beklenen gövdesi eski migration'a dayanıyordu; güncel iptal migration'ı PL/pgSQL gövde kullanıyor. Önceki aday production'da hash kontrolünde duracaktı; eski fixture bunu temsil etmiyordu. Henüz uygulanmamış 000300 güncel kaynağa düzeltildi: iptal tombstone ve attachment SHARE kilidi korunur, config bariyeri önce gelir. Temizlik helper'ının Storage SELECT/DELETE geçidi de talent kapısına bağlandı.
+
+Henüz uygulanmamış 000200 önizlemesi 16 kontrol: tamamlanmamış yükleme/iptal temizliği talent için engel. ready veya cleaned dosya engel değil. Önizleme hâlâ salt okunur; kapatma açılmadı.
+
+631 uygulama + 15 modül DB süitinde 315 test geçti, TypeScript temiz, statik 0 FAIL / 2 WARN. Gerçek iptal politika SQL'i sentetik Storage tablosunda kapalı modülde SELECT/DELETE sıfır satır verdi. Kanıt `qa/tenant-file-lifecycle-20261004/`. Gerçek Storage HTTP/canlı/tarayıcı bu kanıtın dışında. Üretime yayın yok.
