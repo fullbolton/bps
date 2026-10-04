@@ -480,5 +480,9 @@
   {
     "file": "scripts/expiry-notification-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/start-shift-db.test.mjs",
+    "suite": "database"
   }
 ]

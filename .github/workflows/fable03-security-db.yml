@@ -6,6 +6,8 @@ on:
       - 'supabase/migrations/20261004001000_demo_and_critical_date_boundaries.sql'
       - 'scripts/fable03-security-db.test.mjs'
       - 'scripts/attendance-lifecycle*'
+      - 'scripts/start-shift*'
+      - 'supabase/migrations/20261004001300_start_confirmation_shift_window.sql'
       - 'scripts/expiry-notification-db.test.mjs'
       - 'supabase/migrations/20261004001200_expiry_notification_date_keys.sql'
       - 'scripts/helpers/operations-function-history.mjs'
@@ -42,4 +44,5 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: node scripts/attendance-lifecycle-fix.mjs --check
-      - run: node --test --test-concurrency=1 scripts/fable03-security-db.test.mjs scripts/attendance-lifecycle-db.test.mjs scripts/expiry-notification-db.test.mjs
+      - run: node scripts/start-shift-fix.mjs --check
+      - run: node --test --test-concurrency=1 scripts/fable03-security-db.test.mjs scripts/attendance-lifecycle-db.test.mjs scripts/expiry-notification-db.test.mjs scripts/start-shift-db.test.mjs
