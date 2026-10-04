@@ -185,3 +185,37 @@ test('conversation patch preserves metadata and rolls back the first patch if th
  await db.query('SAVEPOINT drift');await assert.rejects(conversationPatch(),e=>e.message.includes('BODY_DRIFT'));await db.query('ROLLBACK TO drift');
  assert.equal((await db.query('SELECT prosrc FROM pg_proc WHERE oid=$1::regprocedure',[p.patches[0].signature])).rows[0].prosrc,p.patches[0].previous);
 }));
+
+async function linkedNameFixture(){
+ const p=await import('./talent-linked-name-gate.mjs');await db.query(p.render().replace(/\nBEGIN;\n/,'\n').replace(/COMMIT;\n$/,''));
+ await db.query(`ALTER TABLE talent_people ADD COLUMN worker_id uuid,ADD COLUMN city text,ADD COLUMN district text,ADD COLUMN contacts jsonb DEFAULT '[]',ADD COLUMN skills text[] DEFAULT '{}',ADD COLUMN regions text[] DEFAULT '{}',ADD COLUMN work_types text[] DEFAULT '{}',ADD COLUMN gender text,ADD COLUMN birth_date date,ADD COLUMN source text,ADD COLUMN updated_at timestamptz;
+ ALTER TABLE talent_people ALTER COLUMN revision SET DEFAULT 0;
+ ALTER TABLE talent_person_commands ADD COLUMN command_id uuid,ADD COLUMN payload jsonb,ADD COLUMN result jsonb;
+ CREATE UNIQUE INDEX test_person_command ON talent_person_commands(tenant_id,actor_id,command_id);
+ CREATE TABLE ops_workers(id uuid,tenant_id uuid,name text,directory_revision integer);
+ CREATE TABLE talent_person_events(tenant_id uuid,person_id uuid,actor_id uuid,kind text,revision integer,changed_fields text[]);
+ INSERT INTO ops_workers VALUES('${id(81)}','${id(1)}','Original',0);
+ INSERT INTO talent_people(id,tenant_id,worker_id,name) VALUES('${id(80)}','${id(1)}','${id(81)}','Original');`);
+ await claims();
+}
+const personInput=(name='Original',city=null)=>({name,city,district:null,contacts:[],skills:[],regions:[],workTypes:[]});
+const saveLinked=(command,revision,input)=>db.query('SELECT talent_save_person($1,$2,$3,$4,$5,$6) v',[id(11),id(1),id(command),id(80),revision,input]);
+test('closed staffing permits linked contact/location edits but rejects name sync atomically',()=>run(async()=>{
+ await linkedNameFixture();await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='staffing'`);await db.query('SET LOCAL ROLE authenticated');
+ const saved=(await saveLinked(90,0,personInput('Original','Ankara'))).rows[0].v;
+ assert.equal(saved.revision,1);assert.deepEqual((await saveLinked(90,0,personInput('Original','Ankara'))).rows[0].v,saved);
+ await db.query('SAVEPOINT rename');await assert.rejects(saveLinked(91,1,personInput('Changed','Izmir')),e=>e.code==='BM001'&&e.message==='TALENT_LINKED_NAME_MODULE_DISABLED');await db.query('ROLLBACK TO rename');
+ await db.query('RESET ROLE');
+ assert.deepEqual((await db.query('SELECT name,city,revision FROM talent_people')).rows[0],{name:'Original',city:'Ankara',revision:1});
+ assert.deepEqual((await db.query('SELECT name,directory_revision FROM ops_workers')).rows[0],{name:'Original',directory_revision:0});
+ assert.equal((await db.query('SELECT count(*)::integer n FROM talent_person_commands')).rows[0].n,1);
+ assert.equal((await db.query('SELECT count(*)::integer n FROM talent_person_events')).rows[0].n,1);
+ // Reopen and retry the rejected command: no stale receipt may poison it.
+ await db.query(`UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='staffing'`);await db.query('SET LOCAL ROLE authenticated');await saveLinked(91,1,personInput('Changed','Izmir'));await db.query('RESET ROLE');
+ assert.deepEqual((await db.query('SELECT name,directory_revision FROM ops_workers')).rows[0],{name:'Changed',directory_revision:1});
+}));
+test('unlinked and new people can still change names with staffing disabled',()=>run(async()=>{
+ await linkedNameFixture();await db.query(`UPDATE talent_people SET worker_id=NULL;UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='staffing'`);await db.query('SET LOCAL ROLE authenticated');
+ assert.equal((await saveLinked(90,0,personInput('Unlinked'))).rows[0].v.revision,1);
+ const r=await db.query('SELECT talent_save_person($1,$2,$3,NULL,NULL,$4) v',[id(11),id(1),id(92),personInput('New')]);assert.equal(r.rows[0].v.id,id(92));
+}));

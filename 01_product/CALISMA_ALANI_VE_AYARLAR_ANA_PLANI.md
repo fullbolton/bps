@@ -379,3 +379,11 @@ Staffing kapalıyken görüşme geçmişi korunur; canlı talep/şube/firma proj
 628 uygulama / 57 talent DB testi geçti. TypeScript temiz; statik 0 FAIL / 2 WARN. Kaynak driftinde rollback ve fonksiyon metadata korunması ölçüldü. Kanıt `qa/tenant-conversation-modules-20261004/`. Tarayıcı/canlı ve diğer DB süitleri tekrar edilmedi. Üretime yayın yok.
 
 Sırada diğer havuz projeksiyonları/senkronizasyon, reporting ve kalan kapılar; ardından tam blocker, ayar mutation/UI ve uçtan uca kabul.
+
+### M2u — 2026-10-04: bağlı kişi ad senkronizasyonu (yerel)
+
+Ortak `talent_save_person` kapalı staffing'e bağlı kişinin adını yazamaz; diğer havuz alanları ve bağımsız/yeni kişiler çalışır. Kontrol mevcut config SHARE bariyeri altında, kişi revision kontrolünden sonra ve değişiklikten önce yapılır; yeni ters kilit sırası yok. Özel hata mesajı diğer alanların düzenlenebileceğini açıklar.
+
+629 uygulama / 59 talent DB testi geçti. TypeScript temiz; statik 0 FAIL / 2 WARN. Reddedilen ad değişikliği iki tabloya/receipt/history'ye yazmaz; açılınca aynı komut çalışır. Kanıt: `qa/tenant-linked-name-20261004/`. Import/merge/undo ortak fonksiyonu kullanır fakat üst akış kabulü bu turda tekrarlanmadı. Üretime yayın yok.
+
+Kalan: ops→talent trigger kararı, worker kodu/aktiflik projeksiyonları, reporting/diğer modüller, tam blocker, ayar mutation/UI ve uçtan uca kabul.

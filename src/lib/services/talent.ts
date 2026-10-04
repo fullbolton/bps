@@ -21,6 +21,7 @@ export async function writeTalentPerson(c:Client,scope:unknown,command:unknown){
  const s=checkTalentScope(scope),x=validateSavePerson(command);return parseSaveReceipt(await saveTalentPerson(c,s,x),x);
 }
 export function talentError(error:unknown):string{
+ if(error&&typeof error==='object'&&'message' in error&&String(error.message).includes('TALENT_LINKED_NAME_MODULE_DISABLED'))return 'Bu kişi operasyon personeline bağlı. Adını değiştirmek için Personel operasyonu modülünün açık olması gerekir. Diğer bilgilerini düzenleyebilirsiniz.';
  const moduleMessage=moduleAccessMessage(error);if(moduleMessage)return moduleMessage;
  const privacy=privateTextError(error);if(privacy)return privacy;
  const message=error&&typeof error==='object'&&'message' in error?String(error.message):'';

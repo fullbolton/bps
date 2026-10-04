@@ -28,3 +28,9 @@ test('conversation module patch is generated against prior guarded bodies',async
  const p=await import('./talent-conversation-modules.mjs');assert.equal(readFileSync(p.migrationUrl,'utf8'),p.render());
  for(const patch of p.patches){const entry=entries.find(e=>e.name===patch.name);assert.equal(patch.previous,entry.body.replace(entry.anchor,()=>entry.anchor+entry.guard));assert.ok(patch.body.includes(entry.guard));}
 });
+
+test('linked name gate uses the current guarded writer and gives an actionable message',async()=>{
+ const p=await import('./talent-linked-name-gate.mjs');assert.equal(readFileSync(p.migrationUrl,'utf8'),p.render());
+ const e=entries.find(e=>e.name==='talent_save_person');assert.equal(p.previous,e.body.replace(e.anchor,()=>e.anchor+e.guard));
+ assert.match(talentError({code:'BM001',message:'TALENT_LINKED_NAME_MODULE_DISABLED'}),/Diğer bilgilerini düzenleyebilirsiniz/);
+});
