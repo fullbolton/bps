@@ -141,3 +141,47 @@ test('assignment projection rejects an unexpected source body without changing i
  await db.query('SAVEPOINT patch');await assert.rejects(db.query(p.render().replace(/\nBEGIN;\n/,'\n').replace(/COMMIT;\n$/,'')),e=>e.message.includes('BODY_DRIFT'));
  await db.query('ROLLBACK TO patch');assert.equal((await db.query('SELECT prosrc FROM pg_proc WHERE oid=$1::regprocedure',[p.signature])).rows[0].prosrc,"BEGIN RETURN '{}'::jsonb;END");
 }));
+
+async function conversationPatch(){const p=await import('./talent-conversation-modules.mjs');await db.query(p.render().replace(/\nBEGIN;\n/,'\n').replace(/COMMIT;\n$/,''));}
+test('conversation history retains order and job outcome without querying disabled operation context',()=>run(async()=>{
+ await conversationPatch();
+ await db.query(`CREATE OR REPLACE FUNCTION talent_conversation_list_base(uuid,uuid,uuid,integer) RETURNS jsonb LANGUAGE sql AS $$SELECT current_setting('test.conversations')::jsonb$$`);
+ const rows=[{id:id(90),requestId:id(91),outcome:'declined',note:'History'},{id:id(92),requestId:null,outcome:'reached',note:'General'}];
+ await db.query("SELECT set_config('test.conversations',$1,true)",[JSON.stringify(rows)]);
+ await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='staffing'`);await claims();await db.query('SET LOCAL ROLE authenticated');
+ const off=(await db.query(`SELECT talent_conversation_list('${id(11)}','${id(1)}','${id(80)}',0) v`)).rows[0].v;
+ assert.deepEqual(off,rows.map(r=>({...r,requestContext:null,requestContextHidden:r.requestId!==null})));
+ await db.query('RESET ROLE');
+ await db.query(`CREATE TABLE ops_daily_requests(id uuid,tenant_id uuid,company_id uuid,location_id uuid,work_date date,position text);
+ CREATE TABLE companies(id uuid,tenant_id uuid,name text);
+ CREATE TABLE ops_locations(id uuid,tenant_id uuid,name text);
+ INSERT INTO companies VALUES('${id(93)}','${id(1)}','C');
+ INSERT INTO ops_locations VALUES('${id(94)}','${id(1)}','L');
+ INSERT INTO ops_daily_requests VALUES('${id(91)}','${id(1)}','${id(93)}','${id(94)}','2026-10-04','P');
+ UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='staffing'`);
+ await db.query('SET LOCAL ROLE authenticated');const on=(await db.query(`SELECT talent_conversation_list('${id(11)}','${id(1)}','${id(80)}',0) v`)).rows[0].v;
+ assert.equal(on[0].requestContext.companyName,'C');assert.equal(on[0].requestContextHidden,false);assert.equal(on[1].requestContext,null);
+}));
+test('disabled staffing blocks new request conversations but permits general notes and their retry',()=>run(async()=>{
+ await conversationPatch();
+ await db.query(`ALTER TABLE talent_conversations ADD COLUMN request_id uuid,ADD COLUMN command_id uuid,ADD COLUMN channel text,ADD COLUMN outcome text,ADD COLUMN note text,ADD COLUMN recorded_at timestamptz DEFAULT now();
+ ALTER TABLE talent_conversations ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ CREATE UNIQUE INDEX test_conversation_command ON talent_conversations(tenant_id,actor_id,command_id);
+ INSERT INTO talent_people(id,tenant_id) VALUES('${id(80)}','${id(1)}');
+ UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='staffing'`);
+ await claims();await db.query('SET LOCAL ROLE authenticated');
+ const input={commandId:id(90),personId:id(80),requestId:null,channel:'phone',outcome:'reached',note:'General'};
+ const save=async x=>(await db.query('SELECT talent_conversation_save($1,$2,$3) v',[id(11),id(1),x])).rows[0].v;
+ const saved=await save(input);assert.equal(saved.note,'General');assert.deepEqual(await save(input),saved);
+ await db.query('SAVEPOINT denied');await assert.rejects(save({...input,commandId:id(91),requestId:id(92)}),e=>e.code==='BM001');await db.query('ROLLBACK TO denied');
+ await db.query('RESET ROLE');assert.equal((await db.query('SELECT count(*)::integer n FROM talent_conversations')).rows[0].n,1);
+}));
+
+test('conversation patch preserves metadata and rolls back the first patch if the second source drifts',()=>run(async()=>{
+ const p=await import('./talent-conversation-modules.mjs');
+ const metadata=async()=>{const values=[];for(const e of p.patches)values.push((await db.query('SELECT proowner,proacl,provolatile,prosecdef,proconfig FROM pg_proc WHERE oid=$1::regprocedure',[e.signature])).rows[0]);return values;};
+ const before=await metadata();await db.query('SAVEPOINT before_patch');await conversationPatch();assert.deepEqual(await metadata(),before);await db.query('ROLLBACK TO before_patch');
+ const save=p.patches[1];await db.query(save.declaration.replace(/^CREATE (?:OR REPLACE )?FUNCTION/i,'CREATE OR REPLACE FUNCTION'));
+ await db.query('SAVEPOINT drift');await assert.rejects(conversationPatch(),e=>e.message.includes('BODY_DRIFT'));await db.query('ROLLBACK TO drift');
+ assert.equal((await db.query('SELECT prosrc FROM pg_proc WHERE oid=$1::regprocedure',[p.patches[0].signature])).rows[0].prosrc,p.patches[0].previous);
+}));

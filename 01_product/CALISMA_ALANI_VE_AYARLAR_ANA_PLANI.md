@@ -371,3 +371,11 @@ Yeni 20260929000500: yedi eski ops_mutate/import/board/week/attendance_week/dire
 626 uygulama ve 54 talent DB testi geçti; TypeScript temiz, statik 0 FAIL / 2 WARN. Kanıt: `qa/tenant-talent-projection-20260929/`. Diğer DB süitleri ve tarayıcı bu turda tekrarlanmadı. Üretime SQL/push/deploy yok.
 
 Kalan: görüşmelerin talep bağlamı, personel JSON/list/merge projeksiyonları ve ops→talent senkronizasyon kararı; reporting ve diğer kapılar; tam blocker listesi; ayar mutation/UI ve uçtan uca kabul. Bu parça tüm çapraz modül erişimlerini kapatmaz.
+
+### M2t — 2026-10-04: görüşmelerin operasyon bağlamı (yerel)
+
+Staffing kapalıyken görüşme geçmişi korunur; canlı talep/şube/firma projeksiyonu sorgulanmaz ve UI bağlantısı gösterilmez. RequestId içeren yeni görüşme staffing yazma bariyerinden geçer; genel görüşme bağımsızdır. Tarihsel requestId ve serbest notlar korunur; tüm tarihsel veri izolasyonu değildir.
+
+628 uygulama / 57 talent DB testi geçti. TypeScript temiz; statik 0 FAIL / 2 WARN. Kaynak driftinde rollback ve fonksiyon metadata korunması ölçüldü. Kanıt `qa/tenant-conversation-modules-20261004/`. Tarayıcı/canlı ve diğer DB süitleri tekrar edilmedi. Üretime yayın yok.
+
+Sırada diğer havuz projeksiyonları/senkronizasyon, reporting ve kalan kapılar; ardından tam blocker, ayar mutation/UI ve uçtan uca kabul.

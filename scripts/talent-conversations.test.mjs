@@ -25,3 +25,10 @@ test('history rejects mixed people, duplicate ids and oversized responses',()=>{
  assert.equal(m.parseConversationList([row],scope,id(2)).length,1);
  for(const value of [null,[row,row],[{...row,personId:id(9)}],Array(22).fill(row)])assert.throws(()=>m.parseConversationList(value,scope,id(2)));
 });
+
+test('hidden operation context retains the conversation outcome but cannot contain a live projection',()=>{
+ const scope={actorId:id(4),tenantId:id(5)},row={...input,id:id(6),tenantId:id(5),actorId:id(4),recordedAt:'2026-10-04T00:00:00Z',requestId:id(7),outcome:'declined',requestContextHidden:true,requestContext:null};
+ assert.equal(m.parseConversation(row,scope,id(2)).requestContextHidden,true);
+ assert.equal(m.parseConversation(row,scope,id(2)).outcome,'declined');
+ for(const patch of [{requestId:null},{requestContextHidden:'true'},{requestContext:{companyId:id(8),workDate:'2026-10-04',companyName:'C',locationName:'L',position:'P'}}])assert.throws(()=>m.parseConversation({...row,...patch},scope,id(2)));
+});

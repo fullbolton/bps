@@ -23,3 +23,8 @@ test('assignment projection migration is generated against the already gated bod
  assert.equal(p.previous,entry.body.replace(entry.anchor,()=>entry.anchor+entry.guard));
  assert.ok(p.body.includes(entry.guard));
 });
+
+test('conversation module patch is generated against prior guarded bodies',async()=>{
+ const p=await import('./talent-conversation-modules.mjs');assert.equal(readFileSync(p.migrationUrl,'utf8'),p.render());
+ for(const patch of p.patches){const entry=entries.find(e=>e.name===patch.name);assert.equal(patch.previous,entry.body.replace(entry.anchor,()=>entry.anchor+entry.guard));assert.ok(patch.body.includes(entry.guard));}
+});
