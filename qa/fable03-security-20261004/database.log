@@ -1,0 +1,17 @@
+✔ tenant managers cannot read leads, including with an extra broad permissive policy (89.302959ms)
+✔ platform admin can read global leads without tenant membership but cannot mutate from browser (2.81675ms)
+✔ anonymous access is closed; service intake remains possible (1.258125ms)
+✔ manager inserts own tenant with own author, rejects foreign tenant and forged author (2.953625ms)
+✔ same-tenant manager edits another author record without claiming authorship (3.715667ms)
+✔ unfiltered manager delete stays inside active tenant even with broad permissive grants (2.752625ms)
+✔ A manager selected into B as operator cannot write even with permissive policy (3.004291ms)
+✔ unknown tenant claim exposes no deadlines and cannot insert (1.692958ms)
+✔ legacy null creator can be edited but cannot be rewritten as a different author (3.598625ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 187.666

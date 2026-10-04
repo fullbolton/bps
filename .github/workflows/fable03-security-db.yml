@@ -1,0 +1,39 @@
+name: Fable 03 security database checks
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths:
+      - 'supabase/migrations/20261004001000_demo_and_critical_date_boundaries.sql'
+      - 'scripts/fable03-security-db.test.mjs'
+      - 'scripts/fixtures/security-boundary-database.mjs'
+      - '.github/workflows/fable03-security-db.yml'
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bps_module_test
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: postgres
+        ports: ['55439:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BPS_MODULE_TEST_DATABASE_URL: postgres://bps_module_test:synthetic_ci_only@127.0.0.1:55439/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node --test scripts/fable03-security-db.test.mjs

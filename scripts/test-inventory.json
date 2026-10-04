@@ -468,5 +468,9 @@
   {
     "file": "scripts/inbox-interaction.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/fable03-security-db.test.mjs",
+    "suite": "database"
   }
 ]
