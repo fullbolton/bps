@@ -51,6 +51,7 @@ export function pilotError(error:unknown,fallback="İşlem doğrulanamadı. Bağ
     OPS_DIRECTORY_TOO_LARGE:"Dizin bu arama için çok büyük; daha dar bir arama kullanın.",
     OPS_ATTENDANCE_WEEK_TOO_LARGE:"Bu haftada 20000’den fazla tarihsel atama var; gerçekleşme özeti oluşturulamadı.",
     OPS_SAME_WORKER:"Yerine farklı bir personel seçin.",OPS_REPLACE_PRESENT:"Geldi bildirimi bulunan atama değiştirilemez. Bildirim hatalıysa önce düzeltin.",
+    OPS_ATTENDANCE_CLOSED:"Atama kaldırılmış veya talep iptal edilmiş. Güncel planı açın; bu kayıt için yoklama değiştirilemez.",
     OPS_FUTURE_ATTENDANCE:"Gelecek gün için gerçekleşme bildirilemez.",OPS_ATTENDANCE_CONFLICT:"Bu personelin aynı gün başka bir atamada Geldi kaydı var. Önce hatalı bildirimi düzeltin.",
     OPS_BELOW_ASSIGNED:"Kişi sayısı mevcut atama sayısından az olamaz. Önce ilgili atamayı kaldırın.",OPS_BATCH_EXISTS:"Seçilen günlerde aynı şube, hizmet ve pozisyon için aktif talep var. Hiçbir yeni talep oluşturulmadı; günleri kontrol edin.",OPS_WEEK_TOO_LARGE:"Bu haftada 5000’den fazla talep var; çıktı oluşturulamadı.",OPS_SCOPE_CHANGED:"Hesap veya çalışma alanı değişti. Sayfayı yenileyin; eski işlem gönderilmedi.",OPS_IMPORT_CONFLICT:"Aynı şube kodu farklı içerikle mevcut. Hiçbir satır aktarılmadı.",OPS_IMPORT_DUPLICATE:"Dosyada tekrarlanan şube kodu var.",
     OPS_FORBIDDEN:"Bu işlem için yetkiniz yok.",OPS_UNAUTHENTICATED:"Oturumunuzu yenileyin.",

@@ -27,3 +27,7 @@ test('future dates and read-only/busy state disable every action including undo'
     assert.ok(buttons(Controls({...props,record:{...record,status},...lock})).every(button=>button.props.disabled));
   }
 });
+
+test('removed assignment disables every attendance action, including undo',()=>{
+ for(const status of ['unreported','present','absent'])assert.ok(buttons(Controls({...props,record:{...record,status,removed:true}})).every(b=>b.props.disabled));
+});

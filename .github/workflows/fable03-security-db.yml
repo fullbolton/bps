@@ -5,6 +5,9 @@ on:
     paths:
       - 'supabase/migrations/20261004001000_demo_and_critical_date_boundaries.sql'
       - 'scripts/fable03-security-db.test.mjs'
+      - 'scripts/attendance-lifecycle*'
+      - 'scripts/helpers/operations-function-history.mjs'
+      - 'supabase/migrations/20261004001100_attendance_lifecycle_guard.sql'
       - 'scripts/fixtures/security-boundary-database.mjs'
       - '.github/workflows/fable03-security-db.yml'
   pull_request:
@@ -36,4 +39,5 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: node --test scripts/fable03-security-db.test.mjs
+      - run: node scripts/attendance-lifecycle-fix.mjs --check
+      - run: node --test --test-concurrency=1 scripts/fable03-security-db.test.mjs scripts/attendance-lifecycle-db.test.mjs

@@ -472,5 +472,9 @@
   {
     "file": "scripts/fable03-security-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/attendance-lifecycle-db.test.mjs",
+    "suite": "database"
   }
 ]
