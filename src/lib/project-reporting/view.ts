@@ -1,3 +1,4 @@
+import {moduleAccessMessage} from '@/lib/modules/errors';
 import {isUuid} from '@/lib/operations/pilot-validation';
 export const projectKinds={idp:'İDP',fixed:'Sabit personel',hospitality:'Otel ve dönemsel',other:'Diğer'};
 export type Project={id:string;companyId:string;companyName:string;code:string;name:string;kind:keyof typeof projectKinds;revision:number;latestPeriod:string|null};
@@ -26,6 +27,7 @@ export function parseProjectDetail(v:unknown,tenant:string,id:string,locationsOf
  return v as ProjectDetail;
 }
 export function reportError(e:unknown){
+ const moduleMessage=moduleAccessMessage(e);if(moduleMessage)return moduleMessage;
  const message=object(e)&&typeof e.message==='string'?e.message:e instanceof Error?e.message:'';
  if(message.includes('REPORT_PERIOD_CLOSED'))return 'Bu tarihlerde kapalı bir rapor dönemi var. Önce yöneticinizin dönemi yeniden açması gerekir.';
  if(message.includes('REPORT_REASON'))return 'Değişiklik gerekçesini en az 5 karakterle yazın.';

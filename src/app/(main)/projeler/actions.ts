@@ -9,7 +9,7 @@ export async function saveProject(scope:ProjectScope,command:string,input:Record
   const {c,canWrite}=await projectContext(scope);if(!canWrite)throw Error('REPORT_FORBIDDEN');
   const result=await c.rpc('reporting_project_execute',{p_actor:scope.actorId,p_tenant:scope.tenantId,p_command:command,p_input:input});
   if(result.error){
-   const rejected=['23505','23514','22P02','22007','22008','P0001','42501'].includes(result.error.code);
+   const rejected=['BM001','23505','23514','22P02','22007','22008','P0001','42501'].includes(result.error.code);
    return {ok:false as const,message:reportError(result.error),rejected};
   }
   const r=result.data as {commandId?:unknown;projectId?:unknown;revision?:unknown;action?:unknown}|null;

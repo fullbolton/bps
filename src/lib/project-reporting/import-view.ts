@@ -1,3 +1,4 @@
+import {moduleAccessMessage} from '@/lib/modules/errors';
 import {PERSON_CODE_MESSAGE} from './person-code';
 import {isUuid} from '@/lib/operations/pilot-validation';
 import type {ActualRow} from './actual-preview';
@@ -18,6 +19,7 @@ export function parseImportPeople(v:unknown):ImportPeople{
  return v as ImportPeople;
 }
 export function importError(e:unknown){
+ const moduleMessage=moduleAccessMessage(e);if(moduleMessage)return moduleMessage;
  const message=object(e)&&typeof e.message==='string'?e.message:String(e);
  const labels:Record<string,string>={REPORT_PERSON_CODE_PRIVATE:PERSON_CODE_MESSAGE,REPORT_PERSON_UNMAPPED:'Personel kodlarından en az biri eşlenmemiş. Kişi eşlemelerini kontrol edin.',REPORT_LOCATION_UNMAPPED:'Şube kodu bulunamadı veya çalışma tarihinde bu projeye bağlı değil. Proje şubelerini kontrol edin.',REPORT_MAPPING_USED:'Bu eşleme bir aktarımda kullanılıyor. Bekleyen aktarımı iptal edin; onaylı kayıtta kullanılan eşleme değiştirilemez.',REPORT_PERIOD_CLOSED:'Seçilen ay için açık rapor dönemi yok. Proje ekranından dönemi kontrol edin.',REPORT_WORK_DUPLICATE:'Aynı çalışma birden fazla satırda veya başka bir kayıt koduyla bulunuyor.',REPORT_SOURCE_ID_CHANGED:'Kayıt kodu başka kişi, şube veya güne ait. Kaynak dosyayı kontrol edin.',REPORT_CONFLICT:'Proje veya eşlemeler değişti. Bekleyen aktarımı iptal edip yeniden önizleyin.',REPORT_FORBIDDEN:'Bu aktarım için yetkiniz yok.',REPORT_SCOPE:'Çalışma alanınız değişmiş. Sayfayı yenileyin.',REPORT_COMMAND_MISMATCH:'Bu işlem farklı bilgilerle yeniden gönderildi. Mevcut aktarımı kontrol edin.',REPORT_IMPORT_STATE:'Aktarımın durumu değişmiş. Listeyi yenileyin.',REPORT_IMPORT_INPUT:'Dosya değerlerini kontrol edin. En fazla 1.000 satır desteklenir.'};
  for(const [key,label]of Object.entries(labels))if(message.includes(key))return label;

@@ -395,3 +395,11 @@ Talent kapalıyken açık staffing'in personel oluşturması/isim güncellemesi 
 Gerçek ops_mutate, talent_prepare_worker ve güncel trigger ile sentetik SQL kabulü: tek kişi/idempotent tekrar, tenant ayrımı, değişmeyen adda tek event, staffing kapalıyken sıfır kayıt. 63 talent DB testi geçti. Kanıt `qa/tenant-worker-sync-20261004/`. Uygulama kodu/SQL davranışı değişmedi; migration ve yayın yok. Tüm üretim trigger/ACL ağı, isim düzenleme RPC'si ve yeniden açma UI'ı bu kanıtın dışında.
 
 Sırada worker kodu/aktiflik projeksiyonları ve reporting; ardından kalan kapılar, tam blocker, ayar mutation/UI ve canlı kabul.
+
+### M2w — 2026-10-04: raporlama girişleri ve kaynak dosyalar (yerel)
+
+12 reporting RPC'si için açık manifest, kaynak hash doğrulama ve reporting kapısı; beş yazma bariyeri ilk profile/iş kilidinden önce. Kaynak dosya helper'ı kapalı modülde okuma/yüklemeyi reddeder; yazmada config bariyeri nedeniyle VOLATILE'a dönüşür. Mevcut bucket politikaları korunur; eski imzalı URL'ler iptal edilmez.
+
+Yeni açık uç nokta/iç yardımcı ACL/gövde driftinde migration durur. UI BM001'i açık modül mesajı ve bilinen ret olarak ayırır. 631 uygulama + 20 reporting DB testi geçti, TypeScript temiz, statik 0 FAIL / 2 WARN. Gerçek config bekleme/commit sonrası ret ölçüldü. Kanıt `qa/tenant-reporting-gates-20261004/`.
+
+Tam aktarım algoritması, gerçek Storage HTTP/politika birleşimi, canlı/tarayıcı/build ve diğer DB süitleri bu turda tekrarlanmadı. Ortak kişi/şube projeksiyonları ayrı inceleme. Kalan: diğer kapılar, tam blocker, ayar mutation/UI, servis tüketici/şema/ACL ön kontrolü ve uçtan uca kabul. Üretime yayın yok.

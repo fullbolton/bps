@@ -580,5 +580,13 @@
   {
     "file": "scripts/legacy-operations-module-gates-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/reporting-module-gates-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/reporting-module-gates.test.mjs",
+    "suite": "application"
   }
 ]

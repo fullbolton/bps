@@ -1,0 +1,28 @@
+✔ reporting_project_execute rejects disabled reporting before business queries (103.249167ms)
+✔ reporting_project_list rejects disabled reporting before business queries (1.837167ms)
+✔ reporting_project_detail rejects disabled reporting before business queries (1.620166ms)
+✔ reporting_person_code_set rejects disabled reporting before business queries (1.739208ms)
+✔ reporting_import_prepare rejects disabled reporting before business queries (1.784625ms)
+✔ reporting_import_finish rejects disabled reporting before business queries (1.811458ms)
+✔ reporting_import_list rejects disabled reporting before business queries (1.384709ms)
+✔ reporting_import_people rejects disabled reporting before business queries (1.369208ms)
+✔ reporting_import_read rejects disabled reporting before business queries (1.330625ms)
+✔ reporting_monthly_report rejects disabled reporting before business queries (1.807042ms)
+✔ reporting_work_details rejects disabled reporting before business queries (1.477125ms)
+✔ reporting_source_file rejects disabled reporting before business queries (1.939625ms)
+✔ all endpoint bodies retain business statements and clients cannot bypass through anon/service (6.085ms)
+✔ enabled actual list is scoped; talent and staffing can both be off (3.54425ms)
+✔ Storage helper keeps ownership/status rules and denies read/upload when reporting off (5.009209ms)
+✔ read role cannot use reporting writes; spoofed actor fails scope (1.568542ms)
+✔ late body drift rolls back earlier endpoint patches (5.711458ms)
+✔ new accessible overload and exposed internal helper require explicit review (6.081167ms)
+✔ waiting reporting writer sees committed module disable before entering business work (19.492208ms)
+✔ source access rejects another operators batch, foreign tenant and malformed paths (4.619167ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 259.709833
