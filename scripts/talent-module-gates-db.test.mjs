@@ -219,3 +219,57 @@ test('unlinked and new people can still change names with staffing disabled',()=
  assert.equal((await saveLinked(90,0,personInput('Unlinked'))).rows[0].v.revision,1);
  const r=await db.query('SELECT talent_save_person($1,$2,$3,NULL,NULL,$4) v',[id(11),id(1),id(92),personInput('New')]);assert.equal(r.rows[0].v.id,id(92));
 }));
+
+async function workerSyncFixture(){
+ await linkedNameFixture();
+ await db.query(`ALTER TABLE ops_workers ADD COLUMN code text,ADD COLUMN kind text,ADD COLUMN source_person_id uuid;
+ CREATE UNIQUE INDEX test_worker_identity ON ops_workers(tenant_id,id);
+ CREATE UNIQUE INDEX test_person_identity ON talent_people(tenant_id,id);
+ CREATE UNIQUE INDEX test_person_worker ON talent_people(tenant_id,worker_id);
+ CREATE TABLE ops_commands(tenant_id uuid,actor_id uuid,id uuid,kind text,payload jsonb,result jsonb,PRIMARY KEY(tenant_id,actor_id,id));
+ CREATE TABLE ops_daily_requests(id uuid,tenant_id uuid);
+ CREATE TABLE ops_events(tenant_id uuid,actor_id uuid,command_id uuid,kind text,entity_id uuid);`);
+ const triggerSql=sqlFile('20260924000200_talent_worker_prepare.sql');
+ const functions=[...triggerSql.matchAll(/CREATE OR REPLACE FUNCTION public\.talent_sync_worker\(\) RETURNS trigger[\s\S]*?END \$\$;/g)];assert.equal(functions.length,1);await db.query(functions[0][0]);
+ await db.query(`REVOKE ALL ON FUNCTION talent_sync_worker() FROM PUBLIC,anon,authenticated,service_role;
+ CREATE TRIGGER talent_worker_sync AFTER INSERT OR UPDATE OF name ON ops_workers FOR EACH ROW EXECUTE FUNCTION talent_sync_worker();`);
+ const {entries:ops}=await import('./legacy-operations-module-gates.mjs');const entry=ops.find(e=>e.name==='ops_mutate');
+ await db.query(entry.declaration.replace(entry.body,()=>entry.body.replace(entry.anchor,()=>entry.anchor+entry.guard)));
+ await db.query(`REVOKE ALL ON FUNCTION ${entry.signature} FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION ${entry.signature} TO authenticated`);
+}
+test('actual operations worker create and retry stay usable with talent off; reopening reveals the same person',()=>run(async()=>{
+ await workerSyncFixture();await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='talent'`);await db.query('SET LOCAL ROLE authenticated');
+ const create=()=>db.query("SELECT ops_mutate($1,'worker',$2) v",[id(95),{name:'Operational person',code:'T-95',kind:'idp'}]);
+ const result=(await create()).rows[0].v;assert.equal(result.id,id(95));assert.deepEqual((await create()).rows[0].v,result);
+ await db.query('SAVEPOINT hidden');await assert.rejects(db.query(`SELECT talent_shared_views_read('${id(11)}','${id(1)}')`),e=>e.code==='BM001');await db.query('ROLLBACK TO hidden');await db.query('RESET ROLE');
+ assert.deepEqual((await db.query('SELECT id,worker_id,name,source FROM talent_people WHERE id=$1',[id(95)])).rows,[{id:id(95),worker_id:id(95),name:'Operational person',source:'operations'}]);
+ assert.equal((await db.query('SELECT count(*)::integer n FROM ops_events')).rows[0].n,1);
+ await db.query(`UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='talent'`);await db.query('SET LOCAL ROLE authenticated');assert.equal((await db.query(`SELECT talent_shared_views_read('${id(11)}','${id(1)}') v`)).rows[0].v.rows.length,0);
+ await db.query('RESET ROLE');assert.equal((await db.query('SELECT count(*)::integer n FROM talent_people WHERE worker_id=$1',[id(95)])).rows[0].n,1);
+}));
+test('maintenance trigger synchronizes once and stays tenant-scoped while talent is off',()=>run(async()=>{
+ await workerSyncFixture();await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='talent';
+ INSERT INTO talent_people(id,tenant_id,worker_id,name) VALUES('${id(96)}','${id(2)}','${id(81)}','Other tenant');
+ UPDATE ops_workers SET name='Renamed' WHERE tenant_id='${id(1)}' AND id='${id(81)}';
+ UPDATE ops_workers SET name='Renamed' WHERE tenant_id='${id(1)}' AND id='${id(81)}';`);
+ assert.deepEqual((await db.query('SELECT name,revision FROM talent_people WHERE id=$1',[id(80)])).rows[0],{name:'Renamed',revision:1});
+ assert.equal((await db.query('SELECT name FROM talent_people WHERE id=$1',[id(96)])).rows[0].name,'Other tenant');
+ assert.equal((await db.query('SELECT count(*)::integer n FROM talent_person_events')).rows[0].n,1);
+ for(const role of ['anon','authenticated','service_role'])assert.equal((await db.query("SELECT has_function_privilege($1,'talent_sync_worker()','EXECUTE') allowed",[role])).rows[0].allowed,false);
+}));
+test('closed staffing stops the actual worker writer before maintenance can create a talent row',()=>run(async()=>{
+ await workerSyncFixture();await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key IN ('talent','staffing')`);await db.query('SET LOCAL ROLE authenticated');await db.query('SAVEPOINT denied');
+ await assert.rejects(db.query("SELECT ops_mutate($1,'worker',$2)",[id(95),{name:'Blocked',code:'T-95',kind:'idp'}]),e=>e.code==='BM001');await db.query('ROLLBACK TO denied');await db.query('RESET ROLE');
+ assert.equal((await db.query('SELECT count(*)::integer n FROM talent_people WHERE id=$1',[id(95)])).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*)::integer n FROM ops_commands')).rows[0].n,0);
+}));
+
+test('preparing an existing person reuses their card through the real trigger and remains idempotent',()=>run(async()=>{
+ await workerSyncFixture();await db.query(`INSERT INTO talent_people(id,tenant_id,name,source) VALUES('${id(97)}','${id(1)}','Existing pool person','manual')`);await db.query('SET LOCAL ROLE authenticated');
+ const prepare=()=>db.query('SELECT talent_prepare_worker($1,$2,$3,$4,0,$5,$6) v',[id(11),id(1),id(97),id(98),'P-97','idp']);
+ const first=(await prepare()).rows[0].v;assert.equal(first.id,id(97));assert.equal(first.revision,1);assert.deepEqual((await prepare()).rows[0].v,first);
+ await db.query('RESET ROLE');
+ assert.deepEqual((await db.query('SELECT id,worker_id,revision FROM talent_people WHERE id=$1',[id(97)])).rows[0],{id:id(97),worker_id:first.workerId,revision:1});
+ assert.equal((await db.query('SELECT count(*)::integer n FROM talent_people WHERE worker_id=$1',[first.workerId])).rows[0].n,1);
+ assert.equal((await db.query('SELECT count(*)::integer n FROM talent_person_events WHERE person_id=$1',[id(97)])).rows[0].n,1);
+}));

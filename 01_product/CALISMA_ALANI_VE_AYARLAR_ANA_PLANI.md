@@ -387,3 +387,11 @@ Ortak `talent_save_person` kapalı staffing'e bağlı kişinin adını yazamaz; 
 629 uygulama / 59 talent DB testi geçti. TypeScript temiz; statik 0 FAIL / 2 WARN. Reddedilen ad değişikliği iki tabloya/receipt/history'ye yazmaz; açılınca aynı komut çalışır. Kanıt: `qa/tenant-linked-name-20261004/`. Import/merge/undo ortak fonksiyonu kullanır fakat üst akış kabulü bu turda tekrarlanmadı. Üretime yayın yok.
 
 Kalan: ops→talent trigger kararı, worker kodu/aktiflik projeksiyonları, reporting/diğer modüller, tam blocker, ayar mutation/UI ve uçtan uca kabul.
+
+### M2v — 2026-10-04: operasyon → havuz senkronizasyon kararı ve kabul
+
+Talent kapalıyken açık staffing'in personel oluşturması/isim güncellemesi engellenmez; dahili minimal kişi projeksiyonu korunur. Havuz kullanıcı RPC'leri kapalı kalır. Trigger'ı koşulsuz susturmak yeniden açmada eksik/eski kişi bırakacağından yapılmadı. Trigger'a ters sırada config kilidi eklenmedi. Bu, kapalı modülde kullanıcı işlemi açmak değil ortak kimlik bakımıdır.
+
+Gerçek ops_mutate, talent_prepare_worker ve güncel trigger ile sentetik SQL kabulü: tek kişi/idempotent tekrar, tenant ayrımı, değişmeyen adda tek event, staffing kapalıyken sıfır kayıt. 63 talent DB testi geçti. Kanıt `qa/tenant-worker-sync-20261004/`. Uygulama kodu/SQL davranışı değişmedi; migration ve yayın yok. Tüm üretim trigger/ACL ağı, isim düzenleme RPC'si ve yeniden açma UI'ı bu kanıtın dışında.
+
+Sırada worker kodu/aktiflik projeksiyonları ve reporting; ardından kalan kapılar, tam blocker, ayar mutation/UI ve canlı kabul.
