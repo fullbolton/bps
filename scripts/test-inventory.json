@@ -484,5 +484,9 @@
   {
     "file": "scripts/start-shift-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/reporting-merge-db.test.mjs",
+    "suite": "database"
   }
 ]
