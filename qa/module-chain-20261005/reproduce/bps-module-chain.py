@@ -19,4 +19,4 @@ if sys.argv[1]=='apply':
   r=sql(file.read_text(),user='postgres');(q/(file.stem+'.log')).write_text(r.stdout+'\n'+r.stderr)
   out.append({'file':file.name,'sha256':hashlib.sha256(file.read_bytes()).hexdigest(),'exit':r.returncode});print(file.name, r.returncode,flush=True)
   if r.returncode:print(r.stderr[-2000:]);break
- (q/'migration-results.json').write_text(json.dumps(out,indent=2)+'\n');sys.exit(0 if len(out)==(29 if len(sys.argv)==2 else len(out)) and all(x['exit']==0 for x in out) else 1)
+ (q/'migration-results.json').write_text(json.dumps(out,indent=2)+'\n');sys.exit(0 if len(out)==(len(list((b/'supabase/migrations').glob('20261005*.sql'))) if len(sys.argv)==2 else len(out)) and all(x['exit']==0 for x in out) else 1)

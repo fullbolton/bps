@@ -1,0 +1,17 @@
+{
+  "passed": 12,
+  "checks": [
+    "actual schema manager creates",
+    "read-only GET predicate",
+    "actual schema manager deletes",
+    "disabled read hides existing record",
+    "disabled create",
+    "disabled delete",
+    "stale foreign claim",
+    "anon direct write",
+    "authenticated direct write",
+    "service_role direct write",
+    "anon command",
+    "service_role command"
+  ]
+}

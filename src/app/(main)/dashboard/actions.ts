@@ -45,7 +45,7 @@ export async function createAnnouncementAction(
   }
 
   const { data: tenantId, error: tenantError } = await supabase.rpc(
-    "current_user_active_tenant",
+    "current_user_verified_tenant",
   );
   if (tenantError || typeof tenantId !== "string" || tenantId.length === 0) {
     return { ok: false, error: "Aktif kiracı çözümlenemedi." };
@@ -65,9 +65,8 @@ export async function createAnnouncementAction(
 /**
  * Delete an announcement.
  *
- * No tenant resolution needed: the DELETE policy already carries both the
- * yonetici gate and the tenant condition, so a cross-tenant id simply matches
- * no row.
+ * The database command resolves the verified tenant and manager role.
+ * Missing and cross-tenant records fail explicitly rather than claiming success.
  */
 export async function deleteAnnouncementAction(
   id: string,

@@ -1,0 +1,15 @@
+{
+  "application": {
+    "passed": 644,
+    "failed": 0
+  },
+  "newDatabaseTests": 8,
+  "actualSchemaSmoke": 12,
+  "typescript": "passed",
+  "static": {
+    "fail": 0,
+    "warn": 2
+  },
+  "productionApplied": false,
+  "browserSmoke": "not run"
+}

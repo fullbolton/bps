@@ -1,0 +1,12 @@
+[
+  {
+    "file": "20261005003000_announcement_module_commands.sql",
+    "sha256": "30cc062c2b71909ff1064ab4bf4048797e116f8c33fc60e810ff09f5dec98111",
+    "exit": 0
+  },
+  {
+    "file": "20261005003100_announcement_direct_write_cutover.sql",
+    "sha256": "a2e931cdeec990e98604f87098c17bf56292561c00da00655300d81d390ef00b",
+    "exit": 0
+  }
+]

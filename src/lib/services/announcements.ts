@@ -5,7 +5,7 @@
  *         |
  *     src/lib/services/announcements.ts     <- THIS FILE -- business logic
  *         |
- *     src/lib/supabase/announcements.ts     <- raw CRUD only
+ *     src/lib/supabase/announcements.ts     <- RLS reads and module-aware commands
  *         |
  *     Supabase Postgres + RLS
  *
@@ -24,7 +24,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Database,
   AnnouncementRow,
-  AnnouncementInsert,
 } from "@/types/database.types";
 import {
   selectRecentAnnouncements,
@@ -93,7 +92,7 @@ export async function listRecentAnnouncements(
 }
 
 // ---------------------------------------------------------------------------
-// Writes -- create (yonetici-only, enforced by RLS)
+// Writes -- create (yonetici-only, enforced by the database command)
 // ---------------------------------------------------------------------------
 
 /**
@@ -101,7 +100,7 @@ export async function listRecentAnnouncements(
  *
  * Behavior:
  *   - Validates body (non-blank, within the length cap).
- *   - Stamps created_by from the auth session.
+ *   - Database stamps created_by from the authenticated session.
  *   - tenant_id is supplied by the caller, server-resolved. It is never read
  *     from a client payload -- see the dashboard server action.
  */
@@ -120,21 +119,14 @@ export async function createAnnouncement(
     );
   }
 
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-
-  const payload: AnnouncementInsert = {
-    tenant_id: options.tenantId,
-    body,
-    created_by: user?.id ?? null,
-  };
+  // The database derives the author from auth.uid(); no client author is trusted.
+  const payload = { tenant_id: options.tenantId, body };
 
   return insertAnnouncement(client, payload);
 }
 
 // ---------------------------------------------------------------------------
-// Writes -- delete (yonetici-only, enforced by RLS)
+// Writes -- delete (yonetici-only, enforced by the database command)
 // ---------------------------------------------------------------------------
 
 /**

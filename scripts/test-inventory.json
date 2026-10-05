@@ -608,5 +608,13 @@
   {
     "file": "scripts/reporting-merge-db.test.mjs",
     "suite": "database"
+  },
+  {
+    "file": "scripts/announcement-module-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/announcement-commands.test.mjs",
+    "suite": "application"
   }
 ]
