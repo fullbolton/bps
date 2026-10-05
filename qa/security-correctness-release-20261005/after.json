@@ -1,0 +1,311 @@
+{
+  "phase": "after",
+  "measuredAt": "2026-10-05T18:09:56.062Z",
+  "migrations": [
+    "20260407000000",
+    "20260407000100",
+    "20260407000200",
+    "20260407000300",
+    "20260407000400",
+    "20260407000500",
+    "20260407000600",
+    "20260407000700",
+    "20260407000800",
+    "20260407000900",
+    "20260407001000",
+    "20260407001100",
+    "20260407001600",
+    "20260407001700",
+    "20260407001800",
+    "20260413000100",
+    "20260414000100",
+    "20260414000200",
+    "20260415000100",
+    "20260415000200",
+    "20260415000300",
+    "20260415000400",
+    "20260415000500",
+    "20260423000100",
+    "20260425000100",
+    "20260425000200",
+    "20260713000100",
+    "20260713000200",
+    "20260722000100",
+    "20260810000100",
+    "20260810000200",
+    "20260827000100",
+    "20260827000200",
+    "20260827000300",
+    "20260827000400",
+    "20260904000100",
+    "20260904000200",
+    "20260909000100",
+    "20260909000200",
+    "20260909000300",
+    "20260909000400",
+    "20260909000500",
+    "20260909000600",
+    "20260909000700",
+    "20260909000800",
+    "20260909000900",
+    "20260909001000",
+    "20260909001100",
+    "20260909001200",
+    "20260909001300",
+    "20260909001400",
+    "20260909001500",
+    "20260909001600",
+    "20260909001700",
+    "20260909001800",
+    "20260909001900",
+    "20260909002000",
+    "20260909002100",
+    "20260909002200",
+    "20260909002300",
+    "20260909002400",
+    "20260909002500",
+    "20260909002600",
+    "20260909002700",
+    "20260909002800",
+    "20260909002900",
+    "20260910000100",
+    "20260910000200",
+    "20260910000300",
+    "20260910000400",
+    "20260911000100",
+    "20260913000100",
+    "20260914000100",
+    "20260914000200",
+    "20260914000300",
+    "20260914000400",
+    "20260914000500",
+    "20260914000600",
+    "20260914000700",
+    "20260915000100",
+    "20260915000200",
+    "20260915000300",
+    "20260915000400",
+    "20260915000500",
+    "20260915000600",
+    "20260915000700",
+    "20260915000800",
+    "20260915000900",
+    "20260915001000",
+    "20260923000100",
+    "20260923000200",
+    "20260923000300",
+    "20260923000400",
+    "20260924000100",
+    "20260924000200",
+    "20260924000300",
+    "20260924000400",
+    "20260924000500",
+    "20260925000100",
+    "20260925000200",
+    "20260925000300",
+    "20260925000400",
+    "20260925000500",
+    "20260925000600",
+    "20260925000700",
+    "20260926000100",
+    "20260926000200",
+    "20260927000100",
+    "20260927000200",
+    "20260927000300",
+    "20260927000400",
+    "20260927000500",
+    "20260927000600",
+    "20260927000700",
+    "20260927000800",
+    "20260927000900",
+    "20260928000100",
+    "20260928000200",
+    "20260928000300",
+    "20260928000400",
+    "20260928000500",
+    "20260928000600",
+    "20260928000700",
+    "20260928000800",
+    "20261004001000",
+    "20261004001100",
+    "20261004001200",
+    "20261004001300",
+    "20261004001400"
+  ],
+  "functions": [
+    {
+      "signature": "public.ops_record_attendance(uuid,uuid,uuid,uuid,integer,text)",
+      "hash": "a5d0b272dd169efb27d440a73b6ff41add2b1190bdec72f3eb52f61283a1af60",
+      "matches": true
+    },
+    {
+      "signature": "public.ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+      "hash": "448a864693cb0c6cd804eb3870cb6062407e8b8285e8a0ba0ea882cb1e8cd4ee",
+      "matches": true
+    },
+    {
+      "signature": "public.reporting_import_validate(uuid,uuid,date,text,jsonb)",
+      "hash": "e245310209eb1b3caf82994fd1be0e3aaa8500571fa0124ef13d0f61594d9a20",
+      "matches": true
+    },
+    {
+      "signature": "public.reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)",
+      "hash": "284b97b8f4fbe954d54f77fe25305b2b5a432e5e8ac34d826eebc3f58080163c",
+      "matches": true
+    },
+    {
+      "signature": "public.reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)",
+      "hash": "33effa9d287a2d4dfc06b652f98f1d3eebcf4895b3f9a5986f13516f8333d6e4",
+      "matches": true
+    },
+    {
+      "signature": "public.reporting_import_finish(uuid,uuid,uuid,boolean)",
+      "hash": "0b552a2a043f91c3ee90a44192191244498c0b46545df852616957a42befdf52",
+      "matches": true
+    },
+    {
+      "signature": "public.reporting_import_people(uuid,uuid,uuid,text,text[],text)",
+      "hash": "8e287982e737ae63afff34ba5cba872c4831156efc65f907874b578e0008aa30",
+      "matches": true
+    },
+    {
+      "signature": "public.reporting_monthly_report(uuid,uuid,uuid,text,integer)",
+      "hash": "d123886766755a1c414290369d2dada09d3e77ffada6f8fc6e81ce3b70e341c8",
+      "matches": true
+    },
+    {
+      "signature": "public.reporting_work_details(uuid,uuid,uuid,text,uuid,integer)",
+      "hash": "232991bd899a65a6ed93c8a590bc61ffea47f9799af3d9f75a06f40de56b3445",
+      "matches": true
+    },
+    {
+      "signature": "public.talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)",
+      "hash": "1e0014a2c79758316e49dd303af70c272701c7745cdc410fec50db3062a4b04c",
+      "matches": true
+    }
+  ],
+  "preflights": [
+    {
+      "file": "qa/fable03-expiry-notifications-20261004/preflight.sql",
+      "results": [
+        [
+          {
+            "table_name": "contracts",
+            "column_name": "end_date",
+            "data_type": "date"
+          },
+          {
+            "table_name": "documents",
+            "column_name": "validity_date",
+            "data_type": "date"
+          }
+        ],
+        [
+          {
+            "conname": "notification_expiry_date_key",
+            "convalidated": false,
+            "pg_get_constraintdef": "CHECK (((kind <> ALL (ARRAY['contract_expiry'::text, 'document_expiry'::text])) OR (threshold_key ~ '^30d:[0-9]{4}-[0-9]{2}-[0-9]{2}$'::text))) NOT VALID"
+          },
+          {
+            "conname": "notification_log_kind_check",
+            "convalidated": true,
+            "pg_get_constraintdef": "CHECK ((kind = ANY (ARRAY['contract_expiry'::text, 'task_overdue'::text, 'document_expiry'::text, 'appointment_reminder'::text])))"
+          },
+          {
+            "conname": "notification_log_pkey",
+            "convalidated": true,
+            "pg_get_constraintdef": "PRIMARY KEY (kind, entity_id, recipient_profile_id, threshold_key)"
+          },
+          {
+            "conname": "notification_log_recipient_profile_id_fkey",
+            "convalidated": true,
+            "pg_get_constraintdef": "FOREIGN KEY (recipient_profile_id) REFERENCES profiles(id) ON DELETE CASCADE"
+          },
+          {
+            "conname": "notification_log_threshold_key_check",
+            "convalidated": true,
+            "pg_get_constraintdef": "CHECK ((char_length(btrim(threshold_key)) > 0))"
+          }
+        ],
+        []
+      ]
+    },
+    {
+      "file": "qa/fable03-reporting-merge-20261005/preflight.sql",
+      "results": [
+        [
+          {
+            "signature": "reporting_import_finish(uuid,uuid,uuid,boolean)",
+            "body_sha256": "0b552a2a043f91c3ee90a44192191244498c0b46545df852616957a42befdf52",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_import_people(uuid,uuid,uuid,text,text[],text)",
+            "body_sha256": "8e287982e737ae63afff34ba5cba872c4831156efc65f907874b578e0008aa30",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)",
+            "body_sha256": "33effa9d287a2d4dfc06b652f98f1d3eebcf4895b3f9a5986f13516f8333d6e4",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_import_validate(uuid,uuid,date,text,jsonb)",
+            "body_sha256": "e245310209eb1b3caf82994fd1be0e3aaa8500571fa0124ef13d0f61594d9a20",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_monthly_report(uuid,uuid,uuid,text,integer)",
+            "body_sha256": "d123886766755a1c414290369d2dada09d3e77ffada6f8fc6e81ce3b70e341c8",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)",
+            "body_sha256": "284b97b8f4fbe954d54f77fe25305b2b5a432e5e8ac34d826eebc3f58080163c",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_work_details(uuid,uuid,uuid,text,uuid,integer)",
+            "body_sha256": "232991bd899a65a6ed93c8a590bc61ffea47f9799af3d9f75a06f40de56b3445",
+            "owner": "postgres"
+          },
+          {
+            "signature": "talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)",
+            "body_sha256": "1e0014a2c79758316e49dd303af70c272701c7745cdc410fec50db3062a4b04c",
+            "owner": "postgres"
+          }
+        ],
+        [
+          {
+            "unresolved_mappings": "0"
+          }
+        ],
+        [
+          {
+            "historical_collision_groups": "0"
+          }
+        ]
+      ]
+    },
+    {
+      "file": "qa/fable03-start-shifts-20261004/preflight.sql",
+      "results": [
+        [
+          {
+            "signature": "ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+            "body_sha256": "448a864693cb0c6cd804eb3870cb6062407e8b8285e8a0ba0ea882cb1e8cd4ee",
+            "owner": "postgres",
+            "proacl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}"
+          }
+        ],
+        [
+          {
+            "invalid_ranges": "0",
+            "ranges_crossing_midnight": "3"
+          }
+        ]
+      ]
+    }
+  ],
+  "notificationCount": 0
+}

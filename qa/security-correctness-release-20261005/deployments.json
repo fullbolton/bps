@@ -1,0 +1,31 @@
+[
+  {
+    "id": "dpl_AFQdHkkfthXzpvktiv4q98iMCzNi",
+    "state": "READY",
+    "alias": [
+      "www.bpsys.net",
+      "bps-six.vercel.app",
+      "bpsys.net",
+      "bps-furkanyahsi-1537s-projects.vercel.app",
+      "bps-git-main-furkanyahsi-1537s-projects.vercel.app"
+    ],
+    "emailFlagValueVisible": false,
+    "emailFlagPresent": false,
+    "ready": 1790598146643,
+    "error": null
+  },
+  {
+    "id": "dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw",
+    "state": "READY",
+    "alias": [
+      "www.bpsys.net",
+      "bps-six.vercel.app",
+      "bpsys.net",
+      "bps-furkanyahsi-1537s-projects.vercel.app"
+    ],
+    "emailFlagValueVisible": false,
+    "emailFlagPresent": true,
+    "ready": 1791223667694,
+    "error": null
+  }
+]

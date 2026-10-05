@@ -1,0 +1,84 @@
+{
+  "measuredAt": "2026-10-05T18:11:12.474Z",
+  "productionMigrationCount": 129,
+  "productionLast": "20261004001400",
+  "excludedLegacyDraft": "20260722000200",
+  "pendingInOrder": [
+    "20260928000900_tenant_module_foundation.sql",
+    "20260928001000_task_module_gateway.sql",
+    "20260928001100_task_module_direct_write_cutover.sql",
+    "20260928001200_task_module_workflows.sql",
+    "20260928001300_task_module_notifications.sql",
+    "20260928001400_task_company_projection.sql",
+    "20260928001500_preserve_task_relations.sql",
+    "20260928001600_finance_module_access.sql",
+    "20260928001700_customer_module_reads.sql",
+    "20260928001800_company_commands.sql",
+    "20260928001900_contact_module_barrier.sql",
+    "20260928002000_note_module_commands.sql",
+    "20260928002100_company_note_direct_write_cutover.sql",
+    "20260928002200_contact_remaining_commands.sql",
+    "20260928002300_contact_direct_write_cutover.sql",
+    "20260928002400_customer_notification_modules.sql",
+    "20260928002500_notification_candidate_projections.sql",
+    "20260928002600_notification_service_read_cutover.sql",
+    "20260928002700_preserve_customer_history.sql",
+    "20260929000100_preserve_business_history.sql",
+    "20260929000200_module_change_preview.sql",
+    "20260929000300_talent_module_rpc_gates.sql",
+    "20260929000400_operations_module_rpc_gates.sql",
+    "20260929000500_legacy_operations_module_gates.sql",
+    "20260929000600_talent_assignment_projection.sql",
+    "20261004000100_talent_conversation_modules.sql",
+    "20261004000200_talent_linked_name_gate.sql",
+    "20261004000300_reporting_module_gates.sql"
+  ],
+  "moduleExpectedBodyMismatches": [
+    {
+      "signature": "public.ops_record_attendance(uuid,uuid,uuid,uuid,integer,text)",
+      "moduleExpected": "d52c70c2c5b4059db1762a92cd4afca4450a66e1f26c5555401bcc09a82b8a63",
+      "production": "a5d0b272dd169efb27d440a73b6ff41add2b1190bdec72f3eb52f61283a1af60"
+    },
+    {
+      "signature": "public.ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+      "moduleExpected": "78d7ac27f055eb4ed49769c89fce52644f56482c302a6748dc48d479990f4655",
+      "production": "448a864693cb0c6cd804eb3870cb6062407e8b8285e8a0ba0ea882cb1e8cd4ee"
+    },
+    {
+      "signature": "public.talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)",
+      "moduleExpected": "09a605a9136da745cfe92e3b5a76e49cfcc592e371255ecd89a627ac425fc465",
+      "production": "1e0014a2c79758316e49dd303af70c272701c7745cdc410fec50db3062a4b04c"
+    },
+    {
+      "signature": "public.reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)",
+      "moduleExpected": "c961f80a7dd4537add84337d1f8d83d54c5ff3d876c99e92370ebcfbcdd99e6d",
+      "production": "284b97b8f4fbe954d54f77fe25305b2b5a432e5e8ac34d826eebc3f58080163c"
+    },
+    {
+      "signature": "public.reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)",
+      "moduleExpected": "19a94edfee092bc88b37a846be74704eae60eeee4de03c150cea781c4630b31b",
+      "production": "33effa9d287a2d4dfc06b652f98f1d3eebcf4895b3f9a5986f13516f8333d6e4"
+    },
+    {
+      "signature": "public.reporting_import_finish(uuid,uuid,uuid,boolean)",
+      "moduleExpected": "70d451f454801363318ecedd05f07a13605aaec3de28028bb8fb46b136e8d804",
+      "production": "0b552a2a043f91c3ee90a44192191244498c0b46545df852616957a42befdf52"
+    },
+    {
+      "signature": "public.reporting_import_people(uuid,uuid,uuid,text,text[],text)",
+      "moduleExpected": "fa58742e9ecae413b12e35505556405f0a97ff9e0e64fafe1959c60a380625fa",
+      "production": "8e287982e737ae63afff34ba5cba872c4831156efc65f907874b578e0008aa30"
+    },
+    {
+      "signature": "public.reporting_monthly_report(uuid,uuid,uuid,text,integer)",
+      "moduleExpected": "df9b67e0c79f96694768a95fb60fe9af933ea27bd61045e7211e216d9cb494f2",
+      "production": "d123886766755a1c414290369d2dada09d3e77ffada6f8fc6e81ce3b70e341c8"
+    },
+    {
+      "signature": "public.reporting_work_details(uuid,uuid,uuid,text,uuid,integer)",
+      "moduleExpected": "73cfd0689798792f30534d1bae71ba0302380a0b5b75edaf90aaac3db7def748",
+      "production": "232991bd899a65a6ed93c8a590bc61ffea47f9799af3d9f75a06f40de56b3445"
+    }
+  ],
+  "releaseGate": "Do not apply unchanged module migrations. Rebuild nine expected bodies against released hotfixes; re-version unapplied module migrations after 20261004001400, test full chain and authenticated acceptance. Preserve applied hotfix history."
+}

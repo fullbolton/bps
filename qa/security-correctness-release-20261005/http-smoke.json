@@ -1,0 +1,29 @@
+[
+  {
+    "route": "/login",
+    "status": 200
+  },
+  {
+    "route": "/talepler/ise-baslama",
+    "status": 307
+  },
+  {
+    "route": "/personel-havuzu",
+    "status": 307
+  },
+  {
+    "route": "/projeler",
+    "status": 307
+  },
+  {
+    "route": "/api/cron/notifications",
+    "status": 401
+  },
+  {
+    "authenticatedCron": {
+      "ok": true,
+      "skipped": true,
+      "reason": "BPS_NOTIFICATION_EMAILS_ENABLED is not 'true'"
+    }
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "recordedAt": "2026-10-05T18:12:42.387983+00:00",
+  "project": "dffdzbmnmnokbftbujsy",
+  "codeCommit": "dcc8065154fd7386b2ce0991175c932f5f97c704",
+  "deploymentId": "dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw",
+  "deploymentUrl": "https://bps-p628j7jrc-furkanyahsi-1537s-projects.vercel.app",
+  "production": "https://www.bpsys.net",
+  "migrationSource": "codex/fable03-security-20261004",
+  "migrations": [
+    {
+      "file": "20261004001000_demo_and_critical_date_boundaries.sql",
+      "sha256": "b5b6c2ddebeb56ab16973ca20520fe2d853e25225578a872a489a3809a8f34c8"
+    },
+    {
+      "file": "20261004001100_attendance_lifecycle_guard.sql",
+      "sha256": "b6423559d51738f1c78d059cae25b5b0f4d4d93b4c4fe3768e7cc36b72170b51"
+    },
+    {
+      "file": "20261004001200_expiry_notification_date_keys.sql",
+      "sha256": "e7306c66b75a6b3b0053ebfadb68b3b662a227b78c02a60b6460466810828c5b"
+    },
+    {
+      "file": "20261004001300_start_confirmation_shift_window.sql",
+      "sha256": "9fbf8c09b068db89366218bb08610d400b563f1480063260732e996bde85cf63"
+    },
+    {
+      "file": "20261004001400_reporting_canonical_people.sql",
+      "sha256": "3f68989d459919e560978f513bc5fc2120cc4484407f59ca64690969e7ee9825"
+    }
+  ],
+  "notificationEmailsEnabled": false,
+  "moduleDeployment": false
+}
