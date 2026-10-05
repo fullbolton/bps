@@ -1,0 +1,41 @@
+✔ removed and cancelled assignments reject every new attendance state without receipts (86.927875ms)
+✔ active attendance works; retry of accepted command after removal returns receipt without new event (3.041791ms)
+✔ non-overlapping shifts remain allowed and overlap still rejects (2.461417ms)
+✔ waiting stale screen observes committed removal after acquiring request lock (19.118583ms)
+✔ legacy stamps are retained and copied only to matching tenant and non-null current expiry (70.024792ms)
+✔ current date deduplicates; renewal admits one new reservation; exact rollback preserves historical stamp (1.95925ms)
+✔ old worker reservations fail while unrelated notification kinds keep their keys (0.53525ms)
+✔ tenant managers cannot read leads, including with an extra broad permissive policy (73.310792ms)
+✔ platform admin can read global leads without tenant membership but cannot mutate from browser (2.330667ms)
+✔ anonymous access is closed; service intake remains possible (1.231292ms)
+✔ manager inserts own tenant with own author, rejects foreign tenant and forged author (2.327334ms)
+✔ same-tenant manager edits another author record without claiming authorship (3.391791ms)
+✔ unfiltered manager delete stays inside active tenant even with broad permissive grants (2.783917ms)
+✔ A manager selected into B as operator cannot write even with permissive policy (2.910917ms)
+✔ unknown tenant claim exposes no deadlines and cannot insert (1.894833ms)
+✔ legacy null creator can be edited but cannot be rewritten as a different author (3.533667ms)
+✔ merged code resolves to primary; historical source identity accepts corrections without rewriting history (96.631875ms)
+✔ canonical duplicate through another code/source row is rejected (1.248333ms)
+✔ same canonical mapping is idempotent while used code cannot move to another person or tenant (4.468209ms)
+✔ mapping list, detail names and monthly distinct people agree; minutes stay intact (6.35475ms)
+✔ preview prepared before a merge cannot silently approve a changed identity (2.951167ms)
+✔ merge fails promptly while reporting holds its shared fence (8.439667ms)
+✔ waiting import sees committed merge identity after acquiring the fence (20.04675ms)
+✔ multi-hop merge resolves historical records to the final primary (1.301792ms)
+✔ existing source row cannot be changed to a genuinely different identity (1.170417ms)
+✔ tenant scope rejects cross-workspace reads and writes (1.783416ms)
+✔ two separate shifts and adjacent shifts can both be confirmed on the same date (78.4455ms)
+✔ overnight confirmation and extra call work after midnight until the exclusive shift end (2.723125ms)
+✔ manual call after midnight remains available for a night shift (1.617959ms)
+✔ end boundary, earlier date, future timestamps, absent and overlapping attendance stay rejected (7.437458ms)
+✔ early arrival on work date and legacy full-day assignments remain supported (2.921625ms)
+✔ closed assignment rejects new command but accepted retry remains idempotent (2.621458ms)
+✔ concurrent confirmation observes an overlapping committed attendance after the worker lock (19.703959ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 868.088041

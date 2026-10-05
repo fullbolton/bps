@@ -1,0 +1,29 @@
+✔ removed and cancelled assignments reject every new attendance state without receipts (113.653916ms)
+✔ active attendance works; retry of accepted command after removal returns receipt without new event (3.730625ms)
+✔ non-overlapping shifts remain allowed and overlap still rejects (4.27375ms)
+✔ waiting stale screen observes committed removal after acquiring request lock (17.232416ms)
+✔ merged code resolves to primary; historical source identity accepts corrections without rewriting history (122.5635ms)
+✔ canonical duplicate through another code/source row is rejected (1.500041ms)
+✔ same canonical mapping is idempotent while used code cannot move to another person or tenant (6.004084ms)
+✔ mapping list, detail names and monthly distinct people agree; minutes stay intact (7.83825ms)
+✔ preview prepared before a merge cannot silently approve a changed identity (4.550709ms)
+✔ merge fails promptly while reporting holds its shared fence (10.611125ms)
+✔ waiting import sees committed merge identity after acquiring the fence (19.495ms)
+✔ multi-hop merge resolves historical records to the final primary (1.399792ms)
+✔ existing source row cannot be changed to a genuinely different identity (0.924917ms)
+✔ tenant scope rejects cross-workspace reads and writes (1.375833ms)
+✔ two separate shifts and adjacent shifts can both be confirmed on the same date (86.257ms)
+✔ overnight confirmation and extra call work after midnight until the exclusive shift end (3.0235ms)
+✔ manual call after midnight remains available for a night shift (2.396ms)
+✔ end boundary, earlier date, future timestamps, absent and overlapping attendance stay rejected (10.918083ms)
+✔ early arrival on work date and legacy full-day assignments remain supported (3.092583ms)
+✔ closed assignment rejects new command but accepted retry remains idempotent (3.609834ms)
+✔ concurrent confirmation observes an overlapping committed attendance after the worker lock (18.423ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 717.663875

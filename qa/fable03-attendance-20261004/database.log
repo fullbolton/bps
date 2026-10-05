@@ -1,0 +1,21 @@
+✔ removed and cancelled assignments reject every new attendance state without receipts (231.459916ms)
+✔ active attendance works; retry of accepted command after removal returns receipt without new event (7.973667ms)
+✔ non-overlapping shifts remain allowed and overlap still rejects (7.468416ms)
+✔ waiting stale screen observes committed removal after acquiring request lock (26.690417ms)
+✔ tenant managers cannot read leads, including with an extra broad permissive policy (144.752ms)
+✔ platform admin can read global leads without tenant membership but cannot mutate from browser (6.345375ms)
+✔ anonymous access is closed; service intake remains possible (3.086208ms)
+✔ manager inserts own tenant with own author, rejects foreign tenant and forged author (8.551375ms)
+✔ same-tenant manager edits another author record without claiming authorship (13.451042ms)
+✔ unfiltered manager delete stays inside active tenant even with broad permissive grants (7.099375ms)
+✔ A manager selected into B as operator cannot write even with permissive policy (9.303417ms)
+✔ unknown tenant claim exposes no deadlines and cannot insert (4.88425ms)
+✔ legacy null creator can be edited but cannot be rewritten as a different author (9.363625ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 692.9365

@@ -40,7 +40,7 @@ import type { Database } from "@/types/database.types";
 import {
   NOTIFICATION_LABELS,
   NOTIFICATION_RECIPIENTS,
-  NOTIFICATION_THRESHOLDS,
+  notificationThresholdKey,
   NOTIFICATION_WINDOW_DAYS,
   isIsoDate,
   TASK_READABLE_ROLES,
@@ -82,6 +82,7 @@ interface Item {
   line: string;
   /** Sıralama anahtarı — en acil üstte. */
   sortKey: string;
+  expiryDate?: string | null;
 }
 
 function addDays(iso: string, days: number): string {
@@ -273,6 +274,7 @@ async function collectDocumentExpiry(
         tenantId: d.tenant_id,
         line,
         sortKey: d.validity_date ?? "9999-12-31",
+        expiryDate: d.validity_date,
       });
     }
   }
@@ -408,7 +410,6 @@ async function sendGrouped(
   scope: TenantScope,
   result: KindRunResult,
 ): Promise<void> {
-  const thresholdKey = NOTIFICATION_THRESHOLDS[kind];
 
   for (const { recipient, items } of byRecipient.values()) {
     // 0. TENANT KAPSAMI — alıcının üye OLMADIĞI tenant'ın kalemleri düşer.
@@ -432,7 +433,7 @@ async function sendGrouped(
         kind,
         entityId: item.entityId,
         recipientProfileId: recipient.id,
-        thresholdKey,
+        thresholdKey: notificationThresholdKey(kind, item.expiryDate),
         tenantId: item.tenantId,
       };
       const outcome = await stampNotification(client, key);
@@ -456,7 +457,7 @@ async function sendGrouped(
     catch { result.errors.push('notification modules unavailable before send; no email sent'); }
     const eligibleIds = new Set(eligible.map(item => item.entityId));
     for (const item of stamped.filter(item => !eligibleIds.has(item.entityId))) {
-      const rollback = await rollbackStamp(client, {kind, entityId: item.entityId, recipientProfileId: recipient.id, thresholdKey, tenantId: item.tenantId});
+      const rollback = await rollbackStamp(client, {kind, entityId: item.entityId, recipientProfileId: recipient.id, thresholdKey: notificationThresholdKey(kind, item.expiryDate), tenantId: item.tenantId});
       if (!rollback.ok) result.errors.push(`ROLLBACK FAILED (notification module/${item.entityId}/${recipient.id}): ${rollback.error ?? 'unknown'}`);
     }
     stamped = eligible;
@@ -491,7 +492,7 @@ async function sendGrouped(
         kind,
         entityId: item.entityId,
         recipientProfileId: recipient.id,
-        thresholdKey,
+        thresholdKey: notificationThresholdKey(kind, item.expiryDate),
         tenantId: item.tenantId,
       });
       if (!rb.ok) {

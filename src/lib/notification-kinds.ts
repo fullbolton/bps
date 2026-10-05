@@ -12,6 +12,7 @@
  * için hiçbir şey tanımlamaz; onlar A aşamasının ayrı kararı.
  */
 
+import { isIsoDate as validCalendarDate } from "./calendar-date";
 import type { UserRole } from "@/context/AuthContext";
 
 /** DB'deki `notification_log.kind` CHECK listesiyle birebir aynı olmalı. */
@@ -41,6 +42,14 @@ export const NOTIFICATION_THRESHOLDS: Record<NotificationKind, string> = {
   // Ziyaretten bir gün önce.
   appointment_reminder: "1d",
 };
+
+/** Renewal notices are scoped to the exact expiry date, not the row's lifetime. */
+export function notificationThresholdKey(kind: NotificationKind, expiryDate?: string | null): string {
+  const base = NOTIFICATION_THRESHOLDS[kind];
+  if (kind !== "contract_expiry" && kind !== "document_expiry") return base;
+  if (!validCalendarDate(expiryDate)) throw new Error("NOTIFICATION_EXPIRY_DATE_INVALID");
+  return `${base}:${expiryDate}`;
+}
 
 /** Gün cinsinden pencere. `task_overdue` için pencere yok (durum bazlı). */
 export const NOTIFICATION_WINDOW_DAYS: Record<NotificationKind, number | null> = {

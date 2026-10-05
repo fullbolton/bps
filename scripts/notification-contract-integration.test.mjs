@@ -85,3 +85,8 @@ for(const broken of [false,true])test(`contract closure after stamp releases res
  const sent=[],f=fixture({small:true,afterStamp:states=>{states.A=false;},rollbackFailure:broken});const result=await runner(sent)(f.client,new Date('2026-09-15T09:00:00Z'));
  assert.equal(sent.length,0);assert.equal(f.stamps.length,1);assert.deepEqual(f.deletes,['notification_log']);assert.equal(result.errors.some(e=>e.includes('ROLLBACK FAILED')),broken);
 });
+
+test('contract batch reserves the actual expiry date and renewal changes its key',async()=>{
+ const sent=[],f=fixture({small:true});await runner(sent)(f.client,new Date('2026-09-20T09:00:00Z'));assert.equal(f.stamps[0].threshold_key,'30d:2026-10-15');
+ f.tables.contracts[0].end_date='2027-10-15';await runner(sent)(f.client,new Date('2027-09-20T09:00:00Z'));assert.equal(f.stamps.at(-1).threshold_key,'30d:2027-10-15');
+});

@@ -588,5 +588,25 @@
   {
     "file": "scripts/reporting-module-gates.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/fable03-security-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/attendance-lifecycle-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/expiry-notification-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/start-shift-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/reporting-merge-db.test.mjs",
+    "suite": "database"
   }
 ]

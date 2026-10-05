@@ -10,7 +10,7 @@ import {readTenantRoleDirectory,tenantCompanyRecipients,sameRecipientMembership,
  * Idempotency state moved to `notification_log` (2026-08-27) — the old
  * `contract_expiry_emails_sent` table is retired and its rows were backfilled
  * by `20260827000200`. The key is the same triple, generalised with a kind:
- * (kind='contract_expiry', entity_id=contract, recipient, threshold_key='30d')
+ * (kind='contract_expiry', entity_id=contract, recipient, threshold_key='30d:YYYY-MM-DD')
  * is sent at most once. The write order is unchanged: STAMP FIRST, SEND
  * SECOND, roll the stamp back if the send fails.
  *
@@ -47,7 +47,7 @@ import { readExpiryContracts, type ExpiryContract } from "./contract-candidates"
 import { sendEmail } from "./resend-transport";
 import { stampNotification, rollbackStamp } from "./notification-log";
 import {
-  NOTIFICATION_THRESHOLDS,
+  notificationThresholdKey,
   NOTIFICATION_RECIPIENTS,
 } from "@/lib/notification-kinds";
 import { loadTenantScope } from "./notification-recipients";
@@ -61,12 +61,9 @@ type AdminClient = SupabaseClient<Database>;
  * in `src/lib/services/contracts.ts` and the `<= 30` ternaries in the
  * Sözleşmeler list, Firma Detay, and Raporlar views.
  *
- * Changing this value no longer touches a CHECK constraint: the retired
- * `contract_expiry_emails_sent` pinned it with `CHECK (threshold_days = 30)`,
- * but `notification_log` stores a free-form `threshold_key` and constrains
- * only `kind`. What DOES matter is that `threshold_key` is part of the
- * idempotency primary key — changing `NOTIFICATION_THRESHOLDS.contract_expiry`
- * makes every past send look unsent and re-mails it. Change deliberately.
+ * Renewal reservations use 30d:YYYY-MM-DD. The date is the contract's
+ * actual end_date; the database constraint and migration must be updated
+ * together if the threshold prefix changes.
  */
 export const CONTRACT_EXPIRY_THRESHOLD_DAYS = 30;
 
@@ -230,7 +227,7 @@ export async function runContractExpiryRecallBatch(
         kind: "contract_expiry" as const,
         entityId: c.contract.id,
         recipientProfileId: recipient.id,
-        thresholdKey: NOTIFICATION_THRESHOLDS.contract_expiry,
+        thresholdKey: notificationThresholdKey("contract_expiry", c.contract.end_date),
         tenantId: c.contract.tenant_id,
       };
       try {
