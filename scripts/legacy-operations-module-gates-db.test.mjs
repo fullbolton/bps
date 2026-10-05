@@ -16,8 +16,8 @@ before(async()=>{
  for(const name of names)await db.query(`CREATE TABLE public.${name}(id uuid,tenant_id uuid NOT NULL,company_id uuid,name text,city text,code text,kind text,active boolean,revision integer,directory_revision integer)`);
  await db.query('GRANT SELECT ON companies TO authenticated');
  for(const table of tables)await db.query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;GRANT SELECT ON ${table} TO authenticated;CREATE POLICY old_scope ON ${table} FOR SELECT TO authenticated USING(tenant_id=public.current_user_verified_tenant() AND public.current_user_role() IN ('yonetici','operasyon'));INSERT INTO ${table}(id,tenant_id,name,active) VALUES('${id(50)}','${id(1)}','A',true),('${id(51)}','${id(2)}','B',true)`);
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- for(const name of ['workspace_require_module_write_v1','workspace_module_enabled_v1'])await db.query(source(name,'20260928001000_task_module_gateway.sql','read').declaration);
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ for(const name of ['workspace_require_module_write_v1','workspace_module_enabled_v1'])await db.query(source(name,'20261005000200_task_module_gateway.sql','read').declaration);
  await db.query('REVOKE ALL ON FUNCTION workspace_require_module_write_v1(uuid,text[]) FROM PUBLIC,anon,authenticated,service_role;GRANT EXECUTE ON FUNCTION workspace_module_enabled_v1(text) TO authenticated');
  for(const e of entries){await db.query(e.baseDeclaration);await db.query(`REVOKE ALL ON FUNCTION ${e.signature} FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION ${e.signature} TO authenticated`);}
  await db.query(historicalOperationsSql(entries.map(e=>e.signature)));await db.query(render());

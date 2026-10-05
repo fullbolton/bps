@@ -15,9 +15,9 @@ const tables={talent_attachments:'ready boolean,cleaned boolean',tasks:'status t
 before(async()=>{
  admin=new Client({connectionString:url.href});await admin.connect();await admin.query(`CREATE DATABASE ${dbName}`);created=true;
  const target=new URL(url);target.pathname='/'+dbName;db=new Client({connectionString:target.href,query_timeout:10000});await db.connect();
- await db.query(fixture+active+verified+workspace);await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
+ await db.query(fixture+active+verified+workspace);await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
  for(const [name,columns] of Object.entries(tables))await db.query(`CREATE TABLE public.${name}(tenant_id uuid NOT NULL,${columns})`);
- await db.query(sqlFile('20260929000200_module_change_preview.sql'));
+ await db.query(sqlFile('20261005002100_module_change_preview.sql'));
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${dbName} WITH(FORCE)`);await admin.end();}});
 async function run(fn){await db.query('BEGIN');try{return await fn();}finally{await db.query('ROLLBACK');}}

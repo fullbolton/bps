@@ -15,9 +15,9 @@ before(async()=>{
  admin=new Client({connectionString:root.href});await admin.connect();await admin.query(`CREATE DATABASE ${name}`);created=true;
  db=new Client({connectionString:url.href});await db.connect();await db.query(fixture+active+verified+workspace);
  await db.query(`CREATE TABLE companies(id uuid PRIMARY KEY,tenant_id uuid REFERENCES tenants(id),name text,secret text);INSERT INTO companies VALUES('${id(101)}','${id(1)}','Synthetic A','SECRET'),('${id(102)}','${id(2)}','Synthetic B','SECRET');`);
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- const snapshot=sqlFile('20260928001300_task_module_notifications.sql');await db.query(snapshot.slice(snapshot.indexOf('CREATE FUNCTION public.workspace_module_snapshot_v1'),snapshot.indexOf('CREATE FUNCTION public.task_notification_modules_v1')));
- await db.query(sqlFile('20260928002400_customer_notification_modules.sql'));
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ const snapshot=sqlFile('20261005000500_task_module_notifications.sql');await db.query(snapshot.slice(snapshot.indexOf('CREATE FUNCTION public.workspace_module_snapshot_v1'),snapshot.indexOf('CREATE FUNCTION public.task_notification_modules_v1')));
+ await db.query(sqlFile('20261005001600_customer_notification_modules.sql'));
  await db.query(`
  CREATE TABLE contracts(id uuid PRIMARY KEY,tenant_id uuid,company_id uuid,name text,status text,end_date date,responsible text);
  CREATE TABLE appointments(id uuid PRIMARY KEY,tenant_id uuid,company_id uuid,meeting_type text,attendee text,meeting_date date,status text);
@@ -26,9 +26,9 @@ before(async()=>{
  INSERT INTO appointments VALUES('${id(301)}','${id(1)}','${id(101)}','ziyaret',NULL,'2026-10-01','planlandi'),('${id(302)}','${id(2)}','${id(102)}','ziyaret',NULL,'2026-10-01','planlandi'),('${id(303)}','${id(1)}','${id(101)}','ziyaret',NULL,'2026-10-01','iptal');
  INSERT INTO documents VALUES('${id(401)}','${id(1)}','${id(101)}',NULL,'Company A','2026-10-01'),('${id(402)}','${id(1)}','${id(101)}','${id(201)}','Contract doc A','2026-10-01'),('${id(403)}','${id(2)}','${id(102)}',NULL,'Company B','2026-10-01'),('${id(404)}','${id(1)}','${id(101)}',NULL,'No expiry',NULL);
  `);
- await db.query(sqlFile('20260928002500_notification_candidate_projections.sql'));
+ await db.query(sqlFile('20261005001700_notification_candidate_projections.sql'));
  await db.query('CREATE TABLE contacts(id uuid); CREATE TABLE notes(id uuid); GRANT SELECT ON companies,contacts,notes,contracts,appointments,documents TO service_role');
- await db.query(sqlFile('20260928002600_notification_service_read_cutover.sql'));
+ await db.query(sqlFile('20261005001800_notification_service_read_cutover.sql'));
 
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${name} WITH(FORCE)`);await admin.end();}});
@@ -95,5 +95,5 @@ test('service raw SELECT is denied after cutover while all notification projecti
  await rollback(async()=>{await db.query('SET LOCAL ROLE service_role');assert.equal((await names()).rowCount,1);assert.equal((await candidates.appointments()).rowCount,2);assert.equal((await candidates.contracts()).rowCount,2);assert.equal((await candidates.documents()).rowCount,3);assert.equal((await documentState()).rowCount,2);});
 });
 test('service read cutover rejects inherited column access instead of claiming closure',async()=>{
- await rollback(async()=>{await db.query(`CREATE ROLE notification_read_${process.pid}; GRANT SELECT(name) ON companies TO notification_read_${process.pid}; GRANT notification_read_${process.pid} TO service_role`);await assert.rejects(db.query(sqlFile('20260928002600_notification_service_read_cutover.sql').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'')),/NOTIFICATION_READ_PRIVILEGE_DRIFT/);});
+ await rollback(async()=>{await db.query(`CREATE ROLE notification_read_${process.pid}; GRANT SELECT(name) ON companies TO notification_read_${process.pid}; GRANT notification_read_${process.pid} TO service_role`);await assert.rejects(db.query(sqlFile('20261005001800_notification_service_read_cutover.sql').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'')),/NOTIFICATION_READ_PRIVILEGE_DRIFT/);});
 });

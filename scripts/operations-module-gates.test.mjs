@@ -16,3 +16,19 @@ for(const [path,fn] of [['services/daily-operations','pilotError'],['operations/
  assert.match(mod[fn]({code:'55000',message:'MODULE_CONFIG_MISSING'}),/ayarları doğrulanamadı/);
  assert.doesNotMatch(mod[fn](new Error('fetch failed')),/modül.*kapalı/);
 });
+
+test('all nine module baselines match the measured production hotfix hashes',async()=>{
+ const {entries:talent}=await import('./talent-module-gates.mjs');const {entries:reporting}=await import('./reporting-module-gates.mjs');
+ const measured=JSON.parse(readFileSync(new URL('../qa/security-correctness-release-20261005/after.json',import.meta.url),'utf8'));
+ const expected=new Map(measured.functions.map(e=>[e.signature,e.hash]));const changed=[...entries,...talent,...reporting].filter(e=>e.preHotfixBody);
+ assert.equal(changed.length,9);for(const e of changed)assert.equal(e.hash,expected.get(e.signature),e.signature);
+});
+test('released hotfix replay rejects an unreviewed predecessor',async()=>{
+ const {withReleasedHotfix}=await import('./helpers/released-hotfix-history.mjs');const e=entries.find(e=>e.preHotfixBody);
+ assert.throws(()=>withReleasedHotfix({...e,body:e.preHotfixBody+'\n-- unknown change'}),/baseline drift/);
+});
+test('all pending module versions follow the applied security release',()=>{
+ const mapping=JSON.parse(readFileSync(new URL('../qa/module-hotfix-first-20261005/migration-renumbering.json',import.meta.url),'utf8'));
+ const names=Object.values(mapping);assert.equal(names.length,28);assert.equal(new Set(names.map(n=>n.slice(0,14))).size,28);
+ for(const n of names){assert.ok(n.slice(0,14)>'20261004001400');assert.ok(readFileSync(new URL('../supabase/migrations/'+n,import.meta.url),'utf8').length>0);}
+});

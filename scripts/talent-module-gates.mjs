@@ -1,3 +1,4 @@
+import {withReleasedHotfix} from './helpers/released-hotfix-history.mjs';
 // Explicit endpoint manifest. Source extraction is deliberately bounded, not a SQL parser.
 // Catalog/body drift makes the generated migration fail before changing any endpoint.
 import {readFileSync,writeFileSync} from 'node:fs';
@@ -55,8 +56,8 @@ export function source(name,file,mode){
  const guard=args.length<2?'':`\n PERFORM public.talent_assert_scope(${args[0][0]},${args[1][0]});\n PERFORM public.workspace_require_module_${mode}_v1(${args[1][0]},ARRAY[${modules.map(k=>"'"+k+"'").join(',')}]);\n`;
  return {name,file,mode,signature,body,guard,anchor:body.match(/\nBEGIN(?:\n| )/)[0],hash:createHash('sha256').update(body).digest('hex'),declaration:sql.slice(m.index,end+m[3].length)+';'};
 }
-export const entries=targets.map(t=>source(...t));
-export const migrationUrl=new URL('../supabase/migrations/20260929000300_talent_module_rpc_gates.sql',import.meta.url);
+export const entries=targets.map(t=>withReleasedHotfix(source(...t)));
+export const migrationUrl=new URL('../supabase/migrations/20261005002200_talent_module_rpc_gates.sql',import.meta.url);
 const quote=s=>"'"+s.replaceAll("'","''")+"'";
 // Cancellation superseded the original SQL helper. Preserve its row lock and tombstone checks.
 export const attachmentSource=source('talent_attachment_access','20260923000300_talent_attachment_cancellation.sql','read');

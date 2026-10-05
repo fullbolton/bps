@@ -1,0 +1,29 @@
+✔ removed and cancelled assignments reject every new attendance state without receipts (387.831084ms)
+✔ active attendance works; retry of accepted command after removal returns receipt without new event (14.507916ms)
+✔ non-overlapping shifts remain allowed and overlap still rejects (14.46725ms)
+✔ waiting stale screen observes committed removal after acquiring request lock (58.829708ms)
+✔ merged code resolves to primary; historical source identity accepts corrections without rewriting history (528.745667ms)
+✔ canonical duplicate through another code/source row is rejected (6.553875ms)
+✔ same canonical mapping is idempotent while used code cannot move to another person or tenant (28.640916ms)
+✔ mapping list, detail names and monthly distinct people agree; minutes stay intact (34.687084ms)
+✔ preview prepared before a merge cannot silently approve a changed identity (14.444958ms)
+✔ merge fails promptly while reporting holds its shared fence (43.644584ms)
+✔ waiting import sees committed merge identity after acquiring the fence (67.02ms)
+✔ multi-hop merge resolves historical records to the final primary (3.873375ms)
+✔ existing source row cannot be changed to a genuinely different identity (4.754042ms)
+✔ tenant scope rejects cross-workspace reads and writes (4.756458ms)
+✔ two separate shifts and adjacent shifts can both be confirmed on the same date (387.229875ms)
+✔ overnight confirmation and extra call work after midnight until the exclusive shift end (18.633917ms)
+✔ manual call after midnight remains available for a night shift (21.866125ms)
+✔ end boundary, earlier date, future timestamps, absent and overlapping attendance stay rejected (99.395084ms)
+✔ early arrival on work date and legacy full-day assignments remain supported (53.117542ms)
+✔ closed assignment rejects new command but accepted retry remains idempotent (94.902042ms)
+✔ concurrent confirmation observes an overlapping committed attendance after the worker lock (65.92325ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3278.0665

@@ -19,15 +19,16 @@ before(async()=>{
  names.add('ops_daily_requests');names.add('ops_idp_context');
  for(const name of names)if(name!=='profiles')await db.query(`CREATE TABLE public.${name}(id uuid,tenant_id uuid,actor_id uuid,request_id uuid,original_name text,revision integer)`);
  await db.query(source('talent_assert_scope','20260914000200_talent_people.sql','read').declaration);
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- await db.query(source('workspace_require_module_write_v1','20260928001000_task_module_gateway.sql','write').declaration);
- await db.query(source('workspace_require_module_read_v1','20260929000300_talent_module_rpc_gates.sql','read').declaration);
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ await db.query(source('workspace_require_module_write_v1','20261005000200_task_module_gateway.sql','write').declaration);
+ await db.query(source('workspace_require_module_read_v1','20261005002200_talent_module_rpc_gates.sql','read').declaration);
  await db.query('REVOKE ALL ON FUNCTION workspace_require_module_write_v1(uuid,text[]),workspace_require_module_read_v1(uuid,text[]) FROM PUBLIC,anon,authenticated,service_role');
  for(const e of entries){await db.query(e.baseDeclaration);await db.query(`REVOKE ALL ON FUNCTION ${e.signature} FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION ${e.signature} TO authenticated`);}
  await db.query(source('ops_comment_context','20260910000200_request_conversation.sql','read').declaration);
  await db.query('REVOKE ALL ON FUNCTION ops_comment_context(uuid,uuid) FROM PUBLIC,anon,authenticated,service_role');
  await db.query('CREATE TABLE ops_message_notifications(tenant_id uuid,recipient_id uuid,message_id uuid,read_at timestamptz)');
  await db.query(historicalOperationsSql(entries.map(e=>e.signature)));
+ for(const e of entries.filter(e=>e.preHotfixBody)){const row=(await db.query('SELECT prosrc,pg_get_functiondef(oid) def FROM pg_proc WHERE oid=$1::regprocedure',[e.signature])).rows[0];assert.equal(row.prosrc,e.preHotfixBody);await db.query(row.def.replace(row.prosrc,()=>e.body));}
  await db.query(render());
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${dbName} WITH(FORCE)`);await admin.end();}});

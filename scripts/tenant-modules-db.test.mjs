@@ -9,7 +9,7 @@ const dbName=`bps_module_acceptance_${process.pid}_${Date.now()}`;
 let admin,db,created=false;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 import {sqlFile,fixture,active,verified,workspace} from './fixtures/module-database.mjs';
-const migration=sqlFile('20260928000900_tenant_module_foundation.sql');
+const migration=sqlFile('20261005000100_tenant_module_foundation.sql');
 async function claims(client,actor=11,tenant=1,extra={}){
  await client.query("SELECT set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(actor),active_tenant_id:id(tenant),...extra})]);
 }

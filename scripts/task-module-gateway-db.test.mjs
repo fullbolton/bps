@@ -71,12 +71,12 @@ before(async()=>{
  CREATE TABLE documents(id uuid,tenant_id uuid,company_id uuid,contract_id uuid,storage_path text,name text);
  `);
  await db.query(sqlFile('20260913000100_company_document_activity.sql'));
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- await db.query(sqlFile('20260928001000_task_module_gateway.sql'));
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ await db.query(sqlFile('20261005000200_task_module_gateway.sql'));
  assert.equal((await db.query("SELECT has_table_privilege('authenticated','tasks','INSERT,UPDATE') allowed")).rows[0].allowed,true);
- await db.query(sqlFile('20260928001100_task_module_direct_write_cutover.sql'));
- await db.query(sqlFile('20260928001200_task_module_workflows.sql'));
- await db.query(sqlFile('20260928001300_task_module_notifications.sql'));
+ await db.query(sqlFile('20261005000300_task_module_direct_write_cutover.sql'));
+ await db.query(sqlFile('20261005000400_task_module_workflows.sql'));
+ await db.query(sqlFile('20261005000500_task_module_notifications.sql'));
 
  // Effective task parent keys from 20260915000600 + 20260928000600, without unrelated tables.
  await db.query(`
@@ -91,8 +91,8 @@ before(async()=>{
  CREATE POLICY company_fixture_read ON companies FOR SELECT TO authenticated USING(tenant_id=current_user_verified_tenant());
  GRANT SELECT ON companies TO authenticated;
  `);
- await db.query(sqlFile('20260928001400_task_company_projection.sql'));
- await db.query(sqlFile('20260928001500_preserve_task_relations.sql'));
+ await db.query(sqlFile('20261005000600_task_company_projection.sql'));
+ await db.query(sqlFile('20261005000700_preserve_task_relations.sql'));
  console.log('Task gateway synthetic PostgreSQL:',(await db.query('SHOW server_version')).rows[0].server_version);
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${name} WITH (FORCE)`);await admin.end();}});
@@ -192,13 +192,13 @@ test('repeatable-read writes are refused rather than using a stale post-lock sna
 
 test('contract removes an explicit column-level write grant as well as table grants',()=>rollback(async()=>{
  await db.query('GRANT UPDATE(title) ON tasks TO authenticated');
- await db.query(body(sqlFile('20260928001100_task_module_direct_write_cutover.sql')));
+ await db.query(body(sqlFile('20261005000300_task_module_direct_write_cutover.sql')));
  assert.equal((await db.query("SELECT has_any_column_privilege('authenticated','tasks','INSERT,UPDATE') allowed")).rows[0].allowed,false);
 }));
 test('inherited write privilege drift aborts contract migration instead of leaving a bypass',()=>rollback(async()=>{
  const group='bps_task_legacy_'+process.pid;
  await db.query(`CREATE ROLE ${group};GRANT UPDATE ON tasks TO ${group};GRANT ${group} TO authenticated`);
- await assert.rejects(db.query(body(sqlFile('20260928001100_task_module_direct_write_cutover.sql'))),e=>e.message.includes('TASK_DIRECT_WRITE_GRANT_REMAINS'));
+ await assert.rejects(db.query(body(sqlFile('20261005000300_task_module_direct_write_cutover.sql'))),e=>e.message.includes('TASK_DIRECT_WRITE_GRANT_REMAINS'));
 }));
 
 const transfer=(c,task,command=id(500))=>c.query('SELECT transfer_tasks_scoped($1,$2,$3,$1,$4,$5) result',[id(11),id(1),command,id(21),JSON.stringify([{id:task.id,revision:Number(task.revision)}])]);
@@ -315,7 +315,7 @@ test('shared configuration validator preserves scope, completeness and dependenc
 });
 
 test('workflow patch aborts on unexpected function definition rather than silently skipping a guard',()=>rollback(async()=>{
- await assert.rejects(db.query(body(sqlFile('20260928001200_task_module_workflows.sql'))),e=>e.message.includes('MODULE_WORKFLOW_DRIFT'));
+ await assert.rejects(db.query(body(sqlFile('20261005000400_task_module_workflows.sql'))),e=>e.message.includes('MODULE_WORKFLOW_DRIFT'));
 }));
 
 test('task company projection returns only display columns and retains tenant, module, role and company RLS',async()=>{
@@ -358,7 +358,7 @@ test('unreferenced parent deletion and deactivation remain possible; schema drif
   await asUser(db);await create(db,{company_id:id(101)});await db.query('RESET ROLE');
   assert.equal((await db.query("UPDATE companies SET status='pasif' WHERE id=$1",[id(101)])).rowCount,1);
  });
- await rollback(async()=>{await assert.rejects(db.query(body(sqlFile('20260928001500_preserve_task_relations.sql'))),e=>e.message.includes('TASK_RELATION_DRIFT'));});
+ await rollback(async()=>{await assert.rejects(db.query(body(sqlFile('20261005000700_preserve_task_relations.sql'))),e=>e.message.includes('TASK_RELATION_DRIFT'));});
 });
 
 test('parent deletion waiting behind a new task cannot erase that task after its commit',async()=>{

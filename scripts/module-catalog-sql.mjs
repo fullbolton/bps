@@ -3,7 +3,7 @@ import {pathToFileURL} from 'node:url';
 import {importActualTypeScript} from './helpers/import-typescript.mjs';
 const {MODULE_CATALOG,validateModuleCatalog}=await importActualTypeScript(new URL('../src/lib/modules/catalog.ts',import.meta.url));
 validateModuleCatalog(MODULE_CATALOG);
-export const migrationUrl=new URL('../supabase/migrations/20260928000900_tenant_module_foundation.sql',import.meta.url);
+export const migrationUrl=new URL('../supabase/migrations/20261005000100_tenant_module_foundation.sql',import.meta.url);
 export function renderCatalogSql(){
  const rows=MODULE_CATALOG.map(m=>` ('${m.key}',ARRAY[${m.requires.map(k=>`'${k}'`).join(',')}]::text[])`).join(',\n');
  return `-- BEGIN GENERATED MODULE CATALOG v1\nCREATE FUNCTION public.workspace_module_catalog_v1()\nRETURNS TABLE(module_key text, requires text[])\nLANGUAGE sql IMMUTABLE SET search_path='' AS $$\n VALUES\n${rows}\n$$;\nREVOKE ALL ON FUNCTION public.workspace_module_catalog_v1() FROM PUBLIC,anon,authenticated,service_role;\n-- END GENERATED MODULE CATALOG v1`;

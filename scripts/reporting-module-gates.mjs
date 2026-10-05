@@ -1,9 +1,10 @@
+import {withReleasedHotfix} from './helpers/released-hotfix-history.mjs';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {source} from './talent-module-gates.mjs';
 const foundation='20260928000100_project_reporting_foundation.sql',imports='20260928000200_project_reporting_actual_import.sql',files='20260928000500_project_reporting_source_files.sql';
 export const targets=[['reporting_project_execute',foundation,'write'],['reporting_project_list',foundation,'read'],['reporting_project_detail',foundation,'read'],['reporting_person_code_set',imports,'write'],['reporting_import_prepare',imports,'write'],['reporting_import_finish',imports,'write'],['reporting_import_list',imports,'read'],['reporting_import_people',imports,'read'],['reporting_import_read',imports,'read'],['reporting_monthly_report','20260928000300_project_reporting_monthly_report.sql','read'],['reporting_work_details','20260928000400_project_reporting_work_details.sql','read'],['reporting_source_file',files,'write']];
-export const entries=targets.map(t=>{const e=source(...t);return {...e,guard:`\n PERFORM public.reporting_assert_scope(p_actor,p_tenant,${e.mode==='write'});\n PERFORM public.workspace_require_module_${e.mode}_v1(p_tenant,ARRAY['reporting']);\n`};});
+export const entries=targets.map(t=>{const e=withReleasedHotfix(source(...t));return {...e,guard:`\n PERFORM public.reporting_assert_scope(p_actor,p_tenant,${e.mode==='write'});\n PERFORM public.workspace_require_module_${e.mode}_v1(p_tenant,ARRAY['reporting']);\n`};});
 const fileSql=readFileSync(new URL('../supabase/migrations/'+files,import.meta.url),'utf8');
 export const storageOriginal=fileSql.split("LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$")[1].split('$$;')[0];
 export const storageBody=`
@@ -16,7 +17,7 @@ BEGIN
 END
 `;
 const q=s=>"'"+s.replaceAll("'","''")+"'";
-export const migrationUrl=new URL('../supabase/migrations/20261004000300_reporting_module_gates.sql',import.meta.url);
+export const migrationUrl=new URL('../supabase/migrations/20261005002800_reporting_module_gates.sql',import.meta.url);
 export function render(){return `-- Reporting RPC and project-sources Storage gates. Not the module-toggle release.
 BEGIN;
 SET LOCAL lock_timeout='15s';

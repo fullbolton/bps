@@ -31,19 +31,19 @@ BEGIN
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,false);
  PERFORM public.workspace_require_module_read_v1(p_tenant,ARRAY[''reporting'']);
 '),
-('public.reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)','c961f80a7dd4537add84337d1f8d83d54c5ff3d876c99e92370ebcfbcdd99e6d','
+('public.reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)','284b97b8f4fbe954d54f77fe25305b2b5a432e5e8ac34d826eebc3f58080163c','
 BEGIN
 ','
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,true);
  PERFORM public.workspace_require_module_write_v1(p_tenant,ARRAY[''reporting'']);
 '),
-('public.reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)','19a94edfee092bc88b37a846be74704eae60eeee4de03c150cea781c4630b31b','
+('public.reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)','33effa9d287a2d4dfc06b652f98f1d3eebcf4895b3f9a5986f13516f8333d6e4','
 BEGIN
 ','
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,true);
  PERFORM public.workspace_require_module_write_v1(p_tenant,ARRAY[''reporting'']);
 '),
-('public.reporting_import_finish(uuid,uuid,uuid,boolean)','70d451f454801363318ecedd05f07a13605aaec3de28028bb8fb46b136e8d804','
+('public.reporting_import_finish(uuid,uuid,uuid,boolean)','0b552a2a043f91c3ee90a44192191244498c0b46545df852616957a42befdf52','
 BEGIN
 ','
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,true);
@@ -55,7 +55,7 @@ BEGIN
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,false);
  PERFORM public.workspace_require_module_read_v1(p_tenant,ARRAY[''reporting'']);
 '),
-('public.reporting_import_people(uuid,uuid,uuid,text,text[],text)','fa58742e9ecae413b12e35505556405f0a97ff9e0e64fafe1959c60a380625fa','
+('public.reporting_import_people(uuid,uuid,uuid,text,text[],text)','8e287982e737ae63afff34ba5cba872c4831156efc65f907874b578e0008aa30','
 BEGIN
 ','
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,false);
@@ -67,13 +67,13 @@ BEGIN
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,false);
  PERFORM public.workspace_require_module_read_v1(p_tenant,ARRAY[''reporting'']);
 '),
-('public.reporting_monthly_report(uuid,uuid,uuid,text,integer)','df9b67e0c79f96694768a95fb60fe9af933ea27bd61045e7211e216d9cb494f2','
+('public.reporting_monthly_report(uuid,uuid,uuid,text,integer)','d123886766755a1c414290369d2dada09d3e77ffada6f8fc6e81ce3b70e341c8','
 BEGIN
 ','
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,false);
  PERFORM public.workspace_require_module_read_v1(p_tenant,ARRAY[''reporting'']);
 '),
-('public.reporting_work_details(uuid,uuid,uuid,text,uuid,integer)','73cfd0689798792f30534d1bae71ba0302380a0b5b75edaf90aaac3db7def748','
+('public.reporting_work_details(uuid,uuid,uuid,text,uuid,integer)','232991bd899a65a6ed93c8a590bc61ffea47f9799af3d9f75a06f40de56b3445','
 BEGIN
 ','
  PERFORM public.reporting_assert_scope(p_actor,p_tenant,false);

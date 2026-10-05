@@ -13,9 +13,9 @@ before(async()=>{
  const tables=new Set(entries.flatMap(e=>[...e.body.matchAll(/\b\w+\s+public\.(\w+)(?:%ROWTYPE)?\s*[;,]/gi)].map(m=>m[1])));
  for(const t of tables)await db.query(`CREATE TABLE ${t}(id uuid,tenant_id uuid,actor_id uuid,company_id uuid,project_id uuid,batch_id uuid,status text,name text,code text,kind text,revision integer,created_at timestamptz,path text)`);
  await db.query(source('reporting_assert_scope','20260928000100_project_reporting_foundation.sql','read').declaration);await db.query('REVOKE ALL ON FUNCTION reporting_assert_scope(uuid,uuid,boolean) FROM PUBLIC,anon,authenticated,service_role');
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- await db.query(source('workspace_require_module_write_v1','20260928001000_task_module_gateway.sql','write').declaration);
- await db.query(source('workspace_require_module_read_v1','20260929000300_talent_module_rpc_gates.sql','read').declaration);
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ await db.query(source('workspace_require_module_write_v1','20261005000200_task_module_gateway.sql','write').declaration);
+ await db.query(source('workspace_require_module_read_v1','20261005002200_talent_module_rpc_gates.sql','read').declaration);
  await db.query('REVOKE ALL ON FUNCTION workspace_require_module_write_v1(uuid,text[]),workspace_require_module_read_v1(uuid,text[]) FROM PUBLIC,anon,authenticated,service_role');
  for(const e of entries){await db.query(e.declaration);await db.query(`REVOKE ALL ON FUNCTION ${e.signature} FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION ${e.signature} TO authenticated`);}
  await db.query(`CREATE FUNCTION reporting_source_access(p_name text,p_write boolean) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$${storageOriginal}$body$;REVOKE ALL ON FUNCTION reporting_source_access(text,boolean) FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION reporting_source_access(text,boolean) TO authenticated`);

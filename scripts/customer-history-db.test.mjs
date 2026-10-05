@@ -8,7 +8,7 @@ assert.ok(['127.0.0.1','localhost','[::1]'].includes(root.hostname));
 const name=`bps_customer_history_${process.pid}_${Date.now()}`,url=new URL(root);url.pathname='/'+name;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 let admin,db,created=false;
-const migration=sqlFile('20260928002700_preserve_customer_history.sql');
+const migration=sqlFile('20261005001900_preserve_customer_history.sql');
 const body=migration.replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'');
 async function rollback(fn){await db.query('BEGIN');try{return await fn();}finally{await db.query('ROLLBACK');}}
 before(async()=>{
@@ -20,7 +20,7 @@ before(async()=>{
  const contacts=sqlFile('20260407000300_create_contacts.sql');await db.query(contacts.slice(0,contacts.indexOf('alter table public.contacts enable row level security;')));
  const notes=sqlFile('20260407000400_create_notes.sql');await db.query(notes.slice(0,notes.indexOf('-- RLS — notes')));
  await db.query(sqlFile('20260415000100_create_mizan_tables.sql'));
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
  await db.query(`INSERT INTO contacts(id,company_id,full_name,email,created_by) VALUES('${id(201)}','${id(101)}','Synthetic','synthetic@example.test','${id(11)}');
  INSERT INTO notes(id,company_id,author_id,author_name,content) VALUES('${id(301)}','${id(101)}','${id(11)}','Synthetic author','Historical note');
  INSERT INTO mizan_uploads(id,file_name,uploaded_by) VALUES('${id(401)}','synthetic.xlsx','${id(11)}');

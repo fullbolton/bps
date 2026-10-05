@@ -9,7 +9,7 @@ const hash=s=>createHash('sha256').update(s).digest('hex');
 export function variants(signature,body,next){
  const result=[{hash:hash(body),body:next}],gate=gates.get(signature);
  if(gate){
-  if(gate.body!==body)throw Error('Hotfix/module baseline mismatch: '+signature);
+  if((gate.preHotfixBody??gate.body)!==body)throw Error('Hotfix/module baseline mismatch: '+signature);
   const guard=s=>s.replace(gate.anchor,()=>gate.anchor+gate.guard);
   result.push({hash:hash(guard(body)),body:guard(next)});
  }

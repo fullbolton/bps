@@ -33,9 +33,9 @@ before(async()=>{
  const start=anchor.indexOf('create or replace function public.companies_set_updated_at()');
  const end=anchor.indexOf('execute function public.companies_set_updated_at();',start);
  await db.query(anchor.slice(start,end+'execute function public.companies_set_updated_at();'.length));
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- const shared=sqlFile('20260928001000_task_module_gateway.sql');await db.query(shared.slice(shared.indexOf('CREATE FUNCTION public.workspace_module_enabled_v1'),shared.indexOf('-- Restrictive AND fences')));
- await db.query(sqlFile('20260928001800_company_commands.sql'));
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ const shared=sqlFile('20261005000200_task_module_gateway.sql');await db.query(shared.slice(shared.indexOf('CREATE FUNCTION public.workspace_module_enabled_v1'),shared.indexOf('-- Restrictive AND fences')));
+ await db.query(sqlFile('20261005001000_company_commands.sql'));
  console.log('Synthetic company commands DB:',(await db.query('SHOW server_version')).rows[0].server_version);
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${name} WITH(FORCE)`);await admin.end();}});

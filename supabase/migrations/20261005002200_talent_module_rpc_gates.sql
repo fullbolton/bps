@@ -135,7 +135,7 @@ BEGIN
  PERFORM public.talent_assert_scope(p_actor,p_tenant);
  PERFORM public.workspace_require_module_read_v1(p_tenant,ARRAY[''talent'']);
 ','read'),
- ('public.talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)','09a605a9136da745cfe92e3b5a76e49cfcc592e371255ecd89a627ac425fc465','
+ ('public.talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)','1e0014a2c79758316e49dd303af70c272701c7745cdc410fec50db3062a4b04c','
  PERFORM public.talent_assert_scope(p_actor,p_tenant);
  PERFORM public.workspace_require_module_write_v1(p_tenant,ARRAY[''talent'']);
 ','write'),

@@ -6,12 +6,12 @@ import {sqlFile,workspace} from './module-database.mjs';
 export async function installModuleGuards(db,signatures){
  if(process.env.BPS_TEST_MODULE_GUARDS!=='1')return;
  await db.query(workspace);
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- for(const [name,file] of [['workspace_require_module_write_v1','20260928001000_task_module_gateway.sql'],['workspace_require_module_read_v1','20260929000300_talent_module_rpc_gates.sql']])await db.query(source(name,file,'write').declaration);
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ for(const [name,file] of [['workspace_require_module_write_v1','20261005000200_task_module_gateway.sql'],['workspace_require_module_read_v1','20261005002200_talent_module_rpc_gates.sql']])await db.query(source(name,file,'write').declaration);
  const gates=new Map([...operations,...talent,...reporting].map(e=>[e.signature,e]));
  for(const signature of signatures){const e=gates.get(signature);if(!e)continue;
   const row=(await db.query('SELECT prosrc,pg_get_functiondef(oid) def FROM pg_proc WHERE oid=$1::regprocedure',[signature])).rows[0];
-  assert.equal(row.prosrc,e.body);await db.query(row.def.replace(e.body,()=>e.body.replace(e.anchor,()=>e.anchor+e.guard)));
+  const baseline=e.preHotfixBody??e.body;assert.equal(row.prosrc,baseline);await db.query(row.def.replace(baseline,()=>baseline.replace(e.anchor,()=>e.anchor+e.guard)));
  }
 }
 export async function assertGuardsRetained(db,signatures){

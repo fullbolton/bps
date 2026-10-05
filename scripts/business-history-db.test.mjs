@@ -8,7 +8,7 @@ assert.ok(['127.0.0.1','localhost','[::1]'].includes(root.hostname));
 const name=`bps_business_history_${process.pid}_${Date.now()}`,url=new URL(root);url.pathname='/'+name;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 let admin,db,created=false;
-const migration=sqlFile('20260929000100_preserve_business_history.sql');
+const migration=sqlFile('20261005002000_preserve_business_history.sql');
 const body=migration.replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'');
 const keys=[['contracts','contracts_company_tenant_fkey','CASCADE'],['appointments','appointments_company_tenant_fkey','CASCADE'],['appointments','appointments_contract_company_tenant_fkey','SET NULL (contract_id)'],['documents','documents_company_id_fkey','CASCADE'],['documents','documents_contract_id_fkey','SET NULL'],['appointment_completion_receipts','appointment_completion_receipts_appointment_id_fkey','CASCADE']];
 async function rollback(fn){await db.query('BEGIN');try{return await fn();}finally{await db.query('ROLLBACK');}}

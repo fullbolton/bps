@@ -16,7 +16,7 @@ export const body=replaceOnce(previous,
    RAISE EXCEPTION 'TALENT_LINKED_NAME_MODULE_DISABLED' USING ERRCODE='BM001';
   END IF;`);
 const q=s=>"'"+s.replaceAll("'","''")+"'";
-export const migrationUrl=new URL('../supabase/migrations/20261004000200_talent_linked_name_gate.sql',import.meta.url);
+export const migrationUrl=new URL('../supabase/migrations/20261005002700_talent_linked_name_gate.sql',import.meta.url);
 export function render(){return `-- Linked names cannot mutate disabled staffing through talent. Other fields remain editable.
 BEGIN;
 SET LOCAL lock_timeout='15s';

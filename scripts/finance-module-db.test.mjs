@@ -9,7 +9,7 @@ const name=`bps_finance_modules_${process.pid}_${Date.now()}`,url=new URL(root);
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const client=()=>new Client({connectionString:url.href,connectionTimeoutMillis:5000,query_timeout:10000});
 let admin,db,created=false;
-const migration=sqlFile('20260928001600_finance_module_access.sql');
+const migration=sqlFile('20261005000800_finance_module_access.sql');
 const payload={fileName:'synthetic.xlsx',rows:[{accountCode:'120.01.01.001',accountName:'Synthetic customer',borcTotal:120,alacakTotal:0,borcBakiyesi:120,alacakBakiyesi:0,matchedCompanyId:id(101),matchStatus:'matched'}]};
 async function claims(c,actor=11,tenant=1){await c.query("SELECT set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(actor),active_tenant_id:id(tenant)})]);}
 async function asUser(c,actor=11,tenant=1){await claims(c,actor,tenant);await c.query('SET ROLE authenticated');}
@@ -38,9 +38,9 @@ before(async()=>{
  await db.query(sqlFile('20260415000100_create_mizan_tables.sql'));
  await db.query(sqlFile('20260415000200_mizan_match_status_consistency.sql'));
  await db.query(sqlFile('20260909002600_atomic_mizan.sql'));
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
  // Actual shared guard definitions, without unrelated task-schema fixture.
- const shared=sqlFile('20260928001000_task_module_gateway.sql');await db.query(shared.slice(shared.indexOf('CREATE FUNCTION public.workspace_module_enabled_v1'),shared.indexOf('-- Restrictive AND fences')));
+ const shared=sqlFile('20261005000200_task_module_gateway.sql');await db.query(shared.slice(shared.indexOf('CREATE FUNCTION public.workspace_module_enabled_v1'),shared.indexOf('-- Restrictive AND fences')));
  await db.query('GRANT ALL ON financial_summaries,mizan_uploads,mizan_upload_rows TO service_role');
  await db.query('GRANT EXECUTE ON FUNCTION confirm_financial_data(jsonb,jsonb),derive_financial_summaries_from_mizan(uuid),confirm_mizan_atomic(uuid,uuid,jsonb) TO service_role');
  await db.query(migration);

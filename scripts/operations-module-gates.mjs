@@ -1,3 +1,4 @@
+import {withReleasedHotfix} from './helpers/released-hotfix-history.mjs';
 import {withOperationsHistory} from './helpers/operations-function-history.mjs';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {source} from './talent-module-gates.mjs';
@@ -205,13 +206,13 @@ export const targets = [
   ]
 ];
 export const entries=targets.map(t=>{
- const e=withOperationsHistory(source(...t)); // Use declared argument names, not client-controlled SQL.
+ const e=withReleasedHotfix(withOperationsHistory(source(...t))); // Use declared argument names, not client-controlled SQL.
  const names=e.declaration.match(/\((.*?)\)/s)[1].replaceAll('"','').split(',').map(a=>a.trim().split(/\s+/)[0]);
  const [actor,tenant]=names;
  return {...e,guard:`\n IF auth.uid() IS NULL OR ${actor} IS DISTINCT FROM auth.uid() OR ${tenant} IS NULL OR ${tenant} IS DISTINCT FROM public.current_user_verified_tenant() THEN RAISE EXCEPTION 'OPS_SCOPE_CHANGED' USING ERRCODE='42501';END IF;\n PERFORM public.workspace_require_module_${e.mode}_v1(${tenant},ARRAY['staffing']);\n`};
 });
 const q=s=>"'"+s.replaceAll("'","''")+"'";
-export const migrationUrl=new URL('../supabase/migrations/20260929000400_operations_module_rpc_gates.sql',import.meta.url);
+export const migrationUrl=new URL('../supabase/migrations/20261005002300_operations_module_rpc_gates.sql',import.meta.url);
 export function render(){return `-- Generated, exact-source operations entry gates. Legacy unscoped APIs and direct table reads remain a separate block.
 BEGIN;
 SET LOCAL lock_timeout='15s';

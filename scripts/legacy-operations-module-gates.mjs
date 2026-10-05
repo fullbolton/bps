@@ -16,7 +16,7 @@ export const entries=targets.map(([name,file,mode,definer])=>{
 });
 export const tables=['ops_locations','ops_workers','ops_daily_requests','ops_assignments'];
 const q=s=>"'"+s.replaceAll("'","''")+"'";
-export const migrationUrl=new URL('../supabase/migrations/20260929000500_legacy_operations_module_gates.sql',import.meta.url);
+export const migrationUrl=new URL('../supabase/migrations/20261005002400_legacy_operations_module_gates.sql',import.meta.url);
 export function render(){return `-- Existing invoker/definer identities and business scopes remain unchanged.
 BEGIN;
 SET LOCAL lock_timeout='15s';

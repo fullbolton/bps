@@ -1,0 +1,2589 @@
+{
+  "measuredAt": "2026-10-05T18:19:11.500Z",
+  "project": "dffdzbmnmnokbftbujsy",
+  "migrations": [
+    "20260407000000",
+    "20260407000100",
+    "20260407000200",
+    "20260407000300",
+    "20260407000400",
+    "20260407000500",
+    "20260407000600",
+    "20260407000700",
+    "20260407000800",
+    "20260407000900",
+    "20260407001000",
+    "20260407001100",
+    "20260407001600",
+    "20260407001700",
+    "20260407001800",
+    "20260413000100",
+    "20260414000100",
+    "20260414000200",
+    "20260415000100",
+    "20260415000200",
+    "20260415000300",
+    "20260415000400",
+    "20260415000500",
+    "20260423000100",
+    "20260425000100",
+    "20260425000200",
+    "20260713000100",
+    "20260713000200",
+    "20260722000100",
+    "20260810000100",
+    "20260810000200",
+    "20260827000100",
+    "20260827000200",
+    "20260827000300",
+    "20260827000400",
+    "20260904000100",
+    "20260904000200",
+    "20260909000100",
+    "20260909000200",
+    "20260909000300",
+    "20260909000400",
+    "20260909000500",
+    "20260909000600",
+    "20260909000700",
+    "20260909000800",
+    "20260909000900",
+    "20260909001000",
+    "20260909001100",
+    "20260909001200",
+    "20260909001300",
+    "20260909001400",
+    "20260909001500",
+    "20260909001600",
+    "20260909001700",
+    "20260909001800",
+    "20260909001900",
+    "20260909002000",
+    "20260909002100",
+    "20260909002200",
+    "20260909002300",
+    "20260909002400",
+    "20260909002500",
+    "20260909002600",
+    "20260909002700",
+    "20260909002800",
+    "20260909002900",
+    "20260910000100",
+    "20260910000200",
+    "20260910000300",
+    "20260910000400",
+    "20260911000100",
+    "20260913000100",
+    "20260914000100",
+    "20260914000200",
+    "20260914000300",
+    "20260914000400",
+    "20260914000500",
+    "20260914000600",
+    "20260914000700",
+    "20260915000100",
+    "20260915000200",
+    "20260915000300",
+    "20260915000400",
+    "20260915000500",
+    "20260915000600",
+    "20260915000700",
+    "20260915000800",
+    "20260915000900",
+    "20260915001000",
+    "20260923000100",
+    "20260923000200",
+    "20260923000300",
+    "20260923000400",
+    "20260924000100",
+    "20260924000200",
+    "20260924000300",
+    "20260924000400",
+    "20260924000500",
+    "20260925000100",
+    "20260925000200",
+    "20260925000300",
+    "20260925000400",
+    "20260925000500",
+    "20260925000600",
+    "20260925000700",
+    "20260926000100",
+    "20260926000200",
+    "20260927000100",
+    "20260927000200",
+    "20260927000300",
+    "20260927000400",
+    "20260927000500",
+    "20260927000600",
+    "20260927000700",
+    "20260927000800",
+    "20260927000900",
+    "20260928000100",
+    "20260928000200",
+    "20260928000300",
+    "20260928000400",
+    "20260928000500",
+    "20260928000600",
+    "20260928000700",
+    "20260928000800",
+    "20261004001000",
+    "20261004001100",
+    "20261004001200",
+    "20261004001300",
+    "20261004001400"
+  ],
+  "functionSources": [
+    {
+      "signature": "public.ops_execute_scoped(uuid,uuid,uuid,text,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_reconcile_commands(uuid,uuid,uuid[],boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_create_request_batch(uuid,uuid,uuid,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_resize_request(uuid,uuid,uuid,uuid,integer,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_record_attendance(uuid,uuid,uuid,uuid,integer,text)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_replace_assignment(uuid,uuid,uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_set_directory_active(uuid,uuid,uuid,text,uuid,integer,boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_start_board(uuid,uuid,date,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_start_board_filtered(uuid,uuid,date,integer,text,boolean,boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_replace_assignment_before_start(uuid,uuid,uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_comment_send(uuid,uuid,uuid,uuid,text,uuid,uuid[])",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_comment_list(uuid,uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_comment_inbox(uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_comment_read(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_comment_people(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_comment_inbox_page(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_comment_resolve(uuid,uuid,uuid,uuid,text,uuid,uuid[])",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_update_location(uuid,uuid,uuid,uuid,uuid,integer,text,text)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_record_replacement_outreach(uuid,uuid,uuid,uuid,uuid,integer,text,text)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_replacement_outreach_history(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_replacement_outreach_latest(uuid,uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_work_record_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_work_record_read(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_work_record_list(uuid,uuid,uuid,date)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_idp_read(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_idp_save(uuid,uuid,uuid,uuid,integer,text,date,date)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_idp_period_create(uuid,uuid,uuid,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_idp_period_read(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_idp_period_manage(uuid,uuid,uuid,uuid,integer,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_idp_period_history(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_fixed_roster_save(uuid,uuid,uuid,uuid,integer,uuid,uuid,uuid,text,text,date,date,text,boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_fixed_roster_list(uuid,uuid,uuid,uuid,date,integer,boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_fixed_roster_history(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_fixed_roster_idp_create(uuid,uuid,uuid,uuid,integer,date,date,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_create_timed_requests(uuid,uuid,uuid,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_schedule_save(uuid,uuid,uuid,uuid,integer,jsonb,boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_schedule_list(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_schedule_preview(uuid,uuid,uuid,integer,date,date)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.ops_schedule_generate(uuid,uuid,uuid,uuid,integer,date,date)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_people_page(uuid,uuid,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_person_detail(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_save_person(uuid,uuid,uuid,uuid,integer,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_resolve_person_command(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_compare_snapshot(uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_status(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_prepare(uuid,uuid,uuid,text,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_apply_row(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_cancel(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_recover(uuid,uuid,uuid,text,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_close(uuid,uuid,uuid,text,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_history(uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_conversation_save(uuid,uuid,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_attachment_reserve(uuid,uuid,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_attachment_finish(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_attachment_list(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_attachment_pending(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_attachment_cancel(uuid,uuid,uuid,boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_availability_read(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_availability_save(uuid,uuid,uuid,uuid,integer,text,date,date)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_prepare_worker(uuid,uuid,uuid,uuid,integer,text,text)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_match_source(uuid,uuid,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_work_copy_page(uuid,uuid,uuid,text)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_change_review(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_import_undo_update(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_merge_review(uuid,uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_merge_resolve(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_merged_availability(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_contact_summaries(uuid,uuid,uuid[])",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_shared_views_read(uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_shared_view_create(uuid,uuid,uuid,text,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_shared_view_archive(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_call_lists_read(uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_call_list_create(uuid,uuid,uuid,text,uuid[])",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_call_list_archive(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_call_list_edit(uuid,uuid,uuid,uuid,integer,text,text,uuid[])",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_conversation_list(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.talent_call_list_people(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_project_execute(uuid,uuid,uuid,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_project_list(uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_project_detail(uuid,uuid,uuid,integer,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_import_finish(uuid,uuid,uuid,boolean)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_import_list(uuid,uuid,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_import_people(uuid,uuid,uuid,text,text[],text)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_import_read(uuid,uuid,uuid)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_monthly_report(uuid,uuid,uuid,text,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_work_details(uuid,uuid,uuid,text,uuid,integer)",
+      "exists": true,
+      "matchesBaseline": true
+    },
+    {
+      "signature": "public.reporting_source_file(uuid,uuid,uuid,text,text,integer,text)",
+      "exists": true,
+      "matchesBaseline": true
+    }
+  ],
+  "preflights": [
+    {
+      "file": "qa/fable03-security-20261004/production-preflight.sql",
+      "results": [
+        [
+          {
+            "tablename": "appointments",
+            "policyname": "appointments_delete",
+            "cmd": "DELETE",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "appointments",
+            "policyname": "appointments_insert",
+            "cmd": "INSERT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": null,
+            "with_check": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND"
+          },
+          {
+            "tablename": "appointments",
+            "policyname": "appointments_select",
+            "cmd": "SELECT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": null
+          },
+          {
+            "tablename": "appointments",
+            "policyname": "appointments_update",
+            "cmd": "UPDATE",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND"
+          },
+          {
+            "tablename": "contracts",
+            "policyname": "contracts_delete_admin",
+            "cmd": "DELETE",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "contracts",
+            "policyname": "contracts_insert_role_or_scope",
+            "cmd": "INSERT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": null,
+            "with_check": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))"
+          },
+          {
+            "tablename": "contracts",
+            "policyname": "contracts_select_role_or_scope",
+            "cmd": "SELECT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": null
+          },
+          {
+            "tablename": "contracts",
+            "policyname": "contracts_update_role_or_scope",
+            "cmd": "UPDATE",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))"
+          },
+          {
+            "tablename": "critical_dates",
+            "policyname": "critical_dates_delete",
+            "cmd": "DELETE",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_verified_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "critical_dates",
+            "policyname": "critical_dates_delete_fence",
+            "cmd": "DELETE",
+            "permissive": "RESTRICTIVE",
+            "roles": "{authenticated}",
+            "qual": "(current_user_role() = 'yonetici'::text)",
+            "with_check": null
+          },
+          {
+            "tablename": "critical_dates",
+            "policyname": "critical_dates_insert",
+            "cmd": "INSERT",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": null,
+            "with_check": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_verified_tenant()) AND (created_by = auth.uid()))"
+          },
+          {
+            "tablename": "critical_dates",
+            "policyname": "critical_dates_insert_fence",
+            "cmd": "INSERT",
+            "permissive": "RESTRICTIVE",
+            "roles": "{authenticated}",
+            "qual": null,
+            "with_check": "((current_user_role() = 'yonetici'::text) AND (created_by = auth.uid()))"
+          },
+          {
+            "tablename": "critical_dates",
+            "policyname": "critical_dates_select",
+            "cmd": "SELECT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "((current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text, 'muhasebe'::text, 'goruntuleyici'::text])) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "critical_dates",
+            "policyname": "critical_dates_tenant_fence",
+            "cmd": "ALL",
+            "permissive": "RESTRICTIVE",
+            "roles": "{authenticated}",
+            "qual": "(tenant_id = current_user_verified_tenant())",
+            "with_check": "(tenant_id = current_user_verified_tenant())"
+          },
+          {
+            "tablename": "critical_dates",
+            "policyname": "critical_dates_update",
+            "cmd": "UPDATE",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_verified_tenant()))",
+            "with_check": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_verified_tenant()))"
+          },
+          {
+            "tablename": "critical_dates",
+            "policyname": "critical_dates_update_fence",
+            "cmd": "UPDATE",
+            "permissive": "RESTRICTIVE",
+            "roles": "{authenticated}",
+            "qual": "(current_user_role() = 'yonetici'::text)",
+            "with_check": "(current_user_role() = 'yonetici'::text)"
+          },
+          {
+            "tablename": "demo_requests",
+            "policyname": "demo_requests_platform_fence",
+            "cmd": "ALL",
+            "permissive": "RESTRICTIVE",
+            "roles": "{authenticated}",
+            "qual": "is_platform_admin()",
+            "with_check": "is_platform_admin()"
+          },
+          {
+            "tablename": "demo_requests",
+            "policyname": "demo_requests_platform_select",
+            "cmd": "SELECT",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": "is_platform_admin()",
+            "with_check": null
+          },
+          {
+            "tablename": "documents",
+            "policyname": "documents_delete",
+            "cmd": "DELETE",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "documents",
+            "policyname": "documents_insert",
+            "cmd": "INSERT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": null,
+            "with_check": "(\nCASE\n    WHEN (contract_id IS NULL) THEN (current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text]))\n    ELSE (current_user_role() = 'yonetici'::text)\nEND AND (tenant_id = current_user_active_tenant()))"
+          },
+          {
+            "tablename": "documents",
+            "policyname": "documents_select",
+            "cmd": "SELECT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "((current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text])) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "documents",
+            "policyname": "documents_update",
+            "cmd": "UPDATE",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "(\nCASE\n    WHEN (contract_id IS NULL) THEN (current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text]))\n    ELSE (current_user_role() = 'yonetici'::text)\nEND AND (tenant_id = current_user_active_tenant()))",
+            "with_check": "(\nCASE\n    WHEN (contract_id IS NULL) THEN (current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text]))\n    ELSE (current_user_role() = 'yonetici'::text)\nEND AND (tenant_id = current_user_active_tenant()))"
+          },
+          {
+            "tablename": "staffing_demands",
+            "policyname": "staffing_demands_delete",
+            "cmd": "DELETE",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "staffing_demands",
+            "policyname": "staffing_demands_insert",
+            "cmd": "INSERT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": null,
+            "with_check": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND"
+          },
+          {
+            "tablename": "staffing_demands",
+            "policyname": "staffing_demands_select",
+            "cmd": "SELECT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": null
+          },
+          {
+            "tablename": "staffing_demands",
+            "policyname": "staffing_demands_update",
+            "cmd": "UPDATE",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND"
+          },
+          {
+            "tablename": "tasks",
+            "policyname": "tasks_delete",
+            "cmd": "DELETE",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "tasks",
+            "policyname": "tasks_independent_scope_fence",
+            "cmd": "ALL",
+            "permissive": "RESTRICTIVE",
+            "roles": "{authenticated}",
+            "qual": "((company_id IS NOT NULL) OR ((tenant_id = current_user_verified_tenant()) AND (current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text]))))",
+            "with_check": "((company_id IS NOT NULL) OR ((tenant_id = current_user_verified_tenant()) AND (current_user_role() = ANY (ARRAY['yonetici'::text, 'operasyon'::text, 'ik'::text]))))"
+          },
+          {
+            "tablename": "tasks",
+            "policyname": "tasks_insert",
+            "cmd": "INSERT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": null,
+            "with_check": "(\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'ik'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND AND ((assigned_to_user_id IS NULL) OR is_active_tenant_member(assigned_to_user_id)))"
+          },
+          {
+            "tablename": "tasks",
+            "policyname": "tasks_select",
+            "cmd": "SELECT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'ik'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": null
+          },
+          {
+            "tablename": "tasks",
+            "policyname": "tasks_update",
+            "cmd": "UPDATE",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'ik'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": "(\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'ik'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND AND ((assigned_to_user_id IS NULL) OR is_active_tenant_member(assigned_to_user_id)))"
+          },
+          {
+            "tablename": "workforce_summary",
+            "policyname": "workforce_summary_delete",
+            "cmd": "DELETE",
+            "permissive": "PERMISSIVE",
+            "roles": "{authenticated}",
+            "qual": "((current_user_role() = 'yonetici'::text) AND (tenant_id = current_user_active_tenant()))",
+            "with_check": null
+          },
+          {
+            "tablename": "workforce_summary",
+            "policyname": "workforce_summary_insert",
+            "cmd": "INSERT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": null,
+            "with_check": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND"
+          },
+          {
+            "tablename": "workforce_summary",
+            "policyname": "workforce_summary_select",
+            "cmd": "SELECT",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'ik'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": null
+          },
+          {
+            "tablename": "workforce_summary",
+            "policyname": "workforce_summary_update",
+            "cmd": "UPDATE",
+            "permissive": "PERMISSIVE",
+            "roles": "{public}",
+            "qual": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND",
+            "with_check": "\nCASE current_user_role()\n    WHEN 'yonetici'::text THEN (tenant_id = current_user_active_tenant())\n    WHEN 'operasyon'::text THEN (tenant_id = current_user_active_tenant())\n    ELSE false\nEND"
+          }
+        ],
+        [
+          {
+            "tenants": "4",
+            "demo_rows": "1"
+          }
+        ],
+        [
+          {
+            "rolname": "anon",
+            "rolconfig": [
+              "[redacted]"
+            ],
+            "rolsuper": false,
+            "rolbypassrls": false
+          },
+          {
+            "rolname": "authenticated",
+            "rolconfig": [
+              "[redacted]"
+            ],
+            "rolsuper": false,
+            "rolbypassrls": false
+          },
+          {
+            "rolname": "authenticator",
+            "rolconfig": [
+              "[redacted]"
+            ],
+            "rolsuper": false,
+            "rolbypassrls": false
+          },
+          {
+            "rolname": "service_role",
+            "rolconfig": null,
+            "rolsuper": false,
+            "rolbypassrls": true
+          }
+        ],
+        [
+          {
+            "attname": "id",
+            "data_type": "uuid",
+            "attnotnull": true,
+            "default_expression": "gen_random_uuid()"
+          },
+          {
+            "attname": "title",
+            "data_type": "text",
+            "attnotnull": true,
+            "default_expression": null
+          },
+          {
+            "attname": "date_type",
+            "data_type": "text",
+            "attnotnull": true,
+            "default_expression": "'diger'::text"
+          },
+          {
+            "attname": "deadline_date",
+            "data_type": "date",
+            "attnotnull": true,
+            "default_expression": null
+          },
+          {
+            "attname": "priority",
+            "data_type": "text",
+            "attnotnull": true,
+            "default_expression": "'normal'::text"
+          },
+          {
+            "attname": "responsible",
+            "data_type": "text",
+            "attnotnull": false,
+            "default_expression": null
+          },
+          {
+            "attname": "note",
+            "data_type": "text",
+            "attnotnull": false,
+            "default_expression": null
+          },
+          {
+            "attname": "created_by",
+            "data_type": "uuid",
+            "attnotnull": false,
+            "default_expression": null
+          },
+          {
+            "attname": "created_at",
+            "data_type": "timestamp with time zone",
+            "attnotnull": true,
+            "default_expression": "now()"
+          },
+          {
+            "attname": "updated_at",
+            "data_type": "timestamp with time zone",
+            "attnotnull": true,
+            "default_expression": "now()"
+          },
+          {
+            "attname": "tenant_id",
+            "data_type": "uuid",
+            "attnotnull": true,
+            "default_expression": null
+          }
+        ],
+        [
+          {
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "grantee": "postgres",
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "postgres",
+            "privilege_type": "TRUNCATE"
+          },
+          {
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "grantee": "postgres",
+            "privilege_type": "TRIGGER"
+          },
+          {
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "grantee": "service_role",
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "service_role",
+            "privilege_type": "TRUNCATE"
+          },
+          {
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "grantee": "service_role",
+            "privilege_type": "TRIGGER"
+          },
+          {
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          }
+        ],
+        [
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "postgres",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "postgres",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "postgres",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "postgres",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "authenticated",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "authenticated",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "authenticated",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "authenticated",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_name",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "company_size",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_at",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "created_at",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "created_by",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "date_type",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "deadline_date",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "email",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "full_name",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "id",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "id",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "message",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "note",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "phone",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "priority",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "responsible",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "sector",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "status",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "tenant_id",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "title",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "critical_dates",
+            "column_name": "updated_at",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "service_role",
+            "privilege_type": "INSERT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "service_role",
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "service_role",
+            "privilege_type": "SELECT"
+          },
+          {
+            "table_name": "demo_requests",
+            "column_name": "updated_at",
+            "grantee": "service_role",
+            "privilege_type": "UPDATE"
+          }
+        ],
+        [
+          {
+            "pg_get_functiondef": "CREATE OR REPLACE FUNCTION public.current_user_verified_tenant()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT m.tenant_id\n    FROM public.tenant_memberships m\n   WHERE m.user_id   = auth.uid()\n     AND m.tenant_id = public.current_user_active_tenant();\n$function$\n"
+          }
+        ],
+        [
+          {
+            "pg_get_functiondef": "CREATE OR REPLACE FUNCTION public.current_user_role()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n SELECT m.role FROM public.tenant_memberships m\n WHERE m.user_id=auth.uid() AND m.tenant_id=public.current_user_verified_tenant()\n$function$\n"
+          }
+        ],
+        [
+          {
+            "pg_get_functiondef": "CREATE OR REPLACE FUNCTION public.is_platform_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT coalesce(\n    (SELECT p.is_platform_admin FROM public.profiles p WHERE p.id = auth.uid()),\n    false\n  );\n$function$\n"
+          }
+        ]
+      ]
+    },
+    {
+      "file": "qa/fable03-expiry-notifications-20261004/preflight.sql",
+      "results": [
+        [
+          {
+            "table_name": "contracts",
+            "column_name": "end_date",
+            "data_type": "date"
+          },
+          {
+            "table_name": "documents",
+            "column_name": "validity_date",
+            "data_type": "date"
+          }
+        ],
+        [
+          {
+            "conname": "notification_expiry_date_key",
+            "convalidated": false,
+            "pg_get_constraintdef": "CHECK (((kind <> ALL (ARRAY['contract_expiry'::text, 'document_expiry'::text])) OR (threshold_key ~ '^30d:[0-9]{4}-[0-9]{2}-[0-9]{2}$'::text))) NOT VALID"
+          },
+          {
+            "conname": "notification_log_kind_check",
+            "convalidated": true,
+            "pg_get_constraintdef": "CHECK ((kind = ANY (ARRAY['contract_expiry'::text, 'task_overdue'::text, 'document_expiry'::text, 'appointment_reminder'::text])))"
+          },
+          {
+            "conname": "notification_log_pkey",
+            "convalidated": true,
+            "pg_get_constraintdef": "PRIMARY KEY (kind, entity_id, recipient_profile_id, threshold_key)"
+          },
+          {
+            "conname": "notification_log_recipient_profile_id_fkey",
+            "convalidated": true,
+            "pg_get_constraintdef": "FOREIGN KEY (recipient_profile_id) REFERENCES profiles(id) ON DELETE CASCADE"
+          },
+          {
+            "conname": "notification_log_threshold_key_check",
+            "convalidated": true,
+            "pg_get_constraintdef": "CHECK ((char_length(btrim(threshold_key)) > 0))"
+          }
+        ],
+        []
+      ]
+    },
+    {
+      "file": "qa/fable03-reporting-merge-20261005/preflight.sql",
+      "results": [
+        [
+          {
+            "signature": "reporting_import_finish(uuid,uuid,uuid,boolean)",
+            "body_sha256": "0b552a2a043f91c3ee90a44192191244498c0b46545df852616957a42befdf52",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_import_people(uuid,uuid,uuid,text,text[],text)",
+            "body_sha256": "8e287982e737ae63afff34ba5cba872c4831156efc65f907874b578e0008aa30",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)",
+            "body_sha256": "33effa9d287a2d4dfc06b652f98f1d3eebcf4895b3f9a5986f13516f8333d6e4",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_import_validate(uuid,uuid,date,text,jsonb)",
+            "body_sha256": "e245310209eb1b3caf82994fd1be0e3aaa8500571fa0124ef13d0f61594d9a20",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_monthly_report(uuid,uuid,uuid,text,integer)",
+            "body_sha256": "d123886766755a1c414290369d2dada09d3e77ffada6f8fc6e81ce3b70e341c8",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)",
+            "body_sha256": "284b97b8f4fbe954d54f77fe25305b2b5a432e5e8ac34d826eebc3f58080163c",
+            "owner": "postgres"
+          },
+          {
+            "signature": "reporting_work_details(uuid,uuid,uuid,text,uuid,integer)",
+            "body_sha256": "232991bd899a65a6ed93c8a590bc61ffea47f9799af3d9f75a06f40de56b3445",
+            "owner": "postgres"
+          },
+          {
+            "signature": "talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)",
+            "body_sha256": "1e0014a2c79758316e49dd303af70c272701c7745cdc410fec50db3062a4b04c",
+            "owner": "postgres"
+          }
+        ],
+        [
+          {
+            "unresolved_mappings": "0"
+          }
+        ],
+        [
+          {
+            "historical_collision_groups": "0"
+          }
+        ]
+      ]
+    }
+  ]
+}

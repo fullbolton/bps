@@ -20,7 +20,7 @@ export const patches=['talent_conversation_list','talent_conversation_save'].map
  return {...e,previous,body,hash:createHash('sha256').update(previous).digest('hex')};
 });
 const q=s=>"'"+s.replaceAll("'","''")+"'";
-export const migrationUrl=new URL('../supabase/migrations/20261004000100_talent_conversation_modules.sql',import.meta.url);
+export const migrationUrl=new URL('../supabase/migrations/20261005002600_talent_conversation_modules.sql',import.meta.url);
 export function render(){return `-- Historical talent conversations remain readable; live staffing context is optional.
 BEGIN;
 SET LOCAL lock_timeout='15s';

@@ -11,7 +11,7 @@ body=replaceOnce(body,' SELECT coalesce(jsonb_agg(to_jsonb(a)'," v_staffing:=(pu
 body=replaceOnce(body,' ) a;',' ) a;\n END IF;');
 body=replaceOnce(body,"'assignments',v_assignments,","'assignments',v_assignments,'staffingAvailable',v_staffing,");
 const q=s=>"'"+s.replaceAll("'","''")+"'";
-export const migrationUrl=new URL('../supabase/migrations/20260929000600_talent_assignment_projection.sql',import.meta.url);
+export const migrationUrl=new URL('../supabase/migrations/20261005002500_talent_assignment_projection.sql',import.meta.url);
 export function render(){return `-- Talent remains usable when staffing is disabled; assignment data is withheld explicitly.
 -- Link identity on the talent card is retained, not misrepresented as an unlinked person.
 BEGIN;

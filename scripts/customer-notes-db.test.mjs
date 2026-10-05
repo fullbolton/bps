@@ -32,11 +32,11 @@ before(async()=>{
  await db.query('ALTER TABLE notes ADD COLUMN tenant_id uuid NOT NULL REFERENCES tenants(id)');
  for(const table of ['companies','contacts','notes'])await db.query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY; GRANT SELECT,INSERT,UPDATE,DELETE ON ${table} TO authenticated,service_role; CREATE POLICY read_${table} ON ${table} FOR SELECT TO authenticated USING(true)`);
  const roles=sqlFile('20260827000300_remove_partner_role.sql');const policyStart=roles.indexOf('CREATE POLICY contacts_insert_role_or_scope');const policyEnd=roles.indexOf('\n  );',policyStart);await db.query(roles.slice(policyStart,policyEnd+6));
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- const shared=sqlFile('20260928001000_task_module_gateway.sql');await db.query(shared.slice(shared.indexOf('CREATE FUNCTION public.workspace_module_enabled_v1'),shared.indexOf('-- Restrictive AND fences')));
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ const shared=sqlFile('20261005000200_task_module_gateway.sql');await db.query(shared.slice(shared.indexOf('CREATE FUNCTION public.workspace_module_enabled_v1'),shared.indexOf('-- Restrictive AND fences')));
  await db.query(sqlFile('20260915000200_contact_note_write_boundaries.sql'));
  await db.query(sqlFile('20260911000100_contact_atomic_write.sql'));
- for(const file of ['20260928001800_company_commands.sql','20260928001900_contact_module_barrier.sql','20260928002000_note_module_commands.sql','20260928002100_company_note_direct_write_cutover.sql'])await db.query(sqlFile(file));
+ for(const file of ['20261005001000_company_commands.sql','20261005001100_contact_module_barrier.sql','20261005001200_note_module_commands.sql','20261005001300_company_note_direct_write_cutover.sql'])await db.query(sqlFile(file));
  console.log('Synthetic notes/contact DB:',(await db.query('SHOW server_version')).rows[0].server_version);
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${name} WITH(FORCE)`);await admin.end();}});
@@ -100,12 +100,12 @@ test('contact definer conversion rejects body drift instead of elevating altered
  await rollback(async()=>{await db.query(sqlFile('20260911000100_contact_atomic_write.sql').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,''));
   const definition=(await db.query("SELECT pg_get_functiondef('write_company_contact(uuid,uuid,text,text,text,text,boolean,text)'::regprocedure) d")).rows[0].d;
   await db.query(definition.replace('c.id=p_company_id AND c.tenant_id=v_tenant','true'));
-  await assert.rejects(db.query(sqlFile('20260928001900_contact_module_barrier.sql').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'')),/CONTACT_COMMAND_BODY_DRIFT/);
+  await assert.rejects(db.query(sqlFile('20261005001100_contact_module_barrier.sql').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'')),/CONTACT_COMMAND_BODY_DRIFT/);
  });
 });
 test('write cutover rejects inherited table privileges',async()=>{
  await rollback(async()=>{await db.query(`CREATE ROLE notes_inherited_${process.pid}; GRANT UPDATE ON notes TO notes_inherited_${process.pid}; GRANT notes_inherited_${process.pid} TO authenticated`);
-  await assert.rejects(db.query(sqlFile('20260928002100_company_note_direct_write_cutover.sql').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'')),/CUSTOMER_WRITE_PRIVILEGE_DRIFT/);
+  await assert.rejects(db.query(sqlFile('20261005001300_company_note_direct_write_cutover.sql').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'')),/CUSTOMER_WRITE_PRIVILEGE_DRIFT/);
  });
 });
 

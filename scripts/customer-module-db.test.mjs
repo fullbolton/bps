@@ -8,7 +8,7 @@ assert.ok(['127.0.0.1','localhost','[::1]'].includes(root.hostname),'Synthetic l
 const name=`bps_customer_modules_${process.pid}_${Date.now()}`,url=new URL(root);url.pathname='/'+name;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 let admin,db,created=false;
-const migration=sqlFile('20260928001700_customer_module_reads.sql');
+const migration=sqlFile('20261005000900_customer_module_reads.sql');
 const tables=['companies','contacts','notes'];
 const legacy=sqlFile('20260827000300_remove_partner_role.sql');
 function policy(name){const start=legacy.indexOf('CREATE POLICY '+name),end=legacy.indexOf('\n  );',start);assert.ok(start>=0&&end>start);return legacy.slice(start,end+6);}
@@ -36,9 +36,9 @@ before(async()=>{
  await db.query(`INSERT INTO profiles VALUES('${id(11)}','yonetici','Manager A'),('${id(12)}','operasyon','Manager B')`);
  for(const table of tables)await db.query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY; GRANT SELECT ON ${table} TO authenticated`);
  for(const name of ['companies_select_role_or_scope','contacts_select_role_or_scope','notes_select_role_or_scope'])await db.query(policy(name));
- await db.query(sqlFile('20260928000900_tenant_module_foundation.sql'));
- const shared=sqlFile('20260928001000_task_module_gateway.sql');await db.query(shared.slice(shared.indexOf('CREATE FUNCTION public.workspace_module_enabled_v1'),shared.indexOf('-- Restrictive AND fences')));
- await db.query(sqlFile('20260928001400_task_company_projection.sql'));
+ await db.query(sqlFile('20261005000100_tenant_module_foundation.sql'));
+ const shared=sqlFile('20261005000200_task_module_gateway.sql');await db.query(shared.slice(shared.indexOf('CREATE FUNCTION public.workspace_module_enabled_v1'),shared.indexOf('-- Restrictive AND fences')));
+ await db.query(sqlFile('20261005000600_task_company_projection.sql'));
  await db.query(migration);
  console.log('Synthetic customers DB:',(await db.query('SHOW server_version')).rows[0].server_version);
 });
