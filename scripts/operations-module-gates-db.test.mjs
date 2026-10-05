@@ -1,4 +1,4 @@
-import {historicalOperationsSql} from './helpers/operations-function-history.mjs';
+import {historicalOperationsSql,withOperationsHistory} from './helpers/operations-function-history.mjs';
 import test,{before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
@@ -29,6 +29,7 @@ before(async()=>{
  await db.query('CREATE TABLE ops_message_notifications(tenant_id uuid,recipient_id uuid,message_id uuid,read_at timestamptz)');
  await db.query(historicalOperationsSql(entries.map(e=>e.signature)));
  for(const e of entries.filter(e=>e.preHotfixBody)){const row=(await db.query('SELECT prosrc,pg_get_functiondef(oid) def FROM pg_proc WHERE oid=$1::regprocedure',[e.signature])).rows[0];assert.equal(row.prosrc,e.preHotfixBody);await db.query(row.def.replace(row.prosrc,()=>e.body));}
+ const internal=withOperationsHistory(source('ops_replace_assignment_before_start','20260910000100_candidate_company_operations.sql','write'));await db.query(internal.declaration);await db.query(`REVOKE ALL ON FUNCTION ${internal.signature} FROM PUBLIC,anon,authenticated;GRANT EXECUTE ON FUNCTION ${internal.signature},ops_comment_context(uuid,uuid) TO service_role`);
  await db.query(render());
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${dbName} WITH(FORCE)`);await admin.end();}});
@@ -87,3 +88,7 @@ test('pre-history fixture is rejected rather than accepted as the deployed basel
  for(const e of entries)await db.query(e.baseDeclaration.replace(/^CREATE (?:OR REPLACE )?FUNCTION/i,'CREATE OR REPLACE FUNCTION'));
  await assert.rejects(db.query(migrationBody()),e=>e.message.includes('BODY_DRIFT'));
 }));
+
+test('historical service grants are removed from private helpers without exposing them',async()=>{
+ for(const signature of ['public.ops_comment_context(uuid,uuid)', 'public.ops_replace_assignment_before_start(uuid,uuid,uuid,uuid,uuid,integer)'])for(const role of ['anon','authenticated','service_role'])assert.equal((await db.query("SELECT has_function_privilege($1,$2,'EXECUTE') allowed",[role,signature])).rows[0].allowed,false,role+': '+signature);
+});

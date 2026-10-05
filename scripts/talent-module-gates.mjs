@@ -1,3 +1,4 @@
+import {internalAcl} from './helpers/module-internal-acl.mjs';
 import {withReleasedHotfix} from './helpers/released-hotfix-history.mjs';
 // Explicit endpoint manifest. Source extraction is deliberately bounded, not a SQL parser.
 // Catalog/body drift makes the generated migration fail before changing any endpoint.
@@ -92,16 +93,10 @@ BEGIN
 END $read$;
 REVOKE ALL ON FUNCTION public.workspace_require_module_read_v1(uuid,text[]) FROM PUBLIC,anon,authenticated,service_role;
 DO $patch$
-DECLARE item record; target regprocedure; original text; definition text; updated text; hidden text; client_role text;
+DECLARE item record; target regprocedure; original text; definition text; updated text;
 BEGIN
  -- Renamed implementation functions must remain inaccessible to clients.
- FOREACH hidden IN ARRAY ARRAY['public.talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb)','public.talent_call_list_people_base(uuid,uuid,uuid)','public.talent_conversation_list_base(uuid,uuid,uuid,integer)'] LOOP
-  target:=to_regprocedure(hidden);
-  IF target IS NULL THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_MISSING: %',hidden;END IF;
-  FOREACH client_role IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
-   IF has_function_privilege(client_role,target,'EXECUTE') THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_ACL: %',hidden;END IF;
-  END LOOP;
- END LOOP;
+${internalAcl(['public.talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb)', 'public.talent_call_list_people_base(uuid,uuid,uuid)', 'public.talent_conversation_list_base(uuid,uuid,uuid,integer)'],'TALENT')}
  IF EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public' AND p.proname LIKE 'talent_%' AND p.proargnames[1] IN ('p_actor','p_actor_id')
   AND has_function_privilege('authenticated',p.oid,'EXECUTE')

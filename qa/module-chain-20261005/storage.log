@@ -1,0 +1,12 @@
+PASS person-files visible with module on
+PASS person-files hidden with module off
+PASS person-files hidden from another tenant
+PASS person-files hidden from anonymous role
+PASS person-files upload allowed with module on
+PASS person-files upload denied with module off
+PASS project-sources visible with module on
+PASS project-sources hidden with module off
+PASS project-sources hidden from another tenant
+PASS project-sources hidden from anonymous role
+PASS project-sources upload allowed with module on
+PASS project-sources upload denied with module off

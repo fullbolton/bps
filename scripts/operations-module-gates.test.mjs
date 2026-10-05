@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {entries,render,migrationUrl} from './operations-module-gates.mjs';
 import {importActualTypeScript} from './helpers/import-typescript.mjs';
-test('40 unique operation signatures generate the committed migration exactly',()=>{
- assert.equal(entries.length,40);assert.equal(new Set(entries.map(e=>e.signature)).size,40);assert.equal(readFileSync(migrationUrl,'utf8'),render());
+test('39 unique operation signatures generate the committed migration exactly',()=>{
+ assert.equal(entries.length,39);assert.equal(new Set(entries.map(e=>e.signature)).size,39);assert.equal(readFileSync(migrationUrl,'utf8'),render());
 });
 test('schedule readers taking profile locks use write barrier; operations never require talent',()=>{
  for(const e of entries){assert.ok(e.guard.includes("ARRAY['staffing']"));assert.ok(!e.guard.includes("'talent'"));}

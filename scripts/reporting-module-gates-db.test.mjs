@@ -21,6 +21,7 @@ before(async()=>{
  await db.query(`CREATE FUNCTION reporting_source_access(p_name text,p_write boolean) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$${storageOriginal}$body$;REVOKE ALL ON FUNCTION reporting_source_access(text,boolean) FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION reporting_source_access(text,boolean) TO authenticated`);
  await db.query(source('reporting_import_validate','20260928000200_project_reporting_actual_import.sql','read').declaration);
  await db.query('REVOKE ALL ON FUNCTION reporting_import_validate(uuid,uuid,date,text,jsonb) FROM PUBLIC,anon,authenticated,service_role');
+ await db.query('GRANT EXECUTE ON FUNCTION reporting_assert_scope(uuid,uuid,boolean),reporting_import_validate(uuid,uuid,date,text,jsonb) TO service_role');
  await db.query(render());
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${name} WITH(FORCE)`);await admin.end();}});
@@ -71,3 +72,7 @@ test('source access rejects another operators batch, foreign tenant and malforme
  await db.query(`UPDATE tenant_memberships SET role='operasyon' WHERE user_id='${id(11)}';INSERT INTO reporting_imports(id,tenant_id,actor_id,status) VALUES('${id(71)}','${id(1)}','${id(12)}','pending'),('${id(72)}','${id(2)}','${id(11)}','pending')`);await auth();
  for(const path of [`${id(1)}/${id(71)}/${'a'.repeat(64)}.csv`,`${id(2)}/${id(72)}/${'a'.repeat(64)}.csv`,'invalid'])assert.deepEqual((await db.query('SELECT reporting_source_access($1,false) r,reporting_source_access($1,true) w',[path])).rows[0],{r:false,w:false});
 }));
+
+test('historical service grants are removed from private helpers without exposing them',async()=>{
+ for(const signature of ['public.reporting_assert_scope(uuid,uuid,boolean)', 'public.reporting_import_validate(uuid,uuid,date,text,jsonb)'])for(const role of ['anon','authenticated','service_role'])assert.equal((await db.query("SELECT has_function_privilege($1,$2,'EXECUTE') allowed",[role,signature])).rows[0].allowed,false,role+': '+signature);
+});

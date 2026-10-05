@@ -1,0 +1,26 @@
+✔ 39 unique operation signatures generate the committed migration exactly (6.577708ms)
+✔ schedule readers taking profile locks use write barrier; operations never require talent (0.909792ms)
+✔ pilotError distinguishes module rejection from transport uncertainty (2339.040208ms)
+✔ fixedRosterError distinguishes module rejection from transport uncertainty (1.759958ms)
+✔ workError distinguishes module rejection from transport uncertainty (133.181584ms)
+✔ scheduleError distinguishes module rejection from transport uncertainty (86.000042ms)
+✔ startError distinguishes module rejection from transport uncertainty (38.278542ms)
+✔ all nine module baselines match the measured production hotfix hashes (26.628833ms)
+✔ released hotfix replay rejects an unreviewed predecessor (3.11425ms)
+✔ all pending module versions follow the applied security release (15.129458ms)
+✔ 12 explicit reporting signatures generate the exact candidate migration (3.870084ms)
+✔ reporting and import messages distinguish disabled module from transport uncertainty (1376.512292ms)
+✔ migration is exactly generated from 39 unique reviewed signatures and source bodies (9.227875ms)
+✔ write guards come before original business statements; only worker preparation needs staffing (1.902417ms)
+✔ known module denials are clear, while transport uncertainty remains distinct (1.536125ms)
+✔ assignment projection migration is generated against the already gated body (11.237292ms)
+✔ conversation module patch is generated against prior guarded bodies (5.769542ms)
+✔ linked name gate uses the current guarded writer and gives an actionable message (20.170292ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5698.221708

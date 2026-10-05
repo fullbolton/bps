@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "signed JWT resolves actual module context",
+    "signed foreign tenant claim rejected",
+    "anonymous module context denied",
+    "person-files HTTP visible while enabled",
+    "person-files HTTP tenant isolated",
+    "project-sources HTTP visible while enabled",
+    "project-sources HTTP tenant isolated",
+    "HTTP context reflects module disable",
+    "person-files HTTP hidden after disable",
+    "project-sources HTTP hidden after disable",
+    "actual talent detail HTTP RPC returns BM001"
+  ],
+  "passed": 11,
+  "scope": "Local PostgREST with synthetic signed JWT; no GoTrue login or Storage HTTP byte transfer"
+}

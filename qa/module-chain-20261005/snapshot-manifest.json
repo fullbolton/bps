@@ -1,0 +1,21 @@
+{
+  "project": "dffdzbmnmnokbftbujsy",
+  "baselineLastMigration": "20261004001400",
+  "schemaOnly": true,
+  "schemas": [
+    "public",
+    "auth",
+    "storage",
+    "extensions"
+  ],
+  "bytes": 1107827,
+  "sha256": "d216f7711f33a1f96f2bbcde3159b01f437778c91dc7c639101975638905e606",
+  "rowsExported": 0,
+  "localDatabase": "bps_module_chain_20261005",
+  "platformPrerequisites": [
+    "btree_gist",
+    "pgcrypto",
+    "uuid-ossp"
+  ],
+  "snapshotCommitted": false
+}

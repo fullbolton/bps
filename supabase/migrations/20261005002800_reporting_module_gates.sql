@@ -2,15 +2,22 @@
 BEGIN;
 SET LOCAL lock_timeout='15s';
 DO $patch$
-DECLARE item record;target regprocedure;original text;definition text;role_name text;hidden text;
+DECLARE item record;target regprocedure;original text;definition text;role_name text;
 BEGIN
- FOREACH hidden IN ARRAY ARRAY['public.reporting_assert_scope(uuid,uuid,boolean)','public.reporting_import_validate(uuid,uuid,date,text,jsonb)'] LOOP
-  target:=to_regprocedure(hidden);
-  IF target IS NULL THEN RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_MISSING';END IF;
-  FOREACH role_name IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
-   IF has_function_privilege(role_name,target,'EXECUTE') THEN RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_ACL';END IF;
-  END LOOP;
- END LOOP;
+ target:=to_regprocedure('public.reporting_assert_scope(uuid,uuid,boolean)');
+ IF target IS NULL THEN RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_MISSING';END IF;
+ IF has_function_privilege('anon',target,'EXECUTE') OR has_function_privilege('authenticated',target,'EXECUTE') THEN
+  RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_ACL';
+ END IF;
+ EXECUTE format('REVOKE ALL ON FUNCTION %s FROM service_role',target);
+ IF has_function_privilege('service_role',target,'EXECUTE') THEN RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_INHERITED_ACL';END IF;
+ target:=to_regprocedure('public.reporting_import_validate(uuid,uuid,date,text,jsonb)');
+ IF target IS NULL THEN RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_MISSING';END IF;
+ IF has_function_privilege('anon',target,'EXECUTE') OR has_function_privilege('authenticated',target,'EXECUTE') THEN
+  RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_ACL';
+ END IF;
+ EXECUTE format('REVOKE ALL ON FUNCTION %s FROM service_role',target);
+ IF has_function_privilege('service_role',target,'EXECUTE') THEN RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_INHERITED_ACL';END IF;
  IF EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname LIKE 'reporting_%' AND p.proargnames[1] IN ('p_actor','p_actor_id') AND has_function_privilege('authenticated',p.oid,'EXECUTE') AND p.oid NOT IN (coalesce(to_regprocedure('public.reporting_project_execute(uuid,uuid,uuid,jsonb)'),0::oid),coalesce(to_regprocedure('public.reporting_project_list(uuid,uuid,integer)'),0::oid),coalesce(to_regprocedure('public.reporting_project_detail(uuid,uuid,uuid,integer,integer)'),0::oid),coalesce(to_regprocedure('public.reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)'),0::oid),coalesce(to_regprocedure('public.reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)'),0::oid),coalesce(to_regprocedure('public.reporting_import_finish(uuid,uuid,uuid,boolean)'),0::oid),coalesce(to_regprocedure('public.reporting_import_list(uuid,uuid,uuid,integer)'),0::oid),coalesce(to_regprocedure('public.reporting_import_people(uuid,uuid,uuid,text,text[],text)'),0::oid),coalesce(to_regprocedure('public.reporting_import_read(uuid,uuid,uuid)'),0::oid),coalesce(to_regprocedure('public.reporting_monthly_report(uuid,uuid,uuid,text,integer)'),0::oid),coalesce(to_regprocedure('public.reporting_work_details(uuid,uuid,uuid,text,uuid,integer)'),0::oid),coalesce(to_regprocedure('public.reporting_source_file(uuid,uuid,uuid,text,text,integer,text)'),0::oid))) THEN RAISE EXCEPTION 'REPORT_MODULE_UNREVIEWED_ENDPOINT';END IF;
  FOR item IN SELECT * FROM (VALUES
 ('public.reporting_project_execute(uuid,uuid,uuid,jsonb)','a83cfd594a2dac81ec2c48049e577ecf9ec59cee59dee246caad81c7d38dd038','

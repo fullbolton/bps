@@ -1,0 +1,147 @@
+[
+  {
+    "file": "20261005000100_tenant_module_foundation.sql",
+    "sha256": "199b4a9c2bcdbd355f815f06831580337a128265c1c2124762eb13aff2680a75",
+    "exit": 0
+  },
+  {
+    "file": "20261005000200_task_module_gateway.sql",
+    "sha256": "06203bb468435513f52989c3edbf9d6d58756a605cf40148d5e4f77371d795ad",
+    "exit": 0
+  },
+  {
+    "file": "20261005000300_task_module_direct_write_cutover.sql",
+    "sha256": "b593cd6d149091037af475b89c73c92071fc8dfeeb9e92c968b3ff061c3411bc",
+    "exit": 0
+  },
+  {
+    "file": "20261005000400_task_module_workflows.sql",
+    "sha256": "2344f991ed42a82eb557a8a0dd0cf7dd4f786896ff8aef59609c9478bf9240cb",
+    "exit": 0
+  },
+  {
+    "file": "20261005000500_task_module_notifications.sql",
+    "sha256": "a044ff634c7f1ce45a7fd8c710232662583b5962a5c0059fbfbacc71c5745f66",
+    "exit": 0
+  },
+  {
+    "file": "20261005000600_task_company_projection.sql",
+    "sha256": "02eee2c98659ebee7d5cf0d6ede7f409cf24b329a8a77b7ffc987f84324d2079",
+    "exit": 0
+  },
+  {
+    "file": "20261005000700_preserve_task_relations.sql",
+    "sha256": "891c15c401769b400060ba1aac5554db09773f70550e81a7264a16b55396627d",
+    "exit": 0
+  },
+  {
+    "file": "20261005000800_finance_module_access.sql",
+    "sha256": "0b31174a13f5cabfddf01b99281a26876014375b1958c6a462fc3e7938a51269",
+    "exit": 0
+  },
+  {
+    "file": "20261005000900_customer_module_reads.sql",
+    "sha256": "64535fe8e56d7a2f342a32462cb1cec9c54c41774caeb3456649fc25ecda4b5e",
+    "exit": 0
+  },
+  {
+    "file": "20261005001000_company_commands.sql",
+    "sha256": "8cc6c7b0c3e9c96019364946dcf541a8481d89f2b15e3b02d14188426c68d976",
+    "exit": 0
+  },
+  {
+    "file": "20261005001100_contact_module_barrier.sql",
+    "sha256": "10147dd36a88a0324e202c0d983c27f497fea6e0dc67f167d1e54c586a785322",
+    "exit": 0
+  },
+  {
+    "file": "20261005001200_note_module_commands.sql",
+    "sha256": "613e56db68a5d209bfd02892339a10af463472f19fda8fdad11c5dde64629137",
+    "exit": 0
+  },
+  {
+    "file": "20261005001300_company_note_direct_write_cutover.sql",
+    "sha256": "88d61e829dc3c81a047e2da6ff651d44edf655028de1275228606d3dcc21e03a",
+    "exit": 0
+  },
+  {
+    "file": "20261005001400_contact_remaining_commands.sql",
+    "sha256": "56b1c81f237f730b4bac01bf1c4afd2e268bd730ec5b32e5f6268cc2776d9db7",
+    "exit": 0
+  },
+  {
+    "file": "20261005001500_contact_direct_write_cutover.sql",
+    "sha256": "a4f879d99ba0441b915fd69c2262a31c633a855c9a13d3f84bbf85cbd1629cc0",
+    "exit": 0
+  },
+  {
+    "file": "20261005001600_customer_notification_modules.sql",
+    "sha256": "e914465f1188f7734559048f46811dedfce2759fdb43221bf0f14b79eb1753c7",
+    "exit": 0
+  },
+  {
+    "file": "20261005001700_notification_candidate_projections.sql",
+    "sha256": "17d355bca9c9e37acd52de28ada2af3e5e2232a7f661e5d558b17d0ab382c875",
+    "exit": 0
+  },
+  {
+    "file": "20261005001800_notification_service_read_cutover.sql",
+    "sha256": "49038d39017a14ac0b1193ec482c03b207e0dab92729e10466145243c5292bce",
+    "exit": 0
+  },
+  {
+    "file": "20261005001900_preserve_customer_history.sql",
+    "sha256": "5a54942e8c5b5138d9bcc2035dc83c86dd7077f7ce5602dd72bbd60bc3f7ea91",
+    "exit": 0
+  },
+  {
+    "file": "20261005002000_preserve_business_history.sql",
+    "sha256": "2d286429a21a7ed5d1c302df9a307d53470c003b67874fe3ba8e85877128bb9a",
+    "exit": 0
+  },
+  {
+    "file": "20261005002100_module_change_preview.sql",
+    "sha256": "a995ea5bd2c12fb73e9145f276e5a5598bb7621b1cb832f9cbd32f9734709b4e",
+    "exit": 0
+  },
+  {
+    "file": "20261005002200_talent_module_rpc_gates.sql",
+    "sha256": "cdb301e99507ec033a184a0648f59947ccbaa8b99d75bc5572a221d771ee9db0",
+    "exit": 0
+  },
+  {
+    "file": "20261005002300_operations_module_rpc_gates.sql",
+    "sha256": "b331eacc2d840975b136142dec5e6e15af308cc77ff32dea50adbec1a1733391",
+    "exit": 0
+  },
+  {
+    "file": "20261005002400_legacy_operations_module_gates.sql",
+    "sha256": "351e2443c664cf1be9258b2bf6e8db13b550e7c5f5a76efff1f2514216eed4b5",
+    "exit": 0
+  },
+  {
+    "file": "20261005002500_talent_assignment_projection.sql",
+    "sha256": "ccf1aa3a53cfacdb17ac68b920cb5212e21658c672edb8486c5993c0c1b4bb5e",
+    "exit": 0
+  },
+  {
+    "file": "20261005002600_talent_conversation_modules.sql",
+    "sha256": "5e6b9e94129976c5b29664c84311f1122e91739dca94eac98b13ec1ae091352a",
+    "exit": 0
+  },
+  {
+    "file": "20261005002700_talent_linked_name_gate.sql",
+    "sha256": "29fcbaa86942486e6d9a8214bdbcf04f8d9391e66b4b0e499ad914e3b488e39b",
+    "exit": 0
+  },
+  {
+    "file": "20261005002800_reporting_module_gates.sql",
+    "sha256": "6767be49c77a55627cb69631f5191de3b73cbcd69c39ffb8a94c852c4e4294cd",
+    "exit": 0
+  },
+  {
+    "file": "20261005002900_talent_storage_read_only.sql",
+    "sha256": "4cb1c47cd9d6c8c846ba94bfc5dfd53751658c9e235398a32230c117b980bd7e",
+    "exit": 0
+  }
+]

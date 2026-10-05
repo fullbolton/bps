@@ -1,3 +1,4 @@
+import {internalAcl} from './helpers/module-internal-acl.mjs';
 import {withReleasedHotfix} from './helpers/released-hotfix-history.mjs';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -22,15 +23,9 @@ export function render(){return `-- Reporting RPC and project-sources Storage ga
 BEGIN;
 SET LOCAL lock_timeout='15s';
 DO $patch$
-DECLARE item record;target regprocedure;original text;definition text;role_name text;hidden text;
+DECLARE item record;target regprocedure;original text;definition text;role_name text;
 BEGIN
- FOREACH hidden IN ARRAY ARRAY['public.reporting_assert_scope(uuid,uuid,boolean)','public.reporting_import_validate(uuid,uuid,date,text,jsonb)'] LOOP
-  target:=to_regprocedure(hidden);
-  IF target IS NULL THEN RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_MISSING';END IF;
-  FOREACH role_name IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
-   IF has_function_privilege(role_name,target,'EXECUTE') THEN RAISE EXCEPTION 'REPORT_MODULE_INTERNAL_ACL';END IF;
-  END LOOP;
- END LOOP;
+${internalAcl(['public.reporting_assert_scope(uuid,uuid,boolean)', 'public.reporting_import_validate(uuid,uuid,date,text,jsonb)'],'REPORT')}
  IF EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname LIKE 'reporting_%' AND p.proargnames[1] IN ('p_actor','p_actor_id') AND has_function_privilege('authenticated',p.oid,'EXECUTE') AND p.oid NOT IN (${entries.map(e=>`coalesce(to_regprocedure(${q(e.signature)}),0::oid)`).join(',')})) THEN RAISE EXCEPTION 'REPORT_MODULE_UNREVIEWED_ENDPOINT';END IF;
  FOR item IN SELECT * FROM (VALUES
 ${entries.map(e=>`(${q(e.signature)},${q(e.hash)},${q(e.anchor)},${q(e.guard)})`).join(',\n')}

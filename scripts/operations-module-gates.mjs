@@ -1,3 +1,4 @@
+import {internalAcl} from './helpers/module-internal-acl.mjs';
 import {withReleasedHotfix} from './helpers/released-hotfix-history.mjs';
 import {withOperationsHistory} from './helpers/operations-function-history.mjs';
 import {readFileSync,writeFileSync} from 'node:fs';
@@ -53,11 +54,6 @@ export const targets = [
     "ops_start_board_filtered",
     "20260909002800_start_board_filters.sql",
     "read"
-  ],
-  [
-    "ops_replace_assignment_before_start",
-    "20260910000100_candidate_company_operations.sql",
-    "write"
   ],
   [
     "ops_comment_send",
@@ -219,6 +215,7 @@ SET LOCAL lock_timeout='15s';
 DO $patch$
 DECLARE item record;target regprocedure;original text;definition text;updated text;
 BEGIN
+${internalAcl(['public.ops_comment_context(uuid,uuid)','public.ops_replace_assignment_before_start(uuid,uuid,uuid,uuid,uuid,integer)'],'OPS')}
  IF EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname LIKE 'ops_%'
   AND p.proargnames[1] IN ('p_actor','p_actor_id') AND has_function_privilege('authenticated',p.oid,'EXECUTE')
   AND NOT p.oid=ANY(ARRAY[${entries.map(e=>`to_regprocedure(${q(e.signature)})::oid`).join(',')}])) THEN RAISE EXCEPTION 'OPS_MODULE_UNREVIEWED_ENDPOINT';END IF;

@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "person-files visible with module on",
+    "person-files hidden with module off",
+    "person-files hidden from another tenant",
+    "person-files hidden from anonymous role",
+    "person-files upload allowed with module on",
+    "person-files upload denied with module off",
+    "project-sources visible with module on",
+    "project-sources hidden with module off",
+    "project-sources hidden from another tenant",
+    "project-sources hidden from anonymous role",
+    "project-sources upload allowed with module on",
+    "project-sources upload denied with module off"
+  ],
+  "passed": 12,
+  "scope": "actual storage.objects policies and database operations; no Storage HTTP upload or signed URL"
+}

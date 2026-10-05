@@ -14,16 +14,30 @@ BEGIN
 END $read$;
 REVOKE ALL ON FUNCTION public.workspace_require_module_read_v1(uuid,text[]) FROM PUBLIC,anon,authenticated,service_role;
 DO $patch$
-DECLARE item record; target regprocedure; original text; definition text; updated text; hidden text; client_role text;
+DECLARE item record; target regprocedure; original text; definition text; updated text;
 BEGIN
  -- Renamed implementation functions must remain inaccessible to clients.
- FOREACH hidden IN ARRAY ARRAY['public.talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb)','public.talent_call_list_people_base(uuid,uuid,uuid)','public.talent_conversation_list_base(uuid,uuid,uuid,integer)'] LOOP
-  target:=to_regprocedure(hidden);
-  IF target IS NULL THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_MISSING: %',hidden;END IF;
-  FOREACH client_role IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
-   IF has_function_privilege(client_role,target,'EXECUTE') THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_ACL: %',hidden;END IF;
-  END LOOP;
- END LOOP;
+ target:=to_regprocedure('public.talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb)');
+ IF target IS NULL THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_MISSING';END IF;
+ IF has_function_privilege('anon',target,'EXECUTE') OR has_function_privilege('authenticated',target,'EXECUTE') THEN
+  RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_ACL';
+ END IF;
+ EXECUTE format('REVOKE ALL ON FUNCTION %s FROM service_role',target);
+ IF has_function_privilege('service_role',target,'EXECUTE') THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_INHERITED_ACL';END IF;
+ target:=to_regprocedure('public.talent_call_list_people_base(uuid,uuid,uuid)');
+ IF target IS NULL THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_MISSING';END IF;
+ IF has_function_privilege('anon',target,'EXECUTE') OR has_function_privilege('authenticated',target,'EXECUTE') THEN
+  RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_ACL';
+ END IF;
+ EXECUTE format('REVOKE ALL ON FUNCTION %s FROM service_role',target);
+ IF has_function_privilege('service_role',target,'EXECUTE') THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_INHERITED_ACL';END IF;
+ target:=to_regprocedure('public.talent_conversation_list_base(uuid,uuid,uuid,integer)');
+ IF target IS NULL THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_MISSING';END IF;
+ IF has_function_privilege('anon',target,'EXECUTE') OR has_function_privilege('authenticated',target,'EXECUTE') THEN
+  RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_ACL';
+ END IF;
+ EXECUTE format('REVOKE ALL ON FUNCTION %s FROM service_role',target);
+ IF has_function_privilege('service_role',target,'EXECUTE') THEN RAISE EXCEPTION 'TALENT_MODULE_INTERNAL_INHERITED_ACL';END IF;
  IF EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public' AND p.proname LIKE 'talent_%' AND p.proargnames[1] IN ('p_actor','p_actor_id')
   AND has_function_privilege('authenticated',p.oid,'EXECUTE')

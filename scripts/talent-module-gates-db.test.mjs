@@ -27,6 +27,7 @@ before(async()=>{
  await db.query(`ALTER TABLE talent_attachments ADD COLUMN cancelled boolean NOT NULL DEFAULT false,ADD COLUMN cleaned boolean NOT NULL DEFAULT false`);
  await db.query(`CREATE FUNCTION public.talent_attachment_access(p_id uuid,p_upload boolean DEFAULT false) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $body$${attachmentBody}$body$;REVOKE ALL ON FUNCTION talent_attachment_access(uuid,boolean) FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION talent_attachment_access(uuid,boolean) TO authenticated`);
  await db.query(`CREATE FUNCTION public.talent_attachment_can_cleanup(p_id uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$${cleanupBody}$body$;REVOKE ALL ON FUNCTION talent_attachment_can_cleanup(uuid) FROM PUBLIC,anon,service_role;GRANT EXECUTE ON FUNCTION talent_attachment_can_cleanup(uuid) TO authenticated`);
+ await db.query('GRANT EXECUTE ON FUNCTION talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb),talent_call_list_people_base(uuid,uuid,uuid),talent_conversation_list_base(uuid,uuid,uuid,integer) TO service_role');
  await db.query(render());
 });
 after(async()=>{if(db)await db.end();if(admin){if(created)await admin.query(`DROP DATABASE ${dbName} WITH(FORCE)`);await admin.end();}});
@@ -74,9 +75,10 @@ async function originalState(){
 }
 const migrationBody=()=>render().replace(/\nBEGIN;\n/,'\n').replace(/COMMIT;\n$/,'');
 test('last-body drift rolls back every earlier patch and helper creation',()=>run(async()=>{
- await originalState();const last=entries.at(-1);await db.query(last.declaration.replace(/^CREATE (?:OR REPLACE )?FUNCTION/i,'CREATE OR REPLACE FUNCTION').replace('BEGIN','BEGIN\n -- drift'));
+ await originalState();await db.query('GRANT EXECUTE ON FUNCTION talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb) TO service_role');const last=entries.at(-1);await db.query(last.declaration.replace(/^CREATE (?:OR REPLACE )?FUNCTION/i,'CREATE OR REPLACE FUNCTION').replace('BEGIN','BEGIN\n -- drift'));
  await db.query('SAVEPOINT candidate');await assert.rejects(db.query(migrationBody()),e=>e.message.includes('BODY_DRIFT'));await db.query('ROLLBACK TO candidate');
  assert.equal((await db.query("SELECT to_regprocedure('public.workspace_require_module_read_v1(uuid,text[])') p")).rows[0].p,null);
+ assert.equal((await db.query("SELECT has_function_privilege('service_role','public.talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb)','EXECUTE') allowed")).rows[0].allowed,true);
  assert.equal((await db.query('SELECT prosrc FROM pg_proc WHERE oid=$1::regprocedure',[entries[0].signature])).rows[0].prosrc,entries[0].body);
 }));
 test('exposed internal aliases stop migration instead of leaving a bypass',()=>run(async()=>{
@@ -290,7 +292,18 @@ test('actual cancellation Storage policies cannot reveal or delete files when ta
  INSERT INTO talent_attachments(id,tenant_id,actor_id,ready,category,cancelled) VALUES('${id(60)}','${id(1)}','${id(11)}',false,'photo',true);
  INSERT INTO storage.objects VALUES('person-files','${id(60)}');`);
  const policies=sqlFile('20260923000300_talent_attachment_cancellation.sql').match(/^CREATE POLICY person_files_(?:no_delete|cancel_delete|cancel_read|read_fence) .*;$/gm);assert.equal(policies.length,4);for(const p of policies)await db.query(p);
+ await db.query(sqlFile('20261005002900_talent_storage_read_only.sql').replace(/\nBEGIN;\n/,'\n').replace(/COMMIT;\n$/,''));
+ await db.query('SET LOCAL search_path=public'); // Embedded migration has no COMMIT to reset SET LOCAL.
  await claims();await db.query('SET LOCAL ROLE authenticated');assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,1);
  await db.query('RESET ROLE');await db.query(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='talent'`);await db.query('SET LOCAL ROLE authenticated');assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,0);assert.equal((await db.query('DELETE FROM storage.objects')).rowCount,0);
  await db.query('RESET ROLE');await db.query(`UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='talent'`);await db.query('SET LOCAL ROLE authenticated');assert.equal((await db.query('DELETE FROM storage.objects')).rowCount,1);
+ await db.query('RESET ROLE');await db.query(`INSERT INTO storage.objects VALUES('person-files','${id(60)}')`);
+ // PostgREST GET runs READ ONLY: the SELECT fence must never take a write lock.
+ await db.query('SET TRANSACTION READ ONLY');await claims();await db.query('SET LOCAL ROLE authenticated');
+ assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,1);
+ await claims(db,12,2);assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,0);
 }));
+
+test('historical service grants are removed from private helpers without exposing them',async()=>{
+ for(const signature of ['public.talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb)', 'public.talent_call_list_people_base(uuid,uuid,uuid)', 'public.talent_conversation_list_base(uuid,uuid,uuid,integer)'])for(const role of ['anon','authenticated','service_role'])assert.equal((await db.query("SELECT has_function_privilege($1,$2,'EXECUTE') allowed",[role,signature])).rows[0].allowed,false,role+': '+signature);
+});
