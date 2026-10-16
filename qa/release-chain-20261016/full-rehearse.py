@@ -34,7 +34,7 @@ try:
  if r.returncode:raise RuntimeError(r.stderr[-3000:])
  check((ROOT/'qa/module-chain-20261005/reproduce/bps-module-chain-seed.sql').read_text())
  report['emptySnapshotVerified']=True
- if BARRIER:check((BASE/'barrier/install.sql').read_text(),user='supabase_admin')
+ if BARRIER:check((BASE/'barrier/install.sql').read_text(),user='postgres')
  for p in files:
   start=time.monotonic();r=sql(p.read_text())
   (OUT/(p.stem+'.log')).write_text(r.stdout+'\n'+r.stderr)
@@ -42,11 +42,11 @@ try:
   print(p.name,r.returncode,flush=True)
   if r.returncode:raise RuntimeError(r.stderr)
   if BARRIER:
-   check((BASE/'barrier/extend.sql').read_text(),user='supabase_admin')
+   check((BASE/'barrier/extend.sql').read_text(),user='postgres')
    check((BASE/'barrier/verify.sql').read_text(),user='supabase_admin')
  report['integratedSmoke']=check((BASE/'integrated-smoke.sql').read_text())
  if BARRIER:
-  check((BASE/'barrier/remove.sql').read_text(),user='supabase_admin')
+  check((BASE/'barrier/remove.sql').read_text(),user='postgres')
   report['barrierRemoved']=True
  report['success']=True
 except Exception as e:

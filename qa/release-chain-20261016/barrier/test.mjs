@@ -12,16 +12,18 @@ try {
  admin(`CREATE DATABASE ${database} TEMPLATE bps_module_chain_20261005`);created=true;
  for(let i=0;i<3;i++){const c=new Client({host:'127.0.0.1',port:54322,user:'supabase_admin',password,database,statement_timeout:12000});await c.connect();clients.push(c);}
  const [a,b,c]=clients;
- await a.query('SET ROLE postgres');
+ await a.query('CREATE TABLE public.release_foreign_probe(id integer);ALTER TABLE public.release_foreign_probe OWNER TO supabase_storage_admin;SET ROLE postgres');
  await assert.rejects(a.query(readFileSync(new URL('./install.sql',import.meta.url),'utf8')),e=>e.message==='RELEASE_GUARD_OWNER_PRIVILEGES_REQUIRED');
- await a.query('ROLLBACK;RESET ROLE');
+ await a.query('ROLLBACK;RESET ROLE;DROP TABLE public.release_foreign_probe');
  assert.equal((await a.query("SELECT to_regnamespace('bps_release_guard') AS n")).rows[0].n,null);
  checks.push('non-owner installer fails before any barrier is created');
 
  await a.query(`GRANT USAGE ON SCHEMA public TO authenticated,service_role,supabase_storage_admin;CREATE TABLE public.release_probe(id integer);GRANT ALL ON public.release_probe TO authenticated,service_role,supabase_storage_admin;
  CREATE FUNCTION public.release_probe_rpc() RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path='' AS 'INSERT INTO public.release_probe VALUES(2)';
  ALTER FUNCTION public.release_probe_rpc() OWNER TO postgres;GRANT EXECUTE ON FUNCTION public.release_probe_rpc() TO authenticated,service_role;`);
+ await a.query('ALTER TABLE public.release_probe OWNER TO postgres');
  await a.query('BEGIN;INSERT INTO public.release_probe VALUES(1)');
+ await b.query('SET ROLE postgres');
  const installing=b.query(readFileSync(new URL('./install.sql',import.meta.url),'utf8')).then(()=>null,e=>e);
  let blocked=false;
  for(let i=0;i<100;i++){
@@ -40,10 +42,10 @@ try {
  }
  await a.query('INSERT INTO public.release_probe VALUES(3)');checks.push('direct admin migration DML remains available');
  assert.deepEqual((await a.query('SELECT id FROM public.release_probe ORDER BY id')).rows.map(r=>r.id),[1,3]);
- const inventory=await a.query(`SELECT count(*)::integer AS n FROM bps_release_guard.targets`);assert.ok(inventory.rows[0].n>80);
+ const inventory=await a.query(`SELECT count(*)::integer AS n FROM bps_release_guard.targets`);assert.ok(inventory.rows[0].n>50);
  const verify=readFileSync(new URL('./verify.sql',import.meta.url),'utf8');
  await b.query(verify);
- await a.query('CREATE TABLE public.release_new_table(id integer)');
+ await a.query('CREATE TABLE public.release_new_table(id integer);ALTER TABLE public.release_new_table OWNER TO postgres');
  await assert.rejects(b.query(verify),e=>e.message==='RELEASE_GUARD_COVERAGE_INCOMPLETE');
  await b.query('ROLLBACK');
  await b.query(readFileSync(new URL('./extend.sql',import.meta.url),'utf8'));

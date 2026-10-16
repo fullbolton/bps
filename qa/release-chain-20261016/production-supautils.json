@@ -1,0 +1,10 @@
+{
+  "measuredAt": "2026-10-16T19:56:46.589601+00:00",
+  "currentUser": "postgres",
+  "sessionUser": "cli_login_postgres",
+  "policyGrants": "{\"postgres\":[\"auth.audit_log_entries\",\"auth.flow_state\",\"auth.identities\",\"auth.instances\",\"auth.mfa_amr_claims\",\"auth.mfa_challenges\",\"auth.mfa_factors\",\"auth.oauth_clients\",\"auth.one_time_tokens\",\"auth.refresh_tokens\",\"auth.saml_providers\",\"auth.saml_relay_states\",\"auth.sessions\",\"auth.sso_domains\",\"auth.sso_providers\",\"auth.users\",\"realtime.messages\",\"realtime.subscription\",\"storage.buckets\",\"storage.buckets_analytics\",\"storage.objects\",\"storage.prefixes\",\"storage.s3_multipart_uploads\",\"storage.s3_multipart_uploads_parts\"]}",
+  "privilegedRole": "supabase_privileged_role",
+  "dropTriggerGrants": "{\"postgres\":[\"auth.audit_log_entries\",\"auth.flow_state\",\"auth.identities\",\"auth.instances\",\"auth.mfa_amr_claims\",\"auth.mfa_challenges\",\"auth.mfa_factors\",\"auth.oauth_clients\",\"auth.one_time_tokens\",\"auth.refresh_tokens\",\"auth.saml_providers\",\"auth.saml_relay_states\",\"auth.sessions\",\"auth.sso_domains\",\"auth.sso_providers\",\"auth.users\",\"realtime.messages\",\"realtime.subscription\",\"storage.buckets\",\"storage.buckets_analytics\",\"storage.objects\",\"storage.prefixes\",\"storage.s3_multipart_uploads\",\"storage.s3_multipart_uploads_parts\"]}",
+  "project": "dffdzbmnmnokbftbujsy",
+  "scope": "point-in-time role/session metadata; no query text or business rows"
+}

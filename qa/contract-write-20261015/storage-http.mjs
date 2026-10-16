@@ -205,7 +205,7 @@ try {
   assert.ok((await request('/object/documents/'+deletePath,'POST',pdf,current,{'Content-Type':'application/pdf'})).ok);
   assert.equal((await rpcResult('document_cancel_upload_v1',{p_tenant:id(1),p_id:id(9302)},current)).status,200);
   const barrierSql=name=>readFileSync(new URL('../release-chain-20261016/barrier/'+name+'.sql',import.meta.url),'utf8');
-  docker(['exec','-i','-e',`PGPASSWORD=${password}`,source,'psql','-w','-X','-qAt','-U','supabase_admin','-d',database,'-v','ON_ERROR_STOP=1'],barrierSql('install'));
+  docker(['exec','-i','-e',`PGPASSWORD=${password}`,source,'psql','-w','-X','-qAt','-U','postgres','-d',database,'-v','ON_ERROR_STOP=1'],barrierSql('install'));
   sql(barrierSql('verify'));
   const deniedPrepare=await rpcResult('document_prepare_upload_v1',{...preparation,p_id:id(9303)},current);
   assert.equal(deniedPrepare.status,503);assert.equal(deniedPrepare.data.code,'PT503');
@@ -216,7 +216,7 @@ try {
   assert.equal(deniedDelete.ok,false);
   const retained=await request('/object/authenticated/documents/'+deletePath,'GET',undefined,current);
   assert.ok(retained.ok);assert.equal(retained.text,pdf.toString());
-  docker(['exec','-i','-e',`PGPASSWORD=${password}`,source,'psql','-w','-X','-qAt','-U','supabase_admin','-d',database,'-v','ON_ERROR_STOP=1'],barrierSql('remove'));
+  docker(['exec','-i','-e',`PGPASSWORD=${password}`,source,'psql','-w','-X','-qAt','-U','postgres','-d',database,'-v','ON_ERROR_STOP=1'],barrierSql('remove'));
   assert.ok((await request('/object/documents/'+blockedPath,'POST',pdf,current,{'Content-Type':'application/pdf'})).ok);
   assert.ok((await request('/object/documents','DELETE',JSON.stringify({prefixes:[deletePath]}),current,{'Content-Type':'application/json'})).ok);
   const evidence={rpcStatus:deniedPrepare.status,uploadStatus:deniedUpload.status,deleteStatus:deniedDelete.status,retainedBytes:true,reopenedUploadAndDelete:true,scope:'local Storage HTTP; no production writes'};

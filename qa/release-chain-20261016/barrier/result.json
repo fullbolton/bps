@@ -12,6 +12,6 @@
     "removal drift fails atomically and preserves guard",
     "explicit removal restores API write"
   ],
-  "coveredTables": 90,
+  "coveredTables": 86,
   "productionApplied": false
 }
