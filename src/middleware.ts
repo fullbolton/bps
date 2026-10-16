@@ -7,21 +7,20 @@
  */
 
 import { updateSession } from "@/lib/supabase/middleware";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { maintenanceResponse } from "@/lib/maintenance";
 
 export async function middleware(request: NextRequest) {
+  const paused = maintenanceResponse(request, process.env.BPS_MAINTENANCE_MODE);
+  if (paused) return paused;
+  // Preserve the previous public-asset bypass when maintenance is off.
+  const path = request.nextUrl.pathname;
+  if (path.startsWith('/_next/static') || path.startsWith('/_next/image') ||
+      path === '/favicon.ico' || /\.(?:svg|png|jpg|jpeg|gif|webp)$/.test(path)) {
+    return NextResponse.next();
+  }
   return await updateSession(request);
 }
 
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico
-     * - public assets
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
-};
+// Include assets and every API path so an extension cannot bypass maintenance.
+export const config = { matcher: ["/:path*"] };

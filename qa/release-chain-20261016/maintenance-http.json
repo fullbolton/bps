@@ -1,0 +1,37 @@
+{
+  "scope": "local Next HTTP; Supabase intentionally unreachable",
+  "checks": [
+    {
+      "path": "/dashboard",
+      "method": "GET",
+      "status": 503
+    },
+    {
+      "path": "/api/cron/notifications",
+      "method": "GET",
+      "status": 503
+    },
+    {
+      "path": "/api/demo-request",
+      "method": "POST",
+      "status": 503
+    },
+    {
+      "path": "/evraklar",
+      "method": "POST",
+      "status": 503
+    },
+    {
+      "path": "/api/test.png",
+      "method": "POST",
+      "status": 503
+    },
+    {
+      "path": "/evraklar",
+      "method": "HEAD",
+      "status": 503
+    }
+  ],
+  "htmlPassed": true,
+  "productionEnabled": false
+}

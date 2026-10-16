@@ -27,3 +27,10 @@ Eski uygulama tabloya doğrudan yazıyor. Yeni uygulama appointment_execute_v1, 
 - Gerçek veri hacminde kilit/backfill maliyeti; boş sentetik prova bunu ölçmez.
 - Gerçek Vercel ortamıyla son build/dağıtım, uzak yedek ve yayın sonrası kabul.
 - Tam DB suite bu tur yeniden çalıştırılmadı; envanterde 27 DB ve 7 pending dosya bulunması hepsinin geçtiği anlamına gelmez.
+
+
+## Uygulama bakım kapısı — uygulandı, varsayılan kapalı
+
+`BPS_MAINTENANCE_MODE=1` sunucu ortam değişkeniyle middleware bütün istekleri oturum yenilemeden önce HTTP 503 ile durdurur. GET cron, server action POST, API ve uzantılı yollar dahil; header/URL ile bypass yok. GET HTML için Türkçe sayfa, diğer istekler için MAINTENANCE JSON kodu, HEAD için boş gövde döner. no-store ve Retry-After:120 gönderilir; mutasyon otomatik yeniden denenmez. Ortam değeri tam olarak 1 değilse mevcut oturum davranışı korunur. Üretim ortamı bu tur değiştirilmedi.
+
+Gerçek yerel Next sunucusunda Supabase adresi erişilemezken altı HTTP yolu/yöntemi ve Türkçe HTML kabulü geçti. Kanıt maintenance-http.json. Kapı tüm dağıtımlara kendiliğinden yayılmaz: eski deployment URL'leri ve doğrudan Supabase/Storage bağlantıları dışarıdadır. Başlamış işlemleri iptal etmez veya boşaldıklarını kanıtlamaz. Eksik DB/Storage yazma bariyeri ve in-flight drain kabulü kapanmadan tam bakım koruması sayılmaz. Bu kodu içeren yeni sürümün önce SQL'siz/uyumsuz biçimde canlıya alınması da çözüm değildir; gerekirse mevcut canlı sürüme yalnız bu bağımsız kapı taşınır ve bakım açık dağıtım ayrıca doğrulanır.

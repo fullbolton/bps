@@ -1,0 +1,12 @@
+{
+  "applicationPassed": 690,
+  "applicationFailed": 0,
+  "typescriptExit": 0,
+  "staticFail": 0,
+  "staticWarn": 1,
+  "localBuildExit": 0,
+  "httpRequestsPassed": 6,
+  "htmlPassed": true,
+  "productionEnabled": false,
+  "directSupabaseBarrier": false
+}

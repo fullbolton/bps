@@ -640,5 +640,9 @@
   {
     "file": "scripts/contract-write-commands.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/maintenance.test.mjs",
+    "suite": "application"
   }
 ]

@@ -315,3 +315,8 @@ Sınır: gerçek üretim satırlarının migration backfill maliyeti, trafik alt
 ## 16 Ekim — güncel kod kontrolü ve yayın sırası
 
 686/686 uygulama, 19 birim vaka + 4 kontrol, TypeScript exit 0, statik 0 FAIL/2 mevcut WARN ve açıkça yerel Supabase adresiyle Next build exit 0. Envanter 123 uygulama/27 DB/7 pending dosya; tüm DB suite bu tur tekrarlanmadı. qa/release-chain-20261016/ROLLOUT.md eski uygulama/yeni RPC uyumsuzluğunu ve doğrudan yazma kapılarını ele alır. Canlı geçiş için eski sekmeler ve servis yazıcıları dahil doğrulanmış bakım mekanizması eksik; bu koşul karşılanmadan 53 aday tek seferde canlı trafiğe uygulanmamalı. Üretim yayını yok.
+
+
+## 16 Ekim — uygulama bakım kapısı
+
+Server-only BPS_MAINTENANCE_MODE=1 ile middleware, oturum yenilemeden önce tüm yolları 503/no-store/Retry-After ile durduruyor. Türkçe GET HTML, diğer isteklerde JSON; POST/server action otomatik replay veya yönlendirme yok. Matcher bütün yolları kapsıyor; bakım kapalıyken önceki asset bypass korunuyor. 4 yeni test; gerçek Next HTTP üzerinde 6 yol/yöntem + HTML testi erişilemeyen Supabase adresiyle geçti. 690/690 uygulama testi, TypeScript ve statik 0 FAIL/1 WARN. Üretimde etkinleştirilmedi; migration sayısı 53 değişmedi. Bu yalnız uygulama kapısıdır: doğrudan Supabase/Storage, eski deployment URL'leri ve devam eden işlemlerin drain kontrolü hâlâ yayın engeli. Ayrıntı ROLLOUT.md.
