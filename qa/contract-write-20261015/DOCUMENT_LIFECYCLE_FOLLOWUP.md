@@ -449,3 +449,10 @@ Yerel Auth/Next/Storage kabul fixture'ına üçüncü sentetik kayıt eklendi: d
 Birinci sekmede Synthetic A evrak yükleme formu açılıp yalnız sentetik evrak adı yazıldı; kaydedilmedi. İkinci sekmede gerçek şirket seçici ile Synthetic B seçildi ve Auth yenilemesi tamamlandı. Birinci sekme kendiliğinden formu kaldırarak “Şirketinizi yeniden doğrulayın” ekranını gösterdi. İkinci sekmede Synthetic B başlığı görüldü. SQL: seçili tenant B, taslak adına ait documents=0 ve document_upload_attempts=0. Kanıt browser-multitab-result-20261017.json.
 
 Bu sonuç önceki çok sekmeli açık form kabul açığını, kaydedilmemiş evrak formu için kapatır. Devam eden byte transferi sırasında şirket değişimi, refresh ile eşzamanlı üyelik değişimi ve fiziksel mobil cihaz hâlâ ayrıca sınanmalıdır. Ürün kodu/SQL değiştirilmedi, canlıya işlem yapılmadı. Tarihsel metinlerdeki yayın bekliyor ifadeleri güncel değildir: 17 Ekim yayın manifesti geçerlidir.
+
+
+## 17 Ekim — kurtarma hatalarında doğru neden ve belirsizlik
+
+Kod incelemesinde document_upload_recovery_target_v1 bağlantı hatası veya bozuk/null yanıtının “yükleme bulunamadı veya yetkiniz yok” mesajına dönüştüğü görüldü. document-upload-recovery.ts artık yalnız 42501 için erişim, BM001 için kapalı modül mesajı gösterir. Diğer RPC hataları ve geçersiz yanıtlar sonuç doğrulanamadı mesajında kalır; indirme/finalize başlatılmaz. İptalde doğrulanamayan sonuç için de varsayımsal yetki/işlem nedeni kaldırıldı.
+
+11/11 hedefli test geçti; taşıma hatası, timeout kodu, bozuk/null yanıt ve iki doğrulanmış ret kodu ayrı test edildi. Kanıt recovery-errors-20261017.tap. SQL/migration değişikliği yok. Bu ürün metni düzeltmesi GitHub geliştirme dalına gönderilir; otomatik yayın kapalı olduğundan canlıda henüz yoktur.

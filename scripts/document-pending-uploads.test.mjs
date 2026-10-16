@@ -97,3 +97,23 @@ test('cancellation needs confirmation and prevents duplicate submissions',async(
  resolve({ok:true,message:'İptal edildi; temizlik bekliyor.'});await settle();tree=render();
  assert.ok(nodes(tree).some(n=>n.props?.children==='İptal edildi; temizlik bekliyor.'));d.dispose();
 });
+
+
+test('recovery distinguishes verified access denial from transport and malformed responses',async()=>{
+ for(const error of [{message:'Failed to fetch'}, {code:'PGRST000'}, {code:'57014'}, {}]) {
+  const c=recoveryClient({targetError:error});const result=await resume(c,'tenant','doc');
+  assert.equal(result.ok,false);assert.match(result.message,/doğrulanamadı/);
+  assert.doesNotMatch(result.message,/yetki|bulunamadı|modülü kapalı/);
+  assert.deepEqual(c.calls,['document_upload_recovery_target_v1']);
+ }
+ for(const data of [null,{},[],{document_id:'other'},'true']){
+  let calls=0;const result=await resume({rpc:async()=>{calls++;return {data,error:null};},storage:{from:()=>assert.fail('invalid target must not download')}},'tenant','doc');
+  assert.equal(result.ok,false);assert.doesNotMatch(result.message,/yetki|bulunamadı/);assert.equal(calls,1);
+ }
+ const denied=recoveryClient({targetError:{code:'42501'}});
+ assert.match((await resume(denied,'tenant','doc')).message,/erişiminiz/);
+ assert.deepEqual(denied.calls,['document_upload_recovery_target_v1']);
+ const closed=recoveryClient({targetError:{code:'BM001'}});
+ assert.match((await resume(closed,'tenant','doc')).message,/modülü kapalı/);
+ assert.deepEqual(closed.calls,['document_upload_recovery_target_v1']);
+});
