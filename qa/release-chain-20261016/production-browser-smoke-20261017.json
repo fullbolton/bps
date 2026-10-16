@@ -1,0 +1,30 @@
+{
+  "measuredAt": "2026-10-16T22:24:38.371631+00:00",
+  "scope": "authenticated browser smoke on www.bpsys.net; existing user session; not exhaustive regression",
+  "checks": {
+    "dashboardAndTenantLoaded": true,
+    "appointmentsListLoaded": true,
+    "contractsListLoaded": true,
+    "settingsTeamLoaded": true,
+    "inactiveCompanyUploadRejected": true,
+    "syntheticDocumentUploadFinalized": true,
+    "syntheticDocumentCategoryUpdated": true,
+    "pendingUploadsListEmpty": true,
+    "cleanupListEmpty": true
+  },
+  "syntheticRecord": {
+    "name": "SMOKE TEST · 17 Ekim atomik yayın kabulü",
+    "company": "BPS_SMOKE_MEK_FIRMA_2026_09_08",
+    "category": "Operasyon Evrakı",
+    "retained": true,
+    "fileBytes": 125,
+    "fileNote": "zero-page synthetic PDF fixture; verifies transfer/finalize, not visual PDF rendering"
+  },
+  "notRetestedOnProduction": [
+    "multi-user concurrency",
+    "cross-tenant denial scenarios",
+    "interrupted upload recover/cancel",
+    "calendar and contract writes",
+    "full application regression"
+  ]
+}

@@ -1,0 +1,355 @@
+{
+  "startedAt": "2026-10-16T22:10:31.113708+00:00",
+  "project": "dffdzbmnmnokbftbujsy",
+  "mode": "apply",
+  "success": false,
+  "applied": [
+    {
+      "file": "20261005000100_tenant_module_foundation.sql",
+      "seconds": 12.857,
+      "sha256": "199b4a9c2bcdbd355f815f06831580337a128265c1c2124762eb13aff2680a75",
+      "executedSha256": "0be50b74e28782247202a0c41d855b392a800d732f15152b22ca7c0c877d1b06"
+    },
+    {
+      "file": "20261005000200_task_module_gateway.sql",
+      "seconds": 9.577,
+      "sha256": "06203bb468435513f52989c3edbf9d6d58756a605cf40148d5e4f77371d795ad",
+      "executedSha256": "b2ac4220336419972c972d5bbbeb127f37a4fcbd9ea000f640262cc45b314563"
+    },
+    {
+      "file": "20261005000300_task_module_direct_write_cutover.sql",
+      "seconds": 7.675,
+      "sha256": "b593cd6d149091037af475b89c73c92071fc8dfeeb9e92c968b3ff061c3411bc",
+      "executedSha256": "c974a58bc1bba391e60b3ad78cb91505c544124853b91124cdcd010c4de86b14"
+    },
+    {
+      "file": "20261005000400_task_module_workflows.sql",
+      "seconds": 6.748,
+      "sha256": "2344f991ed42a82eb557a8a0dd0cf7dd4f786896ff8aef59609c9478bf9240cb",
+      "executedSha256": "13bcc5b7dde330a21a523640569f11992fad51c9ded15973a41f7cdf1c7de5fb"
+    },
+    {
+      "file": "20261005000500_task_module_notifications.sql",
+      "seconds": 8.236,
+      "sha256": "a044ff634c7f1ce45a7fd8c710232662583b5962a5c0059fbfbacc71c5745f66",
+      "executedSha256": "24696d3c9cbbd1dc477a524becdb7b4560957b6199ed7452374f4b5d5f51f360"
+    },
+    {
+      "file": "20261005000600_task_company_projection.sql",
+      "seconds": 7.072,
+      "sha256": "02eee2c98659ebee7d5cf0d6ede7f409cf24b329a8a77b7ffc987f84324d2079",
+      "executedSha256": "e2a13eaf170349e6ad150c1661071bc985c4729d600fc6a02fd27000aadcd2b4"
+    },
+    {
+      "file": "20261005000700_preserve_task_relations.sql",
+      "seconds": 6.788,
+      "sha256": "891c15c401769b400060ba1aac5554db09773f70550e81a7264a16b55396627d",
+      "executedSha256": "a25b44196cc7747b74e5d8ac8ca5e39481e5e6a7e0fe89484ba8df278b1a1a25"
+    },
+    {
+      "file": "20261005000800_finance_module_access.sql",
+      "seconds": 9.528,
+      "sha256": "0b31174a13f5cabfddf01b99281a26876014375b1958c6a462fc3e7938a51269",
+      "executedSha256": "2f871b695e5a046907b1706225dae32fa16f519ddddc1cd680b091ee125a103b"
+    },
+    {
+      "file": "20261005000900_customer_module_reads.sql",
+      "seconds": 7.877,
+      "sha256": "64535fe8e56d7a2f342a32462cb1cec9c54c41774caeb3456649fc25ecda4b5e",
+      "executedSha256": "f1b20538894988dcece69a0ea6912f7bcc87d79e7c0462fc8b10fe3c08c6952d"
+    },
+    {
+      "file": "20261005001000_company_commands.sql",
+      "seconds": 7.616,
+      "sha256": "8cc6c7b0c3e9c96019364946dcf541a8481d89f2b15e3b02d14188426c68d976",
+      "executedSha256": "8bdd6f523dae7612ca763ab5575d49139dc9b960e1f170ad86ccb3b8b13ee9f7"
+    },
+    {
+      "file": "20261005001100_contact_module_barrier.sql",
+      "seconds": 7.824,
+      "sha256": "10147dd36a88a0324e202c0d983c27f497fea6e0dc67f167d1e54c586a785322",
+      "executedSha256": "937267915146754e395e3079abf846fa6ab26188181ec9daaa44115b33d1eaff"
+    },
+    {
+      "file": "20261005001200_note_module_commands.sql",
+      "seconds": 7.587,
+      "sha256": "613e56db68a5d209bfd02892339a10af463472f19fda8fdad11c5dde64629137",
+      "executedSha256": "b50dcfbc0904bcc774cf6188164786b97735fcd7f5ba2f935a23f3bd2fe7ebe3"
+    },
+    {
+      "file": "20261005001300_company_note_direct_write_cutover.sql",
+      "seconds": 7.223,
+      "sha256": "88d61e829dc3c81a047e2da6ff651d44edf655028de1275228606d3dcc21e03a",
+      "executedSha256": "5bf3ac32f0238d1310f0179fb634f88b37506c97a02075808ec84acb1cf80d04"
+    },
+    {
+      "file": "20261005001400_contact_remaining_commands.sql",
+      "seconds": 7.552,
+      "sha256": "56b1c81f237f730b4bac01bf1c4afd2e268bd730ec5b32e5f6268cc2776d9db7",
+      "executedSha256": "85a79a08c6d1b3eb2104cc5db468aa8ebfa813fa7af2be4295080554cdd2ae6e"
+    },
+    {
+      "file": "20261005001500_contact_direct_write_cutover.sql",
+      "seconds": 7.16,
+      "sha256": "a4f879d99ba0441b915fd69c2262a31c633a855c9a13d3f84bbf85cbd1629cc0",
+      "executedSha256": "4175118dba0d2ad60e81afb80b8f1628b01adad8a39c3174659b94f3fe7ed143"
+    },
+    {
+      "file": "20261005001600_customer_notification_modules.sql",
+      "seconds": 7.671,
+      "sha256": "e914465f1188f7734559048f46811dedfce2759fdb43221bf0f14b79eb1753c7",
+      "executedSha256": "cd0f1fe521c52b1a58d82f62ccfaff1abc24e165018a5e0f91ea5a39650574bd"
+    },
+    {
+      "file": "20261005001700_notification_candidate_projections.sql",
+      "seconds": 8.218,
+      "sha256": "17d355bca9c9e37acd52de28ada2af3e5e2232a7f661e5d558b17d0ab382c875",
+      "executedSha256": "1a1da90e8622512384c80309e99ed9443963ab5f8381a8531e9c42cf9f4e533f"
+    },
+    {
+      "file": "20261005001800_notification_service_read_cutover.sql",
+      "seconds": 6.869,
+      "sha256": "49038d39017a14ac0b1193ec482c03b207e0dab92729e10466145243c5292bce",
+      "executedSha256": "43f340d39a2e00dff60685890c6633a95f99feae3db0327246ca1280495f3d61"
+    },
+    {
+      "file": "20261005001900_preserve_customer_history.sql",
+      "seconds": 8.155,
+      "sha256": "5a54942e8c5b5138d9bcc2035dc83c86dd7077f7ce5602dd72bbd60bc3f7ea91",
+      "executedSha256": "d5ddcb157cbc1adb3fa2f2c965f2614a7c7f442801a7d154b9c78c38e7c1fb02"
+    },
+    {
+      "file": "20261005002000_preserve_business_history.sql",
+      "seconds": 8.405,
+      "sha256": "2d286429a21a7ed5d1c302df9a307d53470c003b67874fe3ba8e85877128bb9a",
+      "executedSha256": "efbc952ebb8814e2fac586e571c7ca19030f067690afc97dd2d15f29667d8197"
+    },
+    {
+      "file": "20261005002100_module_change_preview.sql",
+      "seconds": 9.9,
+      "sha256": "a995ea5bd2c12fb73e9145f276e5a5598bb7621b1cb832f9cbd32f9734709b4e",
+      "executedSha256": "15ef2c097cbe96790705090dd9d34b799b72a139fa8fe505992b639b729a8bdf"
+    },
+    {
+      "file": "20261005002200_talent_module_rpc_gates.sql",
+      "seconds": 9.387,
+      "sha256": "cdb301e99507ec033a184a0648f59947ccbaa8b99d75bc5572a221d771ee9db0",
+      "executedSha256": "ca3545c767be4a38889ecb73a9e023401d9eb7761a032d7364b7e09fb03f30c7"
+    },
+    {
+      "file": "20261005002300_operations_module_rpc_gates.sql",
+      "seconds": 8.08,
+      "sha256": "b331eacc2d840975b136142dec5e6e15af308cc77ff32dea50adbec1a1733391",
+      "executedSha256": "8444f18d2a6820daa450e5fa185d106897434013ce93ed094ee325b950bb320b"
+    },
+    {
+      "file": "20261005002400_legacy_operations_module_gates.sql",
+      "seconds": 8.737,
+      "sha256": "351e2443c664cf1be9258b2bf6e8db13b550e7c5f5a76efff1f2514216eed4b5",
+      "executedSha256": "2e9ff126eda7e2a7b923d2e7634813ddd21095dc4bda1446f2a5521c1f768624"
+    },
+    {
+      "file": "20261005002500_talent_assignment_projection.sql",
+      "seconds": 8.487,
+      "sha256": "ccf1aa3a53cfacdb17ac68b920cb5212e21658c672edb8486c5993c0c1b4bb5e",
+      "executedSha256": "802269df8f87218599c54410a0879cda558f9595703086c98a638247c23c8697"
+    },
+    {
+      "file": "20261005002600_talent_conversation_modules.sql",
+      "seconds": 8.992,
+      "sha256": "5e6b9e94129976c5b29664c84311f1122e91739dca94eac98b13ec1ae091352a",
+      "executedSha256": "3470da429d0b871fb6087ea3d6525509c5c179f3e34f69b58d5ba8438290b510"
+    },
+    {
+      "file": "20261005002700_talent_linked_name_gate.sql",
+      "seconds": 7.022,
+      "sha256": "29fcbaa86942486e6d9a8214bdbcf04f8d9391e66b4b0e499ad914e3b488e39b",
+      "executedSha256": "e1cceb6d35bd3eeb3dd82e249935b315dfefeab9f63d6d355ecc9418fe189d45"
+    },
+    {
+      "file": "20261005002800_reporting_module_gates.sql",
+      "seconds": 7.176,
+      "sha256": "6767be49c77a55627cb69631f5191de3b73cbcd69c39ffb8a94c852c4e4294cd",
+      "executedSha256": "51f0a56dc67ac02904a25a97db5b890ee22eed9c5583488a9ecdc4ad2047f967"
+    },
+    {
+      "file": "20261005002900_talent_storage_read_only.sql",
+      "seconds": 7.706,
+      "sha256": "4cb1c47cd9d6c8c846ba94bfc5dfd53751658c9e235398a32230c117b980bd7e",
+      "executedSha256": "aafc22a7a0f9a8181099f1ed10285a7da79fb45945993662dbf7eddd52210f8e"
+    },
+    {
+      "file": "20261005003000_announcement_module_commands.sql",
+      "seconds": 8.04,
+      "sha256": "30cc062c2b71909ff1064ab4bf4048797e116f8c33fc60e810ff09f5dec98111",
+      "executedSha256": "07b3058a4e994ce8e8cfdf0a07ecffd77876ae4db138effd9da01b7de3e80327"
+    },
+    {
+      "file": "20261005003100_announcement_direct_write_cutover.sql",
+      "seconds": 7.633,
+      "sha256": "a2e931cdeec990e98604f87098c17bf56292561c00da00655300d81d390ef00b",
+      "executedSha256": "d2af0367dfd8d54c7bb645e279b836ecee0ee8ca080a2e5cb45d252eecb85c9b"
+    },
+    {
+      "file": "20261013000100_calendar_module_commands.sql",
+      "seconds": 8.048,
+      "sha256": "a145ea6a2ef874ed2c20bc4a548d3cff15efafc32f8b4d910bd6b52a3031df7e",
+      "executedSha256": "c332688e876f7917957b91737af55b132fac8dba5a671fa076cec0fcdf003a54"
+    },
+    {
+      "file": "20261013000200_calendar_direct_write_cutover.sql",
+      "seconds": 8.482,
+      "sha256": "da0255e4c9ae79d24663d853cabe74639dc202d8dcd190329e9696df86887f97",
+      "executedSha256": "a8f885b6a3d946ba9d18bbdb00f27fbe7278abae465749e82ed2c8631c7bce70"
+    },
+    {
+      "file": "20261013000300_document_contract_module_access.sql",
+      "seconds": 10.11,
+      "sha256": "b6db864e6b449ade76b287a5b8e3c77b9a1771ec6b616367ab7366d371938d4c",
+      "executedSha256": "1f521ba0fd6b0531d0a65b4b159c4f1b8f82eeaee75e090cecf48e2b6875a0b4"
+    },
+    {
+      "file": "20261015000100_contract_write_commands.sql",
+      "seconds": 8.106,
+      "sha256": "4ef4afc510cd13761fceffe495af25d1dd7ce736d770acebf80267896c27be23",
+      "executedSha256": "ecd3f4c3909feffb4b57fa2eb487d73c7f14ca4a922f1eb95b623be38efa1162"
+    }
+  ],
+  "before": {
+    "barrier": false,
+    "versions": [
+      "20260407000000",
+      "20260407000100",
+      "20260407000200",
+      "20260407000300",
+      "20260407000400",
+      "20260407000500",
+      "20260407000600",
+      "20260407000700",
+      "20260407000800",
+      "20260407000900",
+      "20260407001000",
+      "20260407001100",
+      "20260407001600",
+      "20260407001700",
+      "20260407001800",
+      "20260413000100",
+      "20260414000100",
+      "20260414000200",
+      "20260415000100",
+      "20260415000200",
+      "20260415000300",
+      "20260415000400",
+      "20260415000500",
+      "20260423000100",
+      "20260425000100",
+      "20260425000200",
+      "20260713000100",
+      "20260713000200",
+      "20260722000100",
+      "20260810000100",
+      "20260810000200",
+      "20260827000100",
+      "20260827000200",
+      "20260827000300",
+      "20260827000400",
+      "20260904000100",
+      "20260904000200",
+      "20260909000100",
+      "20260909000200",
+      "20260909000300",
+      "20260909000400",
+      "20260909000500",
+      "20260909000600",
+      "20260909000700",
+      "20260909000800",
+      "20260909000900",
+      "20260909001000",
+      "20260909001100",
+      "20260909001200",
+      "20260909001300",
+      "20260909001400",
+      "20260909001500",
+      "20260909001600",
+      "20260909001700",
+      "20260909001800",
+      "20260909001900",
+      "20260909002000",
+      "20260909002100",
+      "20260909002200",
+      "20260909002300",
+      "20260909002400",
+      "20260909002500",
+      "20260909002600",
+      "20260909002700",
+      "20260909002800",
+      "20260909002900",
+      "20260910000100",
+      "20260910000200",
+      "20260910000300",
+      "20260910000400",
+      "20260911000100",
+      "20260913000100",
+      "20260914000100",
+      "20260914000200",
+      "20260914000300",
+      "20260914000400",
+      "20260914000500",
+      "20260914000600",
+      "20260914000700",
+      "20260915000100",
+      "20260915000200",
+      "20260915000300",
+      "20260915000400",
+      "20260915000500",
+      "20260915000600",
+      "20260915000700",
+      "20260915000800",
+      "20260915000900",
+      "20260915001000",
+      "20260923000100",
+      "20260923000200",
+      "20260923000300",
+      "20260923000400",
+      "20260924000100",
+      "20260924000200",
+      "20260924000300",
+      "20260924000400",
+      "20260924000500",
+      "20260925000100",
+      "20260925000200",
+      "20260925000300",
+      "20260925000400",
+      "20260925000500",
+      "20260925000600",
+      "20260925000700",
+      "20260926000100",
+      "20260926000200",
+      "20260927000100",
+      "20260927000200",
+      "20260927000300",
+      "20260927000400",
+      "20260927000500",
+      "20260927000600",
+      "20260927000700",
+      "20260927000800",
+      "20260927000900",
+      "20260928000100",
+      "20260928000200",
+      "20260928000300",
+      "20260928000400",
+      "20260928000500",
+      "20260928000600",
+      "20260928000700",
+      "20260928000800",
+      "20261004001000",
+      "20261004001100",
+      "20261004001200",
+      "20261004001300",
+      "20261004001400"
+    ]
+  },
+  "barrierInstalled": true,
+  "error": "psql: error: connection to server at \"aws-1-ap-southeast-1.pooler.supabase.com\" (3.1.167.181), port 5432 failed: FATAL:  (EAUTHQUERY) unsupported or invalid secret format\nconnection to server at \"aws-1-ap-southeast-1.pooler.supabase.com\" (3.1.167.181), port 5432 failed: FATAL:  (EAUTHQUERY) unsupported or invalid secret format\n",
+  "finishedAt": "2026-10-16T22:15:34.228159+00:00"
+}

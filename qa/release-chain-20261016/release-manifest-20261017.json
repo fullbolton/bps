@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "1daf5e3913289451b55fd6157024feb524009ff8",
+  "normalDeploymentId": "dpl_KwdtN1U24ytdEtbF876GLhowEyy1",
+  "normalUrl": "https://bps-61o6db4p9-furkanyahsi-1537s-projects.vercel.app",
+  "maintenanceDeploymentId": "dpl_2K2qPJNmHybF13XJUVagGtVTG248",
+  "stagedAnonymousProtection": "302 to https://vercel.com/sso-api",
+  "stagedLoginHTTP": 200,
+  "maintenanceOffInNormalBuild": true,
+  "notificationEmailsEnabled": false,
+  "note": "Record of prepared deployments; live promotion recorded separately",
+  "cutoverRunnerSha256": "5abb5b4b0295dfca366874c9b1497b572369fc9068247483971dd9c988451e48",
+  "productionPromoted": true,
+  "migrationCountBefore": 129,
+  "migrationCountAfter": 182,
+  "appliedCandidates": 53,
+  "barrierRemoved": true,
+  "authenticatedSmoke": "production-browser-smoke-20261017.json"
+}
