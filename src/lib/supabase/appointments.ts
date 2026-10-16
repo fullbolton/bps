@@ -24,6 +24,13 @@ import type {
 
 type Client = SupabaseClient<Database>;
 
+function appointmentCommandError(error: {code?: string}): Error {
+  if (error.code === 'BM001') return new Error('Bu işlem için gereken modül kapalı. Çalışma alanı ayarlarını kontrol edin.');
+  if (error.code === '40001' || error.code === 'PT409') return new Error('Randevu başka bir işlemde değişti. Listeyi yenileyin.');
+  if (error.code === '42501') return new Error('Randevuya veya bağlı kayda erişim yetkiniz yok. Listeyi yenileyin.');
+  return new Error('İşlemin sonucu doğrulanamadı. Tekrar denemeden önce randevu listesini yenileyin.');
+}
+
 export async function completeAppointmentScoped(client:Client,appointmentId:string,input:Required<CompletionInput>,scope:{actorId:string;tenantId:string}) {
   const {data,error}=await client.rpc("complete_appointment_scoped",{
     p_actor_id:scope.actorId,p_tenant_id:scope.tenantId,p_appointment_id:appointmentId,
@@ -128,46 +135,46 @@ export async function selectAppointmentsByCompanyIds(
 // ---------------------------------------------------------------------------
 
 /**
- * Insert a single appointment row exactly as provided. The service layer
- * is responsible for resolving company_id and contract_id, defaulting
- * status and meeting_type, stamping created_by from the auth session,
- * and validating shape.
+ * Create through the scoped database command. The database verifies relations,
+ * locks module configuration and derives the author from the session.
  */
 export async function insertAppointment(
   client: Client,
   input: AppointmentInsert,
 ): Promise<AppointmentRow> {
-  const { data, error } = await client
-    .from("appointments")
-    .insert(input)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`appointments insert failed: ${error.message}`);
+  const { data, error } = await client.rpc('appointment_execute_v1', {
+    p_action: 'create', p_id: null, p_tenant: input.tenant_id,
+    p_input: {company_id: input.company_id, contract_id: input.contract_id ?? null,
+      meeting_date: input.meeting_date, meeting_time: input.meeting_time ?? null,
+      meeting_type: input.meeting_type ?? 'ziyaret', attendee: input.attendee ?? null},
+  }).single();
+  if (error) throw appointmentCommandError(error);
+  if (!data || data.tenant_id !== input.tenant_id || data.company_id !== input.company_id
+    || data.contract_id !== (input.contract_id ?? null) || data.status !== 'planlandi'
+    || data.meeting_date !== input.meeting_date) {
+    throw new Error('Randevu kaydının sonucu doğrulanamadı. Listeyi yenileyin.');
   }
   return data;
 }
 
 /**
- * Update a single appointment row by id. The service layer is responsible
- * for narrowing the patch to the columns the caller is allowed to change
- * and for re-verifying scope.
+ * Change status only if the previously read status still matches. Completion
+ * uses its separate atomic appointment/task workflow.
  */
 export async function updateAppointment(
   client: Client,
   id: string,
   patch: AppointmentUpdate,
+  expected: Pick<AppointmentRow, 'tenant_id' | 'status'>,
 ): Promise<AppointmentRow> {
-  const { data, error } = await client
-    .from("appointments")
-    .update(patch)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`appointments update failed: ${error.message}`);
+  if (Object.keys(patch).some(key => key !== 'status') || !patch.status) throw new Error('Geçersiz randevu değişikliği.');
+  const { data, error } = await client.rpc('appointment_execute_v1', {
+    p_action: 'status', p_id: id, p_tenant: expected.tenant_id,
+    p_input: {status: patch.status, expected_status: expected.status},
+  }).single();
+  if (error) throw appointmentCommandError(error);
+  if (!data || data.id !== id || data.tenant_id !== expected.tenant_id || data.status !== patch.status) {
+    throw new Error('Randevu değişikliğinin sonucu doğrulanamadı. Listeyi yenileyin.');
   }
   return data;
 }

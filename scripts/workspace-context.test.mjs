@@ -50,3 +50,10 @@ test('role and company are accepted together and user metadata cannot supply aut
  }
  assert.deepEqual(resolveWorkspaceAccess(null,{...identity,role:'yonetici'}),{user:null,role:'goruntuleyici'});
 });
+
+
+test('membership conflict messages support HTTP conflict and legacy serialization codes',async()=>{
+ const {workspaceAdminError}=await importActualTypeScript(new URL('../src/lib/workspace-admin.ts',import.meta.url));
+ for(const code of ['PT409','40001'])assert.match(workspaceAdminError({code}),/Üyelik bilgisi değişmiş/);
+ assert.match(workspaceAdminError({code:'42501'}),/platform yöneticisi/);
+});

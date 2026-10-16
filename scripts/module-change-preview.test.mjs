@@ -11,7 +11,7 @@ const all=v=>Object.fromEntries(MODULE_CATALOG.map(m=>[m.key,v]));
 const snapshot=()=>({schemaVersion:1,context:{...scope,name:'Synthetic',role:'yonetici',schemaVersion:1,catalogVersion:1,configRevision:'1',modules:all(true)},requested:all(false),disabled:MODULE_CATALOG.map(m=>m.key).sort(),dependencies:[],checks:MODULE_CHANGE_CHECKS.map(c=>({module:c.module,code:c.code,blocking:false})),assessmentDate:'2026-09-29',advisoryOnly:true,mutationAvailable:false});
 const parse=x=>parseModuleChangePreview(x,scope,'1',all(false));
 test('complete advisory response preserves all checks but never permits mutation',()=>{
- const result=parse(snapshot());assert.equal(result.checks.length,16);assert.equal(result.mutationAvailable,false);assert.equal(result.advisoryOnly,true);
+ const result=parse(snapshot());assert.equal(result.checks.length,18);assert.equal(result.mutationAvailable,false);assert.equal(result.advisoryOnly,true);
 });
 test('a dependency-invalid draft is accepted so the UI can explain it; incomplete or coerced states are not',()=>{
  assert.equal(parseRequestedModules({...all(true),customers:false}).customers,false);
@@ -25,17 +25,22 @@ test('missing duplicate foreign and non-boolean checks never become an empty suc
  for(const checks of [[],snapshot().checks.slice(1),[snapshot().checks[0],...snapshot().checks.slice(0,-1)],snapshot().checks.map((c,i)=>i?c:{...c,blocking:null}),snapshot().checks.map((c,i)=>i?c:{...c,module:'finance'})])assert.throws(()=>parse({...snapshot(),checks}));
 });
 test('dependency evidence must match the requested graph',()=>{
- const x=snapshot();x.requested={...all(true),documents:false};x.disabled=['documents'];x.checks=[];
+ const x=snapshot();x.requested={...all(true),documents:false};x.disabled=['documents'];x.checks=MODULE_CHANGE_CHECKS.filter(c=>c.module==='documents').map(c=>({module:c.module,code:c.code,blocking:false}));
  assert.throws(()=>parseModuleChangePreview(x,scope,'1',x.requested));
  x.dependencies=[{module:'contracts',requires:'documents'}];assert.equal(parseModuleChangePreview(x,scope,'1',x.requested).dependencies.length,1);
 });
 test('every resolution link targets an existing page',()=>{
  for(const c of MODULE_CHANGE_CHECKS)assert.ok(existsSync(new URL(`../src/app/(main)${c.href}/page.tsx`,import.meta.url)),c.href);
 });
+test('missing upload assessment cannot be mistaken for permission to close documents',()=>{
+ const x=snapshot();x.checks=x.checks.filter(c=>c.code!=='pending_document_upload');assert.throws(()=>parse(x));
+ const complete=snapshot();complete.checks.find(c=>c.code==='pending_document_upload').blocking=true;
+ const result=parse(complete);assert.equal(result.checks.find(c=>c.code==='pending_document_upload').blocking,true);assert.equal(result.mutationAvailable,false);
+});
 test('one bounded RPC; transport errors and malformed responses never fall back',async()=>{
  for(const response of [{data:snapshot(),error:null},{data:null,error:null},{data:snapshot(),error:{message:'transport'}}]){
   let calls=0;const client={rpc:(name,args)=>{calls++;assert.equal(name,'preview_workspace_modules_v1');assert.equal(args.p_expected_tenant,scope.tenantId);return {abortSignal:s=>{assert.ok(s instanceof AbortSignal);return Promise.resolve(response);}};}};
-  if(response.data&&!response.error)assert.equal((await previewWorkspaceModules(client,scope,'1',all(false))).checks.length,16);
+  if(response.data&&!response.error)assert.equal((await previewWorkspaceModules(client,scope,'1',all(false))).checks.length,18);
   else await assert.rejects(previewWorkspaceModules(client,scope,'1',all(false)));
   assert.equal(calls,1);
  }

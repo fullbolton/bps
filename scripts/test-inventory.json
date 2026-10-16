@@ -1,5 +1,17 @@
 [
   {
+    "file": "scripts/document-pending-uploads.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/document-cleanup-retry.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/company-document-lifecycle.test.mjs",
+    "suite": "application"
+  },
+  {
     "file": "scripts/appointment-calendar.test.mjs",
     "suite": "application"
   },
@@ -615,6 +627,18 @@
   },
   {
     "file": "scripts/announcement-commands.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/calendar-commands.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/calendar-module-db.test.mjs",
+    "suite": "database"
+  },
+  {
+    "file": "scripts/contract-write-commands.test.mjs",
     "suite": "application"
   }
 ]

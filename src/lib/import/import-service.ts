@@ -15,6 +15,7 @@ import { parseBooleanish, convertDateForDB } from "./csv-parser";
 import { executeContact } from "@/lib/supabase/contacts";
 import { completePages } from "@/lib/supabase/complete-pages";
 import { insertCompany } from "@/lib/supabase/companies";
+import { insertContract } from "@/lib/supabase/contracts";
 
 type Client = SupabaseClient<Database>;
 
@@ -161,7 +162,8 @@ export async function importContracts(
       continue;
     }
 
-    const { error } = await client.from("contracts").insert({
+    try {
+    await insertContract(client, {
       // tenant_id is server-resolved by the action; never from payload.
       tenant_id: options.tenantId,
       company_id: companyId,
@@ -178,10 +180,9 @@ export async function importContracts(
       created_by: user?.id ?? null,
     });
 
-    if (error) {
-      errors.push(`Satir ${row.rowIndex}: ${error.message}`);
-    } else {
       imported++;
+    } catch(error) {
+      errors.push(`Satir ${row.rowIndex}: ${error instanceof Error?error.message:'Sözleşme kaydı doğrulanamadı.'}`);
     }
   }
 

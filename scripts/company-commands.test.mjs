@@ -44,7 +44,7 @@ test('status helper verifies returned target and requested status',async()=>{
  for(const row of [{...base,status:'aktif'},{...base,id:id(102),status:'pasif'}])await assert.rejects(commands.setCompanyStatus(client({data:[row]}),id(101),id(1),id(11),'pasif'),/sonucu doğrulanamadı/);
 });
 function action(name,c){return compile('src/app/(main)/firmalar/[id]/actions.ts',{}, {
- '@/lib/supabase/company-commands':commands,'@/lib/document-validity':{},'@/lib/services/company-document-recovery':{},
+ '@/lib/supabase/company-commands':commands,'@/lib/document-validity':{},'@/lib/services/company-document-recovery':{},'@/lib/services/company-document-cleanup':{},
  '@/lib/supabase/server':{createServerSupabaseClient:async()=>c},'@/lib/services/companies':{},'@/lib/services/contacts':{},'@/lib/services/notes':{},
 },name);}
 test('both status server actions use verified tenant and shared command with no direct writes',async()=>{

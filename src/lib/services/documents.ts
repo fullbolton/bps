@@ -23,14 +23,11 @@
  *   - CompanyNotFoundOrOutOfScopeError -- reused from services/companies
  */
 
-import { documentStatusForFile, isDocumentValidityDate, withCurrentDocumentStatus } from "@/lib/document-validity";
+import { isDocumentValidityDate, withCurrentDocumentStatus } from "@/lib/document-validity";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { EvrakDurumu } from "@/types/ui";
 import type {
   Database,
   DocumentRow,
-  DocumentInsert,
-  DocumentUpdate,
 } from "@/types/database.types";
 import type { DocumentCategory } from "@/lib/document-categories";
 import {
@@ -38,9 +35,6 @@ import {
   selectDocumentsByCompanyIds,
   selectAllDocuments,
   selectDocumentById,
-  insertDocument,
-  updateDocument,
-  replaceDocumentFile,
 } from "@/lib/supabase/documents";
 import {
   requireCompanyByLegacyMockId,
@@ -80,20 +74,6 @@ export interface DocumentValidityUpdateInput {
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
-
-function ensureNonBlankName(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    throw new DocumentValidationError("Evrak adi bos birakilamaz.");
-  }
-  return trimmed;
-}
-
-function nullableTrim(value: string | undefined): string | null {
-  if (value === undefined || value === null) return null;
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-}
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -240,113 +220,25 @@ export async function getActiveContractDocument(
   return data ?? null;
 }
 
-/** Replace a contract PDF using the observed document revision.
- * 01800 records both baseline and subsequent file references. Upload is a separate
- * operation: a failed CAS may leave an unreferenced uploaded object; no cleanup is
- * claimed here. The database records uploader identity from the authenticated user.
- */
-export async function updateContractDocumentFile(
-  client: Client,
-  documentId: string,
-  patch: { name: string; storagePath: string; uploadedBy: string | null },
-  expectedRevision: number,
-): Promise<DocumentRow> {
-  if(!Number.isSafeInteger(expectedRevision)||expectedRevision<0||expectedRevision>=Number.MAX_SAFE_INTEGER)throw new DocumentValidationError('Belge sürümü doğrulanamadı.');
-  const trimmed = ensureNonBlankName(patch.name);
-  const dbPatch: DocumentUpdate = {
-    name: trimmed,
-    storage_path: patch.storagePath,
-    status: "tam",
-    uploaded_by: patch.uploadedBy,
-    updated_at: new Date().toISOString(),
-  };
-  return replaceDocumentFile(client, documentId, expectedRevision, dbPatch);
+type MetadataSnapshot = Pick<DocumentRow, 'id' | 'tenant_id' | 'company_id' | 'revision' | 'contract_id'>;
+
+async function editMetadata(client:Client,row:MetadataSnapshot,kind:'category'|'validity',value:string):Promise<DocumentRow> {
+  if(!row.tenant_id || !Number.isSafeInteger(row.revision) || row.revision<0 || row.revision>=Number.MAX_SAFE_INTEGER) throw new DocumentValidationError('Belge sürümü doğrulanamadı. Listeyi yenileyin.');
+  const {data,error}=await client.rpc('document_edit_metadata_v1',{p_tenant:row.tenant_id,p_id:row.id,p_company:row.company_id,p_revision:row.revision,p_kind:kind,p_value:value});
+  if(error)throw new DocumentValidationError((error.code==='40001'||error.code==='PT409')?'Belge başka biri tarafından değiştirilmiş. Listeyi yenileyip tekrar deneyin.':'Belge güncellenemedi. Yetkinizi kontrol edip listeyi yenileyin.');
+  if(!data || typeof data!=='object' || Array.isArray(data) || data.id!==row.id || data.tenant_id!==row.tenant_id || data.company_id!==row.company_id || data.contract_id!==row.contract_id || data.revision!==row.revision+1 || (kind==='category'?data.category!==value:data.validity_date!==value)) throw new DocumentValidationError('Güncelleme sonucu doğrulanamadı. Listeyi yenileyin.');
+  return data as unknown as DocumentRow;
 }
 
-// ---------------------------------------------------------------------------
-// Writes -- update validity
-// ---------------------------------------------------------------------------
-
-/**
- * Update the validity date and derive the stored status with the upload convention.
- * Used by the "Gecerlilik Guncelle" flow.
- */
-export async function updateDocumentValidity(
-  client: Client,
-  documentId: string,
-  input: DocumentValidityUpdateInput,
-): Promise<DocumentRow> {
-  const trimmedDate = input.validityDate.trim();
-  if (!trimmedDate) {
-    throw new DocumentValidationError("Gecerlilik tarihi bos birakilamaz.");
-  }
-
-  if (!isDocumentValidityDate(trimmedDate)) {
-    throw new DocumentValidationError("Geçerli bir tarih girin (YYYY-AA-GG).");
-  }
-
-  // Verify the document exists and is visible
-  const existing = await selectDocumentById(client, documentId);
-  if (!existing) {
-    throw new DocumentValidationError(
-      "Evrak bulunamadi veya bu evraka erisim yetkiniz yok.",
-    );
-  }
-
-  // DB CHECK `documents_tam_requires_storage`: status 'tam' requires a
-  // stored file. Pre-check so a pathless row surfaces this Turkish
-  // domain error instead of a raw constraint violation.
-  if (!existing.storage_path) {
-    throw new DocumentValidationError(
-      "Geçerlilik tarihini güncellemeden önce evrak dosyasını yükleyin.",
-    );
-  }
-
-  const patch: DocumentUpdate = {
-    validity_date: trimmedDate,
-    status: documentStatusForFile(trimmedDate),
-    updated_at: new Date().toISOString(),
-  };
-
-  return updateDocument(client, documentId, patch);
+/** Use the revision shown when the dialog opened, never a freshly fetched revision. */
+export async function updateDocumentValidity(client:Client,row:MetadataSnapshot,input:DocumentValidityUpdateInput):Promise<DocumentRow> {
+  const value=input.validityDate.trim();
+  if(!isDocumentValidityDate(value))throw new DocumentValidationError('Geçerli bir tarih girin (YYYY-AA-GG).');
+  return editMetadata(client,row,'validity',value);
 }
 
-// ---------------------------------------------------------------------------
-// Writes -- update status
-// ---------------------------------------------------------------------------
-
-/**
- * Update a document's status directly.
- */
-export async function updateDocumentStatus(
-  client: Client,
-  documentId: string,
-  newStatus: EvrakDurumu,
-): Promise<DocumentRow> {
-  const existing = await selectDocumentById(client, documentId);
-  if (!existing) {
-    throw new DocumentValidationError(
-      "Evrak bulunamadi veya bu evraka erisim yetkiniz yok.",
-    );
-  }
-
-  const patch: DocumentUpdate = {
-    status: newStatus,
-    updated_at: new Date().toISOString(),
-  };
-
-  return updateDocument(client, documentId, patch);
-}
-
-/** Reclassify an ordinary document without changing its file, status or company. */
-export async function changeDocumentCategory(client:Client, row:Pick<DocumentRow,'id'|'company_id'|'updated_at'>, category:DocumentCategory):Promise<DocumentRow> {
+export async function changeDocumentCategory(client:Client,row:MetadataSnapshot,category:DocumentCategory):Promise<DocumentRow> {
   const valid=['cerceve_sozlesme','ek_protokol','yetki_belgesi','operasyon_evraki','teklif_dosyasi','ziyaret_tutanagi','diger'];
-  if(!valid.includes(category))throw new DocumentValidationError('Belge türü geçersiz.');
-  const {data,error}=await client.from('documents').update({category})
-    .eq('id',row.id).eq('company_id',row.company_id).eq('updated_at',row.updated_at)
-    .is('contract_id',null).select('*').maybeSingle();
-  if(error)throw new DocumentValidationError('Belge taşınamadı. Listeyi yenileyip tekrar deneyin.');
-  if(!data)throw new DocumentValidationError('Belge değişmiş veya düzenleme yetkiniz yok. Listeyi yenileyin.');
-  if(data.id!==row.id||data.company_id!==row.company_id||data.category!==category||data.contract_id!==null)throw new DocumentValidationError('Taşıma sonucu doğrulanamadı. Listeyi yenileyin.');
-  return data;
+  if(!valid.includes(category)||row.contract_id!==null)throw new DocumentValidationError('Belge türü değiştirilemez.');
+  return editMetadata(client,row,'category',category);
 }

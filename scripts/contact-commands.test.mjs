@@ -42,6 +42,6 @@ test('company map reads all pages and rejects ambiguous names across page bounda
 });
 test('delete server action passes the page company and does not acknowledge service errors',async()=>{
  let calls=[];let fail=false;
- const action=compile('src/app/(main)/firmalar/[id]/actions.ts',{}, {'@/lib/supabase/company-commands':{},'@/lib/document-validity':{},'@/lib/services/company-document-recovery':{},'@/lib/services/companies':{},'@/lib/services/notes':{},'@/lib/supabase/server':{createServerSupabaseClient:async()=>({})},'@/lib/services/contacts':{removeContact:async(c,company,target)=>{calls.push([company,target]);if(fail)throw Error('denied');return row;}}},'deleteContactAction');
+ const action=compile('src/app/(main)/firmalar/[id]/actions.ts',{}, {'@/lib/supabase/company-commands':{},'@/lib/document-validity':{},'@/lib/services/company-document-recovery':{},'@/lib/services/company-document-cleanup':{},'@/lib/services/companies':{},'@/lib/services/notes':{},'@/lib/supabase/server':{createServerSupabaseClient:async()=>({})},'@/lib/services/contacts':{removeContact:async(c,company,target)=>{calls.push([company,target]);if(fail)throw Error('denied');return row;}}},'deleteContactAction');
  assert.equal((await action('legacy',row.id)).deletedName,row.full_name);assert.deepEqual(calls,[['legacy',row.id]]);fail=true;assert.equal((await action('legacy',row.id)).ok,false);
 });

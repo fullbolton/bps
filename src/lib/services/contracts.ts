@@ -7,7 +7,7 @@ import {readCurrentRole as getCurrentUserRole} from './current-role';
  *         ↓
  *     src/lib/services/contracts.ts          ← THIS FILE — business logic
  *         ↓
- *     src/lib/supabase/contracts.ts          ← raw CRUD only
+ *     src/lib/supabase/contracts.ts          ← reads and scoped write RPC
  *         ↓
  *     Supabase Postgres + RLS
  *
@@ -20,7 +20,7 @@ import {readCurrentRole as getCurrentUserRole} from './current-role';
  *   - Status changes (per ROLE_MATRIX §5.2: "İmza / aktif / feshedildi
  *     gibi kararlar yönetsel kontrol altında olmalıdır") run through
  *     `updateContractStatus` which mirrors the broader UPDATE policy of
- *     yonetici + partner-scoped only. Operasyon does NOT receive a write
+ *     yonetici only. Operasyon does NOT receive a write
  *     path in Faz 2.
  *   - kalan gün and approaching signals are DERIVED via
  *     `computeRemainingDays` and `getApproachingLevel`. They are never
@@ -300,7 +300,7 @@ export async function getActiveContractCountsByLegacyIds(
  *   - Trims and validates name, scope, responsible.
  *   - Defaults status to "taslak" when omitted.
  *   - Validates date order if both dates are present.
- *   - Stamps created_by from the auth session.
+ *   - Database derives created_by from the auth session.
  *   - last_action_label defaults to a friendly Turkish "draft created"
  *     marker so the list-row Son İşlem column has something to render.
  *   - `options.tenantId` is REQUIRED: production `contracts.tenant_id`
@@ -335,10 +335,6 @@ export async function createContract(
     );
   }
 
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-
   const payload: ContractInsert = {
     tenant_id: options.tenantId,
     company_id: company.id,
@@ -353,7 +349,6 @@ export async function createContract(
     last_action_label:
       nullableTrim(input.lastActionLabel ?? null) ?? "Sözleşme oluşturuldu",
     critical_clauses: input.criticalClauses ?? [],
-    created_by: user?.id ?? null,
   };
 
   return insertContract(client, payload);
@@ -368,14 +363,15 @@ export async function createContract(
  * MUST go through `updateContractStatus`; this function strips status
  * from the patch as a defense-in-depth measure.
  *
- * Capability gate: yonetici + partner-scoped (mirrored at DB via
- * `contracts_update_role_or_scope` RLS). Operasyon's "Sınırlı" cell on
+ * Capability gate: yonetici (enforced by the database command).
+ * Operasyon's "Sınırlı" cell on
  * Sözleşme oluşturma is NOT extended to updates here — see unresolved.
  */
 export async function updateContractContent(
   client: Client,
   contractId: string,
   input: ContractContentUpdateInput,
+  expectedRevision: number,
 ): Promise<ContractRow> {
   // Defense-in-depth: ensure the row is visible to the caller. RLS
   // already filters; this returns null with a friendly message instead
@@ -424,7 +420,7 @@ export async function updateContractContent(
     patch.end_date !== undefined ? patch.end_date : existing.end_date,
   );
 
-  return updateContract(client, contractId, patch);
+  return updateContract(client, contractId, patch, {tenant_id:existing.tenant_id,revision:expectedRevision});
 }
 
 // ---------------------------------------------------------------------------
@@ -434,8 +430,8 @@ export async function updateContractContent(
 /**
  * Change a contract's status. Per ROLE_MATRIX.md §5.2, this is the
  * single most-controlled write path on the contracts table. Both the
- * RLS UPDATE policy AND this service function gate it to yonetici and
- * partner (scoped). Operasyon CANNOT change status under any flow.
+ * database command AND this service function gate it to yonetici.
+ * Operasyon CANNOT change status under any flow.
  *
  * Optionally records a custom `lastActionLabel`; otherwise stamps a
  * default Turkish marker matching the existing mock UI vocabulary so
@@ -445,12 +441,12 @@ export async function updateContractStatus(
   client: Client,
   contractId: string,
   nextStatus: SozlesmeDurumu,
-  options?: { lastActionLabel?: string },
+  options: { lastActionLabel?: string; expectedRevision:number },
 ): Promise<ContractRow> {
   ensureStatus(nextStatus);
 
   const role = await getCurrentUserRole(client);
-  if (role !== "yonetici" && role !== "partner") {
+  if (role !== "yonetici") {
     throw new ContractStatusPermissionError();
   }
 
@@ -479,7 +475,7 @@ export async function updateContractStatus(
       options?.lastActionLabel ?? defaultStatusActionLabel(nextStatus),
   };
 
-  return updateContract(client, contractId, patch);
+  return updateContract(client, contractId, patch, {tenant_id:existing.tenant_id,revision:options.expectedRevision});
 }
 
 function defaultStatusActionLabel(status: SozlesmeDurumu): string {
@@ -509,6 +505,7 @@ export async function updateContractRenewal(
   client: Client,
   contractId: string,
   input: ContractRenewalUpdateInput,
+  expectedRevision: number,
 ): Promise<ContractRow> {
   const existing = await selectContractById(client, contractId);
   if (!existing) {
@@ -525,5 +522,5 @@ export async function updateContractRenewal(
     patch.renewal_discussion_opened = input.renewalDiscussionOpened;
   }
 
-  return updateContract(client, contractId, patch);
+  return updateContract(client, contractId, patch, {tenant_id:existing.tenant_id,revision:expectedRevision});
 }

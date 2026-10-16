@@ -1,79 +1,26 @@
 "use server";
 
-/**
- * BPS Contract Detail — Server Actions
- *
- * Hard-delete for a single contract (Faz 1 — no trash, no soft-delete,
- * no status=feshedildi conversion). Deletion is a real lifecycle
- * capability, used (among other things) to clean up post-smoke test
- * contracts via the app path rather than manual SQL.
- *
- * yonetici-only at the app layer (rpc current_user_role). The contracts
- * DELETE RLS is also yonetici-only, so the app guard and RLS agree; the
- * app guard is the first gate, RLS the last. service_role is never used
- * — the client is the cookie-session server client, RLS enforced.
- *
- * DB-first delete with RETURNING so the returned-row guard confirms a
- * row was actually removed before reporting success. Zero rows (already
- * gone / RLS-hidden / concurrent delete) is an idempotent no-op — no
- * misleading "deleted" feedback. Contracts carry no storage object, so
- * there is no second (storage) step.
- */
-
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { deleteContractScoped } from "@/lib/supabase/contracts";
 
 export type ContractDeleteResult =
-  | { ok: true; deletedName?: string }
+  | { ok: true; deletedName: string }
   | { ok: false; error: string };
 
-export async function deleteContractAction(
-  contractId: string,
-): Promise<ContractDeleteResult> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
+/** Delete only the revision explicitly confirmed by the user; DB owns role,
+ * module, membership and retained-history checks. Missing rows are not success. */
+export async function deleteContractAction(contractId: string, expectedRevision: number): Promise<ContractDeleteResult> {
+  if(typeof contractId!=="string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contractId)
+    || !Number.isSafeInteger(expectedRevision) || expectedRevision<0) {
+    return {ok:false,error:"Sözleşme veya sürüm bilgisi geçersiz. Sayfayı yenileyin."};
   }
-
-  if (!contractId || typeof contractId !== "string") {
-    return { ok: false, error: "Sözleşme kimliği geçersiz." };
-  }
-
-  const { data: roleData, error: roleError } = await supabase.rpc(
-    "current_user_role",
-  );
-  if (roleError || roleData !== "yonetici") {
-    return {
-      ok: false,
-      error: "Yetkisiz: sözleşme silme yalnızca yöneticiye açıktır.",
-    };
-  }
-
-  const del = await supabase
-    .from("contracts")
-    .delete()
-    .eq("id", contractId)
-    .select("id, name");
-  if (del.error) {
-    if (del.error.message.includes('contract_pdf_upload_commands_contract_id_fkey')) {
-      return {ok:false,error:'PDF yükleme geçmişi bulunan sözleşme silinemez. Geçmişi koruyarak sözleşme durumunu güncelleyin.'};
-    }
-    if (del.error.message === 'PDF_CONTEXT_IMMUTABLE' || del.error.message.includes('contract_document_versions_contract_id_fkey')) {
-      return {ok:false,error:'PDF sürüm geçmişi bulunan sözleşme silinemez. Sözleşme geçmişini koruyarak durumunu güncelleyin.'};
-    }
-    if (del.error.message === 'RENEWAL_CONTEXT_IMMUTABLE' || del.error.message.includes('contract_renewal_tasks_contract_id_fkey')) {
-      return {ok:false,error:'Yenileme görevi bulunan sözleşme silinemez. Görevi ve sözleşme geçmişini koruyarak durumunu güncelleyin.'};
-    }
-    return { ok: false, error: `Sözleşme silinemedi: ${del.error.message}` };
-  }
-
-  const deletedRows = del.data ?? [];
-  if (deletedRows.length === 0) {
-    // Already gone / not visible — idempotent no-op success.
-    return { ok: true };
-  }
-
-  return { ok: true, deletedName: deletedRows[0].name };
+  const supabase=await createServerSupabaseClient();
+  const {data:{user},error:authError}=await supabase.auth.getUser();
+  if(authError || !user)return {ok:false,error:"Oturum doğrulanamadı. Yeniden giriş yapın."};
+  const {data:tenant,error}=await supabase.rpc("current_user_verified_tenant");
+  if(error || typeof tenant!=="string" || !tenant)return {ok:false,error:"Çalışma alanı doğrulanamadı. Sayfayı yenileyin."};
+  try {
+    const row=await deleteContractScoped(supabase,contractId,{tenant_id:tenant,revision:expectedRevision});
+    return {ok:true,deletedName:row.name};
+  }catch(error){return {ok:false,error:error instanceof Error?error.message:"Silme işleminin sonucu doğrulanamadı. Listeyi yenileyin."};}
 }

@@ -1,0 +1,27 @@
+{
+  "measuredAt": "2026-10-16T19:41:34.360047+00:00",
+  "application": {
+    "passed": 686,
+    "failed": 0
+  },
+  "unit": {
+    "cases": 19,
+    "staticChecks": 4,
+    "failed": 0
+  },
+  "inventory": {
+    "applicationFiles": 123,
+    "databaseFiles": 27,
+    "pendingFiles": 7
+  },
+  "typescriptExit": 0,
+  "static": {
+    "fail": 0,
+    "warn": 2
+  },
+  "build": {
+    "exit": 0,
+    "supabaseTarget": "explicit localhost; not production environment validation"
+  },
+  "productionDeployed": false
+}

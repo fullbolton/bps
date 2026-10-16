@@ -69,12 +69,12 @@ function UploadDocumentDraft({ onClose, firmalar, onSubmit, companiesState, onRe
     if (picked.size === 0) { setFile(null); setFileError("Boş dosya yüklenemez."); e.target.value = ""; return; }
     if (picked.type !== "application/pdf") {
       setFile(null);
-      setFileError("Sadece PDF dosyasi yuklenebilir."); e.target.value = "";
+      setFileError("Sadece PDF dosyası yüklenebilir."); e.target.value = "";
       return;
     }
     if (picked.size > MAX_FILE_BYTES) {
       setFile(null);
-      setFileError("Dosya boyutu 10 MB'dan buyuk olamaz."); e.target.value = "";
+      setFileError("Dosya boyutu 10 MB'dan büyük olamaz."); e.target.value = "";
       return;
     }
     setFile(picked);
@@ -101,7 +101,7 @@ function UploadDocumentDraft({ onClose, firmalar, onSubmit, companiesState, onRe
     } catch (err) {
       if (!mounted.current) return;
       if (err instanceof DocumentUploadReviewRequiredError) setReviewRequired(true);
-      setSubmitError(err instanceof Error ? err.message : "Evrak yuklenemedi.");
+      setSubmitError(err instanceof Error ? err.message : "Evrak yüklenemedi.");
     } finally {
       submitting.current = false;
       if (mounted.current) setSaving(false);
@@ -109,11 +109,11 @@ function UploadDocumentDraft({ onClose, firmalar, onSubmit, companiesState, onRe
   }
 
   return (<>
-    <ModalShell open onClose={requestClose} closeDisabled={saving} title="Evrak Yukle" footer={
+    <ModalShell open onClose={requestClose} closeDisabled={saving} title="Evrak Yükle" footer={
       <>
-        <button type="button" onClick={requestClose} disabled={saving} className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40">Iptal</button>
+        <button type="button" onClick={requestClose} disabled={saving} className="min-h-11 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40">İptal</button>
         <button type="submit" form={formId} disabled={!companyReady || !evrakAdi.trim() || !file || saving || reviewRequired} className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
-          {saving ? "Kaydediliyor..." : "Yukle"}
+          {saving ? "Kaydediliyor..." : "Yükle"}
         </button>
       </>
     }>
@@ -125,7 +125,7 @@ function UploadDocumentDraft({ onClose, firmalar, onSubmit, companiesState, onRe
         <div>
           <label htmlFor={`${formId}-company`} className="block text-sm font-medium text-slate-700 mb-1">Firma <span className="text-red-500">*</span></label>
           <select id={`${formId}-company`} data-dialog-initial-focus value={firmaId} onChange={(e) => setFirmaId(e.target.value)} disabled={saving || companiesState !== "ready"} className="min-h-11 w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Firma secin</option>
+            <option value="">Firma seçin</option>
             {firmalar.map((f) => <option key={f.id} value={f.id}>{f.ad}</option>)}
           </select>
           {companiesState === "loading" && <p role="status" className="mt-2 text-sm text-slate-500">Firmalar yükleniyor…</p>}
@@ -144,8 +144,8 @@ function UploadDocumentDraft({ onClose, firmalar, onSubmit, companiesState, onRe
           <p className="mt-1 text-xs text-slate-500">Maksimum 10 MB, sadece PDF.</p>
         </div>
         <div>
-          <label htmlFor={`${formId}-name`} className="block text-sm font-medium text-slate-700 mb-1">Evrak Adi <span className="text-red-500">*</span></label>
-          <input id={`${formId}-name`} required type="text" value={evrakAdi} onChange={(e) => setEvrakAdi(e.target.value)} disabled={saving} placeholder="Evrak adini girin" className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <label htmlFor={`${formId}-name`} className="block text-sm font-medium text-slate-700 mb-1">Evrak Adı <span className="text-red-500">*</span></label>
+          <input id={`${formId}-name`} required type="text" value={evrakAdi} onChange={(e) => setEvrakAdi(e.target.value)} disabled={saving} placeholder="Evrak adını girin" className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -155,7 +155,7 @@ function UploadDocumentDraft({ onClose, firmalar, onSubmit, companiesState, onRe
             </select>
           </div>
           <div>
-            <label htmlFor={`${formId}-date`} className="block text-sm font-medium text-slate-700 mb-1">Gecerlilik Tarihi</label>
+            <label htmlFor={`${formId}-date`} className="block text-sm font-medium text-slate-700 mb-1">Geçerlilik Tarihi</label>
             <input id={`${formId}-date`} type="date" value={gecerlilik} onChange={(e) => setGecerlilik(e.target.value)} disabled={saving} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
         </div>

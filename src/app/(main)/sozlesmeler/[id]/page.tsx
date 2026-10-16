@@ -112,11 +112,14 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [editSnapshot, setEditSnapshot] = useState<ContractRow | null>(null);
   const contractScope = JSON.stringify([id, user?.id, user?.app_metadata?.active_tenant, role]);
+  useEffect(() => { setEditOpen(false); setEditSnapshot(null); }, [contractScope]);
   const notice = useActionNotice(contractScope);
   const contractScopeRef = useRef(contractScope);
   contractScopeRef.current = contractScope;
   const [deleteScope, setDeleteScope] = useState<string | null>(null);
+  const [deleteRevision, setDeleteRevision] = useState<number | null>(null);
   const [deleted, setDeleted] = useState<{ scope: string; name?: string } | null>(null);
   const deletionResultHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -221,7 +224,7 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
     }
   }
 
-  const canEdit = role === "yonetici" || role === "partner";
+  const canEdit = role === "yonetici";
 
   if (deleted?.scope === contractScope) {
     return <section className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -265,7 +268,7 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
     if (next === contract.status) return;
     setActionError(null);
     try {
-      await write(() => updateContractStatus(supabase, contract.id, next), "Sözleşme durumu güncellendi.");
+      await write(() => updateContractStatus(supabase, contract.id, next, {expectedRevision:contract.revision}), "Sözleşme durumu güncellendi.");
     } catch (err) {
       if (!active.current) return;
       setActionError(
@@ -278,7 +281,8 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
     if (!contract || !active.current || writePending.current) throw new Error("İşlem sürüyor veya sözleşme bilgisi değişti.");
     writePending.current = true; setSaving(true);
     try {
-      const result = await deleteContractAction(contract.id);
+      if(deleteScope!==contractScope||deleteRevision===null) throw new Error('Silme onayı değişti. Güncel sözleşmeden yeniden başlatın.');
+      const result = await deleteContractAction(contract.id, deleteRevision);
       if (!active.current) return;
       if (!result.ok) throw new Error(result.error);
       ++readGeneration.current;
@@ -297,7 +301,7 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
     if (!contract || !active.current || writePending.current) return;
     setActionError(null);
     try {
-      await write(() => updateContractRenewal(supabase, contract.id, { [field]: next }), "Yenileme görüşmesi bilgisi güncellendi.");
+      await write(() => updateContractRenewal(supabase, contract.id, { [field]: next }, contract.revision), "Yenileme görüşmesi bilgisi güncellendi.");
     } catch (err) {
       if (!active.current) return;
       setActionError(
@@ -367,7 +371,7 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
           <button
             type="button"
             disabled={saving}
-            onClick={() => setEditOpen(true)}
+            onClick={() => { setEditSnapshot(contract); setEditOpen(true); }}
             className={`${BUTTON_BASE} ${BUTTON_SECONDARY} inline-flex items-center gap-1.5`}
           >
             <Pencil size={14} />
@@ -570,7 +574,7 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
             <button
               type="button"
               disabled={saving}
-              onClick={() => setDeleteScope(contractScope)}
+              onClick={() => {setDeleteRevision(contract.revision);setDeleteScope(contractScope);}}
               className={`${BUTTON_BASE} inline-flex items-center gap-1.5 text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               <Trash2 size={14} />
@@ -592,7 +596,7 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
         open={editOpen}
         onClose={() => { if (active.current) setEditOpen(false); }}
         firmalar={firmaOptions}
-        editData={contract}
+        editData={editSnapshot ?? contract}
         onSubmit={async (data) => {
           // Faz 2: persist via service layer. Status changes go through
           // updateContractStatus instead — this path only patches
@@ -608,7 +612,8 @@ function ContractWorkspace({ id, workspace }: { id: string; workspace: Workspace
             contractValue: data.tutar || null,
             responsible: data.sorumlu || null,
           };
-          await write(() => updateContractContent(supabase, contract.id, patch), "Sözleşme bilgileri güncellendi.");
+          if (!editSnapshot || editSnapshot.id !== contract.id) throw new Error('Düzenleme oturumu değişti. Sözleşmeyi yeniden açın.');
+          await write(() => updateContractContent(supabase, contract.id, patch, editSnapshot.revision), "Sözleşme bilgileri güncellendi.");
         }}
       />
     </>

@@ -1,5 +1,7 @@
 "use client";
 import ListToolbar from "@/components/ui/ListToolbar";
+import DocumentCleanupPanel from "@/components/documents/DocumentCleanupPanel";
+import PendingDocumentUploads from "@/components/documents/PendingDocumentUploads";
 import { useIstanbulDay } from "@/components/ui/useIstanbulDay";
 import Link from "next/link";
 import {DOCUMENT_FOLDERS,documentFolder} from "@/lib/document-folders";
@@ -343,6 +345,12 @@ export default function EvraklarPage() {
       ] : []} />
 
       <ActionNotice message={notice.message} onDismiss={notice.clear} />
+      {typeof user?.app_metadata?.active_tenant === "string" && (
+        <PendingDocumentUploads key={`uploads:${scope}`} tenantId={user.app_metadata.active_tenant} onRecovered={() => {if(liveContext.current===context) void reload();}} />
+      )}
+      {role === "yonetici" && typeof user?.app_metadata?.active_tenant === "string" && (
+        <DocumentCleanupPanel key={scope} tenantId={user.app_metadata.active_tenant} />
+      )}
       {currentDownload && <section aria-label="Evrak indirme" className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
         <div className="flex items-start justify-between gap-3">
           <p className="min-w-0 break-words text-sm font-medium text-slate-800">{currentDownload.row.name}</p>
@@ -503,7 +511,7 @@ export default function EvraklarPage() {
         evrakAdi={validityTarget.row.name} evrakId={validityTarget.row.id} currentDate={validityTarget.row.validity_date ?? ""}
         onSubmit={async ({ evrakId, yeniTarih }) => {
           if (liveContext.current !== context || evrakId !== validityTarget.row.id) return;
-          try { await updateDocumentValidity(supabase, evrakId, { validityDate: yeniTarih }); }
+          try { await updateDocumentValidity(supabase, validityTarget.row, { validityDate: yeniTarih }); }
           catch (error) {
             if (liveContext.current !== context) return;
             throw new Error(error instanceof DocumentValidationError ? error.message : "Geçerlilik güncellenemedi. Tekrar deneyin.");

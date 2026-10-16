@@ -6,7 +6,7 @@ const { createAppointment } = await importActualTypeScript(new URL('../src/lib/s
 const company = {id:'company-a',tenant_id:'tenant-a'};
 function client(reply, companyRow=company) {
   const writes=[],reads=[];
-  return {writes,reads,rpc(name,args){assert.equal(name,'task_execute_v1');writes.push(['tasks',args.p_input]);return {single:async()=>({data:{id:'new',...args.p_input},error:null})};},auth:{getUser:async()=>({data:{user:{id:'actor'}},error:null})},from(table){
+  return {writes,reads,rpc(name,args){assert.ok(['task_execute_v1','appointment_execute_v1'].includes(name));writes.push([name==='task_execute_v1'?'tasks':'appointments',args.p_input]);return {single:async()=>({data:{id:'new',tenant_id:args.p_tenant,status:'planlandi',...args.p_input},error:null})};},auth:{getUser:async()=>({data:{user:{id:'actor'}},error:null})},from(table){
     const conditions=[];let payload;
     const q={select(){return q;},eq(...args){conditions.push(args);return q;},insert(value){payload=value;writes.push([table,value]);return q;},
       async maybeSingle(){reads.push([table,conditions]);return table==='companies'?{data:companyRow,error:null}:reply;},

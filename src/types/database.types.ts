@@ -1226,6 +1226,34 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      document_delete_v1: {Args: {p_tenant: string; p_id: string; p_company: string; p_revision: number}; Returns: Json};
+      document_edit_metadata_v1: {Args: {p_tenant: string; p_id: string; p_company: string; p_revision: number; p_kind: string; p_value: string}; Returns: Json};
+      document_cancel_upload_v1: {Args: {p_tenant: string; p_id: string}; Returns: boolean};
+      document_upload_recovery_target_v1: {Args: {p_tenant: string; p_id: string}; Returns: Json};
+      document_finalize_upload_v1: {
+        Args: {p_tenant: string; p_id: string};
+        Returns: string;
+      };
+      document_pending_uploads_v1: {
+        Args: {p_tenant: string; p_offset?: number};
+        Returns: {document_id: string; tenant_id: string; document_name: string; company_name: string | null; created_at: string; file_present: boolean; can_resume: boolean}[];
+      };
+      document_prepare_upload_v1: {
+        Args: {p_id: string; p_tenant: string; p_company: string; p_name: string; p_category: string; p_validity: string | null; p_size: number};
+        Returns: string;
+      };
+      document_pending_cleanup_v1: {
+        Args: { p_tenant: string; p_offset?: number };
+        Returns: { document_id: string; document_name: string | null; company_name: string | null; created_at: string }[];
+      };
+      document_cleanup_target_v1: {
+        Args: { p_tenant: string; p_document_id: string };
+        Returns: string;
+      };
+      document_ack_cleanup_v1: {
+        Args: { p_document_id: string };
+        Returns: boolean;
+      };
       appointment_notification_candidates_v1: {Args:{p_target:string};Returns:Pick<Database["public"]["Tables"]["appointments"]["Row"],"id"|"meeting_type"|"attendee"|"meeting_date"|"company_id"|"tenant_id"|"status">[]};
       contract_notification_candidates_v1: {Args:Record<string,never>;Returns:Pick<Database["public"]["Tables"]["contracts"]["Row"],"id"|"tenant_id"|"company_id"|"name"|"end_date"|"responsible">[]};
       document_notification_candidates_v1: {Args:{p_upper:string};Returns:Pick<Database["public"]["Tables"]["documents"]["Row"],"id"|"name"|"validity_date"|"tenant_id">[]};
@@ -1235,6 +1263,18 @@ export interface Database {
       contact_execute_v1: {
         Args: {p_action:string;p_contact_id:string|null;p_company_id:string;p_tenant_id:string;p_actor_id:string;p_input:Json};
         Returns: Database["public"]["Tables"]["contacts"]["Row"][];
+      };
+      contract_delete_v1: {
+        Args: {p_id:string;p_tenant:string;p_revision:number};
+        Returns: Database["public"]["Tables"]["contracts"]["Row"][];
+      };
+      contract_write_v1: {
+        Args: {p_id:string|null;p_tenant:string;p_revision:number|null;p_input:Json};
+        Returns: Database["public"]["Tables"]["contracts"]["Row"][];
+      };
+      appointment_execute_v1: {
+        Args: {p_action:string;p_id:string|null;p_tenant:string;p_input:Json};
+        Returns: Database["public"]["Tables"]["appointments"]["Row"][];
       };
       announcement_execute_v1: {
         Args: {p_action:string;p_id:string|null;p_tenant:string|null;p_body:string|null};

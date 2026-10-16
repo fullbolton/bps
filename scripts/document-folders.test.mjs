@@ -10,19 +10,25 @@ test('each existing category belongs to one folder; linked contracts stay togeth
  assert.equal(documentFolder('diger','contract-id'),'sozlesme');
  assert.equal(documentFolder('ek_protokol'),'sozlesme');
 });
-const row={id:'doc',company_id:'company',updated_at:'revision'};
+const row={id:'doc',tenant_id:'tenant',company_id:'company',revision:4,contract_id:null};
 function client(reply){
- const calls=[];const q={};
- for(const method of ['from','update','eq','is','select'])q[method]=(...args)=>{calls.push([method,...args]);return q;};
- q.maybeSingle=async()=>reply;
+ const calls=[];const q={rpc:async(...args)=>{calls.push(args);return reply;}};
  return {q,calls};
 }
-test('moving changes category only, scoped by company, revision and unlinked contract',async()=>{
- const {q,calls}=client({data:{...row,category:'yetki_belgesi',contract_id:null},error:null});
+test('moving uses the observed revision and tenant through the metadata command',async()=>{
+ const {q,calls}=client({data:{...row,revision:5,category:'yetki_belgesi'},error:null});
  await changeDocumentCategory(q,row,'yetki_belgesi');
- assert.deepEqual(calls,[['from','documents'],['update',{category:'yetki_belgesi'}],['eq','id','doc'],['eq','company_id','company'],['eq','updated_at','revision'],['is','contract_id',null],['select','*']]);
+ assert.deepEqual(calls,[['document_edit_metadata_v1',{p_tenant:'tenant',p_id:'doc',p_company:'company',p_revision:4,p_kind:'category',p_value:'yetki_belgesi'}]]);
 });
-test('invalid category, denied/stale result, transport error and wrong identity never succeed',async()=>{
+test('invalid category, denied/stale result and wrong identity never succeed',async()=>{
  const invalid=client({});await assert.rejects(changeDocumentCategory(invalid.q,row,'unknown'));assert.equal(invalid.calls.length,0);
- for(const reply of [{data:null,error:null},{data:null,error:{message:'denied'}},{data:{...row,id:'other',category:'diger',contract_id:null},error:null},{data:{...row,category:'diger',contract_id:'linked'},error:null}])await assert.rejects(changeDocumentCategory(client(reply).q,row,'diger'));
+ for(const reply of [{data:null,error:null},{data:null,error:{code:'40001'}},{data:{...row,id:'other',revision:5,category:'diger'},error:null},{data:{...row,revision:5,category:'diger',contract_id:'linked'},error:null},{data:{...row,category:'diger'},error:null}])await assert.rejects(changeDocumentCategory(client(reply).q,row,'diger'));
+});
+const {updateDocumentValidity}=await importActualTypeScript(new URL('../src/lib/services/documents.ts',import.meta.url));
+test('validity keeps the dialog revision and requires a matching receipt',async()=>{
+ const {q,calls}=client({data:{...row,revision:5,validity_date:'2027-01-01'},error:null});
+ await updateDocumentValidity(q,row,{validityDate:'2027-01-01'});assert.equal(calls[0][1].p_revision,4);
+ for(const revision of [undefined,-1,NaN])await assert.rejects(updateDocumentValidity(q,{...row,revision},{validityDate:'2027-01-01'}));
+ await assert.rejects(updateDocumentValidity(q,row,{validityDate:'2027-02-31'}));
+ await assert.rejects(updateDocumentValidity(client({data:{...row,revision:5,validity_date:'2028-01-01'},error:null}).q,row,{validityDate:'2027-01-01'}));
 });

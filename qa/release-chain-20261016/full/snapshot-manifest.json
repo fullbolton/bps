@@ -1,0 +1,16 @@
+{
+  "capturedAt": "2026-10-16T19:39:23.260500+00:00",
+  "project": "dffdzbmnmnokbftbujsy",
+  "schemaOnly": true,
+  "schemas": [
+    "public",
+    "auth",
+    "storage",
+    "extensions"
+  ],
+  "bytes": 894801,
+  "sha256": "ecc638f7007122e8ee5bbcfa880e614e6757f1d76d93815aebf1fb974c693387",
+  "mode": "0o600",
+  "rowsExported": 0,
+  "baselineLastMigration": "20261004001400"
+}

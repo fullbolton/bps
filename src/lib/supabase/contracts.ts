@@ -24,6 +24,23 @@ import type {
 
 type Client = SupabaseClient<Database>;
 
+function commandError(error: {code?: string}): Error {
+  if(error.code==='23503') return new Error('Bağlı kayıtları veya işlem geçmişi bulunan sözleşme silinemez. Geçmişi korumak için sözleşme durumunu güncelleyin.');
+  if(error.code==='BM001') return new Error('Sözleşmeler modülü kapalı. Çalışma alanı ayarlarını kontrol edin.');
+  if((error.code==='40001'||error.code==='PT409')) return new Error('Sözleşme siz düzenlerken değişti. Güncel kaydı açıp değişikliklerinizi karşılaştırın.');
+  if(error.code==='42501') return new Error('Bu sözleşmede işlem yapma yetkiniz yok.');
+  if(['22023','22007','22008','22P02','23514'].includes(error.code??'')) return new Error('Sözleşme bilgilerini ve tarih aralığını kontrol edin.');
+  return new Error('İşlemin sonucu doğrulanamadı. İşlemi tekrarlamadan önce sözleşme listesini yenileyin.');
+}
+
+export async function deleteContractScoped(client:Client,id:string,expected:Pick<ContractRow,'tenant_id'|'revision'>):Promise<ContractRow> {
+  if(!Number.isSafeInteger(expected.revision)||expected.revision<0) throw new Error('Sözleşme sürümü doğrulanamadı. Sayfayı yenileyin.');
+  const {data,error}=await client.rpc('contract_delete_v1',{p_id:id,p_tenant:expected.tenant_id,p_revision:expected.revision}).single();
+  if(error)throw commandError(error);
+  if(!data||data.id!==id||data.tenant_id!==expected.tenant_id||data.revision!==expected.revision||typeof data.name!=='string'||!data.name) throw new Error('Sözleşmenin silindiği doğrulanamadı. Listeyi yenileyin.');
+  return data;
+}
+
 /**
  * Read every contract visible to the caller, sorted "active first then
  * end_date asc, then name asc". The Sözleşmeler list page filters this
@@ -114,45 +131,33 @@ export async function getActiveContractCountsByCompanyIds(
 }
 
 /**
- * Insert a single contract row exactly as provided. The service layer
- * is responsible for resolving company_id, defaulting status, stamping
- * created_by from the auth session, and validating shape.
+ * Create through the module-aware manager command. Audit fields and legacy
+ * renewal task flags are excluded; the database derives the author.
  */
 export async function insertContract(
   client: Client,
   input: ContractInsert,
 ): Promise<ContractRow> {
-  const { data, error } = await client
-    .from("contracts")
-    .insert(input)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`contracts insert failed: ${error.message}`);
-  }
+  const {tenant_id,created_by,id,created_at,updated_at,renewal_responsible_set,renewal_task_created,...payload}=input;
+  const {data,error}=await client.rpc('contract_write_v1',{p_id:null,p_tenant:tenant_id,p_revision:null,p_input:payload}).single();
+  if(error) throw commandError(error);
+  if(!data||data.tenant_id!==tenant_id||data.company_id!==input.company_id||data.name!==input.name.trim()||data.revision!==0) throw new Error('Sözleşme kaydının sonucu doğrulanamadı. Listeyi yenileyin.');
   return data;
 }
 
 /**
- * Update a single contract row by id. The service layer is responsible
- * for narrowing the patch to the columns the caller is allowed to
- * change and for re-verifying scope.
+ * Update only the expected revision. The database owns the field allowlist,
+ * module/role checks, merged-row validation and revision increment.
  */
 export async function updateContract(
   client: Client,
   contractId: string,
   patch: ContractUpdate,
+  expected: Pick<ContractRow,'tenant_id'|'revision'>,
 ): Promise<ContractRow> {
-  const { data, error } = await client
-    .from("contracts")
-    .update(patch)
-    .eq("id", contractId)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`contracts update failed: ${error.message}`);
-  }
+  if(!Number.isSafeInteger(expected.revision)||expected.revision<0) throw new Error('Sözleşme sürümü doğrulanamadı. Sayfayı yenileyin.');
+  const {data,error}=await client.rpc('contract_write_v1',{p_id:contractId,p_tenant:expected.tenant_id,p_revision:expected.revision,p_input:patch}).single();
+  if(error) throw commandError(error);
+  if(!data||data.id!==contractId||data.tenant_id!==expected.tenant_id||data.revision!==expected.revision+1) throw new Error('Sözleşme değişikliğinin sonucu doğrulanamadı. Sayfayı yenileyin.');
   return data;
 }

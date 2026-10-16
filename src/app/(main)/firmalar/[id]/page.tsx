@@ -172,12 +172,12 @@ function CompanyWorkspace({id, workspace}: {id:string; workspace:WorkspaceModule
   companyScopeRef.current = companyScope;
   const feedback = useActionNotice(companyScope);
   const [statusAction, setStatusAction] = useState<{ scope: string; next: "aktif" | "pasif" } | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ scope: string; kind: "contact" | "document"; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ scope: string; kind: "contact" | "document"; id: string; name: string; snapshot?: {tenantId:string;companyId:string;revision:number} } | null>(null);
   const [deletionNotice, setDeletionNotice] = useState<{ scope: string; text: string } | null>(null);
-  function requestDelete(kind: "contact" | "document", recordId: string, name: string) {
+  function requestDelete(kind: "contact" | "document", recordId: string, name: string, snapshot?: {tenantId:string;companyId:string;revision:number}) {
     feedback.clear();
     setDeletionNotice(null);
-    setDeleteTarget({ scope: companyScope, kind, id: recordId, name });
+    setDeleteTarget({ scope: companyScope, kind, id: recordId, name, snapshot });
   }
   const visibleTabs = useMemo(() => companyModuleTabs(access), [access]);
   const tabView = useListViewState("firma-sekme", !authLoading && user ? companyScope : null, COMPANY_TAB_DEFAULTS);
@@ -412,7 +412,8 @@ function CompanyWorkspace({id, workspace}: {id:string; workspace:WorkspaceModule
       else setDeletionNotice({ scope: companyScope, text: "Silinen yetkili kaydı doğrulanamadı. Kayıt daha önce kaldırılmış veya silme erişiminiz değişmiş olabilir." });
       await reloadYetkililer();
     } else {
-      const result = await deleteCompanyDocumentAction(target.id);
+      if (!target.snapshot) throw new Error("Belge sürümü doğrulanamadı. Listeyi yenileyin.");
+      const result = await deleteCompanyDocumentAction(target.id, target.snapshot);
       if (!result.ok) throw new Error(result.error);
       if (target.scope !== companyScopeRef.current) return;
       if (result.warning) setDeletionNotice({ scope: companyScope, text: `${target.name}: Belge kaydı silindi, dosyanın temizlenmesi tamamlanamadı. Yönetici kontrolü gerekiyor.` });
@@ -1357,7 +1358,7 @@ function CompanyWorkspace({id, workspace}: {id:string; workspace:WorkspaceModule
               {canDeleteDocs && !d.contract_id && (
                 <button
                   type="button"
-                  onClick={() => requestDelete("document", d.id, d.name)}
+                  onClick={() => requestDelete("document", d.id, d.name, {tenantId:d.tenant_id,companyId:d.company_id,revision:d.revision})}
                   aria-label={`${d.name} — kalıcı olarak sil`}
                   className={`min-h-11 inline-flex items-center gap-1 ${TYPE_CAPTION} text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed`}
                   title="Belgeyi kalıcı olarak sil"

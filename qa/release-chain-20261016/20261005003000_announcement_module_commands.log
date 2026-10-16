@@ -1,0 +1,2 @@
+
+ERROR:  policy "announcements_module_read" for table "announcements" already exists

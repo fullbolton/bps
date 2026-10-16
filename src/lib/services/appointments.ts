@@ -199,7 +199,7 @@ export async function listAppointmentsByContractId(
  *   - Re-verifies partner scope via `requireCompanyByLegacyMockId`.
  *   - Trims and validates meeting_date (non-blank).
  *   - Defaults status to "planlandi" and meeting_type to "ziyaret".
- *   - Stamps created_by from the auth session.
+ *   - Database command stamps created_by from the authenticated session.
  */
 export async function createAppointment(
   client: Client,
@@ -215,10 +215,6 @@ export async function createAppointment(
   const contractId = nullableTrim(input.contractId);
   await requireRelatedCompanyRecord(client, "contracts", contractId, company, options.tenantId);
 
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-
   const payload: AppointmentInsert = {
     tenant_id: options.tenantId,
     company_id: company.id,
@@ -228,7 +224,6 @@ export async function createAppointment(
     meeting_type: (input.meetingType as AppointmentRow["meeting_type"]) ?? "ziyaret",
     attendee: nullableTrim(input.attendee),
     status: "planlandi",
-    created_by: user?.id ?? null,
   };
 
   return insertAppointment(client, payload);
@@ -288,7 +283,10 @@ export async function updateAppointmentStatus(
     status: validatedStatus,
   };
 
-  return updateAppointment(client, appointmentId, patch);
+  if (existing.status === 'tamamlandi') {
+    throw new AppointmentValidationError('Tamamlanmış randevunun durumu değiştirilemez. Yeni bir randevu oluşturun.');
+  }
+  return updateAppointment(client, appointmentId, patch, existing);
 }
 
 // ---------------------------------------------------------------------------

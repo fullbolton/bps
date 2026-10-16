@@ -1,0 +1,28 @@
+{
+  "passed": 22,
+  "checks": [
+    "foreign and anonymous RPC preparation denied",
+    "unreserved HTTP upload denied",
+    "preparation through authenticated HTTP RPC",
+    "authenticated HTTP upload",
+    "Storage records caller ownership",
+    "pending recovery target and HTTP bytes verified",
+    "finalize and idempotent receipt",
+    "authenticated byte-for-byte download",
+    "foreign tenant download denied",
+    "reserved object overwrite denied",
+    "premature HTTP deletion does not remove file",
+    "HTTP metadata edit and stale-delete rejection",
+    "HTTP cleanup and durable acknowledgement",
+    "cancelled upload rejected over HTTP",
+    "acknowledged cancellation remains retired",
+    "reserved contract HTTP upload and finalize remain available",
+    "legacy overwrite and move denied",
+    "legacy bytes retained before cleanup job",
+    "legacy deletion works after durable cleanup job",
+    "stale module preview returns HTTP 409; current preview stays advisory",
+    "membership HTTP conflicts do not change role; admin gate preserved",
+    "three workspace HTTP conflicts terminate; valid selection succeeds"
+  ],
+  "scope": "isolated local Storage HTTP and cloned synthetic DB"
+}

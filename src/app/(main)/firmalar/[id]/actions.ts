@@ -1,8 +1,9 @@
 "use server";
 
 import { setCompanyStatus } from "@/lib/supabase/company-commands";
-import { documentStatusForFile, isDocumentValidityDate } from "@/lib/document-validity";
+import { isDocumentValidityDate } from "@/lib/document-validity";
 import { recoverCompanyDocumentInsert } from "@/lib/services/company-document-recovery";
+import { removeDeletedDocumentFile } from "@/lib/services/company-document-cleanup";
 
 /** Company detail actions use the authenticated cookie client; no service role.
  * Company status changes use the scoped company command and reject missing targets.
@@ -34,12 +35,9 @@ const ALLOWED_CATEGORIES: ReadonlySet<DocumentCategory> = new Set<DocumentCatego
   "diger",
 ]);
 
-// Role guard: mirrors the existing Evraklar / Company Detail upload
-// boundary (yonetici, partner-scope, operasyon, ik). Partner scope is
-// enforced at the DB layer by the documents INSERT policy.
+// Role guard matches the general-document preparation command.
 const UPLOAD_ROLES: ReadonlySet<string> = new Set([
   "yonetici",
-  "partner",
   "operasyon",
   "ik",
 ]);
@@ -99,7 +97,7 @@ export async function uploadCompanyDocumentAction(
 
   // 3. Active tenant resolution. Single source — RPC. Fail closed.
   const { data: tenantId, error: tenantError } = await supabase.rpc(
-    "current_user_active_tenant",
+    "current_user_verified_tenant",
   );
   if (
     tenantError ||
@@ -191,13 +189,35 @@ export async function uploadCompanyDocumentAction(
   const documentId = crypto.randomUUID();
   const storagePath = `${companyId}/${documentId}.pdf`;
 
+  // Persist the attempt before sending file bytes. An uncertain preparation
+  // response must never start an upload or fall back to untracked creation.
+  try {
+    const prepared = await supabase.rpc("document_prepare_upload_v1", {
+      p_id: documentId, p_tenant: tenantId, p_company: companyId,
+      p_name: name, p_category: category, p_validity: validityDate, p_size: fileEntry.size,
+    });
+    if (prepared.error || prepared.data !== storagePath) {
+      return {ok: false, reviewRequired: true, error: `Yükleme başlatılamadı. Dosya gönderilmedi; işlem kaydını yöneticinizle kontrol edin. İşlem: ${documentId}`};
+    }
+  } catch {
+    return {ok: false, reviewRequired: true, error: `Yükleme hazırlığının sonucu doğrulanamadı. Dosya gönderilmedi. İşlem: ${documentId}`};
+  }
+
   // 8. Storage upload. If this fails, no DB row is created.
-  const upload = await supabase.storage
+  let upload;
+  try {
+    upload = await supabase.storage
     .from("documents")
     .upload(storagePath, fileEntry, {
       contentType: PDF_MIME,
       upsert: false,
     });
+  } catch {
+    return {
+      ok: false, reviewRequired: true,
+      error: `Dosya yükleme sonucu doğrulanamadı. Yeniden yüklemeden önce belge listesini ve işlemi yöneticinizle kontrol edin. İşlem: ${documentId}`,
+    };
+  }
   if (upload.error) {
     console.error("company_document_storage_review", { documentId, companyId, storagePath, code: upload.error.name });
     return {
@@ -207,46 +227,23 @@ export async function uploadCompanyDocumentAction(
     };
   }
 
-  // 9. DB row insert. tenant_id, company_id, contract_id,
-  //    storage_path are server-controlled; created_by / uploaded_by
-  //    derive from auth. Reconcile a failed response by the generated ID;
-  //    only definite SQL rejection permits caller-authorized cleanup.
-  // Display provenance from DB truth (profiles.display_name), not
-  // user_metadata — any user can rewrite their own metadata via
-  // auth.updateUser(), so the uploader label was spoofable. created_by
-  // (user.id) remains the authoritative provenance either way.
-  const { data: profileRow } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .maybeSingle();
-  const uploadedBy = profileRow?.display_name ?? user.email ?? null;
-
-  const insert = await supabase
-    .from("documents")
-    .insert({
-      id: documentId,
-      tenant_id: tenantId,
-      company_id: companyId,
-      contract_id: contractId,
-      name,
-      category,
-      status: documentStatusForFile(validityDate),
-      validity_date: validityDate,
-      storage_path: storagePath,
-      uploaded_by: uploadedBy,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
-
-  if (insert.error || !insert.data) {
+  // 9. DB finalization validates the reserved object's owner, size and MIME.
+  // Author, display name, status and publication receipt are server-derived.
+  try {
+    const result = await supabase.rpc("document_finalize_upload_v1", {p_tenant: tenantId, p_id: documentId});
+    if (result.error || result.data !== documentId) {
+      return recoverCompanyDocumentInsert(supabase, {
+        id: documentId, companyId, tenantId, userId: user.id, storagePath,
+      });
+    }
+    return {ok: true, documentId};
+  } catch {
+    // A transport exception does not prove rollback. Reconcile by the original
+    // ID, without retrying the INSERT or deleting a potentially committed file.
     return recoverCompanyDocumentInsert(supabase, {
       id: documentId, companyId, tenantId, userId: user.id, storagePath,
-    }, insert.error?.code);
+    });
   }
-
-  return { ok: true, documentId: insert.data.id };
 }
 
 export async function getCompanyDocumentDownloadUrlAction(
@@ -300,108 +297,20 @@ export async function getCompanyDocumentDownloadUrlAction(
   return { ok: true, url: signed.data.signedUrl };
 }
 
-/**
- * Hard-delete a single document (Faz 1 — no trash, no soft-delete).
- *
- * yonetici-only at three layers: the app role guard below, the
- * documents DELETE RLS policy, and the storage.objects DELETE policy
- * (both yonetici-only). service_role is never used.
- *
- * Order: DB row first → storage object second.
- *   - If the DB delete fails (RLS reject / error), storage is left
- *     untouched and the action fails. This avoids deleting the file
- *     while the row still points at it.
- *   - If the DB delete succeeds but the storage remove fails, the row
- *     is already gone; we return ok:true with an explicit `warning`
- *     naming the orphaned object path. No silent hiding.
- *
- * Idempotency: if the row does not exist (already deleted / never
- * existed / RLS-hidden), the action returns ok:true as a no-op —
- * re-clicking delete on a stale UI row does not surface an error.
- */
-export async function deleteCompanyDocumentAction(
-  documentId: string,
-): Promise<DeleteResult> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Oturum geçersiz: lütfen tekrar giriş yapın." };
-  }
-
-  if (!documentId || typeof documentId !== "string") {
-    return { ok: false, error: "Belge kimliği geçersiz." };
-  }
-
-  // Role guard via DB truth. Delete is yonetici-only (mirrors the
-  // documents + storage.objects DELETE RLS policies).
-  const { data: roleData, error: roleError } = await supabase.rpc(
-    "current_user_role",
-  );
-  if (roleError || roleData !== "yonetici") {
-    return { ok: false, error: "Yetkisiz: belge silme yalnızca yöneticiye açıktır." };
-  }
-
-  // Read the row first to obtain storage_path. RLS-bounded: a hidden
-  // row returns null → treat as idempotent no-op success.
-  const { data: doc, error: fetchError } = await supabase
-    .from("documents")
-    .select("storage_path")
-    .eq("id", documentId)
-    .maybeSingle();
-  if (fetchError) {
-    return { ok: false, error: "Belge bilgisi alınamadı." };
-  }
-  if (!doc) {
-    // Already gone or not visible — idempotent success.
-    return { ok: true, deleted: false };
-  }
-
-  // DB-first delete with RETURNING. RLS enforces yonetici. `.select()`
-  // returns the rows actually deleted, so we can confirm a row was
-  // removed before touching storage — guards against a concurrent
-  // delete or RLS-filtered zero-row outcome between the read above and
-  // this delete. If it errors, do NOT touch storage.
-  const del = await supabase
-    .from("documents")
-    .delete()
-    .eq("id", documentId)
-    .select("storage_path");
-  if (del.error) {
-    return {
-      ok: false,
-      error: del.error.message.includes('contract_document_versions_document_id_fkey')
-        ? 'Sürüm geçmişi bulunan sözleşme PDF’i silinemez. Yeni sürüm yükleyerek geçmişi koruyun.'
-        : `Belge silinemedi: ${del.error.message}`,
-    };
-  }
-
-  const deletedRows = del.data ?? [];
-  if (deletedRows.length === 0) {
-    // Nothing was actually deleted (already gone / concurrent delete /
-    // RLS-filtered). Idempotent no-op — storage is NOT touched.
-    return { ok: true, deleted: false };
-  }
-
-  // Storage remove — second. Use the path from the row that was
-  // actually deleted (not the earlier read), in case the row's path
-  // changed concurrently. DB row is confirmed gone at this point.
-  const deletedPath = deletedRows[0].storage_path;
-  if (deletedPath) {
-    const remove = await supabase.storage
-      .from("documents")
-      .remove([deletedPath]);
-    if (remove.error) {
-      return {
-        ok: true,
-        deleted: true,
-        warning: `DB kaydı silindi, storage dosyası silinemedi (orphan): ${deletedPath}`,
-      };
+/** Delete only the revision confirmed by the user. Uncertain receipts never trigger Storage deletion. */
+export async function deleteCompanyDocumentAction(documentId:string, snapshot:{tenantId:string;companyId:string;revision:number}):Promise<DeleteResult> {
+  if(!documentId || !snapshot?.tenantId || !snapshot.companyId || !Number.isSafeInteger(snapshot.revision) || snapshot.revision<0) return {ok:false,error:"Belge sürümü doğrulanamadı. Listeyi yenileyin."};
+  try {
+    const supabase=await createServerSupabaseClient();
+    const {data,error}=await supabase.rpc('document_delete_v1',{p_tenant:snapshot.tenantId,p_id:documentId,p_company:snapshot.companyId,p_revision:snapshot.revision});
+    if(error)return {ok:false,error:(error.code==='40001'||error.code==='PT409')?"Belge değişmiş. Listeyi yenileyip güncel belge için tekrar onay verin.":error.code==='23503'?"Sürüm geçmişi bulunan belge silinemez. Yeni sürüm yükleyerek geçmişi koruyun.":"Belge silinemedi. Kayıt kaldırılmış veya yetkiniz değişmiş olabilir. Listeyi yenileyin."};
+    if(!data || typeof data!=='object' || Array.isArray(data) || data.id!==documentId || data.tenant_id!==snapshot.tenantId || data.company_id!==snapshot.companyId || data.revision!==snapshot.revision || (data.storage_path!==null && (typeof data.storage_path!=='string' || !data.storage_path))) return {ok:false,error:"Silme sonucu doğrulanamadı. Listeyi ve dosya temizliği bölümünü kontrol edin."};
+    if(data.storage_path) {
+      const cleanup=await removeDeletedDocumentFile(supabase,documentId,data.storage_path as string);
+      if(!cleanup.confirmed)return {ok:true,deleted:true,warning:cleanup.warning};
     }
-  }
-
-  return { ok: true, deleted: true };
+    return {ok:true,deleted:true};
+  } catch {return {ok:false,error:"Silme sonucu doğrulanamadı. Listeyi ve dosya temizliği bölümünü kontrol edin."};}
 }
 
 /** Manager-only deletion; database checks the expected company and rejects missing rows. */

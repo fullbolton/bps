@@ -1,0 +1,7 @@
+{
+  "scope": "synthetic local catalog query validation; not production evidence",
+  "functions": 263,
+  "tables": 89,
+  "policies": 116,
+  "queryPassed": true
+}

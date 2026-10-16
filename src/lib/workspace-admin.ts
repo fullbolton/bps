@@ -20,7 +20,7 @@ export function workspaceAdminError(error:unknown):string{
  const code=record(error)?error.code:undefined;
  if(code==='42501')return 'Bu işlem için platform yöneticisi yetkisi gerekiyor.';
  if(code==='BP001')return 'Bu şirkette kişiye atanmış açık görevler var. Önce görevleri devredin.';
- if(code==='40001')return 'Üyelik bilgisi değişmiş. Güncel üyelikleri yükleyip işlemi yeniden seçin.';
+ if(code==='40001'||code==='PT409')return 'Üyelik bilgisi değişmiş. Güncel üyelikleri yükleyip işlemi yeniden seçin.';
  if(code==='23503')return 'Kişi veya şirket artık bulunamıyor. Listeyi yenileyin.';
  return 'İşlem sonucu doğrulanamadı. Yeni işlemden önce güncel üyelikleri yükleyin.';
 }

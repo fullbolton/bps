@@ -21,12 +21,6 @@ test('signed download resolves version through scoped RPC, never arbitrary calle
  const scope={actorId:id(11),tenantId:id(1)};await assert.rejects(()=>service.downloadContractPdfVersion(client,scope,version.id));assert.equal(signCalls,0);
  response={data:'company/server-resolved.pdf',error:null};assert.equal(await service.downloadContractPdfVersion(client,scope,version.id),'http://127.0.0.1/synthetic');assert.equal(signCalls,1);
 });
-test('actual PDF replace service gates revision and uses CAS, zero rows is failure',async()=>{
- const filters=[];let calls=0;let data=null;
- const chain={eq:(k,v)=>{filters.push([k,v]);return chain;},select:()=>chain,maybeSingle:async()=>({data,error:null})};
- const client={from:name=>{calls++;assert.equal(name,'documents');return {update:()=>chain};}};
- const patch={name:'new.pdf',storagePath:'path.pdf',uploadedBy:null};
- await assert.rejects(()=>documents.updateContractDocumentFile(client,id(20),patch,undefined));assert.equal(calls,0);
- await assert.rejects(()=>documents.updateContractDocumentFile(client,id(20),patch,4),/Belge değişmiş/);assert.deepEqual(filters,[['id',id(20)],['revision',4]]);
- data={id:id(20),revision:5};assert.equal((await documents.updateContractDocumentFile(client,id(20),patch,4)).revision,5);
+test('obsolete raw PDF replacement writer is no longer exported',()=>{
+ assert.equal(documents.updateContractDocumentFile,undefined);
 });

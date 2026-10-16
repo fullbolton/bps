@@ -11,8 +11,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Database,
   DocumentRow,
-  DocumentInsert,
-  DocumentUpdate,
 } from "@/types/database.types";
 
 type Client = SupabaseClient<Database>;
@@ -112,56 +110,4 @@ export async function selectDocumentsByCompanyIds(
 ): Promise<DocumentRow[]> {
   if (!Array.isArray(companyIds) || Array.from(companyIds).some(id => typeof id !== "string" || !COMPANY_UUID.test(id))) throw new Error("documents scope invalid");
   return readDocumentPages(client, companyIds);
-}
-
-// ---------------------------------------------------------------------------
-// Writes
-// ---------------------------------------------------------------------------
-
-/**
- * Insert a single document row exactly as provided.
- */
-export async function insertDocument(
-  client: Client,
-  input: DocumentInsert,
-): Promise<DocumentRow> {
-  const { data, error } = await client
-    .from("documents")
-    .insert(input)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`documents insert failed: ${error.message}`);
-  }
-  return data;
-}
-
-/**
- * Update a single document row by id.
- */
-export async function updateDocument(
-  client: Client,
-  id: string,
-  patch: DocumentUpdate,
-): Promise<DocumentRow> {
-  const { data, error } = await client
-    .from("documents")
-    .update(patch)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`documents update failed: ${error.message}`);
-  }
-  return data;
-}
-
-/** PDF replacement must use the exact revision shown to the user. */
-export async function replaceDocumentFile(client:Client,id:string,revision:number,patch:DocumentUpdate):Promise<DocumentRow>{
-  const {data,error}=await client.from('documents').update(patch).eq('id',id).eq('revision',revision).select().maybeSingle();
-  if(error)throw error;
-  if(!data)throw new Error('Belge değişmiş veya erişiminiz kaldırılmış. Güncel kaydı yükleyin.');
-  return data;
 }
