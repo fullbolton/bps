@@ -15,7 +15,7 @@ const secret=randomBytes(48).toString('hex');secrets.push(secret);
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 function jwt(role,actor=11,tenant=1,extra={}){const data=[{alg:'HS256',typ:'JWT'},{role,sub:id(actor),active_tenant_id:id(tenant),exp:Math.floor(Date.now()/1000)+600,...extra}].map(x=>Buffer.from(JSON.stringify(x)).toString('base64url')).join('.');const token=data+'.'+createHmac('sha256',secret).update(data).digest('base64url');secrets.push(token);return token;}
 const token=jwt('authenticated'),foreign=jwt('authenticated',12,2),anon=jwt('anon'),service=jwt('service_role');
-const uri=`postgres://postgres:${encodeURIComponent(password)}@${source}:5432/${database}`;secrets.push(uri);
+const uri=`postgres://${process.env.BPS_RELEASE_BARRIER==='1'?'authenticator':'postgres'}:${encodeURIComponent(password)}@${source}:5432/${database}`;secrets.push(uri);
 const storageUri=`postgres://supabase_storage_admin:${encodeURIComponent(password)}@${source}:5432/${database}`;secrets.push(storageUri);
 let created=false;
 const checks=[];
@@ -198,6 +198,31 @@ try {
  checks.push('A-to-B switch denies stale A token and B access to A uploads; no rejected writes persist');
 
 
+ if(process.env.BPS_RELEASE_BARRIER==='1'){
+  const current=scoped(1,returned.data.selectionVersion,memberVersion());
+  const reserve=async n=>{const r=await rpcResult('document_prepare_upload_v1',{...preparation,p_id:id(n)},current);assert.equal(r.status,200);return r.data;};
+  const blockedPath=await reserve(9301),deletePath=await reserve(9302);
+  assert.ok((await request('/object/documents/'+deletePath,'POST',pdf,current,{'Content-Type':'application/pdf'})).ok);
+  assert.equal((await rpcResult('document_cancel_upload_v1',{p_tenant:id(1),p_id:id(9302)},current)).status,200);
+  const barrierSql=name=>readFileSync(new URL('../release-chain-20261016/barrier/'+name+'.sql',import.meta.url),'utf8');
+  docker(['exec','-i','-e',`PGPASSWORD=${password}`,source,'psql','-w','-X','-qAt','-U','supabase_admin','-d',database,'-v','ON_ERROR_STOP=1'],barrierSql('install'));
+  sql(barrierSql('verify'));
+  const deniedPrepare=await rpcResult('document_prepare_upload_v1',{...preparation,p_id:id(9303)},current);
+  assert.equal(deniedPrepare.status,503);assert.equal(deniedPrepare.data.code,'PT503');
+  const deniedUpload=await request('/object/documents/'+blockedPath,'POST',pdf,current,{'Content-Type':'application/pdf'});
+  assert.equal(deniedUpload.ok,false);
+  assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name='${blockedPath}'`),'0');
+  const deniedDelete=await request('/object/documents','DELETE',JSON.stringify({prefixes:[deletePath]}),current,{'Content-Type':'application/json'});
+  assert.equal(deniedDelete.ok,false);
+  const retained=await request('/object/authenticated/documents/'+deletePath,'GET',undefined,current);
+  assert.ok(retained.ok);assert.equal(retained.text,pdf.toString());
+  docker(['exec','-i','-e',`PGPASSWORD=${password}`,source,'psql','-w','-X','-qAt','-U','supabase_admin','-d',database,'-v','ON_ERROR_STOP=1'],barrierSql('remove'));
+  assert.ok((await request('/object/documents/'+blockedPath,'POST',pdf,current,{'Content-Type':'application/pdf'})).ok);
+  assert.ok((await request('/object/documents','DELETE',JSON.stringify({prefixes:[deletePath]}),current,{'Content-Type':'application/json'})).ok);
+  const evidence={rpcStatus:deniedPrepare.status,uploadStatus:deniedUpload.status,deleteStatus:deniedDelete.status,retainedBytes:true,reopenedUploadAndDelete:true,scope:'local Storage HTTP; no production writes'};
+  const {writeFileSync}=await import('node:fs');writeFileSync(new URL('../release-chain-20261016/barrier/http-result.json',import.meta.url),JSON.stringify(evidence,null,2)+'\n');
+  checks.push('release barrier rejects HTTP RPC/upload/delete; bytes survive; reopening works');
+ }
  if(process.env.BPS_LOCAL_BROWSER==='1')await (await import('./authenticated-browser.mjs')).serve({docker,sql,run,source,network,database,password,secret,anon,service,restBase,storageBase:base,id,pdf});
  console.log(JSON.stringify({passed:checks.length,checks,scope:'isolated local Storage HTTP and cloned synthetic DB'},null,2));
 } catch(e){console.error(redact(e.message));try{console.error(redact(logs()).slice(-6500));}catch{}process.exitCode=1;}

@@ -1,0 +1,8 @@
+{
+  "rpcStatus": 503,
+  "uploadStatus": 500,
+  "deleteStatus": 500,
+  "retainedBytes": true,
+  "reopenedUploadAndDelete": true,
+  "scope": "local Storage HTTP; no production writes"
+}
