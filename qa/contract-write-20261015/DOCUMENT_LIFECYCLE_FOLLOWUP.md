@@ -442,3 +442,10 @@ Yalnız test kodu ve kanıtlar değişti; uygulama/SQL değişmedi, yeni yayın 
 Yerel Auth/Next/Storage kabul fixture'ına üçüncü sentetik kayıt eklendi: dosyası depoda mevcut, evrak kaydı henüz tamamlanmamış. Gerçek giriş ve /evraklar ekranından bu kayıt için iptal onayı verildi. İşlem sırasında düğmeler kilitlendi; başarı mesajı dosya temizliğinin yöneticinin listesine alındığını açıkladı ve kayıt bekleyenlerden çıktı. SQL sonucu: documents=0, storage.objects=1, tamamlanmamış cleanup=1. Böylece iptalin dosyayı anında silmediği de doğrulandı. Kanıt browser-uploaded-cancel-20261017.json.
 
 Önceden geçen temel kurtarma, dosyasız iptal ve şirket geçiş testleri tekrar edilmedi. Bu tur yeni kabul yalnız dosyası mevcut iptal akışıdır. Yerel başlangıçta ilk sayfa derlemesi navigasyon bekleme süresini aştı; aynı sekme hazır olduğunda giriş tamamlandı. Ürün hatası görülmedi. Ürün kodu/SQL değişmedi, üretime işlem yapılmadı; yeni yayın gerekmiyor.
+
+
+## 17 Ekim — iki gerçek sekmede açık form / şirket değişimi kabulü
+
+Birinci sekmede Synthetic A evrak yükleme formu açılıp yalnız sentetik evrak adı yazıldı; kaydedilmedi. İkinci sekmede gerçek şirket seçici ile Synthetic B seçildi ve Auth yenilemesi tamamlandı. Birinci sekme kendiliğinden formu kaldırarak “Şirketinizi yeniden doğrulayın” ekranını gösterdi. İkinci sekmede Synthetic B başlığı görüldü. SQL: seçili tenant B, taslak adına ait documents=0 ve document_upload_attempts=0. Kanıt browser-multitab-result-20261017.json.
+
+Bu sonuç önceki çok sekmeli açık form kabul açığını, kaydedilmemiş evrak formu için kapatır. Devam eden byte transferi sırasında şirket değişimi, refresh ile eşzamanlı üyelik değişimi ve fiziksel mobil cihaz hâlâ ayrıca sınanmalıdır. Ürün kodu/SQL değiştirilmedi, canlıya işlem yapılmadı. Tarihsel metinlerdeki yayın bekliyor ifadeleri güncel değildir: 17 Ekim yayın manifesti geçerlidir.

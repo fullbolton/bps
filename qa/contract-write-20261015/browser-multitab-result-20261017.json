@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "scope": "local synthetic two-tab browser acceptance",
+  "firstTab": "Unsaved document upload form in Synthetic A",
+  "secondTab": "Selected Synthetic B using real picker and Auth refresh",
+  "observations": {
+    "oldFormUnmounted": true,
+    "reverifyWorkspaceMessageVisible": true,
+    "secondTabShowsSyntheticB": true
+  },
+  "sql": {
+    "selectedTenant": "00000000-0000-4000-8000-000000000002",
+    "draftDocuments": 0,
+    "draftUploadAttempts": 0
+  },
+  "limits": [
+    "No in-flight upload during switch",
+    "No concurrent membership change during refresh",
+    "Not production or physical mobile device"
+  ],
+  "productionTouched": false
+}
