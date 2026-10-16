@@ -1,0 +1,33 @@
+{
+  "measuredAt": "2026-10-16T22:31:57.209103+00:00",
+  "scope": "Authenticated production browser acceptance; synthetic records only",
+  "applicationSourceCommit": "1daf5e3913289451b55fd6157024feb524009ff8",
+  "company": "BPS_SMOKE_MEK_FIRMA_2026_09_08",
+  "appointment": {
+    "label": "SMOKE TEST · 17 Ekim yayın kabulü",
+    "date": "2026-10-17",
+    "time": null,
+    "created": true,
+    "completed": true,
+    "followUpTaskCheckbox": false,
+    "followUpTaskDatabaseCountIndependentlyVerified": false,
+    "retained": true
+  },
+  "contract": {
+    "id": "9d8a3a79-0df7-4fdc-9b58-1cf7d81a903d",
+    "name": "SMOKE TEST · 17 Ekim sözleşme komutu",
+    "created": true,
+    "scopeEdited": true,
+    "persistedAfterReload": true,
+    "status": "Taslak",
+    "retained": true,
+    "legalOrFinancialCommitment": false
+  },
+  "limitations": [
+    "multi-user concurrency",
+    "cross-tenant denial scenarios",
+    "interrupted upload recover/cancel",
+    "full application regression"
+  ],
+  "automationNote": "Native date input fill did not persist; date entered with native digit keys and DOM value verified before submission. Optional time left empty."
+}

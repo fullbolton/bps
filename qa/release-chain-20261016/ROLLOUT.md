@@ -155,3 +155,12 @@ Eski kodun bakım sürümü ana alana alındı; production-maintenance-http-2026
 Canlı kabul: mevcut Mek Group oturumu/dashboard, randevu listesi, sözleşme listesi ve ayarlar/ekip yüklendi. Pasif test firmasına evrak yükleme beklenen kuralla reddedildi. Aktif BPS_SMOKE_MEK_FIRMA_2026_09_08 için 'SMOKE TEST · 17 Ekim atomik yayın kabulü' adlı 125 byte sentetik PDF yüklendi/finalize oldu; başarı mesajı ve Tam durumu görüldü; klasörü Diğer'den Operasyon Evrakı'na başarıyla değişti. Bekleyen yükleme ve dosya temizliği listeleri hatasız/boş. Sentetik belge silinmedi; gerçek kayıt temizliği veya tam içerik yedeği yapılmadı. PDF sıfır sayfalık teknik fixture'dır; görsel PDF render testi değildir.
 
 Sınırlar: üretimde kesilen upload kurtarma/iptal, tüm roller/tenantlar, concurrency ve takvim/sözleşme yazmaları bu kısa kabulde tekrar edilmedi; yerel test kanıtları ayrı durur. Gerçek modül kapatma hâlâ advisoryOnly=true/mutationAvailable=false; bu yayın altyapı ve komut kapılarını getirir, tamamlanmamış kapatma ekranı/işlemini açmaz. Otomatik e-postalar kapalı. Önceki '53 migration üretimde bekliyor' ve 'canlı eski sürümde' ifadeleri bu kayıtla geçersizdir.
+
+
+## 17 Ekim — canlı takvim ve sözleşme yazma kabulü
+
+Aktif sentetik BPS_SMOKE_MEK_FIRMA_2026_09_08 firmasında 17.10.2026 tarihli, saatsiz SMOKE TEST randevusu oluşturuldu ve sonuç girilerek Tamamlandı durumuna geçti. Takip görevi oluştur kutusu kapatıldı; görev sayısı ayrıca DB üzerinden ölçülmedi. Gerçek görüşme yapılmadığı sonuç metnine yazıldı.
+
+SMOKE TEST · 17 Ekim sözleşme komutu adlı taslak oluşturuldu (9d8a3a79-0df7-4fdc-9b58-1cf7d81a903d). Kapsam düzenlendi ve sayfa yenilendikten sonra kalıcılığı doğrulandı. Tutar/tarih girilmedi, durum Taslak kaldı; gerçek sözleşme veya mali taahhüt değildir. Her iki sentetik kayıt korundu, silme yapılmadı. Kanıt: qa/release-chain-20261016/production-write-smoke-20261017.json.
+
+Bu kabul önceki kısa smoke kapsamındaki takvim/sözleşme yazma açığını daraltır; tüm mutasyonları kapsamaz. Üretimde kesilen upload kurtarma/iptal, eşzamanlı kullanıcı ve tenantlar arası ret senaryoları henüz tekrar edilmedi. Uygulama kodu/SQL değişmedi, ek deploy gerekmedi. Canlı kaynak 1daf5e3 ve migration sayısı son yayın ölçümünde 182; bu tur ledger yeniden ölçülmedi.
