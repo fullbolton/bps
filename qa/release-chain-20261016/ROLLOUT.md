@@ -115,3 +115,10 @@ Dört koruma kontrolü geçti: /dashboard GET Türkçe bakım HTML 503; /api/cro
 Üretimde salt okunur katalog ön kontrolü 82 hedef tabloda TRIGGER ve kaldırma izni eksiği bulmadı. Gerçek oturum cli_login_postgres, etkin rol postgres ve üyelik true. Bu metadata ölçümü üretimde bariyer kurma/kaldırma testi değildir. Kanıtlar: production-barrier-scope-preflight.json, barrier/scope-preflight.sql, module-staged-release-manifest.json, module-vercel-smoke.json, production-alias-after-module-stage.json.
 
 Ana site bakıma alınmadı; üretim bariyeri kurulmadı; 53 migration uygulanmadı; gerçek modül kapatma hâlâ kapalı. Sonraki yayın bloğu: son ledger/şema farkı ve dış yazıcı kontrolü, bakım sürümünü ana alan adına alma, bariyer kurma, sıralı migration+extend+verify, yeni uygulamanın kontrollü açılışı ve canlı kabul. Bakım bayrağı deployment'a bağlıdır; normal açılış için bakım kapalı ayrı dağıtım planlanmalıdır. Eski deployment erişimi ve başlamış dış yan etkilerle ilgili sınırlar devam eder. Gerçek veri silinmedi veya içerik yedeği alınmadı.
+
+
+## 17 Ekim — açık onayla GitHub yedeği tamamlandı
+
+Kullanıcı GitHub'a gönderimi ve yalnız geliştirme dalının otomatik yayınını kapatmayı açıkça onayladı. vercel.json git.deploymentEnabled içinde yalnız codex/tenant-modules-foundation-20260928=false eklendi. main ve diğer dalların ayarı değiştirilmedi. TypeScript commit kontrolü geçti. Önceki 10 commit ve ayar commit'i mevcut origin fullbolton/bps deposuna gönderildi. Uzak ls-remote ile 5240923410f6c1567849bea40f60c048e52ba01e eşleşti.
+
+Vercel salt okunur kontrolde www.bpsys.net hâlâ dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw üzerinde; gönderilen commit için otomatik deployment bulunmadı (anlık ölçüm). Kanıt qa/release-chain-20261016/remote-backup-result.json. Önceki 'açık onay/yedek bekleniyor' engeli kapanmıştır. Üretim SQL uygulanmadı; 53 migration bekliyor. Bu kaynak yedeğidir, canlı ürün yayını değildir.

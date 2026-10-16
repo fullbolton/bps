@@ -379,3 +379,10 @@ Ana site bakıma alınmadı; üretim bariyeri kurulmadı; 53 migration uygulanma
 reconcile-ledger.py eklendi: yalnız çevrimdışı ledger/dosya kontrolü yapar; üretime bağlanmaz veya otomatik devam etmez. Eski 129 kaydın korunması, güncel zaman/proje, 53 dosyanın prova hash'leri ve yalnız sıralı uygulanmış prefix kabul edilir. Eksik/tekrarlı/yabancı migration, değişen hash veya başarısız prova reddedilir. 10 test geçti; 54 olası prefix tarandı. Kayıtlı üretim ölçümüyle sonuç not_started, 53 bekleyen; bu yeni canlı ölçüm değildir.
 
 ROLLOUT.md başına güncel durum ve hata/yeniden açma sırası eklendi. Bakım açıkken kimlikli mutasyon kabulünün yapılamayacağı ve bariyer kaldırılınca doğrudan istemcilerin de erişeceği açıklandı. Uzak Git yedeği, taze şema/ledger, dış yazıcı değerlendirmesi, bakım kapalı dağıtım ve canlı geçiş hâlâ tamamlanmadı. Üretim SQL veya alan adı değişikliği yapılmadı.
+
+
+## 17 Ekim — açık onayla GitHub yedeği tamamlandı
+
+Kullanıcı GitHub'a gönderimi ve yalnız geliştirme dalının otomatik yayınını kapatmayı açıkça onayladı. vercel.json git.deploymentEnabled içinde yalnız codex/tenant-modules-foundation-20260928=false eklendi. main ve diğer dalların ayarı değiştirilmedi. TypeScript commit kontrolü geçti. Önceki 10 commit ve ayar commit'i mevcut origin fullbolton/bps deposuna gönderildi. Uzak ls-remote ile 5240923410f6c1567849bea40f60c048e52ba01e eşleşti.
+
+Vercel salt okunur kontrolde www.bpsys.net hâlâ dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw üzerinde; gönderilen commit için otomatik deployment bulunmadı (anlık ölçüm). Kanıt qa/release-chain-20261016/remote-backup-result.json. Önceki 'açık onay/yedek bekleniyor' engeli kapanmıştır. Üretim SQL uygulanmadı; 53 migration bekliyor. Bu kaynak yedeğidir, canlı ürün yayını değildir.

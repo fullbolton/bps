@@ -1,0 +1,16 @@
+{
+  "measuredAt": "2026-10-16T21:50:34.650684+00:00",
+  "branch": "codex/tenant-modules-foundation-20260928",
+  "localCommit": "5240923410f6c1567849bea40f60c048e52ba01e",
+  "remoteCommit": "5240923410f6c1567849bea40f60c048e52ba01e",
+  "remoteMatches": true,
+  "liveDeployment": "dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw",
+  "liveUnchanged": true,
+  "matchingAutomaticDeployments": [],
+  "scope": "point-in-time deployment query; not a guarantee about future events",
+  "automaticDeploymentConfig": {
+    "deploymentEnabled": {
+      "codex/tenant-modules-foundation-20260928": false
+    }
+  }
+}
