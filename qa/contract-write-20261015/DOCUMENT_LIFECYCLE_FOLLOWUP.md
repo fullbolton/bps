@@ -456,3 +456,10 @@ Bu sonuç önceki çok sekmeli açık form kabul açığını, kaydedilmemiş ev
 Kod incelemesinde document_upload_recovery_target_v1 bağlantı hatası veya bozuk/null yanıtının “yükleme bulunamadı veya yetkiniz yok” mesajına dönüştüğü görüldü. document-upload-recovery.ts artık yalnız 42501 için erişim, BM001 için kapalı modül mesajı gösterir. Diğer RPC hataları ve geçersiz yanıtlar sonuç doğrulanamadı mesajında kalır; indirme/finalize başlatılmaz. İptalde doğrulanamayan sonuç için de varsayımsal yetki/işlem nedeni kaldırıldı.
 
 11/11 hedefli test geçti; taşıma hatası, timeout kodu, bozuk/null yanıt ve iki doğrulanmış ret kodu ayrı test edildi. Kanıt recovery-errors-20261017.tap. SQL/migration değişikliği yok. Bu ürün metni düzeltmesi GitHub geliştirme dalına gönderilir; otomatik yayın kapalı olduğundan canlıda henüz yoktur.
+
+
+## 17 Ekim — kurtarma/iptal bağlantı beklemesi sınırlandı
+
+Evrak upload server action'ları mevcut createServerSupabaseClient(12_000) korumasına geçirildi; diğer yazma akışlarıyla aynı fetch deadline uygulanır. Bu sınır istek başınadır, bütün kurtarma işleminin toplam 12 saniye sürdüğü iddia edilmez. Timeout sunucu işleminin rollback olduğunu kanıtlamaz: mevcut doğrulanamadı mesajı korunur, otomatik yazma tekrarı yapılmaz.
+
+12/12 hedefli test geçti. Yeni test her iki action'ın başarı/belirsiz yanıt/exception yollarını çalıştırır; bounded client, tek mutation, yalnız doğrulanmış kurtarmada revalidation doğrulanır. Kanıt recovery-deadline-20261017.tap. SQL ve migration değişmedi. Önceki hata mesajı düzeltmesiyle birlikte geliştirme dalındadır, canlıya yayımlanmadı.

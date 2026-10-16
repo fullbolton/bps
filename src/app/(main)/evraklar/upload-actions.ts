@@ -6,7 +6,7 @@ import {revalidatePath} from "next/cache";
 
 export async function cancelDocumentUpload(tenantId: string, documentId: string) {
   try {
-    return await cancelPendingDocumentUpload(await createServerSupabaseClient(), tenantId, documentId);
+    return await cancelPendingDocumentUpload(await createServerSupabaseClient(12_000), tenantId, documentId);
   } catch {
     return {ok: false, message: "İptal doğrulanamadı. Listeyi yenileyerek kontrol edin."};
   }
@@ -14,7 +14,7 @@ export async function cancelDocumentUpload(tenantId: string, documentId: string)
 
 export async function recoverDocumentUpload(tenantId: string, documentId: string) {
   try {
-    const result = await resumeDocumentUpload(await createServerSupabaseClient(), tenantId, documentId);
+    const result = await resumeDocumentUpload(await createServerSupabaseClient(12_000), tenantId, documentId);
     if (result.ok) revalidatePath("/evraklar");
     return result;
   } catch {

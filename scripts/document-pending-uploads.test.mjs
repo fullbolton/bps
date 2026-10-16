@@ -117,3 +117,23 @@ test('recovery distinguishes verified access denial from transport and malformed
  assert.match((await resume(closed,'tenant','doc')).message,/modülü kapalı/);
  assert.deepEqual(closed.calls,['document_upload_recovery_target_v1']);
 });
+
+
+test('upload server actions bound requests and never revalidate or retry an uncertain result',async()=>{
+ for(const action of ['cancelDocumentUpload','recoverDocumentUpload']){
+  for(const outcome of ['uncertain','throw','success']){
+   let mutations=0,refreshes=0,clients=0;
+   const sentinel={};
+   const execute=async(c,tenant,doc)=>{assert.equal(c,sentinel);assert.equal(tenant,'tenant');assert.equal(doc,'doc');mutations++;if(outcome==='throw')throw Error('timeout');return {ok:outcome==='success',message:'result'};};
+   const fn=compile('src/app/(main)/evraklar/upload-actions.ts',{}, {
+    '@/lib/supabase/server':{createServerSupabaseClient:async(ms)=>{assert.equal(ms,12000);clients++;return sentinel;}},
+    '@/lib/services/document-upload-recovery':{cancelPendingDocumentUpload:execute,resumeDocumentUpload:execute},
+    'next/cache':{revalidatePath:path=>{assert.equal(path,'/evraklar');refreshes++;}},
+   },action);
+   const result=await fn('tenant','doc');assert.equal(result.ok,outcome==='success');
+   assert.equal(clients,1);assert.equal(mutations,1);
+   assert.equal(refreshes,action==='recoverDocumentUpload'&&outcome==='success'?1:0);
+   if(outcome==='throw')assert.match(result.message,/doğrulanamadı/);
+  }
+ }
+});
