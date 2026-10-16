@@ -1,6 +1,7 @@
 {
   "scope": "local synthetic PostgreSQL; not Storage HTTP acceptance",
   "checks": [
+    "non-owner installer fails before any barrier is created",
     "install waits for existing writer while reader proceeds",
     "barrier installs after writer commits",
     "authenticator/authenticated writes blocked; reads allowed",

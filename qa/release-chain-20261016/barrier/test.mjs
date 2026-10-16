@@ -12,6 +12,12 @@ try {
  admin(`CREATE DATABASE ${database} TEMPLATE bps_module_chain_20261005`);created=true;
  for(let i=0;i<3;i++){const c=new Client({host:'127.0.0.1',port:54322,user:'supabase_admin',password,database,statement_timeout:12000});await c.connect();clients.push(c);}
  const [a,b,c]=clients;
+ await a.query('SET ROLE postgres');
+ await assert.rejects(a.query(readFileSync(new URL('./install.sql',import.meta.url),'utf8')),e=>e.message==='RELEASE_GUARD_OWNER_PRIVILEGES_REQUIRED');
+ await a.query('ROLLBACK;RESET ROLE');
+ assert.equal((await a.query("SELECT to_regnamespace('bps_release_guard') AS n")).rows[0].n,null);
+ checks.push('non-owner installer fails before any barrier is created');
+
  await a.query(`GRANT USAGE ON SCHEMA public TO authenticated,service_role,supabase_storage_admin;CREATE TABLE public.release_probe(id integer);GRANT ALL ON public.release_probe TO authenticated,service_role,supabase_storage_admin;
  CREATE FUNCTION public.release_probe_rpc() RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path='' AS 'INSERT INTO public.release_probe VALUES(2)';
  ALTER FUNCTION public.release_probe_rpc() OWNER TO postgres;GRANT EXECUTE ON FUNCTION public.release_probe_rpc() TO authenticated,service_role;`);

@@ -5,6 +5,13 @@ SET LOCAL lock_timeout='5s';
 SET LOCAL statement_timeout='30s';
 DO $$ BEGIN
  IF session_user NOT IN ('postgres','supabase_admin') THEN RAISE EXCEPTION 'DIRECT_ADMIN_REQUIRED';END IF;
+ -- TRIGGER privilege alone permits installation but does not permit DROP TRIGGER.
+ -- Refuse before any changes unless this same role can safely reopen every table.
+ IF EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname IN ('public','storage') AND c.relkind IN ('r','p')
+   AND NOT pg_has_role(current_user,c.relowner,'USAGE')) THEN
+  RAISE EXCEPTION 'RELEASE_GUARD_OWNER_PRIVILEGES_REQUIRED';
+ END IF;
 END $$;
 CREATE SCHEMA bps_release_guard;
 REVOKE ALL ON SCHEMA bps_release_guard FROM PUBLIC;

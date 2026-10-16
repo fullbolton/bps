@@ -1,0 +1,107 @@
+{
+  "roles": [
+    {
+      "rolname": "anon",
+      "rolsuper": false,
+      "rolcanlogin": false,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "authenticated",
+      "rolsuper": false,
+      "rolcanlogin": false,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "authenticator",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "cli_login_postgres",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "pgbouncer",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "postgres",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": true
+    },
+    {
+      "rolname": "service_role",
+      "rolsuper": false,
+      "rolcanlogin": false,
+      "rolbypassrls": true
+    },
+    {
+      "rolname": "supabase_admin",
+      "rolsuper": true,
+      "rolcanlogin": true,
+      "rolbypassrls": true
+    },
+    {
+      "rolname": "supabase_auth_admin",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "supabase_etl_admin",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": true
+    },
+    {
+      "rolname": "supabase_read_only_user",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": true
+    },
+    {
+      "rolname": "supabase_replication_admin",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "supabase_storage_admin",
+      "rolsuper": false,
+      "rolcanlogin": true,
+      "rolbypassrls": false
+    }
+  ],
+  "sessions": [
+    {
+      "count": 1,
+      "state": null,
+      "usename": "authenticator",
+      "backend_type": null
+    },
+    {
+      "count": 1,
+      "state": null,
+      "usename": "pgbouncer",
+      "backend_type": null
+    },
+    {
+      "count": 4,
+      "state": null,
+      "usename": "supabase_admin",
+      "backend_type": null
+    }
+  ],
+  "extensions": [],
+  "measuredAt": "2026-10-16T19:53:00.516085+00:00",
+  "cronTableExists": false,
+  "project": "dffdzbmnmnokbftbujsy",
+  "scope": "point-in-time role/session metadata; no query text or business rows"
+}
