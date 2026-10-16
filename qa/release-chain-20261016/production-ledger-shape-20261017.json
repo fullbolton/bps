@@ -1,0 +1,41 @@
+{
+  "columns": [
+    {
+      "name": "version",
+      "type": "text",
+      "notNull": true
+    },
+    {
+      "name": "statements",
+      "type": "text[]",
+      "notNull": false
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "notNull": false
+    },
+    {
+      "name": "created_by",
+      "type": "text",
+      "notNull": false
+    },
+    {
+      "name": "idempotency_key",
+      "type": "text",
+      "notNull": false
+    },
+    {
+      "name": "rollback",
+      "type": "text[]",
+      "notNull": false
+    }
+  ],
+  "measuredAt": "2026-10-16T22:06:39.293153+00:00",
+  "constraints": [
+    "UNIQUE (idempotency_key)",
+    "PRIMARY KEY (version)"
+  ],
+  "project": "dffdzbmnmnokbftbujsy",
+  "scope": "point-in-time role/session metadata; no query text or business rows"
+}
