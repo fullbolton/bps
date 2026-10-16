@@ -164,3 +164,12 @@ Aktif sentetik BPS_SMOKE_MEK_FIRMA_2026_09_08 firmasında 17.10.2026 tarihli, sa
 SMOKE TEST · 17 Ekim sözleşme komutu adlı taslak oluşturuldu (9d8a3a79-0df7-4fdc-9b58-1cf7d81a903d). Kapsam düzenlendi ve sayfa yenilendikten sonra kalıcılığı doğrulandı. Tutar/tarih girilmedi, durum Taslak kaldı; gerçek sözleşme veya mali taahhüt değildir. Her iki sentetik kayıt korundu, silme yapılmadı. Kanıt: qa/release-chain-20261016/production-write-smoke-20261017.json.
 
 Bu kabul önceki kısa smoke kapsamındaki takvim/sözleşme yazma açığını daraltır; tüm mutasyonları kapsamaz. Üretimde kesilen upload kurtarma/iptal, eşzamanlı kullanıcı ve tenantlar arası ret senaryoları henüz tekrar edilmedi. Uygulama kodu/SQL değişmedi, ek deploy gerekmedi. Canlı kaynak 1daf5e3 ve migration sayısı son yayın ölçümünde 182; bu tur ledger yeniden ölçülmedi.
+
+
+## 17 Ekim — evrak kurtarma düzeltmeleri CANLIDA
+
+Salt okunur ön kontrol: 182 migration sürümü önceki yayınla birebir eşleşti, bakım bariyeri yok, dört gerekli evrak RPC imzası mevcut; fonksiyon fingerprint'leri kaydedildi. Bu tam şema eşitliği iddiası değildir. Yeni migration veya üretim DML/DDL uygulanmadı.
+
+Hazır dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs ana alana promote edildi; bağımsız Vercel inspect www.bpsys.net eşleşmesini doğruladı. Kaynak 312a468 (ürün değişiklikleri 415dfff dahil). Otomatik e-posta false, bakım 0. Mevcut Mek Group oturumuyla /evraklar yüklendi; pending upload ve cleanup listeleri hatasız/boş. Gerçek veri değiştirilmedi; üretimde timeout veya yarım upload enjekte edilmedi. Yerel 692 uygulama testi ve 12 hedefli test kanıtı ayrı kalır.
+
+Kanıtlar: qa/release-chain-20261016/recovery-fix-preflight-20261017.json ve recovery-fix-release-20261017.json. Önceki “son iki düzeltme canlıda değil” ifadeleri bu kayıtla geçersizdir.

@@ -1,0 +1,31 @@
+{
+  "measuredAt": "2026-10-16T23:45:49.311710+00:00",
+  "project": "dffdzbmnmnokbftbujsy",
+  "readOnly": true,
+  "ledgerCount": 182,
+  "ledgerMatchesReleased182": true,
+  "barrier": false,
+  "functions": [
+    {
+      "resolved": "document_upload_recovery_target_v1(uuid,uuid)",
+      "signature": "public.document_upload_recovery_target_v1(uuid,uuid)",
+      "definitionMd5": "a5d30275eeab72af2335249d44a4e190"
+    },
+    {
+      "resolved": "document_finalize_upload_v1(uuid,uuid)",
+      "signature": "public.document_finalize_upload_v1(uuid,uuid)",
+      "definitionMd5": "10fa5b3dcbe6556718bb454350be84cf"
+    },
+    {
+      "resolved": "document_cancel_upload_v1(uuid,uuid)",
+      "signature": "public.document_cancel_upload_v1(uuid,uuid)",
+      "definitionMd5": "b9c913ed74e7a7b90c74c89e3ff0df71"
+    },
+    {
+      "resolved": "document_pending_uploads_v1(uuid,integer)",
+      "signature": "public.document_pending_uploads_v1(uuid,integer)",
+      "definitionMd5": "3a9c2d0df61b1c3e669e7335af7bbd88"
+    }
+  ],
+  "scope": "Current ledger and required RPC signatures/fingerprints; not a full schema equality check"
+}

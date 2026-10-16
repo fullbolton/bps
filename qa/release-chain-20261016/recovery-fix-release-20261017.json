@@ -1,0 +1,23 @@
+{
+  "measuredAt": "2026-10-16T23:47:35.146479+00:00",
+  "sourceCommit": "312a468",
+  "productCommit": "415dfff",
+  "deploymentId": "dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs",
+  "wwwPromoted": true,
+  "verifiedDomain": "https://www.bpsys.net",
+  "preflight": "recovery-fix-preflight-20261017.json",
+  "migrationCount": 182,
+  "newMigrations": 0,
+  "browser": {
+    "authenticatedWorkspace": "Mek Group",
+    "documentsLoaded": true,
+    "pendingUploadsEmpty": true,
+    "pendingCleanupEmpty": true
+  },
+  "productionBusinessWrites": false,
+  "limits": [
+    "No production timeout injection",
+    "No production interrupted-upload mutation in this smoke"
+  ],
+  "notificationEmailsEnabled": false
+}

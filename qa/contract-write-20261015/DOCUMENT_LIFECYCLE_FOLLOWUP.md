@@ -479,3 +479,12 @@ Canlı 1daf5e3 referansına göre uygulama farkı yalnız upload-actions.ts ve d
 312a468 git archive kaynağı temiz geçici klasörden --prod --skip-domain ile dağıtıldı; sentetik yerel build çıktısı kullanılmadı. Build/runtime bakım 0, otomatik e-postalar false. Deployment dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs READY; bulut build ve 29/29 sayfa geçti. Vercel yetkili CLI ile /login HTML 200; anonim erişim 302 vercel.com korumasına yönleniyor. HTML gövdesinde giriş metni assertion'ı geçmedi; bu yüzden hydrated login UI kabulü iddia edilmez.
 
 Son inspect www.bpsys.net'in hâlâ dpl_KwdtN1U24ytdEtbF876GLhowEyy1 üzerinde olduğunu doğruladı. Ana alan promote edilmedi. Yeni migration yok; üretim şema/ledger bu tur yeniden ölçülmedi, SQL çalıştırılmadı. Sonraki adım salt okunur ölçüm, normal sürüm promote ve canlı kabul. Kanıt qa/release-chain-20261016/recovery-fix-stage-20261017.json. Bu hazırlık dağıtımıdır; düzeltmeler ana sitede henüz yoktur.
+
+
+## 17 Ekim — evrak kurtarma düzeltmeleri CANLIDA
+
+Salt okunur ön kontrol: 182 migration sürümü önceki yayınla birebir eşleşti, bakım bariyeri yok, dört gerekli evrak RPC imzası mevcut; fonksiyon fingerprint'leri kaydedildi. Bu tam şema eşitliği iddiası değildir. Yeni migration veya üretim DML/DDL uygulanmadı.
+
+Hazır dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs ana alana promote edildi; bağımsız Vercel inspect www.bpsys.net eşleşmesini doğruladı. Kaynak 312a468 (ürün değişiklikleri 415dfff dahil). Otomatik e-posta false, bakım 0. Mevcut Mek Group oturumuyla /evraklar yüklendi; pending upload ve cleanup listeleri hatasız/boş. Gerçek veri değiştirilmedi; üretimde timeout veya yarım upload enjekte edilmedi. Yerel 692 uygulama testi ve 12 hedefli test kanıtı ayrı kalır.
+
+Kanıtlar: qa/release-chain-20261016/recovery-fix-preflight-20261017.json ve recovery-fix-release-20261017.json. Önceki “son iki düzeltme canlıda değil” ifadeleri bu kayıtla geçersizdir.
