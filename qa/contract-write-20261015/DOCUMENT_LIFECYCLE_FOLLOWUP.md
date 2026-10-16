@@ -426,3 +426,12 @@ Aktif sentetik BPS_SMOKE_MEK_FIRMA_2026_09_08 firmasında 17.10.2026 tarihli, sa
 SMOKE TEST · 17 Ekim sözleşme komutu adlı taslak oluşturuldu (9d8a3a79-0df7-4fdc-9b58-1cf7d81a903d). Kapsam düzenlendi ve sayfa yenilendikten sonra kalıcılığı doğrulandı. Tutar/tarih girilmedi, durum Taslak kaldı; gerçek sözleşme veya mali taahhüt değildir. Her iki sentetik kayıt korundu, silme yapılmadı. Kanıt: qa/release-chain-20261016/production-write-smoke-20261017.json.
 
 Bu kabul önceki kısa smoke kapsamındaki takvim/sözleşme yazma açığını daraltır; tüm mutasyonları kapsamaz. Üretimde kesilen upload kurtarma/iptal, eşzamanlı kullanıcı ve tenantlar arası ret senaryoları henüz tekrar edilmedi. Uygulama kodu/SQL değişmedi, ek deploy gerekmedi. Canlı kaynak 1daf5e3 ve migration sayısı son yayın ölçümünde 182; bu tur ledger yeniden ölçülmedi.
+
+
+## 17 Ekim — kesilen yükleme ve eşzamanlı kurtarma kabulü
+
+Gerçek yerel Storage + PostgREST kabulüne iki yeni senaryo eklendi: (1) prepare sonrası dosyasız bekleyen kaydın, dosya yüklendiğinde kurtarılabilir görünmesi; aynı anda iki finalize isteğinin aynı kimliği döndürmesi ve yalnız bir documents satırı oluşturması; tamamlanınca bekleyen listeden çıkması. (2) Dosya yüklenmişken iptalin finalize işlemini reddetmesi, dosyanın açık temizlik adımına kadar korunması, HTTP temizliği ve ack sonrasında aynı yolun yeniden kullanılamaması.
+
+Sonuç: **27/27 HTTP kontrolü**, ayrıca modül kapatma/Storage yazma kilit sırası için **2/2 gerçek iki bağlantılı yarış testi** geçti. Kanıtlar: storage-recovery-http-result-20261017.json ve storage-module-race-20261017.tap (qa/contract-write-20261015). Yarış testi ilk çalıştırmada eksik pg çözümlemesiyle başlayamadı; daha önce kurulmuş /private/tmp/bps-calendar-qa-runtime/node_modules NODE_PATH ile tekrar çalıştırıldı ve geçti. Yeni paket kurulmadı. Geçici klon/container temizliği harness finally adımında tamamlandı.
+
+Yalnız test kodu ve kanıtlar değişti; uygulama/SQL değişmedi, yeni yayın gerekmiyor. Üretim iş verisine dokunulmadı. Bu kanıt üretimde kesintili yükleme UI kabulü veya gerçek kullanıcı yük testi değildir; canlıdaki bu sınırlar açık kalır.

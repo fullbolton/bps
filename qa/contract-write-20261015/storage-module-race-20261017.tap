@@ -1,0 +1,10 @@
+✔ module close first rejects waiting authenticated storage insert (2142.872334ms)
+✔ storage insert holds config until commit and pending upload remains a blocker (1070.600125ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3471.928709

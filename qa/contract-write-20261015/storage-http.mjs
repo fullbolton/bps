@@ -106,6 +106,35 @@ try {
  assert.equal(await rpc('document_ack_cleanup_v1',{p_document_id:id(993)}),true);
  const afterAck=await request('/object/documents/'+cancelledPath,'POST',pdf,token,{'Content-Type':'application/pdf'});
  assert.equal(afterAck.ok,false);assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name='${cancelledPath}';`),'0');checks.push('acknowledged cancellation remains retired');
+ // Interrupted after Storage succeeds: inventory, recovery and concurrent finalize.
+ const pending=()=>rpc('document_pending_uploads_v1',{p_tenant:id(1),p_offset:0});
+ const resumed={p_tenant:id(1),p_id:id(9401)};
+ const resumedPath=await rpc('document_prepare_upload_v1',{...preparation,p_id:resumed.p_id});
+ assert.equal((await pending()).find(x=>x.document_id===resumed.p_id)?.file_present,false);
+ assert.ok((await request('/object/documents/'+resumedPath,'POST',pdf,token,{'Content-Type':'application/pdf'})).ok);
+ const interrupted=(await pending()).find(x=>x.document_id===resumed.p_id);
+ assert.equal(interrupted?.file_present,true);assert.equal(interrupted?.can_resume,true);
+ const target=await rpc('document_upload_recovery_target_v1',resumed);
+ assert.equal((await request('/object/authenticated/documents/'+target.storage_path)).text,pdf.toString());
+ const receipts=await Promise.all([rpc('document_finalize_upload_v1',resumed),rpc('document_finalize_upload_v1',resumed)]);
+ assert.deepEqual(receipts,[resumed.p_id,resumed.p_id]);
+ assert.equal(sql(`SELECT count(*) FROM documents WHERE id='${resumed.p_id}';`),'1');
+ assert.equal((await pending()).some(x=>x.document_id===resumed.p_id),false);
+ checks.push('interrupted upload inventory and concurrent recovery publish exactly one document');
+ // Cancellation after bytes arrive must retain them until explicit queued cleanup.
+ const abandoned={p_tenant:id(1),p_id:id(9402)};
+ const abandonedPath=await rpc('document_prepare_upload_v1',{...preparation,p_id:abandoned.p_id});
+ assert.ok((await request('/object/documents/'+abandonedPath,'POST',pdf,token,{'Content-Type':'application/pdf'})).ok);
+ assert.equal(await rpc('document_cancel_upload_v1',abandoned),true);
+ assert.equal((await pending()).some(x=>x.document_id===abandoned.p_id),false);
+ assert.equal((await rpcResult('document_finalize_upload_v1',abandoned)).ok,false);
+ assert.equal(sql(`SELECT count(*) FROM documents WHERE id='${abandoned.p_id}';`),'0');
+ assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name='${abandonedPath}';`),'1');
+ const cancelledRemoval=await request('/object/documents','DELETE',JSON.stringify({prefixes:[abandonedPath]}),token,{'Content-Type':'application/json'});
+ assert.ok(cancelledRemoval.ok);assert.ok(JSON.parse(cancelledRemoval.text).some(x=>x.name===abandonedPath));
+ assert.equal(await rpc('document_ack_cleanup_v1',{p_document_id:abandoned.p_id}),true);
+ assert.equal((await request('/object/documents/'+abandonedPath,'POST',pdf,token,{'Content-Type':'application/pdf'})).ok,false);
+ checks.push('uploaded cancellation prevents finalize and retires path after queued HTTP cleanup');
  sql(`UPDATE companies SET status='aktif' WHERE id='${id(991)}';INSERT INTO contracts(id,company_id,tenant_id,name) VALUES('${id(995)}','${id(991)}','${id(1)}','Synthetic contract HTTP');BEGIN;${claim}SELECT prepare_contract_document_upload('${id(11)}','${id(1)}','${id(995)}','${id(996)}',NULL,NULL,'contract.pdf',${pdf.length},repeat('a',64),false,'main',NULL);COMMIT;`);
  const contractPath=sql(`SELECT storage_path FROM contract_pdf_upload_commands WHERE command_id='${id(996)}';`);
  sql(`BEGIN;SELECT 1 FROM tenant_module_config WHERE tenant_id='${id(1)}' FOR UPDATE;UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='contracts';COMMIT;`);
