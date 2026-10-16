@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-17",
+  "sourceCommit": "415dfff",
+  "baselineProductionSource": "1daf5e3913289451b55fd6157024feb524009ff8",
+  "inventory": {
+    "applicationFiles": 124,
+    "databaseFiles": 27,
+    "pendingFilesExcluded": 7
+  },
+  "unit": "19 cases + 4 static controls; 0 failures",
+  "application": {
+    "tests": 692,
+    "passed": 692,
+    "failed": 0
+  },
+  "static": {
+    "checks": 16,
+    "fail": 0,
+    "warn": 1,
+    "warning": "unreachable-component: CapacityRiskCard, TimelineList"
+  },
+  "typecheck": "passed",
+  "releaseCommand": {
+    "exitCode": 1,
+    "reason": "build prerender /firmalar: missing Supabase URL and API key in worktree environment"
+  },
+  "buildRetry": {
+    "exitCode": 0,
+    "staticPages": 29,
+    "configuration": "synthetic loopback URL and non-credential placeholder key; not production configuration validation",
+    "deployableArtifact": false
+  },
+  "migrationDiffSinceBaseline": [],
+  "published": false,
+  "logs": {
+    "bps-release-validation-20261017.log": {
+      "sha256": "7a6a33c399f6c1c083bc4b40fcbd25c93a9a30d5f59e79f9342d1227ce0cf5e6",
+      "bytes": 71119,
+      "location": "local temporary file"
+    },
+    "bps-build-synthetic-20261017.log": {
+      "sha256": "c9144a4198fa159d2408f3d99038cb25597382e7fb0d0705b46c2dfbf943f91c",
+      "bytes": 4358,
+      "location": "local temporary file"
+    }
+  }
+}

@@ -463,3 +463,12 @@ Kod incelemesinde document_upload_recovery_target_v1 bağlantı hatası veya boz
 Evrak upload server action'ları mevcut createServerSupabaseClient(12_000) korumasına geçirildi; diğer yazma akışlarıyla aynı fetch deadline uygulanır. Bu sınır istek başınadır, bütün kurtarma işleminin toplam 12 saniye sürdüğü iddia edilmez. Timeout sunucu işleminin rollback olduğunu kanıtlamaz: mevcut doğrulanamadı mesajı korunur, otomatik yazma tekrarı yapılmaz.
 
 12/12 hedefli test geçti. Yeni test her iki action'ın başarı/belirsiz yanıt/exception yollarını çalıştırır; bounded client, tek mutation, yalnız doğrulanmış kurtarmada revalidation doğrulanır. Kanıt recovery-deadline-20261017.tap. SQL ve migration değişmedi. Önceki hata mesajı düzeltmesiyle birlikte geliştirme dalındadır, canlıya yayımlanmadı.
+
+
+## 17 Ekim — son evrak düzeltmelerinin geniş yayın doğrulaması
+
+415dfff kaynağında npm run qa:release çalıştırıldı. Envanter: 124 uygulama, 27 DB, kapsam dışı 7 bekleyen özellik test dosyası. Unit 19 vaka + 4 kontrol hatasız; uygulama **692/692**; statik **16 kontrol / 0 FAIL / 1 WARN** (CapacityRiskCard, TimelineList kullanılmıyor); TypeScript temiz. DB suite bu komutun parçası değildir, yeniden çalıştırılmadı.
+
+Komutun tamamı ilk seferde exit 1 verdi: worktree'de Supabase URL/anahtar env bulunmadığı için /firmalar prerender aşamasında durdu. Build yalnız sentetik loopback URL ve gerçek yetki sağlamayan placeholder anahtarla tekrar edildi; exit 0, 29/29 statik sayfa. Bu build üretim ortamı doğrulaması değildir ve yayımlanacak artifact olarak kullanılmaz. Kanıt release-validation-20261017.json; iki ayrı logun hash'leri kaydedildi.
+
+Canlı 1daf5e3 referansına göre uygulama farkı yalnız upload-actions.ts ve document-upload-recovery.ts; migration farkı yok. Bu tur yeni ürün kodu/üretim SQL/deploy yapılmadı. Son iki düzeltme geliştirme dalında yayına adaydır; canlıya alınmadan Vercel güncel deployment ve gerçek ortam ayarları ayrıca doğrulanmalıdır.
