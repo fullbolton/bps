@@ -5,33 +5,33 @@
 BPS QA Unit — saf fonksiyon regresyonları
 
 isIsoDate  (kaynak: src/lib/calendar-date.ts)
-  [32mPASS[0m "2026-08-27"   → true 
-  [32mPASS[0m "2024-02-29"   → true 
-  [32mPASS[0m "2026-02-30"   → false
-  [32mPASS[0m "2025-02-29"   → false
-  [32mPASS[0m "2026-13-01"   → false
-  [32mPASS[0m "2026-00-10"   → false
-  [32mPASS[0m "27.08.2026"   → false
-  [32mPASS[0m "2026-8-27"    → false
-  [32mPASS[0m ""             → false
-  [32mPASS[0m null           → false
-  [32mPASS[0m undefined      → false
-  [32mPASS[0m "bugün"        → false
+  PASS "2026-08-27"   → true
+  PASS "2024-02-29"   → true
+  PASS "2026-02-30"   → false
+  PASS "2025-02-29"   → false
+  PASS "2026-13-01"   → false
+  PASS "2026-00-10"   → false
+  PASS "27.08.2026"   → false
+  PASS "2026-8-27"    → false
+  PASS ""             → false
+  PASS null           → false
+  PASS undefined      → false
+  PASS "bugün"        → false
 
 safeThrown  (kaynak: src/lib/email/safe-error.ts)
-  [32mPASS[0m Error          → thrown=Error        
-  [32mPASS[0m leak@example.c → thrown=Error        
-  [32mPASS[0m TypeError      → thrown=TypeError    
-  [32mPASS[0m RangeError     → thrown=RangeError   
-  [32mPASS[0m "düz metin"    → thrown=unknown      
-  [32mPASS[0m {"name":"leak@ → thrown=unknown      
-  [32mPASS[0m null           → thrown=unknown      
+  PASS Error          → thrown=Error
+  PASS leak@example.c → thrown=Error
+  PASS TypeError      → thrown=TypeError
+  PASS RangeError     → thrown=RangeError
+  PASS "düz metin"    → thrown=unknown
+  PASS {"name":"leak@ → thrown=unknown
+  PASS null           → thrown=unknown
 
 safe-error.ts serbest metin okumuyor mu
-  [32mPASS[0m /err\.name/            okunmuyor
-  [32mPASS[0m /constructor\.name/    okunmuyor
-  [32mPASS[0m /error\.message/       okunmuyor
-  [32mPASS[0m /result\.error\b/      okunmuyor
+  PASS /err\.name/            okunmuyor
+  PASS /constructor\.name/    okunmuyor
+  PASS /error\.message/       okunmuyor
+  PASS /result\.error\b/      okunmuyor
 
 19 vaka + 4 statik kontrol · 0 FAIL
 qa:unit PASS

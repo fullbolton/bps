@@ -36,3 +36,6 @@ Yalnız public/auth/storage/extensions şema tanımları CLI db dump ile /privat
 Kanıtlar: production-ledger.json; full/result.json; full/snapshot-manifest.json; full/*.log. full-rehearse.py tekrar çalıştırırken snapshot hash'ini manifestle doğrular. Bu sonuç önceki 'temiz şemada tam prova bekliyor' ve 'üretim bağlantısı yok' durumlarını günceller. Ayrı catalog-preflight.sql üretimde çalıştırılmadı; güncel şema restore ve migration içi hash/ACL koşullarıyla uyumluluk ölçüldü.
 
 Sınır: gerçek üretim satırlarının migration backfill maliyeti, trafik altında kilit süreleri ve canlı servis sürümleri bu sentetik provayla ölçülmez. Yayın sırası (komut API'si kullanan uygulama ile doğrudan yazma kapılarının uyumu), güncel kod/build, commit/yedek ve dağıtım sonrası kabul ayrıca tamamlanmalıdır. Yeni migration eklenmedi; commit/push/deploy veya üretim migration uygulaması yapılmadı. Gerçek modül kapatma kapalı kalır.
+
+
+16 Ekim yayın paketi: Kod, migration ve QA kanıtları yerel `2d9f464` commit’ine kaydedildi. Commit hook TypeScript kontrolü de geçti. Bu kayıt uzak yedek/push veya dağıtım değildir. Son kontroller validation.json ve okunabilir hâle getirilen test loglarında; yayın koşulları ROLLOUT.md içinde.
