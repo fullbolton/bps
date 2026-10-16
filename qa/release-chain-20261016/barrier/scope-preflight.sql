@@ -1,0 +1,7 @@
+BEGIN READ ONLY;SET LOCAL ROLE postgres;SET LOCAL statement_timeout='15s';
+SELECT jsonb_build_object('measuredAt',clock_timestamp(),'sessionUser',session_user,'currentUser',current_user,
+ 'cliPostgresMember',pg_has_role(session_user,'postgres','MEMBER'),
+ 'targetCount',(SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE (n.nspname='public' OR (n.nspname='storage' AND c.relname IN ('objects','buckets','prefixes','s3_multipart_uploads','s3_multipart_uploads_parts'))) AND c.relkind IN ('r','p')),
+ 'missingDropPermission',(SELECT coalesce(jsonb_agg(n.nspname||'.'||c.relname),'[]') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE (n.nspname='public' OR (n.nspname='storage' AND c.relname IN ('objects','buckets','prefixes','s3_multipart_uploads','s3_multipart_uploads_parts'))) AND c.relkind IN ('r','p') AND NOT (pg_has_role(current_user,c.relowner,'USAGE') OR coalesce((coalesce(nullif(current_setting('supautils.drop_trigger_grants',true),'')::jsonb,'{}'::jsonb)->current_user) ? (n.nspname||'.'||c.relname),false))),
+ 'missingTriggerPermission',(SELECT coalesce(jsonb_agg(n.nspname||'.'||c.relname),'[]') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE (n.nspname='public' OR (n.nspname='storage' AND c.relname IN ('objects','buckets','prefixes','s3_multipart_uploads','s3_multipart_uploads_parts'))) AND c.relkind IN ('r','p') AND NOT has_table_privilege(current_user,c.oid,'TRIGGER')));
+ROLLBACK;

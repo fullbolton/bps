@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-16T20:05:37.811596+00:00",
+  "currentUser": "postgres",
+  "sessionUser": "cli_login_postgres",
+  "targetCount": 82,
+  "cliPostgresMember": true,
+  "missingDropPermission": [],
+  "missingTriggerPermission": [],
+  "project": "dffdzbmnmnokbftbujsy",
+  "scope": "point-in-time role/session metadata; no query text or business rows"
+}

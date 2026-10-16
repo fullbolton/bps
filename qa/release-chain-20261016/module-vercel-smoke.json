@@ -1,0 +1,39 @@
+{
+  "measuredAt": "2026-10-16T20:08:13.131981+00:00",
+  "deployment": {
+    "id": "dpl_GMtdntpuCNrjwChLiGtWZHRBtGzv",
+    "url": "bps-4xwqzh04e-furkanyahsi-1537s-projects.vercel.app",
+    "readyState": "READY",
+    "target": "production",
+    "aliases": [
+      "bps-furkanyahsi-1537s-projects.vercel.app"
+    ]
+  },
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/dashboard",
+      "status": "503",
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/cron/notifications",
+      "status": "503",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/demo-request",
+      "status": "503",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/evraklar",
+      "status": "503",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

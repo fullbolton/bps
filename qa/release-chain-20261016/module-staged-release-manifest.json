@@ -1,0 +1,19 @@
+{
+  "sourceCommit": "a394b47d6ab57c0e3421e6334800f9d0dd4d034b",
+  "archiveSha256": "1f57d0cebf230fa4fa843d57e36651a126b8f4b6d901de0562bca6cc847c0e8c",
+  "candidateCount": 53,
+  "candidateHashesVerified": true,
+  "maintenanceEnabled": true,
+  "productionPromoted": false,
+  "deployment": {
+    "id": "dpl_GMtdntpuCNrjwChLiGtWZHRBtGzv",
+    "url": "bps-4xwqzh04e-furkanyahsi-1537s-projects.vercel.app",
+    "readyState": "READY",
+    "target": "production",
+    "aliases": [
+      "bps-furkanyahsi-1537s-projects.vercel.app"
+    ]
+  },
+  "smokePassed": true,
+  "liveDeploymentUnchanged": true
+}
