@@ -1,0 +1,22 @@
+{
+  "baseCommit": "dcc8065154fd7386b2ce0991175c932f5f97c704",
+  "overlayCommit": "d6f5687824a07ad72e958c7f405fa150a913db7b",
+  "files": [
+    {
+      "file": "src/middleware.ts",
+      "sha256": "17728202ba6425e2bc2d2b061e7deac1b1a7314fca520a4f593a2b92a3c5540d"
+    },
+    {
+      "file": "src/lib/maintenance.ts",
+      "sha256": "a997e15721bd5af04c5760352297073641343f2a2c4cb4ad78e02ff48ebec6d0"
+    }
+  ],
+  "containsModuleCandidateCode": false,
+  "promotionRequested": false,
+  "maintenanceEnabled": true,
+  "deploymentId": "dpl_2K2qPJNmHybF13XJUVagGtVTG248",
+  "deploymentUrl": "https://bps-e4mkr2l05-furkanyahsi-1537s-projects.vercel.app",
+  "cloudBuildPassed": true,
+  "smokePassed": 4,
+  "productionDomainUnchanged": true
+}

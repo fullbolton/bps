@@ -50,3 +50,14 @@ Sınır: gerçek üretim satırlarının migration backfill maliyeti, trafik alt
 Bu, önceki 'bariyer altında tam zincir ve Storage HTTP kabulü bekliyor' maddelerini kapatır. Ürün TS/SQL migration kaynakları değişmedi; QA runner genişletildi, 53 aday değişmedi. Üretime uygulanmadı; tam uygulama/build testleri QA-only değişiklik için tekrarlanmadı. Node syntax ve diff kontrolü geçti.
 
 Kalan sınırlar: Üretimde gerçek bağlantı session_user ve doğrudan admin kullanan dış yazıcılar ayrıca doğrulanmalı. Metadata'ya henüz ulaşmamış dosya byte aktarımı ve eski signed URL okumaları tamamen durdurulmuş sayılmaz. Her migration sonrası extend'den önce yeni tabloda kısa korumasız aralık vardır; uygulama kapalı tutulmalı, yeni tabloya yazan başka servis bulunmamalı. Gerçek trafik/veri hacminde kilit süreleri bu sentetik testte ölçülmez. Cron/e-posta gibi harici yan etkiler için uygulama kapısı da gereklidir. İki katman birlikte yayın planına göre işletilmelidir; bu testler kendi başına üretim yayın onayı değildir.
+
+
+## 16 Ekim — bakım sürümü Vercel’de hazır, ana alan adına alınmadı
+
+Mevcut www.bpsys.net deployment kimliği canlıdan doğrulandı: dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw. Bu kimlik kayıtlı dcc8065 yayın manifestiyle aynı; Vercel inspect yanıtı kaynak commit alanı vermediğinden commit eşleşmesi tarihsel manifest bağlantısına dayanır.
+
+Geçici paket git archive dcc8065154fd7386b2ce0991175c932f5f97c704 üzerine yalnız src/middleware.ts ve src/lib/maintenance.ts eklenerek hazırlandı. Modül geliştirme dalındaki diğer kodlar/migration'lar karıştırılmadı. --prod --skip-domain ile üretim ortamını kullanan fakat ana alan adına promote edilmeyen dağıtım oluşturuldu. Deployment'a özel BPS_MAINTENANCE_MODE=1 ve BPS_NOTIFICATION_EMAILS_ENABLED=false (build/runtime) verildi; proje genelindeki ortam ayarları değiştirilmedi.
+
+Hazır deployment: dpl_2K2qPJNmHybF13XJUVagGtVTG248 — https://bps-e4mkr2l05-furkanyahsi-1537s-projects.vercel.app . Bulut derlemesi geçti. Vercel CLI koruma bypass'ıyla yalnız bu adreste /dashboard GET HTML, /api/cron/notifications GET, /api/demo-request POST ve /evraklar POST 503/MAINTENANCE verdi; HTML Türkçe başlık içerdi. Kimlikli kullanıcı veya form içeriği gönderilmedi. Sonraki inspect www.bpsys.net'in hâlâ dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw olduğunu doğruladı.
+
+Kanıtlar: maintenance-release-manifest.json, maintenance-vercel-smoke.json ve production-alias-after-maintenance-stage.json. Bu bir hazırlık dağıtımıdır: ana site bakıma alınmadı; DB bariyeri kurulmadı, 53 migration uygulanmadı, modül sürümü yayımlanmadı. Sonraki adım yeni uygulama sürümünün ayrı ve bakım açık dağıtımı/yedeği, son ledger/izin ölçümü ve kontrollü promote → bariyer → migration → yeni uygulama → kabul → yeniden açma. Eski deployment erişimi ve başlamış dış servis işleri için önceki sınırlar korunur.

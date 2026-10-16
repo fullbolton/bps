@@ -1,0 +1,27 @@
+{
+  "measuredAt": "2026-10-16T20:02:53.240280+00:00",
+  "url": "https://bps-e4mkr2l05-furkanyahsi-1537s-projects.vercel.app",
+  "checks": [
+    {
+      "path": "/dashboard",
+      "method": "GET",
+      "status": 503
+    },
+    {
+      "path": "/api/cron/notifications",
+      "method": "GET",
+      "status": 503
+    },
+    {
+      "path": "/api/demo-request",
+      "method": "POST",
+      "status": 503
+    },
+    {
+      "path": "/evraklar",
+      "method": "POST",
+      "status": 503
+    }
+  ],
+  "promoted": false
+}
