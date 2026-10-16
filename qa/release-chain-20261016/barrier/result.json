@@ -1,0 +1,16 @@
+{
+  "scope": "local synthetic PostgreSQL; not Storage HTTP acceptance",
+  "checks": [
+    "install waits for existing writer while reader proceeds",
+    "barrier installs after writer commits",
+    "authenticator/authenticated writes blocked; reads allowed",
+    "authenticator/service_role writes blocked; reads allowed",
+    "supabase_storage_admin/login writes blocked; reads allowed",
+    "direct admin migration DML remains available",
+    "new migration tables fail coverage then extend restores coverage idempotently",
+    "removal drift fails atomically and preserves guard",
+    "explicit removal restores API write"
+  ],
+  "coveredTables": 90,
+  "productionApplied": false
+}

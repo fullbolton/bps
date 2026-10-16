@@ -320,3 +320,6 @@ Sınır: gerçek üretim satırlarının migration backfill maliyeti, trafik alt
 ## 16 Ekim — uygulama bakım kapısı
 
 Server-only BPS_MAINTENANCE_MODE=1 ile middleware, oturum yenilemeden önce tüm yolları 503/no-store/Retry-After ile durduruyor. Türkçe GET HTML, diğer isteklerde JSON; POST/server action otomatik replay veya yönlendirme yok. Matcher bütün yolları kapsıyor; bakım kapalıyken önceki asset bypass korunuyor. 4 yeni test; gerçek Next HTTP üzerinde 6 yol/yöntem + HTML testi erişilemeyen Supabase adresiyle geçti. 690/690 uygulama testi, TypeScript ve statik 0 FAIL/1 WARN. Üretimde etkinleştirilmedi; migration sayısı 53 değişmedi. Bu yalnız uygulama kapısıdır: doğrudan Supabase/Storage, eski deployment URL'leri ve devam eden işlemlerin drain kontrolü hâlâ yayın engeli. Ayrıntı ROLLOUT.md.
+
+
+16 Ekim: Geçici DB yayın bariyeri prototipi qa/release-chain-20261016/barrier altında hazır. Yerel 90 tabloda mevcut DML bekleme/okumaya izin, authenticated/service/Storage session_user reddi, SECURITY DEFINER yolu, yeni tablo extend ve atomik kaldırma dahil 9 kontrol geçti. Doğrudan admin migration DML’i açık. SQL otomatik migration değil; aday sayısı 53. Üretimde uygulanmadı. Gerçek Storage HTTP, üretim bağlantı kimliği ve bariyer açık tam 53 zincir provası bekliyor; fiziksel dosya aktarımı/drain bütünüyle kanıtlanmadı.
