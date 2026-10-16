@@ -1,3 +1,32 @@
+# Güncel yayın kontrolü — 16 Ekim, hazırlık dağıtımları sonrası
+
+Bu bölüm alttaki kronolojik notların güncel özetidir; eski “henüz yapılmadı” maddeleri tek başına kullanılmaz.
+
+- Canlı www.bpsys.net: dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw. Son bağımsız inspect kanıtı production-alias-after-module-stage.json.
+- Eski kod + bakım kapısı hazır: dpl_2K2qPJNmHybF13XJUVagGtVTG248.
+- Yeni kod + bakım kapısı hazır: dpl_GMtdntpuCNrjwChLiGtWZHRBtGzv; kaynak a394b47. İkisinin de bakım HTTP kabulü geçti. Hiçbiri www alanına promote edilmedi.
+- 53 migration'ın temiz şemada bariyerli provası geçti; üretime uygulanmadı. Üretim ledger son ölçümde 129. Metadata izin kontrolü 82 hedefte eksiksiz; üretimde gerçek bariyer kurma/kaldırma henüz sınanmadı.
+- Gerçek Storage yerel HTTP 26/26; uygulama 690/690 ve TypeScript kontrolü geçti. Bakım açık bulut sürümünde ürün akışları test edilmiş değildir.
+
+## Geçiş kapıları ve hata davranışı
+
+1. Uzak Git yedeği, güncel ledger, şema uyumu ve dış yazıcılar doğrulanmadan bakım geçişine girilmez. Uzak dal yedeği bu kayıtta tamamlanmış sayılmıyor. Eski deployment URL'leri ve admin bağlantılı harici servisler ayrıca değerlendirilir.
+2. Eski kodun bakım sürümü ana alana alınır ve HTTP kapısı tekrar ölçülür. Bariyer kurulamazsa migration başlatılmaz. Henüz SQL uygulanmadığı doğrulanırsa eski canlı deployment'a dönüş mümkündür.
+3. Bariyer kurulduktan sonra verify geçmeden migration çalıştırılmaz. Her dosya sonrası ledger, extend ve verify kontrol edilir. Hata durumunda otomatik devam veya otomatik bariyer kaldırma yoktur. Uygulanmış SQL prefix'i ve ledger birlikte incelenir.
+4. Migration sonrası eski uygulamaya rollback yapılmaz. Yeni sürüm bakım açık kalır. Şema/katalog kontrolleri yazma kapalıyken yapılabilir; normal oturumla mutasyon kabulü bariyer açıkken başarılı olamaz.
+5. Normal açılış için bakım kapalı AYRI deployment gerekir; Vercel proje env değiştirmek mevcut deployment'ı değiştirmiş sayılmaz. E-posta flag'i kapalı korunur. Bu deployment'ın doğrudan erişim koruması doğrulanmadan eski şemaya açık yeni uygulama URL'si oluşturulmaz.
+6. Kimlikli mutasyon kabulü için DB bariyerinin kaldırılması gerekir; bu anda eski doğrudan istemciler de tekrar erişebilir. Bunu “tüm yazıcılar kapalı özel kabul penceresi” diye sunmayız. Ana alan bakımdayken sınırlı kabul yapılır, başarılıysa yeni normal deployment promote edilir. Kabul başarısızsa güvenli biçimde bariyer yeniden kurulur ve bakım korunur; eski kod geri açılmaz. Başlamış dış e-posta/dosya aktarımı geri alınmış sayılmaz.
+
+## Kesinti sonrası çevrimdışı kontrol
+
+`python3 qa/release-chain-20261016/reconcile-ledger.py /path/to/fresh-ledger.json`
+
+Girdi project/measuredAt/migrations içerir. Ölçüm en fazla bir saatlik olmalıdır. Komut bağlantı kurmaz veya SQL çalıştırmaz. Tarihsel ledger'ın aynen korunmasını, dosya/hash eşleşmesini ve 53 adayın yalnız sıralı prefix'inin uygulanmış olmasını denetler. Aradaki boşluk, farklı proje, yabancı/tekrarlı tarih, değişen dosya ve başarısız prova exit 1 üretir. Tam zincir eşleşse bile productionReady=false ve automaticResumeAllowed=false kalır: ledger şemanın doğru olduğunu tek başına ispatlamaz.
+
+10 test geçti; testler 0–53 arasındaki 54 olası prefix'i de tarar. ledger-reconciliation.json kayıtlı ölçüm üzerinde not_started/53 bekleyen sonucudur; yeni bir üretim sorgusu değildir. Üretim geçişinden hemen önce ölçüm yenilenmelidir.
+
+---
+
 # Yayın sırası — 16 Ekim 2026
 
 Durum: güncel üretim ledger 129, son 20261004001400. Güncel yalnız-şema kopyasında 53 aday geçti. Uygulama 686/686, tip kontrolü ve yerel adresle üretim derlemesi başarılı. Bu belge yayın gerçekleştirildiğini göstermez.

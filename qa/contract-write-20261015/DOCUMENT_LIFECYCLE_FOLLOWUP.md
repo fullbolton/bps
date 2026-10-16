@@ -372,3 +372,10 @@ Dört koruma kontrolü geçti: /dashboard GET Türkçe bakım HTML 503; /api/cro
 Üretimde salt okunur katalog ön kontrolü 82 hedef tabloda TRIGGER ve kaldırma izni eksiği bulmadı. Gerçek oturum cli_login_postgres, etkin rol postgres ve üyelik true. Bu metadata ölçümü üretimde bariyer kurma/kaldırma testi değildir. Kanıtlar: production-barrier-scope-preflight.json, barrier/scope-preflight.sql, module-staged-release-manifest.json, module-vercel-smoke.json, production-alias-after-module-stage.json.
 
 Ana site bakıma alınmadı; üretim bariyeri kurulmadı; 53 migration uygulanmadı; gerçek modül kapatma hâlâ kapalı. Sonraki yayın bloğu: son ledger/şema farkı ve dış yazıcı kontrolü, bakım sürümünü ana alan adına alma, bariyer kurma, sıralı migration+extend+verify, yeni uygulamanın kontrollü açılışı ve canlı kabul. Bakım bayrağı deployment'a bağlıdır; normal açılış için bakım kapalı ayrı dağıtım planlanmalıdır. Eski deployment erişimi ve başlamış dış yan etkilerle ilgili sınırlar devam eder. Gerçek veri silinmedi veya içerik yedeği alınmadı.
+
+
+## 16 Ekim — kesinti sonrası migration sırası kontrolü
+
+reconcile-ledger.py eklendi: yalnız çevrimdışı ledger/dosya kontrolü yapar; üretime bağlanmaz veya otomatik devam etmez. Eski 129 kaydın korunması, güncel zaman/proje, 53 dosyanın prova hash'leri ve yalnız sıralı uygulanmış prefix kabul edilir. Eksik/tekrarlı/yabancı migration, değişen hash veya başarısız prova reddedilir. 10 test geçti; 54 olası prefix tarandı. Kayıtlı üretim ölçümüyle sonuç not_started, 53 bekleyen; bu yeni canlı ölçüm değildir.
+
+ROLLOUT.md başına güncel durum ve hata/yeniden açma sırası eklendi. Bakım açıkken kimlikli mutasyon kabulünün yapılamayacağı ve bariyer kaldırılınca doğrudan istemcilerin de erişeceği açıklandı. Uzak Git yedeği, taze şema/ledger, dış yazıcı değerlendirmesi, bakım kapalı dağıtım ve canlı geçiş hâlâ tamamlanmadı. Üretim SQL veya alan adı değişikliği yapılmadı.
