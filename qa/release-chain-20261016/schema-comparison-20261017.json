@@ -1,0 +1,8 @@
+{
+  "schemaOnly": true,
+  "previousSha256": "ecc638f7007122e8ee5bbcfa880e614e6757f1d76d93815aebf1fb974c693387",
+  "currentSha256": "ecc638f7007122e8ee5bbcfa880e614e6757f1d76d93815aebf1fb974c693387",
+  "currentBytes": 894801,
+  "normalizedEqual": true,
+  "normalization": "remove pg_dump restrict/unrestrict random tokens only"
+}

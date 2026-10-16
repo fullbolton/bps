@@ -386,3 +386,12 @@ ROLLOUT.md başına güncel durum ve hata/yeniden açma sırası eklendi. Bakım
 Kullanıcı GitHub'a gönderimi ve yalnız geliştirme dalının otomatik yayınını kapatmayı açıkça onayladı. vercel.json git.deploymentEnabled içinde yalnız codex/tenant-modules-foundation-20260928=false eklendi. main ve diğer dalların ayarı değiştirilmedi. TypeScript commit kontrolü geçti. Önceki 10 commit ve ayar commit'i mevcut origin fullbolton/bps deposuna gönderildi. Uzak ls-remote ile 5240923410f6c1567849bea40f60c048e52ba01e eşleşti.
 
 Vercel salt okunur kontrolde www.bpsys.net hâlâ dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw üzerinde; gönderilen commit için otomatik deployment bulunmadı (anlık ölçüm). Kanıt qa/release-chain-20261016/remote-backup-result.json. Önceki 'açık onay/yedek bekleniyor' engeli kapanmıştır. Üretim SQL uygulanmadı; 53 migration bekliyor. Bu kaynak yedeğidir, canlı ürün yayını değildir.
+
+
+## 17 Ekim — üretim şeması yeniden doğrulandı
+
+Yeni salt okunur üretim ölçümünde ledger hâlâ aynı 129 kayıt; 53 adayın sıralı/hash kontrolü geçti (final-ledger-reconciliation-20261017.json). public/auth/storage/extensions yalnız-şema export'u /private/tmp/bps-prod-schema-20261017.sql içinde 0600 izinle tutuluyor; gerçek iş/auth/Storage içerikleri alınmadı ve dump repoya eklenmedi. Dosya 894801 byte; SHA256 ecc638f7007122e8ee5bbcfa880e614e6757f1d76d93815aebf1fb974c693387, başarılı tam bariyer provasının snapshot'ıyla byte düzeyinde aynı. Kanıt schema-comparison-20261017.json. Kaynak SQL değişmediğinden tam prova tekrar edilmedi.
+
+Dump sırasında gözlenen cli_login_postgres idle-in-transaction oturumu dump bittikten sonraki tekrar ölçümünde yok; activeOtherTransactions=[] (production-transaction-check-20261017.json). Anlık boş liste dış yazıcıların bulunmadığını veya gelecekte yazmayacağını kanıtlamaz. Üretimde bps_release_guard yok. Vercel son deployment listesinde son iki manuel hazırlık sürümü duruyor; yeni Git yedek commitlerinden otomatik deployment görünmüyor.
+
+Bu tur üretim DDL/DML, promote veya veri temizliği yapılmadı. Sonraki gerçek geçiş: bakım sürümünü promote etme, bariyer kurma ve canlı kapı doğrulaması, 53 migration'ı ledger kaydıyla kontrollü uygulama, yeni sürümün bakım kapalı dağıtımı ve kimlikli kabul. Şema eşitliği ve idle ölçümü bu adımları tamamlanmış kılmaz.
