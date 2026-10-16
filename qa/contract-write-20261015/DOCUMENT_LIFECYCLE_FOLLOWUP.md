@@ -472,3 +472,10 @@ Evrak upload server action'ları mevcut createServerSupabaseClient(12_000) korum
 Komutun tamamı ilk seferde exit 1 verdi: worktree'de Supabase URL/anahtar env bulunmadığı için /firmalar prerender aşamasında durdu. Build yalnız sentetik loopback URL ve gerçek yetki sağlamayan placeholder anahtarla tekrar edildi; exit 0, 29/29 statik sayfa. Bu build üretim ortamı doğrulaması değildir ve yayımlanacak artifact olarak kullanılmaz. Kanıt release-validation-20261017.json; iki ayrı logun hash'leri kaydedildi.
 
 Canlı 1daf5e3 referansına göre uygulama farkı yalnız upload-actions.ts ve document-upload-recovery.ts; migration farkı yok. Bu tur yeni ürün kodu/üretim SQL/deploy yapılmadı. Son iki düzeltme geliştirme dalında yayına adaydır; canlıya alınmadan Vercel güncel deployment ve gerçek ortam ayarları ayrıca doğrulanmalıdır.
+
+
+## 17 Ekim — evrak düzeltmesi Vercel hazırlık dağıtımı
+
+312a468 git archive kaynağı temiz geçici klasörden --prod --skip-domain ile dağıtıldı; sentetik yerel build çıktısı kullanılmadı. Build/runtime bakım 0, otomatik e-postalar false. Deployment dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs READY; bulut build ve 29/29 sayfa geçti. Vercel yetkili CLI ile /login HTML 200; anonim erişim 302 vercel.com korumasına yönleniyor. HTML gövdesinde giriş metni assertion'ı geçmedi; bu yüzden hydrated login UI kabulü iddia edilmez.
+
+Son inspect www.bpsys.net'in hâlâ dpl_KwdtN1U24ytdEtbF876GLhowEyy1 üzerinde olduğunu doğruladı. Ana alan promote edilmedi. Yeni migration yok; üretim şema/ledger bu tur yeniden ölçülmedi, SQL çalıştırılmadı. Sonraki adım salt okunur ölçüm, normal sürüm promote ve canlı kabul. Kanıt qa/release-chain-20261016/recovery-fix-stage-20261017.json. Bu hazırlık dağıtımıdır; düzeltmeler ana sitede henüz yoktur.

@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "sourceCommit": "312a468",
+  "productSourceCommit": "415dfff",
+  "deploymentId": "dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs",
+  "url": "https://bps-bmzuis4k2-furkanyahsi-1537s-projects.vercel.app",
+  "readyState": "READY",
+  "protectedLoginHTTP": 200,
+  "anonymousLoginHTTP": 302,
+  "anonymousRedirectHost": "vercel.com",
+  "wwwDeploymentAfterStaging": "dpl_KwdtN1U24ytdEtbF876GLhowEyy1",
+  "wwwPromoted": false,
+  "migrationDiff": [],
+  "productionSchemaRemeasured": false,
+  "maintenanceMode": "0",
+  "notificationEmailsEnabled": false,
+  "limitations": [
+    "HTML response only; no hydrated login assertion",
+    "No authenticated writes on staged deployment",
+    "No fresh production schema/ledger measurement"
+  ]
+}
