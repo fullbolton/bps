@@ -65,3 +65,10 @@ Gerçek şirket seçiciyle A→B geçişi, select_workspace ve gerçek Auth refr
 Kanıt: browser-role-result-20261016.json; browser-switch-b-20261016.png, browser-role-denied-20261016.png ve browser-role-restricted-20261016.png. HTTP hazırlık paketi 25/25; Node sözdizimi ve git diff --check geçti. Bu tur QA fixture değişti; ürün SQL/TS ve migration sayısı değişmedi. Önceki 686/686 uygulama ve tam derleme sonuçları yeniden çalıştırılmadı. 53 aday yerelde; commit/push/üretim yayını yapılmadı.
 
 Sınır: Auth fixture ayrı DB'de token isteği anında eşitlenir; üretimin birebir tek-DB topolojisi veya eşzamanlı refresh yarışı kanıtı değildir. Çok sekmeli açık formda şirket değişimi, refresh sırasında eşzamanlı üyelik değişimi ve fiziksel mobil cihaz/klavye ayrıca açık. Güncel üretim kataloğu, 53 adayın sıralı yayın provası ve yayın ön kontrolü bekliyor. Gerçek modül kapatma advisoryOnly/mutationAvailable=false olarak kapalı kalır.
+
+
+## 17 Ekim — dosyası yüklenmiş kaydın tarayıcıdan iptali
+
+Yerel Auth/Next/Storage kabul fixture'ına üçüncü sentetik kayıt eklendi: dosyası depoda mevcut, evrak kaydı henüz tamamlanmamış. Gerçek giriş ve /evraklar ekranından bu kayıt için iptal onayı verildi. İşlem sırasında düğmeler kilitlendi; başarı mesajı dosya temizliğinin yöneticinin listesine alındığını açıkladı ve kayıt bekleyenlerden çıktı. SQL sonucu: documents=0, storage.objects=1, tamamlanmamış cleanup=1. Böylece iptalin dosyayı anında silmediği de doğrulandı. Kanıt browser-uploaded-cancel-20261017.json.
+
+Önceden geçen temel kurtarma, dosyasız iptal ve şirket geçiş testleri tekrar edilmedi. Bu tur yeni kabul yalnız dosyası mevcut iptal akışıdır. Yerel başlangıçta ilk sayfa derlemesi navigasyon bekleme süresini aştı; aynı sekme hazır olduğunda giriş tamamlandı. Ürün hatası görülmedi. Ürün kodu/SQL değişmedi, üretime işlem yapılmadı; yeni yayın gerekmiyor.

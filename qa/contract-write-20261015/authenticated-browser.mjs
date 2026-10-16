@@ -51,11 +51,11 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
   const session=await login.json();const claims=JSON.parse(Buffer.from(session.access_token.split('.')[1],'base64url'));
   if(claims.active_tenant_id!==id(1))throw Error('Local Auth hook did not supply tenant');
   // Two recoverable attempts for actual server-action acceptance.
-  for(const n of [9101,9102]){
-   const prepared=await fetch(restBase+'/rpc/document_prepare_upload_v1',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_id:id(n),p_tenant:id(1),p_company:id(991),p_name:n===9101?'Tarayıcı kurtarma':'Tarayıcı iptal',p_category:'diger',p_validity:null,p_size:pdf.length})});
+  for(const n of [9101,9102,9103]){
+   const prepared=await fetch(restBase+'/rpc/document_prepare_upload_v1',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_id:id(n),p_tenant:id(1),p_company:id(991),p_name:n===9101?'Tarayıcı kurtarma':n===9102?'Tarayıcı iptal':'Dosyası yüklenmiş iptal',p_category:'diger',p_validity:null,p_size:pdf.length})});
    if(!prepared.ok)throw Error('Browser pending seed failed');
    const path=await prepared.json();
-   if(n===9101){const up=await fetch(storageBase+'/object/documents/'+path,{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/pdf'},body:pdf});if(!up.ok)throw Error('Browser pending bytes seed failed');}
+   if(n===9101 || n===9103){const up=await fetch(storageBase+'/object/documents/'+path,{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/pdf'},body:pdf});if(!up.ok)throw Error('Browser pending bytes seed failed');}
   }
   const out=openSync('/tmp/bps-authenticated-next.log','w',0o600);
   app=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--hostname','127.0.0.1','--port','3060'],{cwd:process.cwd(),env:{...process.env,NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3061',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon},stdio:['ignore',out,out]});closeSync(out);

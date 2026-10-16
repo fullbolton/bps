@@ -1,0 +1,18 @@
+{
+  "scope": "local synthetic authenticated browser + Next server action + Storage/PostgREST",
+  "date": "2026-10-17",
+  "record": "00000000-0000-4000-8000-000000009103",
+  "checks": {
+    "uploadedPendingVisible": true,
+    "cancelConfirmationShown": true,
+    "successMessageShown": true,
+    "removedFromPendingList": true
+  },
+  "sql": {
+    "publishedDocuments": 0,
+    "retainedStorageObjects": 1,
+    "pendingCleanup": 1
+  },
+  "productionTouched": false,
+  "screenshot": "local only: /private/tmp/bps-uploaded-cancel-20261017.jpg"
+}

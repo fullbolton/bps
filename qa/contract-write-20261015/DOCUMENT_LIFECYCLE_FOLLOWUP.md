@@ -435,3 +435,10 @@ Gerçek yerel Storage + PostgREST kabulüne iki yeni senaryo eklendi: (1) prepar
 Sonuç: **27/27 HTTP kontrolü**, ayrıca modül kapatma/Storage yazma kilit sırası için **2/2 gerçek iki bağlantılı yarış testi** geçti. Kanıtlar: storage-recovery-http-result-20261017.json ve storage-module-race-20261017.tap (qa/contract-write-20261015). Yarış testi ilk çalıştırmada eksik pg çözümlemesiyle başlayamadı; daha önce kurulmuş /private/tmp/bps-calendar-qa-runtime/node_modules NODE_PATH ile tekrar çalıştırıldı ve geçti. Yeni paket kurulmadı. Geçici klon/container temizliği harness finally adımında tamamlandı.
 
 Yalnız test kodu ve kanıtlar değişti; uygulama/SQL değişmedi, yeni yayın gerekmiyor. Üretim iş verisine dokunulmadı. Bu kanıt üretimde kesintili yükleme UI kabulü veya gerçek kullanıcı yük testi değildir; canlıdaki bu sınırlar açık kalır.
+
+
+## 17 Ekim — dosyası yüklenmiş kaydın tarayıcıdan iptali
+
+Yerel Auth/Next/Storage kabul fixture'ına üçüncü sentetik kayıt eklendi: dosyası depoda mevcut, evrak kaydı henüz tamamlanmamış. Gerçek giriş ve /evraklar ekranından bu kayıt için iptal onayı verildi. İşlem sırasında düğmeler kilitlendi; başarı mesajı dosya temizliğinin yöneticinin listesine alındığını açıkladı ve kayıt bekleyenlerden çıktı. SQL sonucu: documents=0, storage.objects=1, tamamlanmamış cleanup=1. Böylece iptalin dosyayı anında silmediği de doğrulandı. Kanıt browser-uploaded-cancel-20261017.json.
+
+Önceden geçen temel kurtarma, dosyasız iptal ve şirket geçiş testleri tekrar edilmedi. Bu tur yeni kabul yalnız dosyası mevcut iptal akışıdır. Yerel başlangıçta ilk sayfa derlemesi navigasyon bekleme süresini aştı; aynı sekme hazır olduğunda giriş tamamlandı. Ürün hatası görülmedi. Ürün kodu/SQL değişmedi, üretime işlem yapılmadı; yeni yayın gerekmiyor.
