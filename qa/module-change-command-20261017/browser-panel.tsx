@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { loadCurrentWorkspaceModules } from '@/lib/services/workspace-modules';
 import { createModuleChangeAttempt, type ModuleChangePayload } from '@/lib/modules/change-attempt';
 import type { WorkspaceModuleContext } from '@/lib/modules/context';
+import { resolveWorkspaceAccess } from '@/lib/auth-workspace';
 import ModuleChangePreview from '@/app/(main)/ayarlar/ModuleChangePreview';
 export default function BrowserModuleAcceptance() {
  const [context,setContext]=useState<WorkspaceModuleContext|null>(null);
@@ -15,7 +16,12 @@ export default function BrowserModuleAcceptance() {
  async function refresh() {
   const client=createClient();const {data,error}=await client.auth.getUser();
   if(error||!data.user)throw Error('LOCAL_AUTH_REQUIRED');
-  const value=await loadCurrentWorkspaceModules(client,{actorId:data.user.id,tenantId:'00000000-0000-4000-8000-000000000001',role:'yonetici'});
+  const identity=await client.rpc('current_workspace_context');
+  if(identity.error)throw Error('LOCAL_CONTEXT_REQUIRED');
+  const access=resolveWorkspaceAccess(data.user,identity.data);
+  const tenantId=access.user?.app_metadata.active_tenant;
+  if(typeof tenantId!=='string'||access.role!=='yonetici')throw Error('LOCAL_MANAGER_REQUIRED');
+  const value=await loadCurrentWorkspaceModules(client,{actorId:data.user.id,tenantId,role:access.role});
   setContext(value);
  }
  useEffect(()=>{void refresh().catch(e=>setError(e instanceof Error?e.message:'LOCAL_ERROR'));},[]);
@@ -31,9 +37,10 @@ export default function BrowserModuleAcceptance() {
   return receipt;
  }
  return <main className="mx-auto max-w-3xl space-y-4 p-6"><h1>Yerel modül kayıt kabulü</h1>
+  <a href="/sirket-sec">Şirket değiştir</a>
   <label><input type="checkbox" checked={simulateLoss} onChange={event=>{loseResponse.current=event.target.checked;setSimulateLoss(event.target.checked);}} /> Sonraki başarılı yanıtı bir kez kaybet (yerel test)</label>
   {proof&&<p aria-label="Yerel HTTP kanıtı">{proof}</p>}
   {error&&<p role="alert">Yerel oturum açılamadı: {error}</p>}
-  {context?<><p>Güncel sürüm: {context.configRevision}</p><ModuleChangePreview key={`${context.actorId}:${context.tenantId}:${context.membershipVersion}:${context.selectionVersion}:${context.configRevision}`} context={context} commit={{prepare:(ctx,modules)=>createModuleChangeAttempt(ctx,crypto.randomUUID(),modules),transport,refresh}} /></>:<p>Yerel ayarlar yükleniyor…</p>}
+  {context?<><p>Şirket: {context.name}</p><p>Güncel sürüm: {context.configRevision}</p><ModuleChangePreview key={`${context.actorId}:${context.tenantId}:${context.membershipVersion}:${context.selectionVersion}:${context.configRevision}`} context={context} commit={{prepare:(ctx,modules)=>createModuleChangeAttempt(ctx,crypto.randomUUID(),modules),transport,refresh}} /></>:<p>Yerel ayarlar yükleniyor…</p>}
  </main>;
 }

@@ -803,3 +803,9 @@ Kanıtlar browser-unconfirmed.txt, browser-replay.txt, browser-reopen.png/.txt. 
 ModuleChangeCommit artık yalnız parent key/unmount sözleşmesine güvenmez. Aynı mount içinde actor/tenant/üyelik/seçim/rol değişirse niyet kalıcı olarak geçersizleşir, işlem düğmeleri kalkar ve güncel ayarları açma uyarısı gösterilir. Eski isteğin veya refresh'in geç sonucu yeni duruma yazamaz. A→B→A da eski denemeyi canlandırmaz. Parent key kullanımı korunur.
 
 İlgili dört süit 24/24 geçti (scope-ui-tests.tap); yeni senaryolar beş bağlam alanı değişimini, geç commit, eski refresh hatası ve eski bağlama dönüşü kapsar. Bu bileşen sürücüsü kabulüdür; gerçek tarayıcıda şirket seçimi henüz ölçülmedi. Üretim değişmedi; son tarayıcı kanıtları önceki kaydetme/replay/yeniden açma sürümüne aittir.
+
+## 17 Ekim — gerçek şirket seçiciden A→B tarayıcı kabulü
+
+Yerel QA panelinin sabit tenant'ı kaldırıldı; current_workspace_context + resolveWorkspaceAccess ile doğrulanmış seçili şirket/rol kullanılır. Üründeki /sirket-sec bağlantısı eklendi. CUA sentetik hesapla A'da Duyurular kapatma önizlemesini onay paneline getirdi, kaydetmeden şirket seçiciye geçti ve Synthetic B'yi seçti. Gerçek select_workspace + Auth refresh akışından sonra QA sayfası Synthetic B/revision1/tüm modüller açık/yeni seçim yok gösterdi; A'nın taslağı veya onayı taşınmadı.
+
+Kanıt browser-switch.png/.txt ve browser-switch-ledger.json. Yerel metadata: receipt yok, iki şirketin modül revision'ı 1. Bu kabul kayıt başlamadan navigasyonla şirket değişimini kapsar; uçuş halindeki istekte cross-tab geçiş tarayıcıda ölçülmedi (DB yarış ve bileşen geç yanıt testleri ayrı). Harness exit0 ve geçici DB/container/route temizliği tamamlandı; TypeScript tekrar kontrol edildi. Üretim değişmedi.
