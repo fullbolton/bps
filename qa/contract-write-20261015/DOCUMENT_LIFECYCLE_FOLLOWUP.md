@@ -556,3 +556,10 @@ Kalan: config kilidi altında yeniden kontrol eden, revision/idempotency/audit s
 qa/module-change-command-20261017 altında istemcilere yetkisi kapalı SQL aday + gerçek PostgreSQL kabul testi hazırlandı. Config kilidi altında canlı scope ve açık iş yeniden kontrolü, revision, idempotent receipt ve audit tek transaction içinde. 9 alt senaryo + kapsayıcı = 10/10 geçti; iki oturumda gerçek Lock beklemesi ölçülerek iş yazma/kapatma her iki sıra doğrulandı. Pending evrak, stale revision/üyelik, çapraz tenant, bağımlılık ve tekrar çağrı da kapsandı.
 
 Bu bir migration veya yayın değildir; UI kayıt yapmaz. Genel yazma yüzeyi son denetimi, farklı yöneticiler/üyelik değişimi yarışları, istemci receipt protokolü ve browser kayıt kabulü açık. Ayrıntı/kanıt: qa/module-change-command-20261017/README.md ve result.tap. Canlı kaynak 312a468, ledger 182 değişmedi. Gerçek veri değiştirilmedi.
+
+
+## 17 Ekim — modül komutu yetki yarışları doğrulandı
+
+Yerel aday komut süiti 14/14 oldu (13 alt senaryo + kapsayıcı). Config veya profile kilidinde beklerken rol düşürülmesi, rol geri verilse de eski membership generation, iki farklı yöneticinin aynı revision ile yarışı, başkasının receipt kimliğinin kullanımı ve select_workspace ile A→B sırasında eski A komutu test edildi. Retlerde revision değişmedi/receipt yazılmadı. Gerçek Lock beklemesi gözlemlendi. Çoklu üyelik fixture'ı ilk çalışmada açık seçim olmadığı için reddedildi; gerçek seçim RPC'si ve doğru sentetik claimlerle düzeltildi.
+
+Ürün SQL değişmedi. HTTP/browser kayıt kabulü ve tüm writer/cron/Storage sınırlarının son denetimi açık. İstemci EXECUTE hâlâ kapalı; migration ve yayın yapılmadı. Kanıt qa/module-change-command-20261017/result.tap.

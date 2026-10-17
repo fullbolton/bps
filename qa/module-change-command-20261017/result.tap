@@ -1,19 +1,23 @@
 ▶ local module command candidate
-  ✔ candidate remains inaccessible to client and service roles (2.194042ms)
-  ✔ change is atomic, replay creates no duplicate, changed payload and stale revision fail (15.583542ms)
-  ✔ dependencies, wrong actor, stale membership and no-op cannot write (7.543417ms)
-  ✔ repeatable read and cross-tenant calls fail closed (3.545667ms)
-  ✔ pending document preparation prevents closing with no metadata receipt (14.150125ms)
-  ✔ two concurrent sessions with the same revision cannot overwrite one another (35.348166ms)
-  ✔ writer commits first: waiting close sees newly committed open task and rejects (8.3805ms)
-  ✔ close commits first: waiting business writer rejects disabled module (31.4955ms)
-  ✔ reopening preserves work and increments revision once (4.6305ms)
-✔ local module command candidate (615.207292ms)
-ℹ tests 10
+  ✔ candidate remains inaccessible to client and service roles (1.258875ms)
+  ✔ change is atomic, replay creates no duplicate, changed payload and stale revision fail (12.395333ms)
+  ✔ dependencies, wrong actor, stale membership and no-op cannot write (5.948209ms)
+  ✔ repeatable read and cross-tenant calls fail closed (2.283375ms)
+  ✔ pending document preparation prevents closing with no metadata receipt (8.028375ms)
+  ✔ two concurrent sessions with the same revision cannot overwrite one another (32.9865ms)
+  ✔ writer commits first: waiting close sees newly committed open task and rejects (8.049417ms)
+  ✔ close commits first: waiting business writer rejects disabled module (28.952666ms)
+  ✔ reopening preserves work and increments revision once (4.3965ms)
+  ✔ role revoked while command waits on profile: no settings or receipt written (7.992875ms)
+  ✔ role revoked while command waits on config: no settings or receipt written (6.248ms)
+  ✔ different managers serialize by tenant and cannot replay another actor receipt (11.935375ms)
+  ✔ workspace selection commits during profile wait: old company command is rejected (7.806917ms)
+✔ local module command candidate (409.328584ms)
+ℹ tests 14
 ℹ suites 0
-ℹ pass 10
+ℹ pass 14
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 696.566208
+ℹ duration_ms 456.495
