@@ -1,0 +1,26 @@
+{
+  "measuredAt": "2026-10-17T08:18:51.480580+00:00",
+  "project": "dffdzbmnmnokbftbujsy",
+  "scope": "public schema-only pg_dump; metadata checks only, not a full privilege audit or rehearsal",
+  "schemaSha256": "706e8399171f68a8cb454c275b933ba653623da6503be0b64884b0d39c288ce2",
+  "previewArguments": "\"p_expected_actor\" \"uuid\", \"p_expected_tenant\" \"uuid\", \"p_expected_revision\" \"text\", \"p_modules\" \"jsonb\"",
+  "previewBodyMd5": "4cde00fbcf8756586146ad19aba5d398",
+  "previewExpectedBodyMatches": true,
+  "tables": {
+    "staffing_demands": {
+      "present": true,
+      "tenantUuidNotNull": true,
+      "rlsEnabled": true
+    },
+    "workforce_summary": {
+      "present": true,
+      "tenantUuidNotNull": true,
+      "rlsEnabled": true
+    }
+  },
+  "namedPrerequisitesPresent": {
+    "workspace_require_module_write_v1": true,
+    "workspace_module_enabled_v1": true
+  },
+  "productionReady": false
+}

@@ -714,3 +714,12 @@ RELEASE_READINESS_20261017.md tamamlanan kanıtları ve kalan kapıları tek yer
 f3b11eb kaynak (ürün 0dc821b) ile gerçek yerel Auth/PostgREST/Storage kuruldu. CUA tarayıcısında temizlik paneli açıldı; sentetik 9205 işi isim, firma ve tarih alanlarıyla görüntülendi. Listeyi yenile sonrası aynı geçerli kayıt ve işlem düğmesi korundu; boş/hata görünümü oluşmadı. Gerçek RPC yanıtı yeni parser ile uyumlu. Bozuk yanıt senaryoları önceki bileşen testinde kalır; tarayıcıda hata enjeksiyonu yapılmadı. Temizlik/silme düğmesi çalıştırılmadı.
 
 browser-cleanup-parser-20261017.png/.txt kanıtları eklendi. Kurulumun 29 HTTP kontrolü geçti; exit 0 ve geçici kaynak temizliği tamamlandı. RELEASE_READINESS listesindeki son parser tarayıcı kapısı kaldırıldı. Kalanlar güncel üretim ölçümü, iki migration provası/sırası ve ayrı gerçek modül kayıt işidir. Üretime yayın/veri işlemi yapılmadı.
+
+
+## 17 Ekim — güncel üretim ledger ve şema ölçümü
+
+Supabase CLI'nin mevcut oturumu ile proje dffdzbmnmnokbftbujsy doğrulandı. Kaynak klasörün bağlantısı değiştirilmedi; geçici klasörde link + migration list çalıştırıldı. Canlı ledger 182 kayıt; repo ile tüm tarihsel sürümler eşleşiyor, yalnız 20261017000100 ve 20261017000200 bekliyor. Aday dosya SHA256'ları live-ledger-preflight-20261017.json içine kaydedildi.
+
+Yalnız public şeması (iş tablosu satırları olmadan) geçici kullanıcı erişimli dosyaya alındı. preview_workspace_modules_v1 tam argümanları eşleşti ve gövde md5'i 4cde00fbcf8756586146ad19aba5d398 çıktı: 000200 yamasının beklediği gövdeyle aynı. staffing_demands/workforce_summary tabloları, UUID NOT NULL tenant_id ve açık RLS doğrulandı; iki önkoşul helper adı bulundu. Metadata kanıtı live-schema-preflight-20261017.json. Bu sınırlı şema metni kontrolüdür; tam izin/owner/trigger kabulü veya iki migration'ın güncel şemada provası değildir. productionReady=false korunur.
+
+İş verisi okunmadı, tam içerik yedeği alınmadı, migration/üretim DML/yayın yapılmadı. Geçici şema dosyası repo dışındadır; sonraki sıralı prova için korunur. Sonraki kapı bu yeni şema üzerinden prova ve izin kontrolüdür.

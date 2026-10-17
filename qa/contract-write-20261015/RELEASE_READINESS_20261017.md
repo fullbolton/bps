@@ -15,7 +15,7 @@
 
 ## Yayından önce açık kapılar
 
-1. Güncel üretim ledger, fonksiyon gövdeleri ve izinlerinin salt okunur ölçümü; bekleyen `20261017000100` ve `20261017000200` için sıralı prova. Önceki üretim ölçümü güncelmiş gibi kullanılamaz.
+1. Ledger ve hedef preview gövdesi 17 Ekim canlı ölçümüyle eşleşti (live-ledger-preflight-20261017.json, live-schema-preflight-20261017.json). Tam izin/owner incelemesi ve bekleyen `20261017000100` ve `20261017000200` için sıralı prova. Önceki üretim ölçümü güncelmiş gibi kullanılamaz.
 2. SQL ve frontend sırası: yeni preview parser'ı `pending_contract_upload` kontrolünü bekler; SQL önce. Eski sunucu + yeni parser hatayla durur.
 3. Aday modül değiştirme komutunun kalan RPC/servis yazma yüzeyi incelemesi, uygulama bağlantısı ve gerçek kayıt tarayıcı kabulü. Bu yayın hazırlığı gerçek modül kapatmayı açmaz.
 4. Seçilen yayın commit'i ve dağıtım kaydı, canlı kimlikli smoke. GitHub push otomatik üretim yayını değildir.
