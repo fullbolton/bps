@@ -93,3 +93,10 @@ PostgreSQL komut süiti 20/20, fixture bütünlüğü 5/5 geçti. Kanıtlar resu
 Yerel komut kabulüne audit/receipt INSERT hatası eklendi. Sentetik tetikleyici kayıt son adımını 23514 ile reddetti; komut autocommit çağrıldı. Testin ayrıca ROLLBACK yapmasına gerek kalmadan modül ayarları ve config revision tamamen önceki değerinde kaldı, receipt oluşmadı. Hata tetikleyicisi kaldırılınca aynı command UUID ve payload başarılı ilk işlem olarak tamamlandı; tek receipt oluştu. Böylece tekrar deneme başarısız bir komutu yanlışlıkla tamamlanmış saymıyor.
 
 PostgreSQL süiti 21/21 geçti (kapsayıcı dahil); kanıt qa/module-change-command-20261017/result.tap. Geçici veritabanı kaldırıldı. Yalnız test ve kayıt değişikliği; ürün kodu, migration, EXECUTE yetkisi ve UI kaydetme değişmedi. Üretim yayını yapılmadı. Sonraki kapılar: yazma yüzeyi incelemesinin kalanları, komutun uygulama bağlantısı ve gerçek kayıt tarayıcı kabulü, güncel üretim preflight.
+
+
+## 17 Ekim — iptalden temizlik tamamlamaya modül engeli
+
+Gerçek document_cancel_upload_v1 ve document_ack_cleanup_v1 helper'ları aday modül komutuyla aynı güncel yerel fixture üzerinde çalıştırıldı. İptalde pending_document_upload=false olurken pending_document_cleanup=true kalıyor; kapatma komutu 23514 ile reddediliyor, revision ve receipt değişmiyor. Storage nesnesi hiç oluşturulmamış sentetik rezervasyonda ack, nesne yokluğunu doğruladı; ardından iki engel de false oldu. completed_at taşıyan cleanup satırı korundu ve tekrar ack başarılıydı. Bu satırın korunması eski yolun yeniden kullanımını engelleyen tombstone sözleşmesidir.
+
+Süit 23/23 geçti; result.tap güncellendi. Bu senaryoda gerçek HTTP dosya yükleme/silme yapılmadı; önceki 29/29 Storage HTTP kanıtı ayrı kapsamda kalır. Bütün diğer engellerin kalktığı veya UI kaydetmenin hazır olduğu iddia edilmez. Ürün SQL/arayüz değişmedi, yeni migration veya üretim yayını yok.

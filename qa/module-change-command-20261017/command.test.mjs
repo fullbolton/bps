@@ -144,6 +144,24 @@ test('local module command candidate',async t=>{
    await assert.rejects(invoke(a,ctx,807,{...ctx.modules,documents:false,contracts:false}),{code:'23514'});
    assert.equal((await context(a)).configRevision,ctx.configRevision);
   });
+  await t.test('cancelled upload blocks closure until cleanup acknowledgement and retains its tombstone',async()=>{
+   const ctx=await context(a),draft={...ctx.modules,documents:false,contracts:false};
+   const checks=async()=>(await a.query('select preview_workspace_modules_v1($1,$2,$3,$4) value',[ctx.actorId,ctx.tenantId,ctx.configRevision,draft])).rows[0].value.checks;
+   await a.query('select document_cancel_upload_v1($1,$2)',[id(1),id(891)]);
+   let result=await checks();
+   assert.equal(result.find(c=>c.code==='pending_document_upload').blocking,false);
+   assert.equal(result.find(c=>c.code==='pending_document_cleanup').blocking,true);
+   await assert.rejects(invoke(a,ctx,831,draft),{code:'23514'});
+   assert.equal((await context(a)).configRevision,ctx.configRevision);
+   assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(831)])).rows[0].n,0);
+   // No object was uploaded in this fixture; the real helper verifies its absence.
+   assert.equal((await a.query('select document_ack_cleanup_v1($1) value',[id(891)])).rows[0].value,true);
+   result=await checks();
+   assert.equal(result.find(c=>c.code==='pending_document_upload').blocking,false);
+   assert.equal(result.find(c=>c.code==='pending_document_cleanup').blocking,false);
+   assert.equal((await a.query('select count(*)::int n from document_cleanup_jobs where document_id=$1 and completed_at is not null',[id(891)])).rows[0].n,1);
+   assert.equal((await a.query('select document_ack_cleanup_v1($1) value',[id(891)])).rows[0].value,true);
+  });
   await t.test('expired contract pending upload blocks closure independently of contract status',async()=>{
    await a.query("insert into contracts(id,tenant_id,company_id,name,status) values($1,$2,$3,'Synthetic expired','suresi_doldu')",[id(894),id(1),id(890)]);
    // Metadata-only synthetic reservation: no private file or upload is needed.

@@ -642,3 +642,10 @@ critical_dates şeması ve src/app/(main)/kurumsal-tarihler/actions.ts incelendi
 Yerel sentetik transaction'da tüm modül ayarları fixture kurulumu için kapatıldı. authenticated yönetici kendi şirketinde tarih oluşturup okuyabildi; başka şirkete INSERT 42501, mevcut tarihi başka şirkete taşıma 23514 ile reddedildi. Test sonunda rollback yapıldı. Bu test tüm modüllerin gerçek komutla kapatılabileceği veya bütün rol matrisinin doğrulandığı iddiası değildir.
 
 Komut/kabul süiti 22/22 geçti; result.tap güncellendi. Ürün kodu, migration veya üretim değişmedi. Yazma incelemesinde kurumsal tarihler başlığı bu kapsamla netleştirildi; diğer RPC/servis yolları ve yayın ön kontrolü açık kalır.
+
+
+## 17 Ekim — iptalden temizlik tamamlamaya modül engeli
+
+Gerçek document_cancel_upload_v1 ve document_ack_cleanup_v1 helper'ları aday modül komutuyla aynı güncel yerel fixture üzerinde çalıştırıldı. İptalde pending_document_upload=false olurken pending_document_cleanup=true kalıyor; kapatma komutu 23514 ile reddediliyor, revision ve receipt değişmiyor. Storage nesnesi hiç oluşturulmamış sentetik rezervasyonda ack, nesne yokluğunu doğruladı; ardından iki engel de false oldu. completed_at taşıyan cleanup satırı korundu ve tekrar ack başarılıydı. Bu satırın korunması eski yolun yeniden kullanımını engelleyen tombstone sözleşmesidir.
+
+Süit 23/23 geçti; result.tap güncellendi. Bu senaryoda gerçek HTTP dosya yükleme/silme yapılmadı; önceki 29/29 Storage HTTP kanıtı ayrı kapsamda kalır. Bütün diğer engellerin kalktığı veya UI kaydetmenin hazır olduğu iddia edilmez. Ürün SQL/arayüz değişmedi, yeni migration veya üretim yayını yok.
