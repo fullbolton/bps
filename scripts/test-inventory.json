@@ -676,5 +676,9 @@
   {
     "file": "scripts/module-change-transport.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/navigation-modules.test.mjs",
+    "suite": "application"
   }
 ]

@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: navigation keeps closed modules false and failed reload discards old visibility
+ok 1 - navigation keeps closed modules false and failed reload discards old visibility
+  ---
+  duration_ms: 415.404041
+  type: 'test'
+  ...
+# Subtest: navigation never shows the previous company while a new scope loads
+ok 2 - navigation never shows the previous company while a new scope loads
+  ---
+  duration_ms: 81.266125
+  type: 'test'
+  ...
+# Subtest: navigation makes no request before identity is resolved
+ok 3 - navigation makes no request before identity is resolved
+  ---
+  duration_ms: 40.57025
+  type: 'test'
+  ...
+# Subtest: desktop and mobile navigation intersect role and module visibility; core settings stay reachable
+ok 4 - desktop and mobile navigation intersect role and module visibility; core settings stay reachable
+  ---
+  duration_ms: 98.999459
+  type: 'test'
+  ...
+# Subtest: module panel reads only for a verified manager and never invents default module states
+ok 5 - module panel reads only for a verified manager and never invents default module states
+  ---
+  duration_ms: 443.956292
+  type: 'test'
+  ...
+# Subtest: module panel shows server states and dependencies without mutation controls
+ok 6 - module panel shows server states and dependencies without mutation controls
+  ---
+  duration_ms: 94.002625
+  type: 'test'
+  ...
+# Subtest: failed reload clears previous settings instead of showing stale configuration
+ok 7 - failed reload clears previous settings instead of showing stale configuration
+  ---
+  duration_ms: 52.364334
+  type: 'test'
+  ...
+# Subtest: late previous-company response never appears in the new company panel
+ok 8 - late previous-company response never appears in the new company panel
+  ---
+  duration_ms: 66.239708
+  type: 'test'
+  ...
+# Subtest: module editor receives a commit capability only with explicit release opt-in
+ok 9 - module editor receives a commit capability only with explicit release opt-in
+  ---
+  duration_ms: 87.7735
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2386.409834

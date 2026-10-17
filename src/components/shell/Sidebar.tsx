@@ -22,6 +22,8 @@ import { clsx } from "clsx";
 import { useRole } from "@/context/RoleContext";
 import { useNavigationGuard } from "@/context/NavigationGuardContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
+import {useNavigationModules} from "@/components/modules/useNavigationModules";
+import type {ModuleKey} from "@/lib/modules/catalog";
 import type { UserRole } from "@/context/RoleContext";
 import {
   Z_SIDEBAR,
@@ -34,20 +36,21 @@ interface MenuItem {
   icon: typeof LayoutDashboard;
   /** Which roles can see this nav item. If omitted, all roles see it. */
   roles?: UserRole[];
+  module?: ModuleKey;
 }
 
 const MENU_ITEMS: MenuItem[] = [
   { key: "dashboard", label: "Genel Bakış", href: "/dashboard", icon: LayoutDashboard },
-  { key: "firmalar", label: "Firmalar", href: "/firmalar", icon: Building2 },
-  { key: "projeler", label: "Projeler", href: "/projeler", icon: FolderOpen, roles: ["yonetici", "operasyon", "ik", "muhasebe"] },
-  { key: "sozlesmeler", label: "Sözleşmeler", href: "/sozlesmeler", icon: FileText, roles: ["yonetici", "partner", "operasyon"] },
-  { key: "talepler", label: "Personel Talepleri", href: "/talepler", icon: Users, roles: ["yonetici", "partner", "operasyon"] },
-  { key: "personel-havuzu", label: "Personel Havuzu", href: "/personel-havuzu", icon: Users, roles: ["yonetici", "operasyon", "ik"] },
-  { key: "aktif-isgucu", label: "Aktif İş Gücü", href: "/aktif-isgucu", icon: HardHat, roles: ["yonetici", "partner", "operasyon", "ik"] },
-  { key: "randevular", label: "Randevular", href: "/randevular", icon: CalendarCheck, roles: ["yonetici", "partner", "operasyon"] },
-  { key: "gorevler", label: "Görevler", href: "/gorevler", icon: ListChecks, roles: ["yonetici", "partner", "operasyon", "ik"] },
-  { key: "evraklar", label: "Evraklar", href: "/evraklar", icon: FolderOpen, roles: ["yonetici", "partner", "operasyon", "ik"] },
-  { key: "finansal-ozet", label: "Finansal Özet", href: "/finansal-ozet", icon: TrendingUp, roles: ["yonetici", "muhasebe"] },
+  { key: "firmalar", module: "customers", label: "Firmalar", href: "/firmalar", icon: Building2 },
+  { key: "projeler", module: "reporting", label: "Projeler", href: "/projeler", icon: FolderOpen, roles: ["yonetici", "operasyon", "ik", "muhasebe"] },
+  { key: "sozlesmeler", module: "contracts", label: "Sözleşmeler", href: "/sozlesmeler", icon: FileText, roles: ["yonetici", "partner", "operasyon"] },
+  { key: "talepler", module: "staffing", label: "Personel Talepleri", href: "/talepler", icon: Users, roles: ["yonetici", "partner", "operasyon"] },
+  { key: "personel-havuzu", module: "talent", label: "Personel Havuzu", href: "/personel-havuzu", icon: Users, roles: ["yonetici", "operasyon", "ik"] },
+  { key: "aktif-isgucu", module: "staffing", label: "Aktif İş Gücü", href: "/aktif-isgucu", icon: HardHat, roles: ["yonetici", "partner", "operasyon", "ik"] },
+  { key: "randevular", module: "calendar", label: "Randevular", href: "/randevular", icon: CalendarCheck, roles: ["yonetici", "partner", "operasyon"] },
+  { key: "gorevler", module: "tasks", label: "Görevler", href: "/gorevler", icon: ListChecks, roles: ["yonetici", "partner", "operasyon", "ik"] },
+  { key: "evraklar", module: "documents", label: "Evraklar", href: "/evraklar", icon: FolderOpen, roles: ["yonetici", "partner", "operasyon", "ik"] },
+  { key: "finansal-ozet", module: "finance", label: "Finansal Özet", href: "/finansal-ozet", icon: TrendingUp, roles: ["yonetici", "muhasebe"] },
   { key: "raporlar", label: "Raporlar", href: "/raporlar", icon: BarChart3 },
   { key: "yonetim", label: "Şirket Yönetimi", href: "/yonetim", icon: Building2, roles: ["yonetici"] },
   { key: "ayarlar", label: "Ayarlar", href: "/ayarlar", icon: Settings, roles: ["yonetici"] },
@@ -71,8 +74,10 @@ export default function Sidebar() {
   const { role } = useRole();
   const { workspace, loading: workspaceLoading, error: workspaceError, reload: reloadWorkspace } = useWorkspace();
 
+  const navigationModules = useNavigationModules();
   const visibleItems = MENU_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(role)
+    (item) => (!item.roles || item.roles.includes(role))
+      && (!item.module || navigationModules.modules?.[item.module] === true)
   );
 
   const content = <>
@@ -81,6 +86,8 @@ export default function Sidebar() {
         <span className="min-w-0"><span className="block truncate font-semibold tracking-tight" title={workspace?.name}>{workspace?.name ?? 'Çalışma alanı'}</span><span className="block truncate text-xs text-slate-400 mt-0.5">{workspaceLoading ? 'Şirket doğrulanıyor…' : workspaceError ? 'Şirket bilgisi alınamadı' : 'Operasyon çalışma alanı'}</span></span>
       </Link>
       {workspaceError && <button className="mx-3 mt-2 min-h-11 rounded-lg px-3 text-left text-xs text-amber-200 underline focus-visible:outline-2 focus-visible:outline-blue-300" onClick={() => void reloadWorkspace()}>Şirket bilgisini yeniden yükle</button>}
+      {navigationModules.loading && <p role="status" className="px-6 py-2 text-xs text-slate-400">Menü hazırlanıyor…</p>}
+      {navigationModules.error && <button className="mx-3 min-h-11 rounded-lg px-3 text-left text-xs text-amber-200 underline" onClick={() => void navigationModules.reload()}>Modül menüsü yüklenemedi. Tekrar dene</button>}
       <nav aria-label="Ana menü" className="flex-1 overflow-y-auto px-3 py-5">
         {[
           {label: "ÇALIŞMA ALANI", keys: ["dashboard", "talepler", "personel-havuzu", "aktif-isgucu", "gorevler", "randevular"]},

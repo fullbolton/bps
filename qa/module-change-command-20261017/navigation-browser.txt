@@ -1,0 +1,150 @@
+- button "Open Next.js Dev Tools":
+- alert
+- link "İçeriğe geç":
+  - /url: "#main-content"
+- complementary:
+  - link "BPS Synthetic A Operasyon çalışma alanı":
+    - /url: /dashboard
+    - generic: BPS
+    - generic "Synthetic A"
+    - generic: Operasyon çalışma alanı
+  - navigation "Ana menü":
+    - paragraph: ÇALIŞMA ALANI
+    - list:
+      - link "Genel Bakış":
+        - /url: /dashboard
+        - generic: Genel Bakış
+      - link "Personel Talepleri":
+        - /url: /talepler
+        - generic: Personel Talepleri
+      - link "Personel Havuzu":
+        - /url: /personel-havuzu
+        - generic: Personel Havuzu
+      - link "Aktif İş Gücü":
+        - /url: /aktif-isgucu
+        - generic: Aktif İş Gücü
+      - link "Görevler":
+        - /url: /gorevler
+        - generic: Görevler
+      - link "Randevular":
+        - /url: /randevular
+        - generic: Randevular
+    - paragraph: MÜŞTERİ VE HİZMET
+    - list:
+      - link "Firmalar":
+        - /url: /firmalar
+        - generic: Firmalar
+      - link "Projeler":
+        - /url: /projeler
+        - generic: Projeler
+      - link "Sözleşmeler":
+        - /url: /sozlesmeler
+        - generic: Sözleşmeler
+      - link "Evraklar":
+        - /url: /evraklar
+        - generic: Evraklar
+    - paragraph: YÖNETİM
+    - list:
+      - link "Şirket Yönetimi":
+        - /url: /yonetim
+        - generic: Şirket Yönetimi
+      - link "Raporlar":
+        - /url: /raporlar
+        - generic: Raporlar
+      - link "Ayarlar":
+        - /url: /ayarlar
+        - generic: Ayarlar
+  - generic: Planla. Takip et. Birlikte tamamla.
+- banner:
+  - paragraph: Ayarlar
+  - generic: Pazar, 18 Ekim 2026 • 00:34
+  - link "Şirket değiştir":
+    - /url: /sirket-sec
+  - button "Kullanıcı menüsü":
+    - generic: document-qa
+- main:
+  - heading "Ayarlar" [level=1]
+  - paragraph: Şirket ekibi, modüller ve erişim başvuruları
+  - link "Ekip davetleri ve kurulum → Ekibe erişim verin; firma, şube ve ilk plan adımlarını tamamlayın.":
+    - /url: /kurulum
+    - generic: Ekip davetleri ve kurulum →
+    - generic: Ekibe erişim verin; firma, şube ve ilk plan adımlarını tamamlayın.
+  - link "İş dağılımını görüntüle → Kimde hangi iş var, hangi işler üstlenilmeyi bekliyor görün.":
+    - /url: /yonetim
+    - generic: İş dağılımını görüntüle →
+    - generic: Kimde hangi iş var, hangi işler üstlenilmeyi bekliyor görün.
+  - navigation "Sayfa bölümleri":
+    - button "Şirket ekibi"
+    - button "Modüller" [pressed]
+    - button "Platform başvuruları"
+  - region "Şirket modülleri":
+    - heading "Şirket modülleri" [level=2]
+    - paragraph: Bu şirketin kullandığı bölümler. Her kullanıcının erişimi ayrıca rolüne bağlıdır.
+    - button "Durumu yenile"
+    - paragraph: Değişiklikleri inceleyip onayladıktan sonra şirket ayarları güncellenir. Kapatılan modülün verileri silinmez.
+    - paragraph: Synthetic A
+    - list:
+      - heading "Müşteriler" [level=3]
+      - generic: Açık
+      - paragraph: Firma, yetkili ve şube bilgileri.
+      - heading "Görevler" [level=3]
+      - generic: Açık
+      - paragraph: Ekip işleri, sorumlular ve tamamlanma takibi.
+      - heading "Takvim ve görüşmeler" [level=3]
+      - generic: Açık
+      - paragraph: Firma randevuları ve görüşme takvimi.
+      - paragraph: "Gerekli modüller: Müşteriler"
+      - heading "Belgeler" [level=3]
+      - generic: Açık
+      - paragraph: Firma belgeleri, klasörler ve evrak takibi.
+      - paragraph: "Gerekli modüller: Müşteriler"
+      - heading "Sözleşmeler" [level=3]
+      - generic: Açık
+      - paragraph: Sözleşmeler, ekleri ve yenileme takibi.
+      - paragraph: "Gerekli modüller: Müşteriler, Belgeler"
+      - heading "Personel havuzu" [level=3]
+      - generic: Açık
+      - paragraph: Adaylar, görüşmeler, listeler ve dosya aktarımı.
+      - heading "Personel operasyonu" [level=3]
+      - generic: Açık
+      - paragraph: Personel talepleri, görevlendirme ve işe başlama takibi.
+      - paragraph: "Gerekli modüller: Müşteriler"
+      - heading "Proje raporlama" [level=3]
+      - generic: Açık
+      - paragraph: Dışarıda yürütülen projelerin çalışma raporları.
+      - paragraph: "Gerekli modüller: Müşteriler"
+      - heading "Finansal özet" [level=3]
+      - generic: Kapalı
+      - paragraph: Firma finansal verileri ve Luca aktarımları.
+      - paragraph: "Gerekli modüller: Müşteriler"
+      - heading "Duyurular" [level=3]
+      - generic: Açık
+      - paragraph: Şirket içi duyurular ve paylaşımlar.
+    - region "Modül değişikliği önizlemesi":
+      - heading "Değişiklikleri incele" [level=3]
+      - paragraph: Kullanmak istediğiniz modülleri seçin; açık işleri ve gerekli bağlantıları kontrol edin. Bu seçimler şirket ayarlarını değiştirmez.
+      - group "Önizleme için modül seçimi":
+        - generic: Önizleme için modül seçimi
+        - checkbox "Müşteriler" [checked]
+        - generic: Müşteriler
+        - checkbox "Görevler" [checked]
+        - generic: Görevler
+        - checkbox "Takvim ve görüşmeler" [checked]
+        - generic: Takvim ve görüşmeler
+        - checkbox "Belgeler" [checked]
+        - generic: Belgeler
+        - checkbox "Sözleşmeler" [checked]
+        - generic: Sözleşmeler
+        - checkbox "Personel havuzu" [checked]
+        - generic: Personel havuzu
+        - checkbox "Personel operasyonu" [checked]
+        - generic: Personel operasyonu
+        - checkbox "Proje raporlama" [checked]
+        - generic: Proje raporlama
+        - checkbox "Finansal özet"
+        - generic: Finansal özet
+        - checkbox "Duyurular" [checked]
+        - generic: Duyurular
+      - paragraph: Henüz değişiklik seçilmedi.
+      - button "Etkisini kontrol et" [disabled]
+      - button "Seçimleri sıfırla" [disabled]
