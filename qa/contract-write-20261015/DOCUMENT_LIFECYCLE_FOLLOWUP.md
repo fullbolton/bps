@@ -691,3 +691,10 @@ Bileşen testinde kapalı panelin sürüm değişiminde sorgu yapmadığı, aç�
 6fe34a4 kaynakla yerel sentetik Auth + Storage ortamı açıldı. CUA tarayıcısında Dosya temizliği önce açıldı (bir mevcut iş), ardından Yarım kalan yüklemelerden Dosyası yüklenmiş iptal kaydı onayla iptal edildi. Listeyi yenileye basılmadan açık temizlik panelinde yeni 9103 kaydı görüldü; eski 9205 işi de korundu. Temizlik paneli açık kaldı. İptal dosyayı bu adımda fiziksel olarak silmez; bu tur temizlik düğmesi çalıştırılmadı.
 
 browser-cleanup-refresh-20261017.png ve .txt ekran/DOM kanıtları kaydedildi. Aynı kurulumdaki 29 Storage HTTP kontrolü geçti; süreç exit 0 ile geçici kaynaklarını temizleyerek kapandı. Önceki 19/19 bileşen testiyle birlikte son yenileme düzeltmesinin yerel tarayıcı kapısı kapandı. Üretim yayını, migration veya gerçek veri işlemi yapılmadı.
+
+
+## 17 Ekim — temizlik listesi yanıt doğrulaması
+
+DocumentCleanupPanel artık document-pending-cleanup.ts servisini kullanır. En fazla 51 satır, benzersiz boş olmayan ID, nullable metin etiketleri, geçerli created_at ve 50'nin katı sınırlı offset doğrulanır. Hatalı/eksik yanıt başarı veya boş liste sayılmaz; yenilemede eski satırlar ve sonraki sayfa bilgisi temizlenir. Tenant/yönetici denetimi mevcut RPC'dedir; dönüş satırlarında tenant alanı olmadığı için istemcide tenant eşleşmesi iddia edilmez.
+
+Cleanup + pending upload süitleri 21/21 geçti. Yeni testler geçerli nullable etiketleri, 51 satır sentinel'i, bozuk/tekrarlı/aşırı yanıtları, geçersiz offset'in istek yapmamasını ve bozuk yenilemede eski satır yerine hata gösterilmesini doğruladı. Kanıt cleanup-validation-tests.tap. SQL/migration yok; bu son doğrulama değişikliği tarayıcıda henüz denenmedi, üretime yayımlanmadı.

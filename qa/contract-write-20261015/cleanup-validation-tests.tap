@@ -1,0 +1,29 @@
+✔ retry uses server-resolved path only and acknowledges first (31.19525ms)
+✔ already removed file is acknowledged without another Storage delete (4.617917ms)
+✔ missing target, failed and malformed acknowledgement never remove files (15.792583ms)
+✔ failed cleanup remains a failure with a retained-job message (2.447791ms)
+✔ panel loads on demand, prevents double retry and refreshes after confirmation (54.837875ms)
+✔ external refresh reloads an open cleanup panel without collapsing it and stays lazy when closed (8.840458ms)
+✔ cleanup list validates pages, nullable labels, unique ids and date values (0.60325ms)
+✔ malformed refresh clears old cleanup rows and shows an error, not empty success (6.935292ms)
+✔ pending pages use a sentinel and never drop the next-page indicator (1.213958ms)
+✔ malformed, duplicate, foreign and transport responses never become an empty list (0.65425ms)
+✔ invalid offsets are rejected without a request (0.154291ms)
+✔ panel loads only on opening and displays failure rather than an empty state (44.235042ms)
+✔ cancellation requires a true receipt and never treats transport failure as success (0.596584ms)
+✔ recovery verifies stored bytes before finalizing the original id exactly once (0.348209ms)
+✔ denied scope, missing file, wrong size and disguised PDF never finalize (0.19725ms)
+✔ unverifiable finalization never reports success or retries the write (0.186541ms)
+✔ recovery button prevents duplicate clicks and refreshes both lists after success (51.62675ms)
+✔ cancellation needs confirmation and prevents duplicate submissions (13.478ms)
+✔ recovery distinguishes verified access denial from transport and malformed responses (0.467167ms)
+✔ upload server actions bound requests and never revalidate or retry an uncertain result (11.712375ms)
+✔ completing or cancelling the last row on a later page returns to the previous page (19.061208ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 502.354625

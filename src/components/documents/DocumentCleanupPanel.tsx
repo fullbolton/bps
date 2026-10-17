@@ -4,13 +4,13 @@ import {useEffect, useRef, useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 import {retryDocumentCleanup} from "@/app/(main)/evraklar/cleanup-actions";
 
-type Job = {document_id: string; document_name: string | null; company_name: string | null; created_at: string};
+import {listPendingDocumentCleanup, type PendingDocumentCleanup} from "@/lib/services/document-pending-cleanup";
 /** Parent keys this panel by authenticated tenant/user/role scope. */
 export default function DocumentCleanupPanel({tenantId, refreshVersion = 0}: {tenantId: string; refreshVersion?: number}) {
   const [open, setOpen] = useState(false);
   const [offset, setOffset] = useState(0);
   const [version, setVersion] = useState(0);
-  const [rows, setRows] = useState<Job[]>([]);
+  const [rows, setRows] = useState<PendingDocumentCleanup[]>([]);
   const [more, setMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,12 +22,11 @@ export default function DocumentCleanupPanel({tenantId, refreshVersion = 0}: {te
   useEffect(() => {
     if (!open) return;
     let active = true;
-    setLoading(true); setError(""); setRows([]);
+    setLoading(true); setError(""); setRows([]); setMore(false);
     void (async () => {
       try {
-        const result = await createClient().rpc("document_pending_cleanup_v1", {p_tenant: tenantId, p_offset: offset});
-        if (result.error || !Array.isArray(result.data)) throw Error("load");
-        if (active) {setRows(result.data.slice(0,50)); setMore(result.data.length > 50);}
+        const result = await listPendingDocumentCleanup(createClient(), tenantId, offset);
+        if (active) {setRows(result.rows); setMore(result.hasMore);}
       } catch {
         if (active) setError("Bekleyen işlemler alınamadı. Yenileyerek tekrar deneyin.");
       } finally {if (active) setLoading(false);}
