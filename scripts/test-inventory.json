@@ -664,5 +664,9 @@
   {
     "file": "scripts/module-change-attempt.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/module-change-commit.test.mjs",
+    "suite": "application"
   }
 ]

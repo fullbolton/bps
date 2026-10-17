@@ -125,3 +125,9 @@ Attempt + receipt süiti 13/13, TypeScript geçti. Yeni kabuller: dispatch önce
 command.test.mjs artık gerçek TypeScript createModuleChangeAttempt katmanını yerel change_workspace_modules_v1 adayına, SQL'in gerçek isimli argümanlarıyla bağlar. İlk SQL commit'inden sonra transport kasıtlı hata verir (fiziksel ağ kesintisi değil, yanıt kaybı enjeksiyonu). İstemci unconfirmed olur. Yenilenmiş context ile aynı deneme tekrar gönderildiğinde replayed=true receipt doğrulanır: aynı immutable payload/UUID, yalnız bir receipt ve tek revision artışı. Sonraki tekrar transport çağırmaz. Fixture ayarları ayrı komutla eski durumuna döndürülür.
 
 Gerçek PostgreSQL süiti 26/26 geçti; önceki yarış/yetki/rollback senaryoları da geçti. Kanıt qa/module-change-command-20261017/result.tap. Geçici DB temizlendi. Bu PostgreSQL sürücüsü üzerinden kabul; HTTP/RPC grant veya tarayıcı entegrasyonu değildir. Aday komut istemcilere hâlâ kapalı. Ürün kodu/migration/üretim değişmedi.
+
+## 17 Ekim — kayıt paneli adayı
+
+ModuleChangeCommit.tsx eklendi: onayla/kaydediliyor, belirsiz sonuçta aynı işlemi tekrar dene, doğrulanmış commit sonrası ayarları yenile, yenileme başarısızsa yalnız okumayı tekrar dene. Ayrılan panel geç yanıtla refresh çağırmaz; niyet discard edilir. Parent entegrasyonu aynı reviewed draft/attempt'i korumalı, şirket/üyelik/seçim değişiminde paneli yeniden kurmalıdır.
+
+Bileşen + attempt + receipt 16/16 ve TypeScript geçti; commit-ui-tests.tap. Üç bileşen kabulü çift tıklama/belirsiz tekrar, commit sonrası yalnız okuma tekrarı, unmount sonrası geç yanıtı kapsar. Panel henüz WorkspaceModules'a bağlanmadı, gerçek RPC/grant açılmadı, tarayıcı kabulü yapılmadı. Üretim değişmedi.
