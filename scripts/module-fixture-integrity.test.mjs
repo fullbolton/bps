@@ -22,7 +22,7 @@ test('historical files and non-SQL notes do not become fixture migrations',()=>{
 
 test('atomic command expects exactly the checks required by the preview parser',async()=>{
  const {MODULE_CHANGE_CHECKS}=await importActualTypeScript(new URL('../src/lib/modules/change-preview.ts',import.meta.url));
- const sql=readFileSync(new URL('../qa/module-change-command-20261017/command-candidate.sql',import.meta.url),'utf8');
+ const sql=readFileSync(new URL('../supabase/migrations/20261018000100_workspace_module_change_command.sql',import.meta.url),'utf8');
  const checks=[...sql.matchAll(/\('([a-z_]+)','([a-z_]+)'\)/g)].map(m=>({module:m[1],code:m[2]}));
  assert.deepEqual(checks,MODULE_CHANGE_CHECKS.map(({module,code})=>({module,code})));
 });

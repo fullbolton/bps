@@ -22,5 +22,6 @@
   "20261016001000_workspace_conflict_http.sql",
   "20261016001100_document_storage_module_barrier.sql",
   "20261017000100_legacy_staffing_module_barriers.sql",
-  "20261017000200_contract_upload_module_preview.sql"
+  "20261017000200_contract_upload_module_preview.sql",
+  "20261018000100_workspace_module_change_command.sql"
 ]

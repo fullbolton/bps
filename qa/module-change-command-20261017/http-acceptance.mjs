@@ -20,7 +20,6 @@ const report={scope:'Local PostgREST with synthetic signed JWTs, not GoTrue logi
 try{
  sql(`CREATE DATABASE ${database} TEMPLATE bps_module_chain_20261005;`,'postgres');created=true;
  for(const f of loadFixtureMigrations())sql(readFileSync(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
- sql(readFileSync(new URL('./command-candidate.sql',import.meta.url),'utf8'));
  const uri=`postgres://authenticator:${encodeURIComponent(password)}@${source}:5432/${database}`;secrets.push(uri);
  docker(['run','-d','--name',rest,'--network','supabase_network_bps-supabase-acceptance','-p','127.0.0.1::3000','-e',`PGRST_DB_URI=${uri}`,'-e','PGRST_DB_SCHEMAS=public','-e','PGRST_DB_ANON_ROLE=anon','-e',`PGRST_JWT_SECRET=${secret}`,'public.ecr.aws/supabase/postgrest:v14.3']);started=true;
  const base='http://127.0.0.1:'+docker(['port',rest,'3000/tcp']).split(':').at(-1);
@@ -29,7 +28,19 @@ try{
  const modules={...ctx.modules,announcements:!ctx.modules.announcements};
  const payload={p_actor:ctx.actorId,p_tenant:ctx.tenantId,p_membership_version:ctx.membershipVersion,p_selection_version:ctx.selectionVersion,p_revision:ctx.configRevision,p_command:id(9800),p_modules:modules};
  assert.equal((await rpc('change_workspace_modules_v1',payload)).status,403);report.checks.push('candidate denied before local-only grant');
- sql(`GRANT EXECUTE ON FUNCTION ${signature} TO authenticated;`);
+ const enable=readFileSync(new URL('./release/enable.sql',import.meta.url),'utf8');
+ sql(`ALTER FUNCTION ${signature} RESET ALL;`);
+ assert.throws(()=>sql(enable),/MODULE_ACTIVATION_DRIFT/);
+ assert.equal(sql(`SELECT has_function_privilege('authenticated','${signature}','EXECUTE');`),'f');
+ sql(`ALTER FUNCTION ${signature} SET search_path='';`);
+ sql(`ALTER FUNCTION ${signature} SET lock_timeout='6s';`);
+ assert.throws(()=>sql(enable),/MODULE_ACTIVATION_DRIFT/);
+ assert.equal(sql(`SELECT has_function_privilege('authenticated','${signature}','EXECUTE');`),'f');
+ sql(`ALTER FUNCTION ${signature} SET lock_timeout='5s';GRANT EXECUTE ON FUNCTION ${signature} TO anon;`);
+ assert.throws(()=>sql(enable),/MODULE_ACTIVATION_ACL_DRIFT/);
+ sql(`REVOKE EXECUTE ON FUNCTION ${signature} FROM anon;`);
+ report.checks.push('activation refuses missing config, config drift and ACL drift without granting authenticated execution');
+ sql(enable);
  for(const token of [anon,service])assert.ok(!(await rpc('change_workspace_modules_v1',payload,token)).ok);
  report.checks.push('anon and service remain denied after authenticated-only local grant');
  const attempt=createModuleChangeAttempt(ctx,id(9800),modules);let calls=0;
@@ -43,7 +54,7 @@ try{
  report.checks.push('HTTP commit followed by response-loss injection replays exactly one receipt and revision');
  const foreign=await rpc('change_workspace_modules_v1',{...payload,p_command:id(9801)},jwt('authenticated',12,2));assert.equal(foreign.status,403);
  report.checks.push('another tenant cannot invoke the original actor intent');
- sql(`REVOKE EXECUTE ON FUNCTION ${signature} FROM authenticated;`);
+ sql(readFileSync(new URL('./release/disable.sql',import.meta.url),'utf8'));
  assert.equal((await rpc('change_workspace_modules_v1',payload)).status,403);report.checks.push('revoked permission prevents even replay');
  report.success=true;
 }catch(e){report.error=redact(e.stack||e);}

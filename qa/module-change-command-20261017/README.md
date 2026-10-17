@@ -1,6 +1,6 @@
-# Modül değişiklik komutu — yerel aday, 17 Ekim 2026
+# Modül değişiklik komutu — kontrollü yayın paketi
 
-Üretime uygulanmadı. `command-candidate.sql` migration dizininin dışında; PUBLIC, anon, authenticated ve service_role EXECUTE yetkileri açıkça kaldırılır. UI bu komutu çağırmaz. Komutun bulunması modül kapatmanın ürün olarak hazır olduğunu göstermez.
+18 Ekim güncel durum: SQL artık `supabase/migrations/20261018000100_workspace_module_change_command.sql` içinde. Kurulum tüm istemci EXECUTE izinlerini kapalı bırakır. Gerçek Ayarlar bağlantısı ve tarayıcı kabulü tamamlandı; üretim flag açılmadı. Güncel sıra ve kanıtlar [release/README.md](release/README.md) içindedir. Aşağıdaki tarihli sonuçlar tarihsel kapsamlarıyla korunur.
 
 ## Davranış
 
@@ -18,11 +18,11 @@ Doğrulananlar: istemci yetkileri kapalı; idempotent tekrar; farklı payload re
 
 Çalıştırma:
 ```sh
-NODE_PATH=/private/tmp/bps-calendar-qa-runtime/node_modules node --test qa/module-change-command-20261017/command.test.mjs
+NODE_PATH=/tmp/bps-module-release-runtime/node_modules node --test qa/module-change-command-20261017/command.test.mjs
 ```
 İlk çalışma pg modülü çözümlenemediği için başlamadı; mevcut QA runtime ile tekrar çalıştı. Paket kurulmadı.
 
-## Yayın öncesi kalanlar
+## İlk incelemede kalanlar (tarihsel; güncel durum release/README.md)
 
 1. Diğer tüm yazma/cron/Storage yollarının ortak config bariyerine uyumunu güncel katalogla teyit et; yalnız tasks yarışından genel kapsama sonucu çıkarma.
 2. Yetki/şirket değişimi bekleme yarışları ve farklı yöneticilerle yerel SQL kabulü tamamlandı; HTTP oturumu/yenileme ve UI sonucu kabulü kalıyor.

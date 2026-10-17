@@ -1,0 +1,167 @@
+TAP version 13
+# Subtest: local module command candidate
+    # Subtest: attempt controller recovers a lost committed response with one receipt
+    ok 1 - attempt controller recovers a lost committed response with one receipt
+      ---
+      duration_ms: 94.148042
+      type: 'test'
+      ...
+    # Subtest: candidate remains inaccessible to client and service roles
+    ok 2 - candidate remains inaccessible to client and service roles
+      ---
+      duration_ms: 6.336417
+      type: 'test'
+      ...
+    # Subtest: incomplete or malformed assessment never permits a config write
+    ok 3 - incomplete or malformed assessment never permits a config write
+      ---
+      duration_ms: 95.854125
+      type: 'test'
+      ...
+    # Subtest: corporate dates remain core with modules off and retain tenant boundaries
+    ok 4 - corporate dates remain core with modules off and retain tenant boundaries
+      ---
+      duration_ms: 41.412208
+      type: 'test'
+      ...
+    # Subtest: audit write failure rolls back settings and revision; same command can retry
+    ok 5 - audit write failure rolls back settings and revision; same command can retry
+      ---
+      duration_ms: 48.926417
+      type: 'test'
+      ...
+    # Subtest: change is atomic, replay creates no duplicate, changed payload and stale revision fail
+    ok 6 - change is atomic, replay creates no duplicate, changed payload and stale revision fail
+      ---
+      duration_ms: 29.278834
+      type: 'test'
+      ...
+    # Subtest: retry after a later configuration change returns original receipt without reverting settings
+    ok 7 - retry after a later configuration change returns original receipt without reverting settings
+      ---
+      duration_ms: 37.013791
+      type: 'test'
+      ...
+    # Subtest: concurrent identical commands serialize into one commit and one replay
+    ok 8 - concurrent identical commands serialize into one commit and one replay
+      ---
+      duration_ms: 82.417167
+      type: 'test'
+      ...
+    # Subtest: dependencies, wrong actor, stale membership and no-op cannot write
+    ok 9 - dependencies, wrong actor, stale membership and no-op cannot write
+      ---
+      duration_ms: 25.828375
+      type: 'test'
+      ...
+    # Subtest: repeatable read and cross-tenant calls fail closed
+    ok 10 - repeatable read and cross-tenant calls fail closed
+      ---
+      duration_ms: 9.509125
+      type: 'test'
+      ...
+    # Subtest: pending document preparation prevents closing with no metadata receipt
+    ok 11 - pending document preparation prevents closing with no metadata receipt
+      ---
+      duration_ms: 56.681875
+      type: 'test'
+      ...
+    # Subtest: cancelled upload blocks closure until cleanup acknowledgement and retains its tombstone
+    ok 12 - cancelled upload blocks closure until cleanup acknowledgement and retains its tombstone
+      ---
+      duration_ms: 53.628375
+      type: 'test'
+      ...
+    # Subtest: upload preparation commits first: waiting close sees the reservation
+    ok 13 - upload preparation commits first: waiting close sees the reservation
+      ---
+      duration_ms: 58.782834
+      type: 'test'
+      ...
+    # Subtest: document close commits first: waiting upload cannot create a reservation
+    ok 14 - document close commits first: waiting upload cannot create a reservation
+      ---
+      duration_ms: 64.132958
+      type: 'test'
+      ...
+    # Subtest: expired contract pending upload blocks closure independently of contract status
+    ok 15 - expired contract pending upload blocks closure independently of contract status
+      ---
+      duration_ms: 71.660083
+      type: 'test'
+      ...
+    # Subtest: two concurrent sessions with the same revision cannot overwrite one another
+    ok 16 - two concurrent sessions with the same revision cannot overwrite one another
+      ---
+      duration_ms: 53.234791
+      type: 'test'
+      ...
+    # Subtest: writer commits first: waiting close sees newly committed open task and rejects
+    ok 17 - writer commits first: waiting close sees newly committed open task and rejects
+      ---
+      duration_ms: 34.292
+      type: 'test'
+      ...
+    # Subtest: close commits first: waiting business writer rejects disabled module
+    ok 18 - close commits first: waiting business writer rejects disabled module
+      ---
+      duration_ms: 54.231791
+      type: 'test'
+      ...
+    # Subtest: reopening preserves work and increments revision once
+    ok 19 - reopening preserves work and increments revision once
+      ---
+      duration_ms: 19.681959
+      type: 'test'
+      ...
+    # Subtest: authenticated legacy demand commits first: real close command sees it and rejects
+    ok 20 - authenticated legacy demand commits first: real close command sees it and rejects
+      ---
+      duration_ms: 79.192833
+      type: 'test'
+      ...
+    # Subtest: real close commits first: authenticated legacy upsert is rejected and reopen preserves data
+    ok 21 - real close commits first: authenticated legacy upsert is rejected and reopen preserves data
+      ---
+      duration_ms: 126.327291
+      type: 'test'
+      ...
+    # Subtest: role revoked while command waits on profile: no settings or receipt written
+    ok 22 - role revoked while command waits on profile: no settings or receipt written
+      ---
+      duration_ms: 54.802083
+      type: 'test'
+      ...
+    # Subtest: role revoked while command waits on config: no settings or receipt written
+    ok 23 - role revoked while command waits on config: no settings or receipt written
+      ---
+      duration_ms: 35.146917
+      type: 'test'
+      ...
+    # Subtest: different managers serialize by tenant and cannot replay another actor receipt
+    ok 24 - different managers serialize by tenant and cannot replay another actor receipt
+      ---
+      duration_ms: 99.628875
+      type: 'test'
+      ...
+    # Subtest: workspace selection commits during profile wait: old company command is rejected
+    ok 25 - workspace selection commits during profile wait: old company command is rejected
+      ---
+      duration_ms: 50.8125
+      type: 'test'
+      ...
+    1..25
+ok 1 - local module command candidate
+  ---
+  duration_ms: 3515.150791
+  type: 'test'
+  ...
+1..1
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5132.45575

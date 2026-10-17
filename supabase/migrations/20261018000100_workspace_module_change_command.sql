@@ -1,6 +1,7 @@
--- LOCAL CANDIDATE ONLY. No client EXECUTE grant and not in the migration chain.
+-- Installs the reviewed atomic command with all client EXECUTE privileges revoked.
 -- Enable only after write-boundary acceptance and release preflight.
 BEGIN;
+SET LOCAL lock_timeout='15s';
 CREATE FUNCTION public.change_workspace_modules_v1(
  p_actor uuid,p_tenant uuid,p_membership_version uuid,p_selection_version uuid,
  p_revision text,p_command uuid,p_modules jsonb

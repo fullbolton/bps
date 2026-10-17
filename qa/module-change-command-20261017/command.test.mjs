@@ -23,7 +23,6 @@ test('local module command candidate',async t=>{
   for(const file of files)await a.query(readFileSync(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
   const writerCandidates=(await a.query(`select p.oid::regprocedure::text signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef and has_function_privilege('authenticated',p.oid,'execute') and p.prosrc ~* '(insert into|update public[.]|delete from)' and p.prosrc not like '%workspace_require_module_write_v1%' order by 1`)).rows;
   writeFileSync(new URL('./post-migration-writer-candidates.json',import.meta.url),JSON.stringify({scope:'local synthetic clone, textual candidates only; not exhaustive runtime authorization',applied:files,candidates:writerCandidates},null,2)+'\n');
-  await a.query(readFileSync(new URL('./command-candidate.sql',import.meta.url),'utf8'));
   const context=async c=>(await c.query('select current_workspace_modules_v1() AS value')).rows[0].value;
   const invoke=(c,ctx,command,modules)=>c.query('select change_workspace_modules_v1($1,$2,$3,$4,$5,$6,$7) AS value',[ctx.actorId,ctx.tenantId,ctx.membershipVersion,ctx.selectionVersion,ctx.configRevision,id(command),modules]);
   const selectCompany=async(c,actor,tenant,command)=>{

@@ -71,7 +71,6 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
   if(process.env.BPS_BROWSER_MODULES==='1'){
    if(existsSync(moduleRoute))throw Error('Local acceptance route already exists; refusing overwrite');
    sql(`UPDATE profiles SET role='yonetici' WHERE id='${id(11)}';`);
-   sql(readFileSync(new URL('../module-change-command-20261017/command-candidate.sql',import.meta.url),'utf8'));
    sql('GRANT EXECUTE ON FUNCTION public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb) TO authenticated;');
    docker(['restart',rest]);
    restBase='http://127.0.0.1:'+docker(['port',rest,'3000/tcp']).split(':').at(-1);

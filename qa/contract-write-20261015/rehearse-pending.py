@@ -60,8 +60,8 @@ try:
     c=report['catalog']
     if c['barrierOwner']!='postgres' or not c['barrierDefiner'] or c['clientExecute'] or c['statementTriggers']!=2 or c['restrictivePolicies']!=2 or not c['pendingContractCheck']: raise ValueError('Catalog assertions failed')
     if args.candidate:
-        candidate=ROOT/'qa/module-change-command-20261017/command-candidate.sql'
-        check(candidate.read_text())
+        candidate=ROOT/'supabase/migrations/20261018000100_workspace_module_change_command.sql'
+        if candidate.name not in [item['file'] for item in pending]: check(candidate.read_text())
         signature='public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb)'
         metadata=json.loads(check("SELECT json_build_object('owner',proowner::regrole::text,'definer',prosecdef,'config',proconfig,'clientExecute',(SELECT bool_or(has_function_privilege(r,'"+signature+"','EXECUTE')) FROM unnest(ARRAY['anon','authenticated','service_role']) r)) FROM pg_proc WHERE oid='"+signature+"'::regprocedure"))
         if metadata['owner']!='postgres' or not metadata['definer'] or metadata['clientExecute']: raise ValueError('Candidate ACL mismatch')
