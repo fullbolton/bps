@@ -540,3 +540,12 @@ Yalnız sentetik yerel klon kullanıldı, finally ile kaldırıldı. Ürün kodu
 Mevcut modül planındaki durum ekranı eklendi. Seçili şirkette yönetici erişimi doğrulandıktan sonra current workspace RPC yanıtı kullanılır; şirket adı, 10 modülün açık/kapalı durumu ve zorunlu bağımlılıkları gösterilir. Açma/kapatma veya kaydetme komutu yoktur. Hatalı yenilemede eski durum gizlenir; şirket değişiminden sonra geç gelen yanıt gösterilmez. Atomik modül değiştirme akışı henüz tamamlanmadı.
 
 14/14 hedefli test ve TypeScript kontrolü geçti. Gerçek yerel Auth/PostgREST/Next oturumunda Ayarlar → Modüller açıldı; Synthetic A ve 10 modül görüntülendi, Durumu yenile başarılı. Bu tarayıcı kabulü sentetik yerel ortam içindir; üretim testi değildir. Kanıt: modules-panel-20261017.tap ve modules-panel-20261017.jpg. Yeni migration yok. Canlı sürüm 312a468 ve ledger 182 olarak kalır.
+
+
+## 17 Ekim — modül değişikliği önizlemesi (YEREL, yayımlanmadı)
+
+Ayarlar / Modüller ekranına seçim, değişiklik özeti ve mevcut preview_workspace_modules_v1 servisi bağlandı. Kullanıcı seçimi kayıt yapmaz. Eksik bağımlılıklar ve sunucunun bildirdiği açık iş engelleri çözüm bağlantılarıyla gösterilir. Düzenlenen seçim eski sonucu anında geçersiz kılar; gecikmiş yanıt gösterilmez. Yenileme/şirket değişimi üst bileşen tarafından önizlemeyi kaldırır. Hata boş/başarılı sonuç sayılmaz. Bekleyen evrak mesajı mevcut kurtarma/iptal ekranına yönlendirecek şekilde güncellendi.
+
+26/26 hedefli uygulama testi ve TypeScript geçti. Gerçek yerel Auth/PostgREST/Next ile Belgeler seçimi kaldırıldığında Sözleşmeler bağımlılığı, pending_document_cleanup ve pending_document_upload göründü; sıfırlama seçimleri geri getirdi ve sonucu kaldırdı. Kanıt: module-preview-panel-20261017.tap ve module-preview-panel-20261017.jpg. Sentetik klon kullanıldı; üretim verisi değiştirilmedi.
+
+Kalan: config kilidi altında yeniden kontrol eden, revision/idempotency/audit sözleşmesi bulunan atomik değişiklik komutu ve eşzamanlı iş yazma kabulü. Bu paket bu komutu veya genel modül kapatmayı tamamlamaz. Migration eklenmedi; canlı kaynak 312a468 / ledger 182 değişmedi.

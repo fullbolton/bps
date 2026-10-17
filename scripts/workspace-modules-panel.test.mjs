@@ -5,6 +5,7 @@ function setup(loader) {
  const d=driver();let auth={user:{id:'actor',app_metadata:{active_tenant:'A'}},role:'yonetici',loading:false};
  const useScopedResource=compile('src/components/ui/useScopedResource.ts',d.hooks,{},'useScopedResource');
  const panel=compile('src/app/(main)/ayarlar/WorkspaceModules.tsx',d.hooks,{
+  './ModuleChangePreview':{default:()=>null},
   '@/context/AuthContext':{useAuth:()=>auth},
   '@/components/ui/useScopedResource':{useScopedResource},
   '@/lib/supabase/client':{createClient:()=>({})},

@@ -1,5 +1,6 @@
 "use client";
 
+import ModuleChangePreview from "./ModuleChangePreview";
 import {useCallback} from "react";
 import {useAuth} from "@/context/AuthContext";
 import {useScopedResource} from "@/components/ui/useScopedResource";
@@ -39,6 +40,7 @@ export default function WorkspaceModules() {
           {module.requires.length > 0 && <p className="mt-3 text-xs text-slate-500">Gerekli modüller: {module.requires.map(key => MODULE_CATALOG.find(item => item.key === key)!.name).join(", ")}</p>}
         </li>)}
       </ul>
+      <ModuleChangePreview key={`${resource.data.actorId}:${resource.data.tenantId}:${resource.data.membershipVersion}:${resource.data.selectionVersion}:${resource.data.configRevision}`} context={resource.data} />
     </>}
   </section>;
 }

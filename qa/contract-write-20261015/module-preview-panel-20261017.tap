@@ -1,0 +1,34 @@
+✔ selection is advisory, explicit, and passes verified context/revision to the service (105.125958ms)
+✔ dependencies and blocking checks get actionable explanations; nonblocking checks stay out (22.384291ms)
+✔ editing a selection hides previous results and discards a late response (21.744166ms)
+✔ failed checks show an error, allow retry, and resetting removes the result (15.8345ms)
+✔ complete advisory response preserves all checks but never permits mutation (1.369708ms)
+✔ a dependency-invalid draft is accepted so the UI can explain it; incomplete or coerced states are not (0.187208ms)
+✔ scope revision membership role and advisory flags fail closed (0.45575ms)
+✔ missing duplicate foreign and non-boolean checks never become an empty successful report (2.557541ms)
+✔ dependency evidence must match the requested graph (0.3045ms)
+✔ every resolution link targets an existing page (0.243583ms)
+✔ missing upload assessment cannot be mistaken for permission to close documents (0.190167ms)
+✔ one bounded RPC; transport errors and malformed responses never fall back (1.181334ms)
+✔ hard dependencies are a DAG; unknown, duplicate and self edges are rejected (0.636042ms)
+✔ talent, tasks and announcements stand alone; reporting and staffing do not require each other (1.012792ms)
+✔ every one of the 1024 configurations is accepted iff all required dependencies are enabled (6.337875ms)
+✔ partial, unknown, inherited and non-boolean module values never imply enabled (0.252958ms)
+✔ context keeps bigint revisions exact and discards unrelated response fields (0.349083ms)
+✔ actor/company/generation/role/protocol mismatches cannot supply a context (0.296541ms)
+✔ all existing member roles retain their role without receiving new privileges (0.120875ms)
+✔ an older response from another workspace is rejected and no RPC fallback runs (0.300708ms)
+✔ one bounded RPC returns the whole snapshot, without a client-selected tenant argument (0.142584ms)
+✔ migration catalog is generated from the same manifest, not a second hand-maintained graph (0.508416ms)
+✔ module panel reads only for a verified manager and never invents default module states (124.665ms)
+✔ module panel shows server states and dependencies without mutation controls (33.655542ms)
+✔ failed reload clears previous settings instead of showing stale configuration (14.20525ms)
+✔ late previous-company response never appears in the new company panel (10.494125ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 666.523583

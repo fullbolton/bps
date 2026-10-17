@@ -648,5 +648,9 @@
   {
     "file": "scripts/workspace-modules-panel.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/module-change-preview-panel.test.mjs",
+    "suite": "application"
   }
 ]
