@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {readFileSync,writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 const {Client}=createRequire(import.meta.url)('pg');
 const container='supabase_db_bps-supabase-acceptance';
@@ -15,9 +15,10 @@ test('local module command candidate',async t=>{
   const password=execFileSync('docker',['exec',container,'printenv','POSTGRES_PASSWORD'],{encoding:'utf8'}).trim();
   for(let n=0;n<3;n++){let c=new Client({host:'127.0.0.1',port:54322,user:'postgres',password,database,statement_timeout:8000});await c.connect();clients.push(c);await c.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(11),active_tenant_id:id(1),role:'authenticated'})]);}
   const [a,b,o]=clients;
-  const files=['20261015000500_document_cleanup_queue.sql','20261015000600_document_cleanup_retry.sql','20261015000700_document_cleanup_module_preview.sql','20261015000800_document_upload_attempts.sql','20261016000100_document_upload_module_preview.sql','20261016000200_document_pending_uploads.sql','20261016000300_document_finalize_upload.sql','20261016000400_document_upload_recovery.sql','20261016000500_document_upload_cancellation.sql','20261016000600_document_metadata_command.sql','20261016000700_document_delete_command.sql','20261016000800_document_insert_reservations.sql','20261016000900_document_storage_legacy_write_fences.sql','20261016001100_document_storage_module_barrier.sql'];
+  const files=JSON.parse(readFileSync(new URL('./fixture-migrations.json',import.meta.url),'utf8'));
   for(const file of files)await a.query(readFileSync(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
-  await a.query(readFileSync(new URL('../../supabase/migrations/20261017000100_legacy_staffing_module_barriers.sql',import.meta.url),'utf8'));
+  const writerCandidates=(await a.query(`select p.oid::regprocedure::text signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef and has_function_privilege('authenticated',p.oid,'execute') and p.prosrc ~* '(insert into|update public[.]|delete from)' and p.prosrc not like '%workspace_require_module_write_v1%' order by 1`)).rows;
+  writeFileSync(new URL('./post-migration-writer-candidates.json',import.meta.url),JSON.stringify({scope:'local synthetic clone, textual candidates only; not exhaustive runtime authorization',applied:files,candidates:writerCandidates},null,2)+'\n');
   await a.query(readFileSync(new URL('./command-candidate.sql',import.meta.url),'utf8'));
   const context=async c=>(await c.query('select current_workspace_modules_v1() AS value')).rows[0].value;
   const invoke=(c,ctx,command,modules)=>c.query('select change_workspace_modules_v1($1,$2,$3,$4,$5,$6,$7) AS value',[ctx.actorId,ctx.tenantId,ctx.membershipVersion,ctx.selectionVersion,ctx.configRevision,id(command),modules]);
@@ -38,7 +39,7 @@ test('local module command candidate',async t=>{
    assert.equal((await invoke(a,ctx,801,draft)).rows[0].value.replayed,true);
    assert.equal((await context(a)).configRevision,String(BigInt(ctx.configRevision)+1n));
    await assert.rejects(invoke(a,ctx,801,{...draft,announcements:true}),{code:'22023'});
-   await assert.rejects(invoke(a,ctx,802,draft),{code:'40001'});
+   await assert.rejects(invoke(a,ctx,802,draft),{code:'PT409'});
    assert.equal((await a.query("select count(*)::int n from tenant_module_changes where command_id=$1",[id(801)])).rows[0].n,1);
   });
   await t.test('dependencies, wrong actor, stale membership and no-op cannot write',async()=>{
@@ -67,7 +68,7 @@ test('local module command candidate',async t=>{
    const ctx=await context(a);await a.query('BEGIN');
    await invoke(a,ctx,808,{...ctx.modules,announcements:true});
    const waiting=invoke(b,ctx,809,{...ctx.modules,finance:false}).then(()=>null,e=>e.code);
-   await blocked(o,b.processID);await a.query('COMMIT');assert.equal(await waiting,'40001');
+   await blocked(o,b.processID);await a.query('COMMIT');assert.equal(await waiting,'PT409');
    const current=await context(a);assert.equal(current.modules.announcements,true);assert.equal(current.modules.finance,true);
   });
   await a.query("update tasks set status='tamamlandi' where tenant_id=$1",[id(1)]);
@@ -139,7 +140,7 @@ test('local module command candidate',async t=>{
    const second=await context(b);
    await a.query('BEGIN');await invoke(a,first,812,{...first.modules,announcements:false});
    const waiting=invoke(b,second,813,{...second.modules,finance:false}).then(()=>null,e=>e.code);
-   await blocked(o,b.processID);await a.query('COMMIT');assert.equal(await waiting,'40001');
+   await blocked(o,b.processID);await a.query('COMMIT');assert.equal(await waiting,'PT409');
    const fresh=await context(b);
    await assert.rejects(invoke(b,fresh,812,{...fresh.modules,announcements:true}),{code:'22023'});
    assert.equal(fresh.modules.announcements,false);assert.equal(fresh.modules.finance,true);

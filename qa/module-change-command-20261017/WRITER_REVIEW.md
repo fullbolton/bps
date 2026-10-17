@@ -31,3 +31,7 @@ legacy-staffing-result.tap: 6 alt senaryo + kapsayıcı = 7/7. Hatanın düzeltm
 - Definer RPC/trigger/FK/servis yollarını güncel katalogdan signature bazında tamamla. Bu doküman bütün SQL fonksiyonlarının incelendiği iddiası değildir.
 - Üretim katalog ve migration sırasını yayın öncesinde yeniden ölç.
 - Kayıt komutu/receipt protokolü ve menü/cache/UI bağlantısı ile gerçek kayıt tarayıcı kabulü hâlâ açık; komuta EXECUTE verilmedi.
+
+## Güncel yerel katalog devamı
+
+Staffing/workforce tablolarına başvuran public fonksiyonlar için yerel katalog taramasında yalnız yöneticinin modül önizlemesi bulundu. Bu, kaynak/runtime dışı yolları dışlamaz. Komut test şeması 23 eksik migration ile tamamlandı; aday metadata çıktısı post-migration-writer-candidates.json. Kalan doğrudan bariyersiz adaylar altı kimlik/davet/platform işlemi ve document_ack_cleanup_v1. Sonuncusu yeni evrak üretmez: yönetici/tenant doğrular, cleanup satırını kilitler, Storage/evrak/sürüm referansı yoksa tamamlanma kaydı yazar; tombstone'u kaldırmaz. Modül kapatma ön kontrolü pending cleanup'ı engeller. Bu iç bakım tamamlamasına iş üretme yetkisi gibi davranılmadı. Üretim yeniden ölçümü veya bütün servis/RPC yollarının tam kapanma kanıtı değildir.

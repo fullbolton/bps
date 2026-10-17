@@ -36,3 +36,9 @@ NODE_PATH=/private/tmp/bps-calendar-qa-runtime/node_modules node --test qa/modul
 ## Eski personel tablolarıyla birleşik kabul
 
 20261017000100_legacy_staffing_module_barriers.sql komuttan önce uygulanır. Authenticated staffing_demands INSERT önce commit ederse gerçek komut 23514 ile kapanmayı reddeder, receipt oluşmaz. Gerçek komut önce kapatırsa bekleyen authenticated workforce_summary UPSERT BM001 ile reddedilir. Yeniden açmada talep görünür ve başarısız upsert değeri değişmemiştir. Toplam komut süiti 16/16; ayrı tablo/migration süiti 7/7. Migration dosyası hazır fakat üretime uygulanmadı. Kayıt komutu hâlâ yerel aday ve istemci EXECUTE kapalıdır.
+
+## Şema kapsamı düzeltmesi
+
+Önceki komut testi base şablona yalnız evrak migration'larını ekliyordu; takvim, sözleşme gateway ve PT409 yamalarını kapsamıyordu. Önceki sonuçlar bu dar şema için geçerlidir, tam yayın zinciri kabulü değildir. Artık fixture-migrations.json içindeki 23 eksik migration (20261013000100–20261017000100) sırayla uygulanır. Şablonda duyuru politikası zaten bulunduğundan 20261005003000/03100 tekrar uygulanmaz. Son komut testi 16/16; eski 40001 beklentileri yayınlanmış PT409 sözleşmesine düzeltildi.
+
+post-migration-writer-candidates.json, bu yerel şemada authenticated EXECUTE taşıyan definer gövdelerinde belirli yazma ifadeleri bulunan ve doğrudan workspace_require_module_write_v1 içermeyen adayları kaydeder. Dinamik SQL/helper zinciri veya tüm yazım biçimleri için tam analiz değildir. Sözleşme hazırlama/finalize fonksiyonları eski şablonda aday görünürken güncel migration sonrası bu listeden çıkar.

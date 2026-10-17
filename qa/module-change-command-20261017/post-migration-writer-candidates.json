@@ -1,0 +1,51 @@
+{
+  "scope": "local synthetic clone, textual candidates only; not exhaustive runtime authorization",
+  "applied": [
+    "20261013000100_calendar_module_commands.sql",
+    "20261013000200_calendar_direct_write_cutover.sql",
+    "20261013000300_document_contract_module_access.sql",
+    "20261015000100_contract_write_commands.sql",
+    "20261015000200_contract_write_cutover.sql",
+    "20261015000300_contract_delete_command.sql",
+    "20261015000400_contract_delete_cutover.sql",
+    "20261015000500_document_cleanup_queue.sql",
+    "20261015000600_document_cleanup_retry.sql",
+    "20261015000700_document_cleanup_module_preview.sql",
+    "20261015000800_document_upload_attempts.sql",
+    "20261016000100_document_upload_module_preview.sql",
+    "20261016000200_document_pending_uploads.sql",
+    "20261016000300_document_finalize_upload.sql",
+    "20261016000400_document_upload_recovery.sql",
+    "20261016000500_document_upload_cancellation.sql",
+    "20261016000600_document_metadata_command.sql",
+    "20261016000700_document_delete_command.sql",
+    "20261016000800_document_insert_reservations.sql",
+    "20261016000900_document_storage_legacy_write_fences.sql",
+    "20261016001000_workspace_conflict_http.sql",
+    "20261016001100_document_storage_module_barrier.sql",
+    "20261017000100_legacy_staffing_module_barriers.sql"
+  ],
+  "candidates": [
+    {
+      "signature": "accept_workspace_invitation(uuid,uuid,text)"
+    },
+    {
+      "signature": "admin_create_tenant(text,text)"
+    },
+    {
+      "signature": "admin_manage_membership(uuid,uuid,text,text,text,uuid)"
+    },
+    {
+      "signature": "document_ack_cleanup_v1(uuid)"
+    },
+    {
+      "signature": "manage_workspace_invitation(uuid,uuid,uuid,text,text,text,text)"
+    },
+    {
+      "signature": "prepare_invited_profile(uuid,text)"
+    },
+    {
+      "signature": "select_workspace(uuid,uuid,uuid,uuid)"
+    }
+  ]
+}

@@ -577,3 +577,8 @@ Kanıt ve kalan kapsam: qa/module-change-command-20261017/WRITER_REVIEW.md ve le
 20261017000100_legacy_staffing_module_barriers.sql hazırlandı; eski QA SQL kopyası kaldırıldı, testler doğrudan migration dosyasını çalıştırıyor. RLS/tenant UUID NOT NULL ve önkoşul kontrolleri eklendi. Şema sapmasında hiçbir helper/policy bırakmadan ret dahil 7/7 tablo testi geçti.
 
 Komut süiti 16/16: authenticated talep INSERT önceyse gerçek kapatma reddi; kapatma önceyse bekleyen workforce UPSERT reddi; yeniden açmada veri korunması. İki paket aynı yerel sentetik şema üzerinde çalıştı; gerçek veri kullanılmadı. Üretime migration veya uygulama yayını yapılmadı. Kayıt komutu yerel aday, istemci EXECUTE kapalı. Diğer writer denetimi/üretim preflight/istemci kayıt akışı açık.
+
+
+## 17 Ekim — modül test şeması güncel zincire tamamlandı
+
+Eski şablonun takvim/sözleşme gateway ve PT409 yamalarını içermediği saptandı. Komut testi artık fixture-migrations.json içindeki 23 migration'ı sırayla uyguluyor; 16/16 geçti. Yanlış 40001 test beklentileri güncel PT409 ile değiştirildi. Eski sonuçlar dar fixture kanıtıdır, bütün güncel zincir kanıtı sayılmaz. Güncel şemada sözleşme yükleme bariyerleri mevcut; metinsel definer yazıcı adayları post-migration-writer-candidates.json dosyasına kaydedildi ve bakım/kimlik yolları sınıflandı. Üretime işlem/yayın yapılmadı; diğer runtime sınırları ve UI kayıt bağlantısı açık.
