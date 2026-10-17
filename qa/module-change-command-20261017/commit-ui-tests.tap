@@ -1,57 +1,24 @@
-✔ lost response retries identical immutable intent, even after a newer revision (1.800459ms)
-✔ double click shares one in-flight request; confirmed repeat does not write again (0.235042ms)
-✔ malformed acknowledgement stays unconfirmed and can be retried (0.310417ms)
-✔ workspace, membership, selection and role changes cannot send the old intent (0.192875ms)
-✔ invalid or unchanged requests cannot create an attempt (0.115292ms)
-✔ unmount before dispatch prevents transport and future retries (0.115292ms)
-✔ late success or failure after scope teardown cannot become a visible result (0.183375ms)
-✔ discard also removes a cached commit result (0.122833ms)
-✖ uncertain result retries existing attempt; double clicks do not duplicate send (77.818458ms)
-✖ refresh failure retries only the read, never the committed write (18.443416ms)
-✖ unmount discards intent and suppresses refresh from a late receipt (11.284667ms)
-✔ receipt keeps bigint precision and validates both fresh commit and replay (0.95525ms)
-✔ foreign identity, command, revision, state or protocol cannot show success (0.362875ms)
-✔ null, missing and partial responses fail closed (0.242916ms)
-✔ invalid expected commands cannot turn a response into proof (0.1655ms)
-✔ replayed receipt remains bound to original revision, not a later settings snapshot (0.08275ms)
+✔ lost response retries identical immutable intent, even after a newer revision (1.365625ms)
+✔ double click shares one in-flight request; confirmed repeat does not write again (0.209584ms)
+✔ malformed acknowledgement stays unconfirmed and can be retried (0.266959ms)
+✔ workspace, membership, selection and role changes cannot send the old intent (0.176ms)
+✔ invalid or unchanged requests cannot create an attempt (0.108333ms)
+✔ unmount before dispatch prevents transport and future retries (0.105875ms)
+✔ late success or failure after scope teardown cannot become a visible result (0.169458ms)
+✔ discard also removes a cached commit result (0.115417ms)
+✔ uncertain result retries existing attempt; double clicks do not duplicate send (66.833209ms)
+✔ refresh failure retries only the read, never the committed write (13.319084ms)
+✔ unmount discards intent and suppresses refresh from a late receipt (12.811ms)
+✔ receipt keeps bigint precision and validates both fresh commit and replay (0.968959ms)
+✔ foreign identity, command, revision, state or protocol cannot show success (0.512583ms)
+✔ null, missing and partial responses fail closed (0.367292ms)
+✔ invalid expected commands cannot turn a response into proof (0.227041ms)
+✔ replayed receipt remains bound to original revision, not a later settings snapshot (0.1475ms)
 ℹ tests 16
 ℹ suites 0
-ℹ pass 13
-ℹ fail 3
+ℹ pass 16
+ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 564.819917
-
-✖ failing tests:
-
-test at scripts/module-change-commit.test.mjs:9:1
-✖ uncertain result retries existing attempt; double clicks do not duplicate send (77.818458ms)
-  ReferenceError: queueMicrotask is not defined
-      at Object.cleanup (evalmachine.<anonymous>:20:13)
-      at Object.dispose (file:///Users/furkanyahsi/.codex/worktrees/bps-tenant-modules/BPS/scripts/helpers/component-driver.mjs:20:175)
-      at TestContext.<anonymous> (file:///Users/furkanyahsi/.codex/worktrees/bps-tenant-modules/BPS/scripts/module-change-commit.test.mjs:17:89)
-      at async Test.run (node:internal/test_runner/test:1110:7)
-      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
-
-test at scripts/module-change-commit.test.mjs:19:1
-✖ refresh failure retries only the read, never the committed write (18.443416ms)
-  ReferenceError: queueMicrotask is not defined
-      at Object.cleanup (evalmachine.<anonymous>:20:13)
-      at Object.dispose (file:///Users/furkanyahsi/.codex/worktrees/bps-tenant-modules/BPS/scripts/helpers/component-driver.mjs:20:175)
-      at TestContext.<anonymous> (file:///Users/furkanyahsi/.codex/worktrees/bps-tenant-modules/BPS/scripts/module-change-commit.test.mjs:24:101)
-      at async Test.run (node:internal/test_runner/test:1110:7)
-      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7)
-
-test at scripts/module-change-commit.test.mjs:26:1
-✖ unmount discards intent and suppresses refresh from a late receipt (11.284667ms)
-  ReferenceError: queueMicrotask is not defined
-      at Object.cleanup (evalmachine.<anonymous>:20:13)
-      at Object.dispose (file:///Users/furkanyahsi/.codex/worktrees/bps-tenant-modules/BPS/scripts/helpers/component-driver.mjs:20:175)
-      at TestContext.<anonymous> (file:///Users/furkanyahsi/.codex/worktrees/bps-tenant-modules/BPS/scripts/module-change-commit.test.mjs:29:37)
-      at Test.runInAsyncScope (node:async_hooks:214:14)
-      at Test.run (node:internal/test_runner/test:1103:25)
-      at Test.processPendingSubtests (node:internal/test_runner/test:785:18)
-      at Test.postRun (node:internal/test_runner/test:1232:19)
-      at Test.run (node:internal/test_runner/test:1160:12)
-      at async Test.processPendingSubtests (node:internal/test_runner/test:785:7)
+ℹ duration_ms 492.60975

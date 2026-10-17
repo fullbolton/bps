@@ -25,7 +25,7 @@ export default function ModuleChangeCommit({ context, attempt, transport, refres
     return () => {
       active.current = false;
       // React Strict Mode immediately replays effects on the same mount.
-      queueMicrotask(() => {
+      void Promise.resolve().then(() => {
         if (!active.current || currentAttempt.current !== attempt) attempt.discard();
       });
     };
