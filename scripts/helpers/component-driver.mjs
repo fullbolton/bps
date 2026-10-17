@@ -19,10 +19,10 @@ export function driver() {
  };
  return {hooks,render(component,props){cursor=0;return component(props);},flush(){for(const effect of effects.splice(0))effect();},dispose(){for(const s of slots)s?.cleanup?.();}};
 }
-export function compile(path,hooks,dependencies={},exportName='default') {
+export function compile(path,hooks,dependencies={},exportName='default',globals={}) {
  const exports={};
  const code=ts.transpileModule(readFileSync(new URL('../../'+path,import.meta.url),'utf8'),{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
- vm.runInNewContext(code,{exports,console,Date,Map,Set,Intl,Error,FormData,require(spec){
+ vm.runInNewContext(code,{...globals,exports,console,Date,Map,Set,Intl,Error,FormData,require(spec){
   if(spec==='react')return {...require('react'),...hooks};
   if(spec==='react/jsx-runtime')return require(spec);
   if(spec in dependencies)return dependencies[spec];

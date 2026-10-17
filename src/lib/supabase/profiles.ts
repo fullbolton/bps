@@ -134,12 +134,15 @@ export async function updateProfile(
   client: Client,
   id: string,
   patch: Pick<ProfileUpdate, "display_name">,
+  expectedDisplayName: string,
 ): Promise<ProfileRow> {
   const { data, error } = await client
     .from("profiles")
     .update(patch)
     .eq("id", id)
+    .eq("display_name", expectedDisplayName)
     .select()
+    .abortSignal(AbortSignal.timeout(12_000))
     .single();
 
   if (error) {

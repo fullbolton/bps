@@ -1,0 +1,18 @@
+✔ account shows database name and verified company role without manager settings for operations (89.925084ms)
+✔ failed new-account read removes prior name and offers retry (31.790917ms)
+✔ late previous account response and mismatched company are not displayed (13.096167ms)
+✔ no request before authentication and no disabled feature controls (20.730459ms)
+✔ missing or other-user profile never falls back to metadata and retry can recover (33.849208ms)
+✔ profile write validates name, binds authenticated identity and compares previous name (1.568708ms)
+✔ double submit sends once, guards draft, updates verified name and clears guard (60.543834ms)
+✔ uncertain save keeps draft, forbids another write, reconciles conflict before retry (18.692666ms)
+✔ late response after account editor unmount cannot refresh next account (13.55825ms)
+✔ account menu honors draft guard before signing out and preserves normal exit (14.278542ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 568.853667

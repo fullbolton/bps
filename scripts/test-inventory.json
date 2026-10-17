@@ -688,5 +688,9 @@
   {
     "file": "scripts/account-details.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/account-write.test.mjs",
+    "suite": "application"
   }
 ]

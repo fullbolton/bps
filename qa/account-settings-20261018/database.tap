@@ -1,0 +1,14 @@
+▶ own profile write against complete local schema
+  ✔ own name writes and stale expected name cannot overwrite (8.930292ms)
+  ✔ other profile cannot be edited (13.092042ms)
+  ✔ role and platform privilege columns cannot be edited (7.011875ms)
+  ✔ anonymous writes denied (8.766708ms)
+✔ own profile write against complete local schema (2921.838375ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3167.056541

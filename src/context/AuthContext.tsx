@@ -33,6 +33,8 @@ import { createClient } from "@/lib/supabase/client";
 import {resolveWorkspaceAccess,type WorkspaceRole} from '@/lib/auth-workspace';
 import {verifiedWorkspaceGeneration} from '@/lib/auth-workspace';
 import {createAuthResolution} from '@/lib/auth-resolution';
+import { useScopedResource } from "@/components/ui/useScopedResource";
+import { getCurrentProfile } from "@/lib/services/profiles";
 import type { User } from "@supabase/supabase-js";
 
 export type UserRole = WorkspaceRole;
@@ -48,6 +50,7 @@ interface AuthContextValue {
   role: UserRole;
   /** Display name for the current user */
   displayName: string;
+  refreshProfile: () => Promise<void>;
   /** Whether the initial auth check is still in progress */
   loading: boolean;
   /** Sign out and redirect to login */
@@ -58,21 +61,12 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   role: "goruntuleyici",
   displayName: "",
+  refreshProfile: async () => {},
   loading: true,
   signOut: async () => {},
 });
 
 
-
-function resolveDisplayName(user: User | null): string {
-  if (!user) return "";
-  return (
-    (user.user_metadata?.display_name as string) ||
-    (user.user_metadata?.full_name as string) ||
-    user.email?.split("@")[0] ||
-    "Kullanıcı"
-  );
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -153,10 +147,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   // `role` is state now — resolved from the DB in the effect above.
-  const displayName = resolveDisplayName(user);
+  const actorId = user?.id;
+  const readProfile = useCallback(async () => {
+    const profile = await getCurrentProfile(supabase);
+    if (!profile || profile.id !== actorId || typeof profile.display_name !== "string") throw Error("PROFILE_IDENTITY");
+    return profile.display_name;
+  }, [actorId, supabase]);
+  const profile = useScopedResource(!loading && actorId ? actorId : null, readProfile);
+  const displayName = profile.data ?? "";
+  const refreshProfile = profile.reload;
 
   return (
-    <AuthContext.Provider value={{ user, role, displayName, loading, signOut }}>
+    <AuthContext.Provider value={{ user, role, displayName, loading, signOut, refreshProfile }}>
       {process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&!workspaceChanged&&loading?<main className="mx-auto max-w-xl px-5 py-16" role="status">Şirket ve yetkileriniz doğrulanıyor…</main>:process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&!workspaceChanged&&!user?<main className="mx-auto max-w-xl space-y-4 px-5 py-16"><h1 className="text-2xl font-semibold">Çalışacağınız şirketi seçin</h1><p>Şirket erişiminiz henüz doğrulanmadı. Şirket listenizi açarak devam edin. Oturumunuz sona erdiyse yeniden giriş yapmanız istenir.</p><a className="inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-4 text-white" href="/sirket-sec">Şirket seçimine git</a></main>:workspaceChanged?<main className="mx-auto max-w-xl space-y-4 px-5 py-16"><h1 className="text-2xl font-semibold">Şirketinizi yeniden doğrulayın</h1><p role="alert">Başka bir sekmede şirket değişmiş veya yetkileriniz güncellenmiş olabilir. Önceki ekran kapatıldı. Kaydedilmemiş bilgiler yeni şirkete taşınmaz. Çalışacağınız şirketi doğrulayarak devam edin.</p><a className="inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-4 text-white" href="/sirket-sec">Şirket seçimine git</a></main>:<Fragment key={process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'?`${user?.id??'pending'}:${user?.app_metadata.active_tenant??'none'}:${role}:${generation}`:'workspace'}>{children}</Fragment>}
     </AuthContext.Provider>
   );

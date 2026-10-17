@@ -105,6 +105,7 @@ export async function listActiveTenantProfiles(
 export async function updateOwnDisplayName(
   client: Client,
   newDisplayName: string,
+  expected: { actorId: string; displayName: string },
 ): Promise<ProfileRow> {
   const trimmed = newDisplayName.trim();
   if (trimmed.length === 0) {
@@ -122,9 +123,11 @@ export async function updateOwnDisplayName(
   if (authError) {
     throw new Error(`auth.getUser failed: ${authError.message}`);
   }
-  if (!user) {
-    throw new Error("updateOwnDisplayName: not authenticated");
+  if (!user || user.id !== expected.actorId) {
+    throw new Error("updateOwnDisplayName: account changed");
   }
 
-  return updateProfile(client, user.id, { display_name: trimmed });
+  const profile = await updateProfile(client, user.id, { display_name: trimmed }, expected.displayName);
+  if (!profile || profile.id !== expected.actorId || profile.display_name !== trimmed) throw Error("PROFILE_WRITE_UNVERIFIED");
+  return profile;
 }

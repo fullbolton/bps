@@ -102,13 +102,20 @@ export default function Topbar() {
             {userMenuOpen && (
               <div id="user-account-actions" className={`absolute right-0 top-full mt-1 w-48 ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SHADOW_DROPDOWN} py-1 ${Z_OVERLAY}`}>
                 <Link href="/hesabim" onClick={event => { navigationGuard.handle(event); if (!event.defaultPrevented) setUserMenuOpen(false); }} className={`min-h-11 w-full px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} hover:bg-slate-50 flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-600`}><User size={14} />Hesabım</Link>
-                <button
-                  onClick={() => { setUserMenuOpen(false); signOut(); }}
+                <Link href="/login"
+                  onClick={event => {
+                    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    navigationGuard.handle(event);
+                    if (event.defaultPrevented) return;
+                    event.preventDefault();
+                    setUserMenuOpen(false);
+                    void signOut();
+                  }}
                   className={`min-h-11 w-full text-left px-3 py-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 ${TYPE_BODY} ${TEXT_BODY} hover:bg-slate-50 flex items-center gap-2`}
                 >
                   <LogOut size={14} />
                   Çıkış Yap
-                </button>
+                </Link>
               </div>
             )}
           </div>

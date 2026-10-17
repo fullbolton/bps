@@ -1,0 +1,40 @@
+- button "Open Next.js Dev Tools":
+- alert: BPS — B2B Operasyon Platformu
+- link "İçeriğe geç":
+  - /url: "#main-content"
+- button "Menüyü aç":
+- banner:
+  - paragraph: Synthetic A
+  - paragraph: Hesabım
+  - link "Şirket değiştir":
+    - /url: /sirket-sec
+  - button "Kullanıcı menüsü":
+- navigation "Mobil operasyon":
+  - link "İşler":
+    - /url: /gorevler
+    - text: İşler
+  - link "Personel":
+    - /url: /personel-havuzu
+    - text: Personel
+- main:
+  - heading "Hesabım" [level=1]
+  - paragraph: Hesap bilgileriniz ve bu şirketteki erişiminiz.
+  - region "Hesap bilgileri":
+    - heading "Hesap bilgileri" [level=2]
+    - term: Giriş e-postası
+    - definition: document-qa@example.test
+    - generic: Ad soyad
+    - textbox "Ad soyad": Sentetik Güncel Ad
+    - paragraph: Bu ad, üyesi olduğunuz tüm şirketlerde görünür. Rolünüz ve giriş e-postanız değişmez.
+    - button "Kaydet" [disabled]
+    - button "Vazgeç" [disabled]
+  - region "Çalıştığınız şirket":
+    - heading "Çalıştığınız şirket" [level=2]
+    - term: Şirket
+    - definition: Synthetic A
+    - term: Bu şirketteki rolünüz
+    - definition: Yönetici
+    - link "Şirket değiştir":
+      - /url: /sirket-sec
+    - link "Şirket ayarları":
+      - /url: /ayarlar
