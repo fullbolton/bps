@@ -698,3 +698,12 @@ browser-cleanup-refresh-20261017.png ve .txt ekran/DOM kanıtları kaydedildi. A
 DocumentCleanupPanel artık document-pending-cleanup.ts servisini kullanır. En fazla 51 satır, benzersiz boş olmayan ID, nullable metin etiketleri, geçerli created_at ve 50'nin katı sınırlı offset doğrulanır. Hatalı/eksik yanıt başarı veya boş liste sayılmaz; yenilemede eski satırlar ve sonraki sayfa bilgisi temizlenir. Tenant/yönetici denetimi mevcut RPC'dedir; dönüş satırlarında tenant alanı olmadığı için istemcide tenant eşleşmesi iddia edilmez.
 
 Cleanup + pending upload süitleri 21/21 geçti. Yeni testler geçerli nullable etiketleri, 51 satır sentinel'i, bozuk/tekrarlı/aşırı yanıtları, geçersiz offset'in istek yapmamasını ve bozuk yenilemede eski satır yerine hata gösterilmesini doğruladı. Kanıt cleanup-validation-tests.tap. SQL/migration yok; bu son doğrulama değişikliği tarayıcıda henüz denenmedi, üretime yayımlanmadı.
+
+
+## 17 Ekim — toplu regresyon ve yayın hazırlığı özeti
+
+0dc821b üzerinde qa:release çalıştırıldı: envanter 128 application / 27 database / 7 pending; saf fonksiyon kontrolleri, 715/715 application testi, statik 16 kontrolde 0 FAIL/1 WARN ve TypeScript geçti. İlk derleme NEXT_PUBLIC_SUPABASE_URL/ANON_KEY eksikliğiyle /import prerender aşamasında durdu; qa:release bütünü başarılı diye kaydedilmedi.
+
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:3061 ve açıkça sentetik build-only anon değeriyle ayrı npm run build exit 0 geçti. Bu derleme gerçek üretim bağlantısı veya canlı veri kabulü değildir. İlk koşu ve tekrar ayrı loglarda korundu: release-check-20261017.log, build-local-env-20261017.log.
+
+RELEASE_READINESS_20261017.md tamamlanan kanıtları ve kalan kapıları tek yerde toplar. Son cleanup parser tarayıcı kabulü, güncel üretim şema/ledger ölçümü, iki pending migration'ın sıralı provası ve modül gerçek kayıt akışının kalan işleri açık. Üretim ölçümü/yayını bu tur yapılmadı. Statik WARN: kullanılmayan CapacityRiskCard, TimelineList; kapsam dışı silme yapılmadı.
