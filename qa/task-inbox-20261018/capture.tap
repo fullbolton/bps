@@ -1,0 +1,18 @@
+▶ task notification capture on full local schema
+  ✔ no historical backfill; real command captures recipient without body copy (13.27675ms)
+  ✔ same assignee edits and self assignment do not notify (15.201958ms)
+  ✔ reassignment produces one new event; stale command produces none (10.209167ms)
+  ✔ source rollback also rolls back notification (4.958041ms)
+  ✔ closed-task assignment is not a new actionable notification (6.574708ms)
+  ✔ capture failure cannot silently commit the source task (6.483792ms)
+  ✔ no client role can read, inject, or execute trigger directly (9.124458ms)
+  ✔ source deletion cascades without orphan events (1.499875ms)
+✔ task notification capture on full local schema (506.074333ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 577.787709

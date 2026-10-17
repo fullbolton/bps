@@ -85,3 +85,7 @@ Klavye, Escape, odak dönüşü, 390px mobil, uzun Türkçe başlıklar ve okunm
 ## Sonuç
 
 Bu dosya H paketinin uygulanabilir sınırıdır; yeni bildirim backend'i veya UI henüz yazılmadı. Sonraki somut iş yerel SQL adayı ve yetki/atama/duyuru alıcı testleridir. E-posta, kişisel performans ve süreye bağlı yönetici uyarısı kapsam dışında kalır.
+
+## 18 Ekim — görev bildirim olayları yerel aday
+
+qa/task-inbox-20261018/candidate.sql, mevcut atama geçmişi trigger'ından UUID olay kaydı üretir; source transaction ile atomik, task/revision tekil, kendi üstlenme ve kapalı görev sessiz. Gerçek yerel task_execute_v1 üzerinden 8 alt senaryo, üst test dahil 9/9 geçti. Bildirim yazımı hatasının kaynak işlemi de rollback ettiği doğrulandı. İstemci tablo/RPC yetkisi yok; okuyucu, okunma komutu, duyuru modeli ve ortak UI hâlâ açık. SQL production migration zincirine alınmadı ve uygulanmadı; canlı 6cd6007/186 değişmedi (son yayın kaydı). Ayrıntı qa/task-inbox-20261018/README.md. Genel olay+delivery modeli tek alıcılı görev için kaynak bazlı olay tablosuna daraltıldı; ortak API/ses kimliği işi sonraki aşamada.

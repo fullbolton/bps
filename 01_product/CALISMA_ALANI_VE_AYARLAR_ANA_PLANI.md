@@ -451,3 +451,7 @@ Kaynak 6cd6007, Vercel dpl_DzXDKuGn8wt2bQdPwAP45qAnrVJR www.bpsys.net üzerinde 
 ## 18 Ekim — H bildirim devamı sözleşmesi (tasarım)
 
 6cd6007 kaynakları incelendi; görev atama geçmişi ve duyuru komutları olay kaynakları olarak eşlendi. Ortak kutu yetkisi, alıcı/dedupe/okundu kuralları, kaynak detay bağlantıları, modül kapatma ve geri dönüş sırası BILDIRIM_DEVAMI_UYGULAMA_PLANI_2026_10_18.md içinde yazıldı. Özellikle görev URL hedefi ve ilk üç dışındaki duyuru okuyucusu mevcut değil; UI öncesi bağımlılık olarak kaydedildi. Yeni SQL/kod/yayın yapılmadı. Eski ana durum belgesinin üst özeti güncellendi; tamamlanan modül kapatma işi yeniden açık gösterilmiyor. Sonraki somut blok yerel SQL adayı ve gerçek DB yetki/olay testleri.
+
+## 18 Ekim — görev bildirim olayları yerel aday
+
+qa/task-inbox-20261018/candidate.sql, mevcut atama geçmişi trigger'ından UUID olay kaydı üretir; source transaction ile atomik, task/revision tekil, kendi üstlenme ve kapalı görev sessiz. Gerçek yerel task_execute_v1 üzerinden 8 alt senaryo, üst test dahil 9/9 geçti. Bildirim yazımı hatasının kaynak işlemi de rollback ettiği doğrulandı. İstemci tablo/RPC yetkisi yok; okuyucu, okunma komutu, duyuru modeli ve ortak UI hâlâ açık. SQL production migration zincirine alınmadı ve uygulanmadı; canlı 6cd6007/186 değişmedi (son yayın kaydı). Ayrıntı qa/task-inbox-20261018/README.md. Genel olay+delivery modeli tek alıcılı görev için kaynak bazlı olay tablosuna daraltıldı; ortak API/ses kimliği işi sonraki aşamada.
