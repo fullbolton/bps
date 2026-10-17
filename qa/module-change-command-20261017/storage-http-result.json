@@ -1,6 +1,16 @@
 {
-  "passed": 29,
+  "passed": 39,
   "checks": [
+    "person-files: authenticated HTTP upload records caller ownership",
+    "person-files: authenticated download preserves exact synthetic bytes",
+    "person-files: foreign and anonymous read/upload denied",
+    "person-files: closed module rejects HTTP read/upload without metadata",
+    "person-files: reopening preserves original bytes and permits reserved upload",
+    "project-sources: authenticated HTTP upload records caller ownership",
+    "project-sources: authenticated download preserves exact synthetic bytes",
+    "project-sources: foreign and anonymous read/upload denied",
+    "project-sources: closed module rejects HTTP read/upload without metadata",
+    "project-sources: reopening preserves original bytes and permits reserved upload",
     "foreign and anonymous RPC preparation denied",
     "unreserved HTTP upload denied",
     "preparation through authenticated HTTP RPC",
@@ -31,5 +41,7 @@
     "workspace switch while HTTP body is incomplete rejects old upload and finalize; no cross-tenant read",
     "A-to-B switch denies stale A token and B access to A uploads; no rejected writes persist"
   ],
-  "scope": "isolated local Storage HTTP and cloned synthetic DB"
+  "scope": "isolated local Storage HTTP and cloned synthetic DB",
+  "processExitCode": 0,
+  "cleanup": "harness finally completed: temporary containers removed and database dropped"
 }

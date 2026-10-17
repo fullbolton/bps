@@ -68,6 +68,10 @@ try {
   const text=await r.text();return {ok:r.ok,status:r.status,data:text?JSON.parse(text):null};
  }
  async function rpc(name,args){const r=await rpcResult(name,args);assert.ok(r.ok,`${name}: ${r.status} ${JSON.stringify(r.data)}`);return r.data;}
+ if(process.env.BPS_MODULE_STORAGE_HTTP==='1') {
+  const {acceptModuleStorage}=await import('../module-change-command-20261017/storage-http-acceptance.mjs');
+  checks.push(...await acceptModuleStorage({sql,request,id,pdf,token,foreign,anon}));
+ }
  const scope={p_tenant:id(1),p_id:id(992)};
  const preparation={...scope,p_company:id(991),p_name:'Synthetic PDF',p_category:'diger',p_validity:null,p_size:pdf.length};
  assert.equal((await rpcResult('document_prepare_upload_v1',preparation,foreign)).ok,false);
