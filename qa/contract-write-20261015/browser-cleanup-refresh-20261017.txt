@@ -1,0 +1,230 @@
+- button "Open Next.js Dev Tools":
+- alert
+- link "İçeriğe geç":
+  - /url: "#main-content"
+- complementary:
+  - link "BPS Synthetic A Operasyon çalışma alanı":
+    - /url: /dashboard
+    - generic: BPS
+    - generic "Synthetic A"
+    - generic: Operasyon çalışma alanı
+  - navigation "Ana menü":
+    - paragraph: ÇALIŞMA ALANI
+    - list:
+      - link "Genel Bakış":
+        - /url: /dashboard
+        - generic: Genel Bakış
+      - link "Personel Talepleri":
+        - /url: /talepler
+        - generic: Personel Talepleri
+      - link "Personel Havuzu":
+        - /url: /personel-havuzu
+        - generic: Personel Havuzu
+      - link "Aktif İş Gücü":
+        - /url: /aktif-isgucu
+        - generic: Aktif İş Gücü
+      - link "Görevler":
+        - /url: /gorevler
+        - generic: Görevler
+      - link "Randevular":
+        - /url: /randevular
+        - generic: Randevular
+    - paragraph: MÜŞTERİ VE HİZMET
+    - list:
+      - link "Firmalar":
+        - /url: /firmalar
+        - generic: Firmalar
+      - link "Projeler":
+        - /url: /projeler
+        - generic: Projeler
+      - link "Sözleşmeler":
+        - /url: /sozlesmeler
+        - generic: Sözleşmeler
+      - link "Evraklar":
+        - /url: /evraklar
+        - generic: Evraklar
+    - paragraph: YÖNETİM
+    - list:
+      - link "Şirket Yönetimi":
+        - /url: /yonetim
+        - generic: Şirket Yönetimi
+      - link "Finansal Özet":
+        - /url: /finansal-ozet
+        - generic: Finansal Özet
+      - link "Raporlar":
+        - /url: /raporlar
+        - generic: Raporlar
+      - link "Ayarlar":
+        - /url: /ayarlar
+        - generic: Ayarlar
+  - generic: Planla. Takip et. Birlikte tamamla.
+- banner:
+  - paragraph: Evrak yönetimi
+  - generic: Cumartesi, 17 Ekim 2026 • 09:53
+  - link "Şirket değiştir":
+    - /url: /sirket-sec
+  - button "Kullanıcı menüsü":
+    - generic: document-qa
+- main:
+  - heading "Evraklar" [level=1]
+  - paragraph: Firma evraklarını ve sözleşmeleri klasörlerinden bulun
+  - button "Evrak Yükle":
+    - generic: Evrak Yükle
+  - button "Yarım kalan yüklemeler ▴" [expanded]
+  - paragraph: Bu işlemlerin belge kaydı henüz tamamlanmamış. Aynı dosyayı yeniden yüklemeden önce buradan kontrol edin. Yönetici şirketin tüm bekleyen yüklemelerini, diğer kullanıcılar kendi yüklemelerini görür.
+  - button "Listeyi yenile"
+  - status: Yükleme iptal edildi. Dosya temizliği yöneticinin temizlik listesine alındı.
+  - article:
+    - heading "Tarayıcı iptal" [level=3]
+    - paragraph: Synthetic HTTP
+    - paragraph: Dosya depoda henüz görünmüyor. Yükleme kesilmiş veya sürüyor olabilir.
+    - paragraph: 17.10.2026 09:53:25
+    - button "Yüklemeyi iptal et"
+    - paragraph: "İşlem: 00000000-0000-4000-8000-000000009102"
+  - article:
+    - heading "Tarayıcı kurtarma" [level=3]
+    - paragraph: Synthetic HTTP
+    - paragraph: Dosya depoya ulaşmış; belge kaydı tamamlanmamış.
+    - paragraph: 17.10.2026 09:53:25
+    - button "Yüklemeyi tamamla"
+    - button "Yüklemeyi iptal et"
+    - paragraph: "İşlem: 00000000-0000-4000-8000-000000009101"
+  - article:
+    - heading "Synthetic PDF" [level=3]
+    - paragraph: Synthetic HTTP
+    - paragraph: Dosya depoda henüz görünmüyor. Yükleme kesilmiş veya sürüyor olabilir.
+    - paragraph: 17.10.2026 09:53:24
+    - button "Yüklemeyi iptal et"
+    - paragraph: "İşlem: 00000000-0000-4000-8000-000000009403"
+  - paragraph: Tamamla dediğinizde dosya kontrol edilir ve mevcut yükleme belgeye dönüştürülür. İptal, yüklemeyi sonlandırır; dosyanın depodan temizlenmesi ayrı takip edilir.
+  - navigation "Bekleyen yükleme sayfaları":
+    - button "Önceki" [disabled]
+    - button "Sonraki" [disabled]
+  - button "Dosya temizliği ▴" [expanded]
+  - paragraph: Listeden silinen ancak depodan kaldırıldığı henüz doğrulanamayan dosyalar. Tekrar denemek belge kaydını geri getirmez.
+  - button "Listeyi yenile"
+  - paragraph: Synthetic PDF
+  - paragraph: Synthetic HTTP
+  - paragraph: 17.10.2026 09:53:23
+  - paragraph: "İşlem: 00000000-0000-4000-8000-000000009205"
+  - button "Temizliği tekrar dene"
+  - paragraph: Dosyası yüklenmiş iptal
+  - paragraph: Synthetic HTTP
+  - paragraph: 17.10.2026 09:54:25
+  - paragraph: "İşlem: 00000000-0000-4000-8000-000000009103"
+  - button "Temizliği tekrar dene"
+  - button "Önceki" [disabled]
+  - button "Sonraki" [disabled]
+  - region "Evrak klasörleri":
+    - button "Tüm evraklar (2)" [pressed]
+    - button "Firma evrakları (0) İmza sirküleri, ticaret sicil ve yetki belgeleri":
+      - text: Firma evrakları
+      - generic: (0)
+      - generic: İmza sirküleri, ticaret sicil ve yetki belgeleri
+    - button "Sözleşmeler (1) Çerçeve sözleşmeler ve ek protokoller":
+      - text: Sözleşmeler
+      - generic: (1)
+      - generic: Çerçeve sözleşmeler ve ek protokoller
+    - button "Operasyon ve teklifler (0) Operasyon evrakları, teklifler ve ziyaret tutanakları":
+      - text: Operasyon ve teklifler
+      - generic: (0)
+      - generic: Operasyon evrakları, teklifler ve ziyaret tutanakları
+    - button "Diğer belgeler (1) Bu gruplara girmeyen dosyalar":
+      - text: Diğer belgeler
+      - generic: (1)
+      - generic: Bu gruplara girmeyen dosyalar
+    - paragraph: Klasör sayıları tüm erişilebilir evrakları gösterir. Firma, arama ve durum filtreleri aşağıdaki listeye uygulanır.
+  - heading "Evrak Durumu Özeti" [level=3]
+  - generic: 2 evrak
+  - generic: Tam
+  - generic: "2"
+  - generic: Eksik
+  - generic: "0"
+  - generic: Süresi Yaklaşıyor
+  - generic: "0"
+  - generic: Süresi Doldu
+  - generic: "0"
+  - button "Tam (2)"
+  - region "Evraklarda ara":
+    - heading "Evraklarda ara" [level=2]
+    - textbox "Evrak, firma ara..."
+    - generic: Durum
+    - combobox "Durum":
+      - option "Tüm durumlar" [selected]
+      - option "Tam"
+      - option "Eksik"
+      - option "Süresi Yaklaşıyor"
+      - option "Süresi Doldu"
+    - generic: Kategori
+    - combobox "Kategori":
+      - option "Tüm kategoriler" [selected]
+      - option "Çerçeve Sözleşme"
+      - option "Ek Protokol"
+      - option "Firma / Yetki Belgesi"
+      - option "Operasyon Evrakı"
+      - option "Teklif Dosyası"
+      - option "Ziyaret Tutanağı"
+      - option "Diğer"
+    - generic: Firma
+    - combobox "Firma":
+      - option "Tüm firmalar" [selected]
+      - option "Synthetic HTTP"
+  - region "Kayıt tablosu, yatay kaydırılabilir":
+    - table:
+      - rowgroup:
+        - row "Evrak Adı Firma Kategori Gecerlilik Tarihi Durum Yükleyen Güncellenme Detay İşlemler":
+          - columnheader "Evrak Adı":
+            - button "Evrak Adı":
+              - text: Evrak Adı
+          - columnheader "Firma":
+            - button "Firma":
+              - text: Firma
+          - columnheader "Kategori":
+            - button "Kategori" [disabled]
+          - columnheader "Gecerlilik Tarihi":
+            - button "Gecerlilik Tarihi":
+              - text: Gecerlilik Tarihi
+          - columnheader "Durum":
+            - button "Durum":
+              - text: Durum
+          - columnheader "Yükleyen":
+            - button "Yükleyen" [disabled]
+          - columnheader "Güncellenme":
+            - button "Güncellenme":
+              - text: Güncellenme
+          - columnheader "Detay":
+            - generic: Detay
+          - columnheader "İşlemler":
+            - generic: İşlemler
+      - rowgroup:
+        - row "contract.pdf Synthetic HTTP Çerçeve Sözleşme — Tam chain-a 17.10.2026 Detay Satır işlemleri":
+          - cell "contract.pdf":
+            - button "contract.pdf"
+          - cell "Synthetic HTTP"
+          - cell "Çerçeve Sözleşme"
+          - cell "—"
+          - cell "Tam":
+            - generic: Tam
+          - cell "chain-a"
+          - cell "17.10.2026"
+          - cell "Detay":
+            - button "Detay"
+          - cell "Satır işlemleri":
+            - button "Satır işlemleri":
+        - row "Synthetic PDF Synthetic HTTP Diğer — Tam chain-a 17.10.2026 Detay Satır işlemleri":
+          - cell "Synthetic PDF":
+            - button "Synthetic PDF"
+          - cell "Synthetic HTTP"
+          - cell "Diğer"
+          - cell "—"
+          - cell "Tam":
+            - generic: Tam
+          - cell "chain-a"
+          - cell "17.10.2026"
+          - cell "Detay":
+            - button "Detay"
+          - cell "Satır işlemleri":
+            - button "Satır işlemleri":
+  - generic: 2 kayıttan 1–2 gösteriliyor
+  - button "Önceki" [disabled]
+  - button "Sonraki" [disabled]

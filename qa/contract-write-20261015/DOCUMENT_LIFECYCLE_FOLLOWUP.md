@@ -684,3 +684,10 @@ Yerel authenticated-browser harness'e BPS_BROWSER_PAGINATION=1 seçeneği eklend
 Evraklar sayfasında başarılı kurtarma/iptal callback'i ana evrak listesiyle birlikte cleanupRefreshVersion artırır. DocumentCleanupPanel bunu yükleme bağımlılığı olarak izler: panel açıksa mevcut sayfayı yeniden sorgular, kapalıysa sorgu yapmaz. Panelin açık/kapalı durumu korunur; şirket/kullanıcı kapsamına göre parent key koruması devam eder. Önceden açık bir temizlik listesi yeni iptalden sonra eski boş durumunu gösterebiliyordu.
 
 Bileşen testinde kapalı panelin sürüm değişiminde sorgu yapmadığı, açık boş listenin yeni iptal kaydını aldığı ve açık kaldığı doğrulandı. Cleanup ve pending upload süitleri birlikte 19/19 geçti; cleanup-refresh-tests.tap. Bu değişiklik için tarayıcı kabulü henüz yapılmadı. SQL/migration yok, üretim değişmedi.
+
+
+## 17 Ekim — açık temizlik paneli yenilemesinin tarayıcı kabulü
+
+6fe34a4 kaynakla yerel sentetik Auth + Storage ortamı açıldı. CUA tarayıcısında Dosya temizliği önce açıldı (bir mevcut iş), ardından Yarım kalan yüklemelerden Dosyası yüklenmiş iptal kaydı onayla iptal edildi. Listeyi yenileye basılmadan açık temizlik panelinde yeni 9103 kaydı görüldü; eski 9205 işi de korundu. Temizlik paneli açık kaldı. İptal dosyayı bu adımda fiziksel olarak silmez; bu tur temizlik düğmesi çalıştırılmadı.
+
+browser-cleanup-refresh-20261017.png ve .txt ekran/DOM kanıtları kaydedildi. Aynı kurulumdaki 29 Storage HTTP kontrolü geçti; süreç exit 0 ile geçici kaynaklarını temizleyerek kapandı. Önceki 19/19 bileşen testiyle birlikte son yenileme düzeltmesinin yerel tarayıcı kapısı kapandı. Üretim yayını, migration veya gerçek veri işlemi yapılmadı.
