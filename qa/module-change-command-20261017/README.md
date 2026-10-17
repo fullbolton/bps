@@ -107,3 +107,9 @@ Süit 23/23 geçti; result.tap güncellendi. Bu senaryoda gerçek HTTP dosya yü
 İki ayrı PostgreSQL bağlantısında authenticated document_prepare_upload_v1 ile yerel aday change_workspace_modules_v1 yarıştırıldı; pg_stat_activity üzerinden gerçek Lock beklemesi doğrulandı. Hazırlama önce commit ettiğinde bekleyen kapatma yeni rezervasyonu gördü ve 23514 ile reddedildi; context ve receipt değişmedi. Kapatma önce commit ettiğinde bekleyen hazırlama BM001 ile reddedildi, document_upload_attempts satırı oluşmadı. Test sonunda modüller aday komutla yeniden açıldı; ilk yarışın sentetik rezervasyonu gerçek cancel/ack helper'larıyla kapatıldı.
 
 Süit 25/25 geçti; result.tap güncellendi. Bu kabul metadata rezervasyonu ve config kilidi içindir; HTTP byte aktarımı veya tarayıcı testi değildir. Önceki Storage HTTP kanıtı ayrı kapsamda kalır. Yalnız test ve kanıt değişikliği; ürün kodu, yeni migration, EXECUTE grant veya üretim yayını yok.
+
+## 17 Ekim — modül kaydı için güvenli tekrar deneme altyapısı
+
+`src/lib/modules/change-attempt.ts` tek onaylanmış niyetin immutable snapshot/payload'unu ve UUID'sini korur. İstek devam ederken ikinci çağrı aynı promise'i paylaşır. Transport hatası veya geçersiz receipt unconfirmed döner; başarı gösterilmez. Tekrarda güncel revision ilerlemiş olsa da ilk revision/payload gönderilir: önceki commit'in replay kanıtı alınabilir. Actor/tenant/üyelik/seçim veya yönetici rolü değişmişse transport çağrılmaz. Doğrulanmış commit tekrar yazılmaz.
+
+`module-change-attempt.test.mjs` + receipt süiti 10/10, TypeScript ve test envanteri geçti (129 application). Kanıt attempt-tests.tap. Bu injectable transport altyapısıdır; gerçek RPC çağrısı, grant, migration veya UI bağlantısı eklenmedi. Component unmount/context değişiminde eski sonucu göstermeme, reload sonrası kalıcı kurtarma ve kullanıcı mesajları sonraki UI kabulünün konusudur. Receipt güncel ayar görüntüsü değildir; sonrası context refresh zorunludur. Üretim değişmedi.

@@ -660,5 +660,9 @@
   {
     "file": "scripts/module-change-receipt.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/module-change-attempt.test.mjs",
+    "suite": "application"
   }
 ]

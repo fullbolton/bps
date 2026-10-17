@@ -1,0 +1,18 @@
+✔ lost response retries identical immutable intent, even after a newer revision (1.761333ms)
+✔ double click shares one in-flight request; confirmed repeat does not write again (0.202584ms)
+✔ malformed acknowledgement stays unconfirmed and can be retried (0.253459ms)
+✔ workspace, membership, selection and role changes cannot send the old intent (0.186834ms)
+✔ invalid or unchanged requests cannot create an attempt (0.107625ms)
+✔ receipt keeps bigint precision and validates both fresh commit and replay (1.458958ms)
+✔ foreign identity, command, revision, state or protocol cannot show success (0.396042ms)
+✔ null, missing and partial responses fail closed (0.266209ms)
+✔ invalid expected commands cannot turn a response into proof (0.163375ms)
+✔ replayed receipt remains bound to original revision, not a later settings snapshot (0.08675ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 444.704417
