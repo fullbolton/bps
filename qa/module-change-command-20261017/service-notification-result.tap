@@ -1,0 +1,250 @@
+TAP version 13
+# Subtest: document eligibility requires exact ids, tenants and boolean values
+ok 1 - document eligibility requires exact ids, tenants and boolean values
+  ---
+  duration_ms: 1.195375
+  type: 'test'
+  ...
+# Subtest: document checks deduplicate and chunk without accepting contradictory scope
+ok 2 - document checks deduplicate and chunk without accepting contradictory scope
+  ---
+  duration_ms: 0.816291
+  type: 'test'
+  ...
+# Subtest: document state database and transport failures do not fall back to enabled
+ok 3 - document state database and transport failures do not fall back to enabled
+  ---
+  duration_ms: 0.135541
+  type: 'test'
+  ...
+# Subtest: document batch reaches last source/membership rows and keeps tenant contents out of the other email
+ok 4 - document batch reaches last source/membership rows and keeps tenant contents out of the other email
+  ---
+  duration_ms: 15.036125
+  type: 'test'
+  ...
+# Subtest: late documents error produces no sends or reservation writes
+ok 5 - late documents error produces no sends or reservation writes
+  ---
+  duration_ms: 1.157958
+  type: 'test'
+  ...
+# Subtest: late tenant_memberships error produces no sends or reservation writes
+ok 6 - late tenant_memberships error produces no sends or reservation writes
+  ---
+  duration_ms: 1.567667
+  type: 'test'
+  ...
+# Subtest: unacknowledged notification stamps are errors, never sent or counted as already sent
+ok 7 - unacknowledged notification stamps are errors, never sent or counted as already sent
+  ---
+  duration_ms: 9.737792
+  type: 'test'
+  ...
+# Subtest: unverifiable task owner is not treated as unassigned or sent to the manager fallback
+ok 8 - unverifiable task owner is not treated as unassigned or sent to the manager fallback
+  ---
+  duration_ms: 0.965667
+  type: 'test'
+  ...
+# Subtest: verified task owner receives the task while a truly unassigned task goes to its tenant manager
+ok 9 - verified task owner receives the task while a truly unassigned task goes to its tenant manager
+  ---
+  duration_ms: 1.186625
+  type: 'test'
+  ...
+# Subtest: overdue tasks change day at Istanbul midnight, not three hours later at UTC midnight
+ok 10 - overdue tasks change day at Istanbul midnight, not three hours later at UTC midnight
+  ---
+  duration_ms: 1.702916
+  type: 'test'
+  ...
+# Subtest: appointment reminders use tomorrow in Istanbul when UTC is still on the previous day
+ok 11 - appointment reminders use tomorrow in Istanbul when UTC is still on the previous day
+  ---
+  duration_ms: 1.603417
+  type: 'test'
+  ...
+# Subtest: tenant roles override global roles for document recipients
+ok 12 - tenant roles override global roles for document recipients
+  ---
+  duration_ms: 9.975625
+  type: 'test'
+  ...
+# Subtest: missing membership role fails closed before any transport or stamp
+ok 13 - missing membership role fails closed before any transport or stamp
+  ---
+  duration_ms: 0.826834
+  type: 'test'
+  ...
+# Subtest: disabled task tenant never produces an email or a reservation
+ok 14 - disabled task tenant never produces an email or a reservation
+  ---
+  duration_ms: 0.560333
+  type: 'test'
+  ...
+# Subtest: unverifiable task module before stamping stops the email without consuming a reservation
+ok 15 - unverifiable task module before stamping stops the email without consuming a reservation
+  ---
+  duration_ms: 1.074
+  type: 'test'
+  ...
+# Subtest: task module disabled after reservation is rechecked and reservation is rolled back before send
+ok 16 - task module disabled after reservation is rechecked and reservation is rolled back before send
+  ---
+  duration_ms: 1.56925
+  type: 'test'
+  ...
+# Subtest: unverifiable post-stamp module state releases the reservation and sends nothing
+ok 17 - unverifiable post-stamp module state releases the reservation and sends nothing
+  ---
+  duration_ms: 1.059375
+  type: 'test'
+  ...
+# Subtest: calendar off before collection prevents sends
+ok 18 - calendar off before collection prevents sends
+  ---
+  duration_ms: 0.566333
+  type: 'test'
+  ...
+# Subtest: calendar off after stamp prevents sends
+ok 19 - calendar off after stamp prevents sends
+  ---
+  duration_ms: 0.936667
+  type: 'test'
+  ...
+# Subtest: document pre-send gate removes contract-linked documents while retaining company documents
+ok 20 - document pre-send gate removes contract-linked documents while retaining company documents
+  ---
+  duration_ms: 12.598667
+  type: 'test'
+  ...
+# Subtest: document module closure after reservation prevents send and releases every reservation
+ok 21 - document module closure after reservation prevents send and releases every reservation
+  ---
+  duration_ms: 12.826542
+  type: 'test'
+  ...
+# Subtest: unverifiable document state before stamping sends nothing
+ok 22 - unverifiable document state before stamping sends nothing
+  ---
+  duration_ms: 2.663375
+  type: 'test'
+  ...
+# Subtest: document batch reservations follow each documents expiry date
+ok 23 - document batch reservations follow each documents expiry date
+  ---
+  duration_ms: 24.672208
+  type: 'test'
+  ...
+# Subtest: contract batch reads past limits and sends each contract only to its tenant and assigned partner
+ok 24 - contract batch reads past limits and sends each contract only to its tenant and assigned partner
+  ---
+  duration_ms: 23.894875
+  type: 'test'
+  ...
+# Subtest: contract batch stops before stamps on a late read failure or missing company name
+ok 25 - contract batch stops before stamps on a late read failure or missing company name
+  ---
+  duration_ms: 5.949208
+  type: 'test'
+  ...
+# Subtest: contract 30-day window opens at Istanbul midnight
+ok 26 - contract 30-day window opens at Istanbul midnight
+  ---
+  duration_ms: 1.635375
+  type: 'test'
+  ...
+# Subtest: a shared email in another tenant does not hide an eligible profile; same-tenant duplicates still get one copy
+ok 27 - a shared email in another tenant does not hide an eligible profile; same-tenant duplicates still get one copy
+  ---
+  duration_ms: 19.753375
+  type: 'test'
+  ...
+# Subtest: multi-workspace contracts use tenant roles for managers and assigned partners
+ok 28 - multi-workspace contracts use tenant roles for managers and assigned partners
+  ---
+  duration_ms: 13.28075
+  type: 'test'
+  ...
+# Subtest: contract module off filters candidates before names and reservations
+ok 29 - contract module off filters candidates before names and reservations
+  ---
+  duration_ms: 0.715083
+  type: 'test'
+  ...
+# Subtest: missing contract config sends nothing and never consumes a stamp
+ok 30 - missing contract config sends nothing and never consumes a stamp
+  ---
+  duration_ms: 0.498792
+  type: 'test'
+  ...
+# Subtest: contract closure after stamp releases reservation; rollback failure=false
+ok 31 - contract closure after stamp releases reservation; rollback failure=false
+  ---
+  duration_ms: 1.626375
+  type: 'test'
+  ...
+# Subtest: contract closure after stamp releases reservation; rollback failure=true
+ok 32 - contract closure after stamp releases reservation; rollback failure=true
+  ---
+  duration_ms: 4.547625
+  type: 'test'
+  ...
+# Subtest: contract batch reserves the actual expiry date and renewal changes its key
+ok 33 - contract batch reserves the actual expiry date and renewal changes its key
+  ---
+  duration_ms: 2.157833
+  type: 'test'
+  ...
+# Subtest: tasks: malformed eligibility never becomes permission to send
+ok 34 - tasks: malformed eligibility never becomes permission to send
+  ---
+  duration_ms: 1.589
+  type: 'test'
+  ...
+# Subtest: tasks: second-page failure rejects the whole result, including previously enabled tenants
+ok 35 - tasks: second-page failure rejects the whole result, including previously enabled tenants
+  ---
+  duration_ms: 0.96375
+  type: 'test'
+  ...
+# Subtest: calendar: malformed eligibility never becomes permission to send
+ok 36 - calendar: malformed eligibility never becomes permission to send
+  ---
+  duration_ms: 0.261791
+  type: 'test'
+  ...
+# Subtest: calendar: second-page failure rejects the whole result, including previously enabled tenants
+ok 37 - calendar: second-page failure rejects the whole result, including previously enabled tenants
+  ---
+  duration_ms: 0.601083
+  type: 'test'
+  ...
+# Subtest: contracts: malformed eligibility never becomes permission to send
+ok 38 - contracts: malformed eligibility never becomes permission to send
+  ---
+  duration_ms: 0.259584
+  type: 'test'
+  ...
+# Subtest: contracts: second-page failure rejects the whole result, including previously enabled tenants
+ok 39 - contracts: second-page failure rejects the whole result, including previously enabled tenants
+  ---
+  duration_ms: 0.684958
+  type: 'test'
+  ...
+# Subtest: empty notification scope makes no RPC call
+ok 40 - empty notification scope makes no RPC call
+  ---
+  duration_ms: 0.084375
+  type: 'test'
+  ...
+1..40
+# tests 40
+# suites 0
+# pass 40
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 810.772375

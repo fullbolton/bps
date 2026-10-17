@@ -668,5 +668,9 @@
   {
     "file": "scripts/module-change-commit.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/notification-module-state.test.mjs",
+    "suite": "application"
   }
 ]
