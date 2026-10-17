@@ -1,0 +1,10 @@
+{
+  "scope": "local synthetic CUA browser, actual Auth/server action/PostgREST",
+  "initialRows": 51,
+  "secondPageRows": 1,
+  "action": "cancel last row",
+  "resultRows": 50,
+  "previousEnabled": false,
+  "nextEnabled": false,
+  "successMessage": true
+}

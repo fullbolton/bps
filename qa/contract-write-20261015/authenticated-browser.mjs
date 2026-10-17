@@ -57,6 +57,16 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    const path=await prepared.json();
    if(n===9101 || n===9103){const up=await fetch(storageBase+'/object/documents/'+path,{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/pdf'},body:pdf});if(!up.ok)throw Error('Browser pending bytes seed failed');}
   }
+  if(process.env.BPS_BROWSER_PAGINATION==='1'){
+   // Fill to exactly 51 through the real RPC; the final page then has one row.
+   const count=Number(sql(`SELECT count(*) FROM document_upload_attempts a WHERE tenant_id='${id(1)}' AND published_at IS NULL AND NOT EXISTS(SELECT FROM document_cleanup_jobs j WHERE j.storage_path=a.storage_path);`));
+   if(!Number.isInteger(count)||count<0||count>51)throw Error('Unexpected pagination fixture count');
+   for(let n=0;n<51-count;n++){
+    const prepared=await fetch(restBase+'/rpc/document_prepare_upload_v1',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_id:id(20000+n),p_tenant:id(1),p_company:id(991),p_name:`Sayfalama denemesi ${n+1}`,p_category:'diger',p_validity:null,p_size:pdf.length})});
+    if(!prepared.ok)throw Error('Pagination fixture preparation failed: '+await prepared.text());
+   }
+   console.log('LOCAL_BROWSER_PAGINATION 51 pending uploads');
+  }
   const out=openSync('/tmp/bps-authenticated-next.log','w',0o600);
   app=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--hostname','127.0.0.1','--port','3060'],{cwd:process.cwd(),env:{...process.env,NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3061',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon},stdio:['ignore',out,out]});closeSync(out);
   console.log('LOCAL_BROWSER_READY http://127.0.0.1:3060/login — synthetic document-qa@example.test');

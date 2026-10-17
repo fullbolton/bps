@@ -670,3 +670,10 @@ scripts/document-pending-uploads.test.mjs: tamamlama ve iptal için 0→50→0 o
 03f6b49 kaynak, ortak güncel migration fixture, gerçek yerel GoTrue/PostgREST/Storage kullanıldı. CUA tarayıcısında sentetik document-qa hesabıyla /evraklar açıldı. Yarım kalanlar yalnız açılınca listelendi; dosyası bulunan Tarayıcı kurtarma için tamamla işlemi başarı mesajı verdi, bekleyen satır kayboldu ve ana evrak listesi 2→3 oldu. Dosyası bulunmayan Tarayıcı iptal onayla iptal edildi; listeden çıktı ve temizlik kuyruğuna alındığı mesajı görüldü. Ana evrak sayısı 3 kaldı.
 
 Storage HTTP harness 29 kontrolü tamamlayıp exit 0 ile kapandı; geçici container/DB temizliği finally üzerinden geçti. browser-storage-result-20261017.json ve browser-recovery-cancel-20261017.png kanıtları kaydedildi. Üretim sekmesine/verisine dokunulmadı. Son sayfadan önceki sayfaya dönüş bu tarayıcı fixture'ında 50+ satır bulunmadığından yalnız önceki 13/13 bileşen testinde doğrulanmıştır; bu tur çok sayfalı tarayıcı kabulü değildir. Üretime yayın yapılmadı.
+
+
+## 17 Ekim — 51 yükleme ile çok sayfalı tarayıcı kabulü
+
+Yerel authenticated-browser harness'e BPS_BROWSER_PAGINATION=1 seçeneği eklendi; gerçek prepare RPC ile bekleyen kayıt sayısı 51'e tamamlanır. CUA ile ilk sayfa → ikinci sayfa (tek kayıt) → iptal onayı çalıştırıldı. Başarı sonrası ilk sayfadaki 50 article göründü, Önceki ve Sonraki devre dışı kaldı ve iptal mesajı korundu. JSON ve ekran kanıtları browser-pagination-20261017.{json,png}. Bu tarayıcı senaryosu iptal yolunu kapsar; tamamlama yolunun son sayfa davranışı önceki bileşen testinde doğrulanmıştır.
+
+İlk fixture hazırlığı başarısız oldu; ayrı sentetik UUID aralığı ve ayrıntılı hata mesajıyla yeniden kurulum başarılı geçti. Son koşu 29 Storage HTTP kontrolünü tamamlayarak exit 0 ile kapandı; geçici DB/container temizliği yapıldı. Üretim değişmedi. Ürün arayüzünde yeni değişiklik yok; önceki 03f6b49 düzeltmesinin çok sayfalı iptal kabulü tamamlandı.
