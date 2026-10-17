@@ -549,3 +549,10 @@ Ayarlar / Modüller ekranına seçim, değişiklik özeti ve mevcut preview_work
 26/26 hedefli uygulama testi ve TypeScript geçti. Gerçek yerel Auth/PostgREST/Next ile Belgeler seçimi kaldırıldığında Sözleşmeler bağımlılığı, pending_document_cleanup ve pending_document_upload göründü; sıfırlama seçimleri geri getirdi ve sonucu kaldırdı. Kanıt: module-preview-panel-20261017.tap ve module-preview-panel-20261017.jpg. Sentetik klon kullanıldı; üretim verisi değiştirilmedi.
 
 Kalan: config kilidi altında yeniden kontrol eden, revision/idempotency/audit sözleşmesi bulunan atomik değişiklik komutu ve eşzamanlı iş yazma kabulü. Bu paket bu komutu veya genel modül kapatmayı tamamlamaz. Migration eklenmedi; canlı kaynak 312a468 / ledger 182 değişmedi.
+
+
+## 17 Ekim — atomik modül komutu yerel adayı
+
+qa/module-change-command-20261017 altında istemcilere yetkisi kapalı SQL aday + gerçek PostgreSQL kabul testi hazırlandı. Config kilidi altında canlı scope ve açık iş yeniden kontrolü, revision, idempotent receipt ve audit tek transaction içinde. 9 alt senaryo + kapsayıcı = 10/10 geçti; iki oturumda gerçek Lock beklemesi ölçülerek iş yazma/kapatma her iki sıra doğrulandı. Pending evrak, stale revision/üyelik, çapraz tenant, bağımlılık ve tekrar çağrı da kapsandı.
+
+Bu bir migration veya yayın değildir; UI kayıt yapmaz. Genel yazma yüzeyi son denetimi, farklı yöneticiler/üyelik değişimi yarışları, istemci receipt protokolü ve browser kayıt kabulü açık. Ayrıntı/kanıt: qa/module-change-command-20261017/README.md ve result.tap. Canlı kaynak 312a468, ledger 182 değişmedi. Gerçek veri değiştirilmedi.

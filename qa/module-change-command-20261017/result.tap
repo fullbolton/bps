@@ -1,0 +1,19 @@
+▶ local module command candidate
+  ✔ candidate remains inaccessible to client and service roles (2.194042ms)
+  ✔ change is atomic, replay creates no duplicate, changed payload and stale revision fail (15.583542ms)
+  ✔ dependencies, wrong actor, stale membership and no-op cannot write (7.543417ms)
+  ✔ repeatable read and cross-tenant calls fail closed (3.545667ms)
+  ✔ pending document preparation prevents closing with no metadata receipt (14.150125ms)
+  ✔ two concurrent sessions with the same revision cannot overwrite one another (35.348166ms)
+  ✔ writer commits first: waiting close sees newly committed open task and rejects (8.3805ms)
+  ✔ close commits first: waiting business writer rejects disabled module (31.4955ms)
+  ✔ reopening preserves work and increments revision once (4.6305ms)
+✔ local module command candidate (615.207292ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 696.566208
