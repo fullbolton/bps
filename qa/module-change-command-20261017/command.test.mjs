@@ -52,6 +52,26 @@ test('local module command candidate',async t=>{
     assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(826)])).rows[0].n,0);
    }
   });
+  await t.test('audit write failure rolls back settings and revision; same command can retry',async()=>{
+   const ctx=await context(a),draft={...ctx.modules,announcements:!ctx.modules.announcements};
+   await a.query(`CREATE FUNCTION public.qa_reject_module_receipt() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN RAISE EXCEPTION 'Synthetic audit failure' USING ERRCODE='23514'; END $$;
+    CREATE TRIGGER qa_reject_module_receipt BEFORE INSERT ON public.tenant_module_changes
+    FOR EACH ROW EXECUTE FUNCTION public.qa_reject_module_receipt()`);
+   try{
+    // Autocommit invocation: verify the failed command itself rolls back, without a test ROLLBACK.
+    await assert.rejects(invoke(a,ctx,827,draft),{code:'23514'});
+    assert.deepEqual(await context(a),ctx);
+    assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(827)])).rows[0].n,0);
+   }finally{
+    await a.query('DROP TRIGGER qa_reject_module_receipt ON public.tenant_module_changes; DROP FUNCTION public.qa_reject_module_receipt()');
+   }
+   const result=parseModuleChangeReceipt((await invoke(a,ctx,827,draft)).rows[0].value,{context:ctx,commandId:id(827),modules:draft});
+   assert.equal(result.replayed,false);
+   assert.deepEqual((await context(a)).modules,draft);
+   assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(827)])).rows[0].n,1);
+   const current=await context(a);await invoke(a,current,828,ctx.modules);
+  });
   await t.test('change is atomic, replay creates no duplicate, changed payload and stale revision fail',async()=>{
    const ctx=await context(a);const draft={...ctx.modules,announcements:false};
    const first=(await invoke(a,ctx,801,draft)).rows[0].value;assert.equal(first.replayed,false);

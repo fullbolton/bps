@@ -626,3 +626,10 @@ Yerel modül değiştirme adayı, önizleme yanıtının şema sürümünü, do�
 Yerel işlem içinde güvenilir preview helper geçici olarak null yanıt, null checks, eksik kontrol, string blocking ve yinelenen kontrol döndürecek şekilde değiştirildi; her deneme reddedildi, revision ve receipt değişmedi. Her denemenin rollback'i gerçek helper'ı geri getirdi. Bu, gelecekteki helper değişikliklerine karşı savunma kabulüdür; üretimde bozuk yanıt görüldüğü iddiası değildir.
 
 PostgreSQL komut süiti 20/20, fixture bütünlüğü 5/5 geçti. Kanıtlar result.tap ve fixture-tests.tap. Komut hâlâ qa altında yetkisiz yerel adaydır; yeni migration, EXECUTE grant, UI kaydetme veya üretim yayını yok. Önceki Storage HTTP kabulü tekrar çalıştırılmadı.
+
+
+## 17 Ekim — kayıt ortasında hata ve güvenli tekrar
+
+Yerel komut kabulüne audit/receipt INSERT hatası eklendi. Sentetik tetikleyici kayıt son adımını 23514 ile reddetti; komut autocommit çağrıldı. Testin ayrıca ROLLBACK yapmasına gerek kalmadan modül ayarları ve config revision tamamen önceki değerinde kaldı, receipt oluşmadı. Hata tetikleyicisi kaldırılınca aynı command UUID ve payload başarılı ilk işlem olarak tamamlandı; tek receipt oluştu. Böylece tekrar deneme başarısız bir komutu yanlışlıkla tamamlanmış saymıyor.
+
+PostgreSQL süiti 21/21 geçti (kapsayıcı dahil); kanıt qa/module-change-command-20261017/result.tap. Geçici veritabanı kaldırıldı. Yalnız test ve kayıt değişikliği; ürün kodu, migration, EXECUTE yetkisi ve UI kaydetme değişmedi. Üretim yayını yapılmadı. Sonraki kapılar: yazma yüzeyi incelemesinin kalanları, komutun uygulama bağlantısı ve gerçek kayıt tarayıcı kabulü, güncel üretim preflight.
