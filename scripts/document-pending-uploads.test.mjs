@@ -137,3 +137,32 @@ test('upload server actions bound requests and never revalidate or retry an unce
   }
  }
 });
+
+
+test('completing or cancelling the last row on a later page returns to the previous page',async()=>{
+ for(const cancel of [false,true]){
+  const d=driver();const offsets=[];
+  const useScopedResource=compile('src/components/ui/useScopedResource.ts',d.hooks,{},'useScopedResource');
+  const Panel=compile('src/components/documents/PendingDocumentUploads.tsx',d.hooks,{
+   '@/lib/supabase/client':{createClient:()=>({})},
+   '@/components/ui/useScopedResource':{useScopedResource},
+   '@/lib/services/document-pending-uploads':{listPendingDocumentUploads:async(_client,_tenant,offset)=>{
+    offsets.push(offset);return {rows:[{...row,document_id:offset?'last':'first',file_present:true}],hasMore:offset===0};
+   }},
+   '@/app/(main)/evraklar/upload-actions':{
+    recoverDocumentUpload:async()=>({ok:true,message:'Completed'}),
+    cancelDocumentUpload:async()=>({ok:true,message:'Cancelled'}),
+   },
+  });
+  const render=()=>{const tree=d.render(Panel,{tenantId:'tenant'});d.flush();return tree;};
+  let tree=render();nodes(tree).find(n=>n.type==='button').props.onClick();render();await settle();tree=render();
+  nodes(tree).find(n=>n.props?.children==='Sonraki').props.onClick();render();await settle();tree=render();
+  assert.deepEqual(offsets,[0,50]);
+  if(cancel){nodes(tree).find(n=>n.props?.children==='Yüklemeyi iptal et').props.onClick();tree=render();}
+  nodes(tree).find(n=>n.props?.children===(cancel?'İptali onayla':'Yüklemeyi tamamla')).props.onClick();
+  await settle();render();await settle();tree=render();
+  assert.deepEqual(offsets,[0,50,0]);
+  assert.equal(nodes(tree).find(n=>n.props?.children==='Önceki').props.disabled,true);
+  assert.ok(nodes(tree).some(n=>n.props?.children===(cancel?'Cancelled':'Completed')));d.dispose();
+ }
+});

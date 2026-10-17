@@ -1,0 +1,21 @@
+✔ pending pages use a sentinel and never drop the next-page indicator (0.883292ms)
+✔ malformed, duplicate, foreign and transport responses never become an empty list (0.719167ms)
+✔ invalid offsets are rejected without a request (0.176084ms)
+✔ panel loads only on opening and displays failure rather than an empty state (50.041167ms)
+✔ cancellation requires a true receipt and never treats transport failure as success (1.068334ms)
+✔ recovery verifies stored bytes before finalizing the original id exactly once (0.355709ms)
+✔ denied scope, missing file, wrong size and disguised PDF never finalize (0.190958ms)
+✔ unverifiable finalization never reports success or retries the write (0.177542ms)
+✔ recovery button prevents duplicate clicks and refreshes both lists after success (49.58525ms)
+✔ cancellation needs confirmation and prevents duplicate submissions (13.02575ms)
+✔ recovery distinguishes verified access denial from transport and malformed responses (0.469541ms)
+✔ upload server actions bound requests and never revalidate or retry an uncertain result (11.074667ms)
+✔ completing or cancelling the last row on a later page returns to the previous page (19.907416ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 497.798083

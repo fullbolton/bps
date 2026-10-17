@@ -23,7 +23,13 @@ export default function PendingDocumentUploads({tenantId, onRecovered}: {tenantI
       const result = await (cancel ? cancelDocumentUpload : recoverDocumentUpload)(tenantId, id);
       if (!alive.current) return;
       setMessage(result.message);
-      if (result.ok) {setConfirmCancel(null); onRecovered?.(); await resource.reload();}
+      if (result.ok) {
+        setConfirmCancel(null);
+        onRecovered?.();
+        // Removing the only row on a later page should not strand the user on an empty page.
+        if (offset > 0 && resource.data?.rows.length === 1) setOffset(value => Math.max(0, value - 50));
+        else await resource.reload();
+      }
     } catch {if (alive.current) setMessage("Sonuç doğrulanamadı. Listeyi yenileyerek kontrol edin.");}
     finally {flight.current = false; if (alive.current) setBusy(null);}
   }

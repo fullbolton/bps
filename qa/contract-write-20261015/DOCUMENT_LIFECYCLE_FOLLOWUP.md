@@ -656,3 +656,10 @@ Süit 23/23 geçti; result.tap güncellendi. Bu senaryoda gerçek HTTP dosya yü
 İki ayrı PostgreSQL bağlantısında authenticated document_prepare_upload_v1 ile yerel aday change_workspace_modules_v1 yarıştırıldı; pg_stat_activity üzerinden gerçek Lock beklemesi doğrulandı. Hazırlama önce commit ettiğinde bekleyen kapatma yeni rezervasyonu gördü ve 23514 ile reddedildi; context ve receipt değişmedi. Kapatma önce commit ettiğinde bekleyen hazırlama BM001 ile reddedildi, document_upload_attempts satırı oluşmadı. Test sonunda modüller aday komutla yeniden açıldı; ilk yarışın sentetik rezervasyonu gerçek cancel/ack helper'larıyla kapatıldı.
 
 Süit 25/25 geçti; result.tap güncellendi. Bu kabul metadata rezervasyonu ve config kilidi içindir; HTTP byte aktarımı veya tarayıcı testi değildir. Önceki Storage HTTP kanıtı ayrı kapsamda kalır. Yalnız test ve kanıt değişikliği; ürün kodu, yeni migration, EXECUTE grant veya üretim yayını yok.
+
+
+## 17 Ekim — bekleyen yüklemelerde boş son sayfadan dönüş
+
+PendingDocumentUploads.tsx: sonraki sayfalardan birinde tek kalan yükleme başarıyla tamamlandığında veya iptal edildiğinde önceki sayfaya dönülür. İlk sayfada veya birden fazla satır varsa mevcut sayfa yenilenir. Başarı mesajı korunur; belirsiz/başarısız işlem sayfayı değiştirmez. Şirket bağlamı değişiminde parent key ile yeniden kurulma ve useScopedResource korumaları mevcut.
+
+scripts/document-pending-uploads.test.mjs: tamamlama ve iptal için 0→50→0 offset akışı ve mesajın korunması bileşen sürücüsünde doğrulandı. Kanıt pending-upload-pagination-tests.tap. Bu tarayıcı/üretim kabulü değildir. Yeni SQL/migration yok; arayüz düzeltmesi yerelde, yayınlanmadı.
