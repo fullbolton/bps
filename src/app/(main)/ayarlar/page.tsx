@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   PageHeader,
   TabNavigation,
@@ -325,6 +325,9 @@ export default function AyarlarPage() {
   const { loading: authLoading } = useAuth();
   const guard = useNavigationGuard();
   const [activeTab, setActiveTab] = useState("kullanicilar");
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("bolum") === "moduller") setActiveTab("moduller");
+  }, []);
 
   // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
   // "goruntuleyici" while AuthContext is loading). Wait, then decide.

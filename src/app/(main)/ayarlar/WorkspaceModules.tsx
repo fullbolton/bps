@@ -23,7 +23,7 @@ export default function WorkspaceModules({changesEnabled = false}: {changesEnabl
   const commit = useMemo(() => changesEnabled ? createModuleChangeCapability(createClient(), async () => {
     // Recreate auth/module providers and navigation together after a verified commit.
     // A partial panel reload would leave other mounted module snapshots stale.
-    window.location.reload();
+    window.location.replace("/ayarlar?bolum=moduller");
   }) : undefined, [changesEnabled]);
   if (loading) return <p role="status">Şirket ve yetkileriniz doğrulanıyor…</p>;
   if (!allowed) return <p role="alert">Modül bilgilerini görmek için seçili şirkette yönetici erişimi gerekir.</p>;
