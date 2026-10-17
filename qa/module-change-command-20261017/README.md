@@ -70,3 +70,10 @@ module-fixture-integrity.test.mjs 4/4 geçti, application envanterine kaydedildi
 Yerel aday SQL yanıtı schemaVersion, actorId, tenantId, commandId, revision, modules ve replayed taşır. Yeni change-receipt.ts yalnız beklenen kullanıcı/şirket/komut ve tam istenen modül seçimiyle eşleşen yanıtı kabul eder; revision BigInt üzerinden tam +1 olmalı. Null/eksik/başka işleme ait yanıt başarı değildir. Replay, o komutun commit kanıtıdır; güncel ayar görüntüsü değildir ve ardından context yenilenmelidir.
 
 15/15 receipt+katalog testi; 17/17 gerçek PostgreSQL komut testi geçti. Gerçek ilk commit ve replay yanıtları aynı TypeScript parser'a verildi. Önizleme/HTTP/GUI yazma akışı bağlanmadı; istemci RPC çağrısı veya EXECUTE yetkisi eklenmedi. Yeni migration yok; ürün kaydetme henüz açılmadı, üretim değişmedi.
+
+
+## 17 Ekim — belirsiz yanıt ve eşzamanlı tekrar kabulü
+
+Komut süiti 19/19 oldu. Aynı UUID ve payload ile iki bağlantı yarıştığında gerçek Lock beklemesi gözlendi: ilk işlem commit, ikincisi replay; tek receipt ve tek revision artışı. Daha sonraki bir komut ayarları değiştirdikten sonra eski komut tekrarlandığında eski commit receipt'i döndü, güncel ayarlar/revision değişmedi. Dönen gerçek yanıt TypeScript receipt parser ile doğrulandı. Ağ bağlantısı fiziksel olarak kesilmedi; DB seviyesinde tekrar semantiği kabulüdür.
+
+Ürün SQL/TS değişmedi. Üretim yayını, EXECUTE grant veya UI kaydetme açılmadı. Kanıt qa/module-change-command-20261017/result.tap.

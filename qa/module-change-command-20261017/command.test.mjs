@@ -46,6 +46,30 @@ test('local module command candidate',async t=>{
    await assert.rejects(invoke(a,ctx,802,draft),{code:'PT409'});
    assert.equal((await a.query("select count(*)::int n from tenant_module_changes where command_id=$1",[id(801)])).rows[0].n,1);
   });
+  await t.test('retry after a later configuration change returns original receipt without reverting settings',async()=>{
+   const ctx=await context(a),draft={...ctx.modules,announcements:true};
+   const original=(await invoke(a,ctx,822,draft)).rows[0].value;
+   const newer=await context(a);await invoke(a,newer,823,{...newer.modules,announcements:false});
+   const latest=await context(a);
+   const retry=parseModuleChangeReceipt((await invoke(a,ctx,822,draft)).rows[0].value,{context:ctx,commandId:id(822),modules:draft});
+   assert.equal(retry.replayed,true);assert.equal(retry.revision,original.revision);assert.equal(retry.modules.announcements,true);
+   assert.deepEqual(await context(a),latest);assert.equal(latest.modules.announcements,false);
+   assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(822)])).rows[0].n,1);
+  });
+  await t.test('concurrent identical commands serialize into one commit and one replay',async()=>{
+   const ctx=await context(a),draft={...ctx.modules,finance:false};
+   await a.query('BEGIN');const original=(await invoke(a,ctx,824,draft)).rows[0].value;
+   const waiting=invoke(b,ctx,824,draft);
+   // Attach rejection handler before observing the lock to avoid unhandled failures.
+   const resolved=waiting.then(value=>({value}),error=>({error}));
+   await blocked(o,b.processID);await a.query('COMMIT');const outcome=await resolved;
+   if(outcome.error)throw outcome.error;
+   const retry=parseModuleChangeReceipt(outcome.value.rows[0].value,{context:ctx,commandId:id(824),modules:draft});
+   assert.equal(original.replayed,false);assert.equal(retry.replayed,true);assert.equal(retry.revision,original.revision);
+   assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(824)])).rows[0].n,1);
+   const current=await context(a);assert.equal(current.configRevision,original.revision);
+   await invoke(a,current,825,{...current.modules,finance:true});
+  });
   await t.test('dependencies, wrong actor, stale membership and no-op cannot write',async()=>{
    const ctx=await context(a);
    await assert.rejects(invoke(a,ctx,803,{...ctx.modules,customers:false}),{code:'23514'});
