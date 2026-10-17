@@ -1,0 +1,18 @@
+▶ scoped task notification reader and acknowledgement
+  ✔ recipient gets 30 then 2, stable cursor and global unread (6.268125ms)
+  ✔ read is idempotent and never completes source task (8.748375ms)
+  ✔ foreign actor/tenant/cursor/read rejected and manager cannot read recipient inbox (10.133334ms)
+  ✔ title update keeps notification; reassignment back keeps only latest; completion hides it (35.100917ms)
+  ✔ live membership role downgrade denies stale session; IK retains task access (9.969042ms)
+  ✔ module disabled hides count and rejects mark; no direct table or helper access (7.932667ms)
+  ✔ acknowledgement waiting on task lock rechecks committed completion (32.50025ms)
+  ✔ anonymous and service cannot call inbox RPCs (3.322709ms)
+✔ scoped task notification reader and acknowledgement (712.792333ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 800.334917

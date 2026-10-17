@@ -29,3 +29,13 @@ Test geçici DB oluşturur, finally içinde kaldırır. Gerçek iş verisi okunm
 ## Açık işler
 
 Güncel rol/tenant/modül/kaynak durumunu zorlayan okuma ve okundu komutu; ikinci tenant ve rol değiştirme testleri; iki gerçek bağlantıyla eşzamanlı CAS/kapatma/üyelik yarışı; büyük veri sorgu planı; duyuru olay/alıcı modeli; ortak kutu ve hedef bağlantıları. Üretim ön kontrolü ve yayın bunlardan sonra. Migration adayının DROP/recreate yeniden uygulanabilir olduğu iddia edilmez.
+
+## 18 Ekim — görev bildirimi okuma/okundu yerel adayı
+
+read-candidate.sql eklendi; üretim zincirinde değil. task_inbox_visible_v1 özel yardımcıdır (client EXECUTE yok); task_inbox_page_v1 ve task_inbox_read_v1 yalnız authenticated için yerel açık. Aktör/şirket/güncel rol ve tasks modülü doğrulanır. Görev ataması değişmiş veya kapanmış olaylar liste ve sayaçtan birlikte düşer; aynı kişiye yeniden atama eski olayı diriltmez. Başlık güncel kaynaktan okunur. 30 kayıt keyset sayfalama, global unread ve idempotent okundu vardır; okundu görevi tamamlamaz.
+
+8 alt senaryo, üst test dahil 9/9 gerçek PostgreSQL test geçti (read.tap). 32 kayıtla 30+2 sayfalama, başka kullanıcı/tenant/cursor, güncel üyelik rolü, IK erişimi, modül kapalıyken sıfır görünür kayıt, client tablo/helper reddi ve anon/service RPC reddi sınandı. İki DB bağlantısında task kilidini bekleyen okundu çağrısı, diğer transaction görevi tamamlayıp commit ettikten sonra 42501 ile reddedildi; read_at değişmedi.
+
+İlk test koşusu sentetik ikinci hesabın çoklu üyeliğine rağmen selection/version içermeyen JWT yüzünden WORKSPACE_SCOPE ile durdu. Test gerçek select_workspace çağrısıyla düzeltildi. Aktif işi olan üyeyi muhasebeye düşürmenin mevcut korumayla reddedilmesi korunarak rol testi transaction içinde görevler kapatıldıktan sonra yapıldı. Yarış testinin ilk kontrolü önceden okunmuş kayıt seçiyordu; açıkça okunmamış kayıt seçimine düzeltildi. Üretim korumaları gevşetilmedi.
+
+Açık: duyuru olay/alıcıları, ortak kaynak kimliği/ses dedupe, ortak UI ve hedef bağlantıları; diğer eşzamanlı üyelik/modül yarışları ve büyük veri plan ölçümü. Yeni uygulama veya üretim SQL yayını yok. Canlı son kayıt 6cd6007/186 olarak kalır.

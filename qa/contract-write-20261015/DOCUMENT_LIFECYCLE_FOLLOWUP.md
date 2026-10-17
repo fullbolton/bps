@@ -919,3 +919,13 @@ Kaynak 6cd6007, Vercel dpl_DzXDKuGn8wt2bQdPwAP45qAnrVJR www.bpsys.net üzerinde 
 ## 18 Ekim — görev bildirim olayları yerel aday
 
 qa/task-inbox-20261018/candidate.sql, mevcut atama geçmişi trigger'ından UUID olay kaydı üretir; source transaction ile atomik, task/revision tekil, kendi üstlenme ve kapalı görev sessiz. Gerçek yerel task_execute_v1 üzerinden 8 alt senaryo, üst test dahil 9/9 geçti. Bildirim yazımı hatasının kaynak işlemi de rollback ettiği doğrulandı. İstemci tablo/RPC yetkisi yok; okuyucu, okunma komutu, duyuru modeli ve ortak UI hâlâ açık. SQL production migration zincirine alınmadı ve uygulanmadı; canlı 6cd6007/186 değişmedi (son yayın kaydı). Ayrıntı qa/task-inbox-20261018/README.md. Genel olay+delivery modeli tek alıcılı görev için kaynak bazlı olay tablosuna daraltıldı; ortak API/ses kimliği işi sonraki aşamada.
+
+## 18 Ekim — görev bildirimi okuma/okundu yerel adayı
+
+read-candidate.sql eklendi; üretim zincirinde değil. task_inbox_visible_v1 özel yardımcıdır (client EXECUTE yok); task_inbox_page_v1 ve task_inbox_read_v1 yalnız authenticated için yerel açık. Aktör/şirket/güncel rol ve tasks modülü doğrulanır. Görev ataması değişmiş veya kapanmış olaylar liste ve sayaçtan birlikte düşer; aynı kişiye yeniden atama eski olayı diriltmez. Başlık güncel kaynaktan okunur. 30 kayıt keyset sayfalama, global unread ve idempotent okundu vardır; okundu görevi tamamlamaz.
+
+8 alt senaryo, üst test dahil 9/9 gerçek PostgreSQL test geçti (read.tap). 32 kayıtla 30+2 sayfalama, başka kullanıcı/tenant/cursor, güncel üyelik rolü, IK erişimi, modül kapalıyken sıfır görünür kayıt, client tablo/helper reddi ve anon/service RPC reddi sınandı. İki DB bağlantısında task kilidini bekleyen okundu çağrısı, diğer transaction görevi tamamlayıp commit ettikten sonra 42501 ile reddedildi; read_at değişmedi.
+
+İlk test koşusu sentetik ikinci hesabın çoklu üyeliğine rağmen selection/version içermeyen JWT yüzünden WORKSPACE_SCOPE ile durdu. Test gerçek select_workspace çağrısıyla düzeltildi. Aktif işi olan üyeyi muhasebeye düşürmenin mevcut korumayla reddedilmesi korunarak rol testi transaction içinde görevler kapatıldıktan sonra yapıldı. Yarış testinin ilk kontrolü önceden okunmuş kayıt seçiyordu; açıkça okunmamış kayıt seçimine düzeltildi. Üretim korumaları gevşetilmedi.
+
+Açık: duyuru olay/alıcıları, ortak kaynak kimliği/ses dedupe, ortak UI ve hedef bağlantıları; diğer eşzamanlı üyelik/modül yarışları ve büyük veri plan ölçümü. Yeni uygulama veya üretim SQL yayını yok. Canlı son kayıt 6cd6007/186 olarak kalır.
