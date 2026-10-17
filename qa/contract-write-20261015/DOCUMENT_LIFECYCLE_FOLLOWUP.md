@@ -563,3 +563,10 @@ Bu bir migration veya yayın değildir; UI kayıt yapmaz. Genel yazma yüzeyi so
 Yerel aday komut süiti 14/14 oldu (13 alt senaryo + kapsayıcı). Config veya profile kilidinde beklerken rol düşürülmesi, rol geri verilse de eski membership generation, iki farklı yöneticinin aynı revision ile yarışı, başkasının receipt kimliğinin kullanımı ve select_workspace ile A→B sırasında eski A komutu test edildi. Retlerde revision değişmedi/receipt yazılmadı. Gerçek Lock beklemesi gözlemlendi. Çoklu üyelik fixture'ı ilk çalışmada açık seçim olmadığı için reddedildi; gerçek seçim RPC'si ve doğru sentetik claimlerle düzeltildi.
 
 Ürün SQL değişmedi. HTTP/browser kayıt kabulü ve tüm writer/cron/Storage sınırlarının son denetimi açık. İstemci EXECUTE hâlâ kapalı; migration ve yayın yapılmadı. Kanıt qa/module-change-command-20261017/result.tap.
+
+
+## 17 Ekim — eski personel tablolarında modül sınırı açığı
+
+AST envanteri yenilendi: 473 kaynak / 47 route / 322 çağrı / 6 dinamik hedef. staffing_demands ve workforce_summary üzerinde modül kapalıyken authenticated doğrudan yazma/okuma yerel klonda yeniden üretildi. İki tabloya restrictive modül policy + satır kilidinden önce config kilidi alan statement trigger adayı eklendi. 6/6 yerel PostgreSQL testi geçti; açık modül davranışı, tenant reddi ve kapatma sırasında bekleyen yazım dahil.
+
+Kanıt ve kalan kapsam: qa/module-change-command-20261017/WRITER_REVIEW.md ve legacy-staffing-result.tap. Üretim katalog bu tur ölçülmedi; aday SQL migration zincirine alınmadı, yayımlanmadı. Gerçek modül kapatma hâlâ kapalı.

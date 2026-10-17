@@ -1,8 +1,8 @@
 {
-  "baseCommit": "01c46b561ee20263a82331067ffda6f7b13c8cb6",
-  "sourceFileCount": 452,
+  "baseCommit": "9462f76938e16b1b00f3762c169fa888573697b3",
+  "sourceFileCount": 473,
   "routeCount": 47,
-  "callCount": 332,
+  "callCount": 322,
   "caveats": [
     "Static .from/.rpc candidates; not an authorization proof.",
     "SQL declarations indexed by name, not signature; overloads, drops and effective grants require database catalog verification.",
@@ -249,7 +249,7 @@
   "calls": [
     {
       "file": "src/app/(main)/ayarlar/page.tsx",
-      "line": 148,
+      "line": 150,
       "kind": "rpc",
       "target": "is_platform_admin",
       "expression": "supabase.rpc",
@@ -257,7 +257,7 @@
     },
     {
       "file": "src/app/(main)/ayarlar/page.tsx",
-      "line": 151,
+      "line": 153,
       "kind": "table-candidate",
       "target": "access_requests",
       "expression": "supabase.from",
@@ -270,7 +270,7 @@
     },
     {
       "file": "src/app/(main)/ayarlar/page.tsx",
-      "line": 167,
+      "line": 169,
       "kind": "table-candidate",
       "target": "access_requests",
       "expression": "createClient().from",
@@ -292,7 +292,7 @@
     },
     {
       "file": "src/app/(main)/dashboard/DashboardClient.tsx",
-      "line": 214,
+      "line": 222,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "supabase\n          .from",
@@ -302,7 +302,7 @@
     },
     {
       "file": "src/app/(main)/dashboard/DashboardClient.tsx",
-      "line": 217,
+      "line": 225,
       "kind": "table-candidate",
       "target": "contracts",
       "expression": "supabase\n          .from",
@@ -313,7 +313,7 @@
     },
     {
       "file": "src/app/(main)/dashboard/DashboardClient.tsx",
-      "line": 224,
+      "line": 232,
       "kind": "table-candidate",
       "target": "tasks",
       "expression": "supabase\n          .from",
@@ -324,7 +324,7 @@
     },
     {
       "file": "src/app/(main)/dashboard/DashboardClient.tsx",
-      "line": 228,
+      "line": 236,
       "kind": "table-candidate",
       "target": "appointments",
       "expression": "supabase\n          .from",
@@ -353,7 +353,7 @@
       "file": "src/app/(main)/dashboard/actions.ts",
       "line": 47,
       "kind": "rpc",
-      "target": "current_user_active_tenant",
+      "target": "current_user_verified_tenant",
       "expression": "supabase.rpc",
       "operations": []
     },
@@ -374,8 +374,24 @@
       "operations": []
     },
     {
+      "file": "src/app/(main)/evraklar/cleanup-actions.ts",
+      "line": 10,
+      "kind": "rpc",
+      "target": "document_cleanup_target_v1",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/evraklar/cleanup-actions.ts",
+      "line": 15,
+      "kind": "rpc",
+      "target": "document_ack_cleanup_v1",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
       "file": "src/app/(main)/evraklar/page.tsx",
-      "line": 290,
+      "line": 292,
       "kind": "storage",
       "target": "documents",
       "expression": "supabase.storage.from",
@@ -385,7 +401,7 @@
     },
     {
       "file": "src/app/(main)/finansal-ozet/page.tsx",
-      "line": 89,
+      "line": 94,
       "kind": "table-candidate",
       "target": "financial_summaries",
       "expression": "supabase\n          .from",
@@ -397,7 +413,7 @@
     },
     {
       "file": "src/app/(main)/finansal-ozet/page.tsx",
-      "line": 96,
+      "line": 101,
       "kind": "table-candidate",
       "target": "financial_summaries",
       "expression": "supabase\n          .from",
@@ -408,7 +424,7 @@
     },
     {
       "file": "src/app/(main)/finansal-ozet/page.tsx",
-      "line": 100,
+      "line": 105,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "supabase.from",
@@ -418,7 +434,7 @@
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 127,
+      "line": 88,
       "kind": "rpc",
       "target": "current_user_role",
       "expression": "supabase.rpc",
@@ -426,15 +442,23 @@
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 138,
+      "line": 99,
       "kind": "rpc",
-      "target": "current_user_active_tenant",
+      "target": "current_user_verified_tenant",
       "expression": "supabase.rpc",
       "operations": []
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 232,
+      "line": 195,
+      "kind": "rpc",
+      "target": "document_prepare_upload_v1",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 209,
       "kind": "storage",
       "target": "documents",
       "expression": "supabase.storage\n    .from",
@@ -444,31 +468,15 @@
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 255,
-      "kind": "table-candidate",
-      "target": "profiles",
-      "expression": "supabase\n    .from",
-      "operations": [
-        "select",
-        "eq",
-        "maybeSingle"
-      ]
+      "line": 233,
+      "kind": "rpc",
+      "target": "document_finalize_upload_v1",
+      "expression": "supabase.rpc",
+      "operations": []
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 262,
-      "kind": "table-candidate",
-      "target": "documents",
-      "expression": "supabase\n    .from",
-      "operations": [
-        "insert",
-        "select",
-        "single"
-      ]
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 308,
+      "line": 268,
       "kind": "table-candidate",
       "target": "documents",
       "expression": "supabase\n    .from",
@@ -480,7 +488,7 @@
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 327,
+      "line": 287,
       "kind": "storage",
       "target": "documents",
       "expression": "supabase.storage\n    .from",
@@ -490,7 +498,23 @@
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 376,
+      "line": 305,
+      "kind": "rpc",
+      "target": "document_delete_v1",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 340,
+      "kind": "rpc",
+      "target": "current_user_verified_tenant",
+      "expression": "supabase.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/app/(main)/firmalar/[id]/actions.ts",
+      "line": 392,
       "kind": "rpc",
       "target": "current_user_role",
       "expression": "supabase.rpc",
@@ -498,69 +522,7 @@
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 385,
-      "kind": "table-candidate",
-      "target": "documents",
-      "expression": "supabase\n    .from",
-      "operations": [
-        "select",
-        "eq",
-        "maybeSingle"
-      ]
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 403,
-      "kind": "table-candidate",
-      "target": "documents",
-      "expression": "supabase\n    .from",
-      "operations": [
-        "delete",
-        "eq",
-        "select"
-      ]
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 429,
-      "kind": "storage",
-      "target": "documents",
-      "expression": "supabase.storage\n      .from",
-      "operations": [
-        "remove"
-      ]
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 472,
-      "kind": "rpc",
-      "target": "current_user_role",
-      "expression": "supabase.rpc",
-      "operations": []
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 482,
-      "kind": "table-candidate",
-      "target": "contacts",
-      "expression": "supabase\n    .from",
-      "operations": [
-        "delete",
-        "eq",
-        "select"
-      ]
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 541,
-      "kind": "rpc",
-      "target": "current_user_role",
-      "expression": "supabase.rpc",
-      "operations": []
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 551,
+      "line": 402,
       "kind": "rpc",
       "target": "current_user_active_tenant",
       "expression": "supabase.rpc",
@@ -568,85 +530,15 @@
     },
     {
       "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 560,
-      "kind": "table-candidate",
-      "target": "companies",
-      "expression": "supabase\n    .from",
-      "operations": [
-        "update",
-        "eq",
-        "eq",
-        "select"
-      ]
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 609,
+      "line": 474,
       "kind": "rpc",
-      "target": "current_user_role",
+      "target": "current_user_verified_tenant",
       "expression": "supabase.rpc",
       "operations": []
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 619,
-      "kind": "rpc",
-      "target": "current_user_active_tenant",
-      "expression": "supabase.rpc",
-      "operations": []
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 628,
-      "kind": "table-candidate",
-      "target": "companies",
-      "expression": "supabase\n    .from",
-      "operations": [
-        "update",
-        "eq",
-        "eq",
-        "select"
-      ]
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 690,
-      "kind": "rpc",
-      "target": "current_user_role",
-      "expression": "supabase.rpc",
-      "operations": []
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 700,
-      "kind": "rpc",
-      "target": "current_user_active_tenant",
-      "expression": "supabase.rpc",
-      "operations": []
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/actions.ts",
-      "line": 772,
-      "kind": "rpc",
-      "target": "current_user_active_tenant",
-      "expression": "supabase.rpc",
-      "operations": []
-    },
-    {
-      "file": "src/app/(main)/firmalar/[id]/page.tsx",
-      "line": 386,
-      "kind": "table-candidate",
-      "target": "financial_summaries",
-      "expression": "supabase\n          .from",
-      "operations": [
-        "select",
-        "eq",
-        "maybeSingle"
-      ]
     },
     {
       "file": "src/app/(main)/firmalar/actions.ts",
-      "line": 82,
+      "line": 60,
       "kind": "rpc",
       "target": "current_user_role",
       "expression": "supabase.rpc",
@@ -654,9 +546,9 @@
     },
     {
       "file": "src/app/(main)/firmalar/actions.ts",
-      "line": 93,
+      "line": 71,
       "kind": "rpc",
-      "target": "current_user_active_tenant",
+      "target": "current_user_verified_tenant",
       "expression": "supabase.rpc",
       "operations": []
     },
@@ -736,7 +628,7 @@
       "file": "src/app/(main)/import/actions.ts",
       "line": 270,
       "kind": "rpc",
-      "target": "current_user_active_tenant",
+      "target": "current_user_verified_tenant",
       "expression": "supabase.rpc",
       "operations": []
     },
@@ -782,7 +674,7 @@
     },
     {
       "file": "src/app/(main)/luca-import/page.tsx",
-      "line": 111,
+      "line": 112,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "supabase.from",
@@ -792,7 +684,7 @@
     },
     {
       "file": "src/app/(main)/luca-import/page.tsx",
-      "line": 145,
+      "line": 146,
       "kind": "rpc",
       "target": "current_user_verified_tenant",
       "expression": "supabase.rpc",
@@ -800,7 +692,7 @@
     },
     {
       "file": "src/app/(main)/luca-import/page.tsx",
-      "line": 156,
+      "line": 157,
       "kind": "rpc",
       "target": "confirm_mizan_atomic",
       "expression": "supabase.rpc",
@@ -1276,27 +1168,15 @@
     },
     {
       "file": "src/app/(main)/sozlesmeler/[id]/actions.ts",
-      "line": 44,
+      "line": 20,
       "kind": "rpc",
-      "target": "current_user_role",
+      "target": "current_user_verified_tenant",
       "expression": "supabase.rpc",
       "operations": []
     },
     {
-      "file": "src/app/(main)/sozlesmeler/[id]/actions.ts",
-      "line": 54,
-      "kind": "table-candidate",
-      "target": "contracts",
-      "expression": "supabase\n    .from",
-      "operations": [
-        "delete",
-        "eq",
-        "select"
-      ]
-    },
-    {
       "file": "src/app/(main)/sozlesmeler/[id]/page.tsx",
-      "line": 308,
+      "line": 316,
       "kind": "storage",
       "target": "documents",
       "expression": "supabase.storage\n      .from",
@@ -1601,6 +1481,14 @@
       ]
     },
     {
+      "file": "src/components/documents/DocumentCleanupPanel.tsx",
+      "line": 28,
+      "kind": "rpc",
+      "target": "document_pending_cleanup_v1",
+      "expression": "createClient().rpc",
+      "operations": []
+    },
+    {
       "file": "src/context/AuthContext.tsx",
       "line": 97,
       "kind": "rpc",
@@ -1621,65 +1509,51 @@
     {
       "file": "src/lib/email/batch-candidates.ts",
       "line": 9,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client.from",
+      "kind": "rpc",
+      "target": "task_notification_candidates_v1",
+      "expression": "client.rpc",
       "operations": [
-        "select",
-        "in",
         "order",
         "range"
       ]
     },
     {
       "file": "src/lib/email/batch-candidates.ts",
-      "line": 16,
-      "kind": "table-candidate",
-      "target": "documents",
-      "expression": "client.from",
+      "line": 14,
+      "kind": "rpc",
+      "target": "document_notification_candidates_v1",
+      "expression": "client.rpc",
       "operations": [
-        "select",
-        "not",
-        "lte",
         "order",
         "range"
       ]
     },
     {
       "file": "src/lib/email/batch-candidates.ts",
-      "line": 23,
-      "kind": "table-candidate",
-      "target": "appointments",
-      "expression": "client.from",
+      "line": 19,
+      "kind": "rpc",
+      "target": "appointment_notification_candidates_v1",
+      "expression": "client.rpc",
       "operations": [
-        "select",
-        "eq",
-        "eq",
         "order",
         "range"
       ]
     },
     {
       "file": "src/lib/email/company-names.ts",
-      "line": 10,
-      "kind": "table-candidate",
-      "target": "companies",
-      "expression": "client.from",
-      "operations": [
-        "select",
-        "in"
-      ]
+      "line": 14,
+      "kind": "rpc",
+      "target": "notification_company_names_v1",
+      "expression": "client.rpc",
+      "operations": []
     },
     {
       "file": "src/lib/email/contract-candidates.ts",
       "line": 10,
-      "kind": "table-candidate",
-      "target": "contracts",
-      "expression": "client.from",
+      "kind": "rpc",
+      "target": "contract_notification_candidates_v1",
+      "expression": "client.rpc",
       "operations": [
-        "select",
-        "eq",
-        "not",
         "order",
         "range"
       ]
@@ -1710,6 +1584,14 @@
         "order",
         "range"
       ]
+    },
+    {
+      "file": "src/lib/email/document-module-access.ts",
+      "line": 14,
+      "kind": "rpc",
+      "target": "document_notification_state_v1",
+      "expression": "client.rpc",
+      "operations": []
     },
     {
       "file": "src/lib/email/notification-log.ts",
@@ -1789,6 +1671,22 @@
       ]
     },
     {
+      "file": "src/lib/email/task-module-access.ts",
+      "line": 9,
+      "kind": "rpc",
+      "target": "task_notification_modules_v1",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/email/task-module-access.ts",
+      "line": 9,
+      "kind": "rpc",
+      "target": "customer_notification_modules_v1",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
       "file": "src/lib/email/tenant-role-recipients.ts",
       "line": 25,
       "kind": "table-candidate",
@@ -1816,42 +1714,15 @@
     },
     {
       "file": "src/lib/import/import-service.ts",
-      "line": 30,
+      "line": 35,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "client.from",
       "operations": [
-        "select"
-      ]
-    },
-    {
-      "file": "src/lib/import/import-service.ts",
-      "line": 78,
-      "kind": "table-candidate",
-      "target": "companies",
-      "expression": "client.from",
-      "operations": [
-        "insert"
-      ]
-    },
-    {
-      "file": "src/lib/import/import-service.ts",
-      "line": 126,
-      "kind": "table-candidate",
-      "target": "contacts",
-      "expression": "client.from",
-      "operations": [
-        "insert"
-      ]
-    },
-    {
-      "file": "src/lib/import/import-service.ts",
-      "line": 178,
-      "kind": "table-candidate",
-      "target": "contracts",
-      "expression": "client.from",
-      "operations": [
-        "insert"
+        "select",
+        "order",
+        "range",
+        "abortSignal"
       ]
     },
     {
@@ -1882,6 +1753,24 @@
         "eq",
         "maybeSingle"
       ]
+    },
+    {
+      "file": "src/lib/services/company-document-cleanup.ts",
+      "line": 13,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "client.storage.from",
+      "operations": [
+        "remove"
+      ]
+    },
+    {
+      "file": "src/lib/services/company-document-cleanup.ts",
+      "line": 15,
+      "kind": "rpc",
+      "target": "document_ack_cleanup_v1",
+      "expression": "client.rpc",
+      "operations": []
     },
     {
       "file": "src/lib/services/company-document-recovery.ts",
@@ -1915,6 +1804,19 @@
       "expression": "supabase.storage.from",
       "operations": [
         "remove"
+      ]
+    },
+    {
+      "file": "src/lib/services/company-overview.ts",
+      "line": 19,
+      "kind": "table-candidate",
+      "target": "financial_summaries",
+      "expression": "client.from",
+      "operations": [
+        "select",
+        "eq",
+        "eq",
+        "maybeSingle"
       ]
     },
     {
@@ -1997,15 +1899,57 @@
     },
     {
       "file": "src/lib/services/daily-operations.ts",
-      "line": 93,
+      "line": 96,
       "kind": "rpc",
       "target": "ops_idp_period_create",
       "expression": "client.rpc",
       "operations": []
     },
     {
+      "file": "src/lib/services/document-pending-uploads.ts",
+      "line": 7,
+      "kind": "rpc",
+      "target": "document_pending_uploads_v1",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/document-upload-recovery.ts",
+      "line": 6,
+      "kind": "rpc",
+      "target": "document_cancel_upload_v1",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/document-upload-recovery.ts",
+      "line": 16,
+      "kind": "rpc",
+      "target": "document_upload_recovery_target_v1",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
+      "file": "src/lib/services/document-upload-recovery.ts",
+      "line": 30,
+      "kind": "storage",
+      "target": "documents",
+      "expression": "client.storage.from",
+      "operations": [
+        "download"
+      ]
+    },
+    {
+      "file": "src/lib/services/document-upload-recovery.ts",
+      "line": 37,
+      "kind": "rpc",
+      "target": "document_finalize_upload_v1",
+      "expression": "client.rpc",
+      "operations": []
+    },
+    {
       "file": "src/lib/services/documents.ts",
-      "line": 230,
+      "line": 211,
       "kind": "table-candidate",
       "target": "documents",
       "expression": "client\n    .from",
@@ -2018,19 +1962,11 @@
     },
     {
       "file": "src/lib/services/documents.ts",
-      "line": 344,
-      "kind": "table-candidate",
-      "target": "documents",
-      "expression": "client.from",
-      "operations": [
-        "update",
-        "eq",
-        "eq",
-        "eq",
-        "is",
-        "select",
-        "maybeSingle"
-      ]
+      "line": 227,
+      "kind": "rpc",
+      "target": "document_edit_metadata_v1",
+      "expression": "client.rpc",
+      "operations": []
     },
     {
       "file": "src/lib/services/fixed-roster.ts",
@@ -2079,30 +2015,6 @@
       "target": "<dynamic>",
       "expression": "c.rpc",
       "operations": []
-    },
-    {
-      "file": "src/lib/services/notes.ts",
-      "line": 126,
-      "kind": "table-candidate",
-      "target": "profiles",
-      "expression": "client\n    .from",
-      "operations": [
-        "select",
-        "eq",
-        "single"
-      ]
-    },
-    {
-      "file": "src/lib/services/notes.ts",
-      "line": 343,
-      "kind": "table-candidate",
-      "target": "notes",
-      "expression": "client\n    .from",
-      "operations": [
-        "select",
-        "eq",
-        "maybeSingle"
-      ]
     },
     {
       "file": "src/lib/services/pdf-upload-context.ts",
@@ -2287,20 +2199,17 @@
       "operations": []
     },
     {
-      "file": "src/lib/services/tasks.ts",
-      "line": 444,
+      "file": "src/lib/services/task-workspace.ts",
+      "line": 12,
       "kind": "rpc",
-      "target": "current_user_verified_tenant",
+      "target": "task_company_choices_v1",
       "expression": "client.rpc",
-      "operations": []
-    },
-    {
-      "file": "src/lib/services/tasks.ts",
-      "line": 457,
-      "kind": "rpc",
-      "target": "current_user_verified_tenant",
-      "expression": "client.rpc",
-      "operations": []
+      "operations": [
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
     },
     {
       "file": "src/lib/services/timed-requests.ts",
@@ -2337,8 +2246,18 @@
       "operations": []
     },
     {
+      "file": "src/lib/services/workspace-modules.ts",
+      "line": 30,
+      "kind": "rpc",
+      "target": "preview_workspace_modules_v1",
+      "expression": "client.rpc",
+      "operations": [
+        "abortSignal"
+      ]
+    },
+    {
       "file": "src/lib/supabase/announcements.ts",
-      "line": 36,
+      "line": 44,
       "kind": "table-candidate",
       "target": "announcements",
       "expression": "client\n    .from",
@@ -2350,30 +2269,27 @@
     },
     {
       "file": "src/lib/supabase/announcements.ts",
-      "line": 59,
-      "kind": "table-candidate",
-      "target": "announcements",
-      "expression": "client\n    .from",
+      "line": 67,
+      "kind": "rpc",
+      "target": "announcement_execute_v1",
+      "expression": "client.rpc",
       "operations": [
-        "insert",
-        "select",
         "single"
       ]
     },
     {
       "file": "src/lib/supabase/announcements.ts",
-      "line": 81,
-      "kind": "table-candidate",
-      "target": "announcements",
-      "expression": "client.from",
+      "line": 90,
+      "kind": "rpc",
+      "target": "announcement_execute_v1",
+      "expression": "client.rpc",
       "operations": [
-        "delete",
-        "eq"
+        "single"
       ]
     },
     {
       "file": "src/lib/supabase/appointments.ts",
-      "line": 28,
+      "line": 35,
       "kind": "rpc",
       "target": "complete_appointment_scoped",
       "expression": "client.rpc",
@@ -2381,7 +2297,7 @@
     },
     {
       "file": "src/lib/supabase/appointments.ts",
-      "line": 49,
+      "line": 56,
       "kind": "table-candidate",
       "target": "appointments",
       "expression": "client\n    .from",
@@ -2396,7 +2312,7 @@
     },
     {
       "file": "src/lib/supabase/appointments.ts",
-      "line": 64,
+      "line": 71,
       "kind": "table-candidate",
       "target": "appointments",
       "expression": "client\n    .from",
@@ -2410,7 +2326,7 @@
     },
     {
       "file": "src/lib/supabase/appointments.ts",
-      "line": 79,
+      "line": 86,
       "kind": "table-candidate",
       "target": "appointments",
       "expression": "client\n    .from",
@@ -2422,7 +2338,7 @@
     },
     {
       "file": "src/lib/supabase/appointments.ts",
-      "line": 99,
+      "line": 106,
       "kind": "table-candidate",
       "target": "appointments",
       "expression": "client\n    .from",
@@ -2437,7 +2353,7 @@
     },
     {
       "file": "src/lib/supabase/appointments.ts",
-      "line": 118,
+      "line": 125,
       "kind": "table-candidate",
       "target": "appointments",
       "expression": "client\n    .from",
@@ -2452,32 +2368,27 @@
     },
     {
       "file": "src/lib/supabase/appointments.ts",
-      "line": 140,
-      "kind": "table-candidate",
-      "target": "appointments",
-      "expression": "client\n    .from",
+      "line": 145,
+      "kind": "rpc",
+      "target": "appointment_execute_v1",
+      "expression": "client.rpc",
       "operations": [
-        "insert",
-        "select",
         "single"
       ]
     },
     {
       "file": "src/lib/supabase/appointments.ts",
-      "line": 162,
-      "kind": "table-candidate",
-      "target": "appointments",
-      "expression": "client\n    .from",
+      "line": 171,
+      "kind": "rpc",
+      "target": "appointment_execute_v1",
+      "expression": "client.rpc",
       "operations": [
-        "update",
-        "eq",
-        "select",
         "single"
       ]
     },
     {
       "file": "src/lib/supabase/companies.ts",
-      "line": 42,
+      "line": 44,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "client\n    .from",
@@ -2489,7 +2400,7 @@
     },
     {
       "file": "src/lib/supabase/companies.ts",
-      "line": 67,
+      "line": 69,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "client\n    .from",
@@ -2501,7 +2412,7 @@
     },
     {
       "file": "src/lib/supabase/companies.ts",
-      "line": 109,
+      "line": 111,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "client.from",
@@ -2513,7 +2424,7 @@
     },
     {
       "file": "src/lib/supabase/companies.ts",
-      "line": 136,
+      "line": 138,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "client\n    .from",
@@ -2524,19 +2435,7 @@
     },
     {
       "file": "src/lib/supabase/companies.ts",
-      "line": 159,
-      "kind": "table-candidate",
-      "target": "companies",
-      "expression": "client\n    .from",
-      "operations": [
-        "insert",
-        "select",
-        "single"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/companies.ts",
-      "line": 199,
+      "line": 185,
       "kind": "table-candidate",
       "target": "companies",
       "expression": "client.from",
@@ -2546,6 +2445,14 @@
         "order",
         "limit"
       ]
+    },
+    {
+      "file": "src/lib/supabase/company-commands.ts",
+      "line": 13,
+      "kind": "rpc",
+      "target": "company_execute_v1",
+      "expression": "client.rpc",
+      "operations": []
     },
     {
       "file": "src/lib/supabase/company-summaries.ts",
@@ -2571,7 +2478,7 @@
     },
     {
       "file": "src/lib/supabase/contacts.ts",
-      "line": 46,
+      "line": 27,
       "kind": "table-candidate",
       "target": "contacts",
       "expression": "client\n    .from",
@@ -2584,7 +2491,7 @@
     },
     {
       "file": "src/lib/supabase/contacts.ts",
-      "line": 73,
+      "line": 54,
       "kind": "table-candidate",
       "target": "contacts",
       "expression": "client\n    .from",
@@ -2596,7 +2503,7 @@
     },
     {
       "file": "src/lib/supabase/contacts.ts",
-      "line": 97,
+      "line": 78,
       "kind": "table-candidate",
       "target": "contacts",
       "expression": "client\n    .from",
@@ -2609,61 +2516,21 @@
     },
     {
       "file": "src/lib/supabase/contacts.ts",
-      "line": 127,
-      "kind": "table-candidate",
-      "target": "contacts",
-      "expression": "client\n    .from",
-      "operations": [
-        "insert",
-        "select",
-        "single"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/contacts.ts",
-      "line": 152,
-      "kind": "table-candidate",
-      "target": "contacts",
-      "expression": "client\n    .from",
-      "operations": [
-        "update",
-        "eq",
-        "select",
-        "single"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/contacts.ts",
-      "line": 179,
-      "kind": "table-candidate",
-      "target": "contacts",
-      "expression": "client\n    .from",
-      "operations": [
-        "update",
-        "eq",
-        "eq"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/contacts.ts",
-      "line": 207,
-      "kind": "table-candidate",
-      "target": "contacts",
-      "expression": "client\n    .from",
-      "operations": [
-        "delete",
-        "eq"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/contacts.ts",
-      "line": 223,
+      "line": 96,
       "kind": "rpc",
       "target": "write_company_contact",
       "expression": "client.rpc",
       "operations": [
         "single"
       ]
+    },
+    {
+      "file": "src/lib/supabase/contacts.ts",
+      "line": 114,
+      "kind": "rpc",
+      "target": "contact_execute_v1",
+      "expression": "client.rpc",
+      "operations": []
     },
     {
       "file": "src/lib/supabase/contract-renewal.ts",
@@ -2683,7 +2550,17 @@
     },
     {
       "file": "src/lib/supabase/contracts.ts",
-      "line": 33,
+      "line": 38,
+      "kind": "rpc",
+      "target": "contract_delete_v1",
+      "expression": "client.rpc",
+      "operations": [
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/contracts.ts",
+      "line": 50,
       "kind": "table-candidate",
       "target": "contracts",
       "expression": "client\n    .from",
@@ -2699,7 +2576,7 @@
     },
     {
       "file": "src/lib/supabase/contracts.ts",
-      "line": 50,
+      "line": 67,
       "kind": "table-candidate",
       "target": "contracts",
       "expression": "client\n    .from",
@@ -2711,7 +2588,7 @@
     },
     {
       "file": "src/lib/supabase/contracts.ts",
-      "line": 74,
+      "line": 91,
       "kind": "table-candidate",
       "target": "contracts",
       "expression": "client\n    .from",
@@ -2728,7 +2605,7 @@
     },
     {
       "file": "src/lib/supabase/contracts.ts",
-      "line": 102,
+      "line": 119,
       "kind": "table-candidate",
       "target": "contracts",
       "expression": "client\n    .from",
@@ -2743,26 +2620,21 @@
     },
     {
       "file": "src/lib/supabase/contracts.ts",
-      "line": 125,
-      "kind": "table-candidate",
-      "target": "contracts",
-      "expression": "client\n    .from",
+      "line": 142,
+      "kind": "rpc",
+      "target": "contract_write_v1",
+      "expression": "client.rpc",
       "operations": [
-        "insert",
-        "select",
         "single"
       ]
     },
     {
       "file": "src/lib/supabase/contracts.ts",
-      "line": 147,
-      "kind": "table-candidate",
-      "target": "contracts",
-      "expression": "client\n    .from",
+      "line": 159,
+      "kind": "rpc",
+      "target": "contract_write_v1",
+      "expression": "client.rpc",
       "operations": [
-        "update",
-        "eq",
-        "select",
         "single"
       ]
     },
@@ -3012,7 +2884,7 @@
     },
     {
       "file": "src/lib/supabase/documents.ts",
-      "line": 59,
+      "line": 58,
       "kind": "table-candidate",
       "target": "documents",
       "expression": "client.from",
@@ -3024,58 +2896,19 @@
     },
     {
       "file": "src/lib/supabase/documents.ts",
-      "line": 90,
+      "line": 91,
       "kind": "table-candidate",
       "target": "documents",
       "expression": "client\n    .from",
       "operations": [
         "select",
         "eq",
-        "maybeSingle"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/documents.ts",
-      "line": 125,
-      "kind": "table-candidate",
-      "target": "documents",
-      "expression": "client\n    .from",
-      "operations": [
-        "insert",
-        "select",
-        "single"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/documents.ts",
-      "line": 145,
-      "kind": "table-candidate",
-      "target": "documents",
-      "expression": "client\n    .from",
-      "operations": [
-        "update",
-        "eq",
-        "select",
-        "single"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/documents.ts",
-      "line": 160,
-      "kind": "table-candidate",
-      "target": "documents",
-      "expression": "client.from",
-      "operations": [
-        "update",
-        "eq",
-        "eq",
-        "select",
         "maybeSingle"
       ]
     },
     {
       "file": "src/lib/supabase/notes.ts",
-      "line": 37,
+      "line": 28,
       "kind": "table-candidate",
       "target": "notes",
       "expression": "client\n    .from",
@@ -3091,39 +2924,11 @@
     },
     {
       "file": "src/lib/supabase/notes.ts",
-      "line": 56,
-      "kind": "table-candidate",
-      "target": "notes",
-      "expression": "client\n    .from",
-      "operations": [
-        "insert",
-        "select",
-        "single"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/notes.ts",
-      "line": 81,
-      "kind": "table-candidate",
-      "target": "notes",
-      "expression": "client\n    .from",
-      "operations": [
-        "update",
-        "eq",
-        "select",
-        "single"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/notes.ts",
-      "line": 103,
-      "kind": "table-candidate",
-      "target": "notes",
-      "expression": "client\n    .from",
-      "operations": [
-        "delete",
-        "eq"
-      ]
+      "line": 44,
+      "kind": "rpc",
+      "target": "note_execute_v1",
+      "expression": "client.rpc",
+      "operations": []
     },
     {
       "file": "src/lib/supabase/profiles.ts",
@@ -3351,118 +3156,108 @@
     },
     {
       "file": "src/lib/supabase/tasks.ts",
-      "line": 31,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client.from",
+      "line": 22,
+      "kind": "rpc",
+      "target": "task_execute_v1",
+      "expression": "client.rpc",
       "operations": [
-        "update",
-        "eq",
-        "eq",
-        "eq",
-        "in"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/tasks.ts",
-      "line": 54,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client\n    .from",
-      "operations": [
-        "select",
-        "eq",
-        "order",
-        "order",
-        "range",
-        "abortSignal"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/tasks.ts",
-      "line": 69,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client\n    .from",
-      "operations": [
-        "select",
-        "order",
-        "order",
-        "range",
-        "abortSignal"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/tasks.ts",
-      "line": 84,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client\n    .from",
-      "operations": [
-        "select",
-        "eq",
-        "maybeSingle"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/tasks.ts",
-      "line": 104,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client\n    .from",
-      "operations": [
-        "select",
-        "eq",
-        "order",
-        "order",
-        "range",
-        "abortSignal"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/tasks.ts",
-      "line": 120,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client\n    .from",
-      "operations": [
-        "select",
-        "eq",
-        "order",
-        "order",
-        "range",
-        "abortSignal"
-      ]
-    },
-    {
-      "file": "src/lib/supabase/tasks.ts",
-      "line": 149,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client\n    .from",
-      "operations": [
-        "insert",
-        "select",
         "single"
       ]
     },
     {
       "file": "src/lib/supabase/tasks.ts",
-      "line": 173,
+      "line": 44,
       "kind": "table-candidate",
       "target": "tasks",
       "expression": "client\n    .from",
       "operations": [
-        "update",
-        "eq",
-        "eq",
         "select",
+        "eq",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 59,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 74,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
         "maybeSingle"
       ]
     },
     {
       "file": "src/lib/supabase/tasks.ts",
-      "line": 189,
+      "line": 94,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 110,
+      "kind": "table-candidate",
+      "target": "tasks",
+      "expression": "client\n    .from",
+      "operations": [
+        "select",
+        "eq",
+        "order",
+        "order",
+        "range",
+        "abortSignal"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 147,
+      "kind": "rpc",
+      "target": "task_execute_v1",
+      "expression": "client.rpc",
+      "operations": [
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 175,
+      "kind": "rpc",
+      "target": "task_execute_v1",
+      "expression": "client.rpc",
+      "operations": [
+        "single"
+      ]
+    },
+    {
+      "file": "src/lib/supabase/tasks.ts",
+      "line": 187,
       "kind": "table-candidate",
       "target": "task_assignment_history",
       "expression": "client.from",
@@ -3475,20 +3270,12 @@
     },
     {
       "file": "src/lib/supabase/tasks.ts",
-      "line": 197,
-      "kind": "table-candidate",
-      "target": "tasks",
-      "expression": "client.from",
+      "line": 195,
+      "kind": "rpc",
+      "target": "task_execute_v1",
+      "expression": "client.rpc",
       "operations": [
-        "update",
-        "eq",
-        "eq",
-        "eq",
-        "is",
-        "is",
-        "in",
-        "select",
-        "maybeSingle"
+        "single"
       ]
     },
     {
@@ -3610,6 +3397,21 @@
       "line": 283
     },
     {
+      "name": "announcement_execute_v1",
+      "file": "supabase/migrations/20261005003000_announcement_module_commands.sql",
+      "line": 7
+    },
+    {
+      "name": "appointment_execute_v1",
+      "file": "supabase/migrations/20261013000100_calendar_module_commands.sql",
+      "line": 8
+    },
+    {
+      "name": "appointment_notification_candidates_v1",
+      "file": "supabase/migrations/20261005001700_notification_candidate_projections.sql",
+      "line": 4
+    },
+    {
       "name": "appointments_set_updated_at",
       "file": "supabase/migrations/20260407000700_create_appointments.sql",
       "line": 42
@@ -3628,6 +3430,11 @@
       "name": "companies_set_updated_at",
       "file": "supabase/migrations/20260407000200_create_companies_anchor.sql",
       "line": 84
+    },
+    {
+      "name": "company_execute_v1",
+      "file": "supabase/migrations/20261005001000_company_commands.sql",
+      "line": 5
     },
     {
       "name": "complete_appointment_atomic",
@@ -3650,6 +3457,11 @@
       "line": 11
     },
     {
+      "name": "contact_execute_v1",
+      "file": "supabase/migrations/20261005001400_contact_remaining_commands.sql",
+      "line": 4
+    },
+    {
       "name": "contacts_enforce_max_per_company",
       "file": "supabase/migrations/20260407000300_create_contacts.sql",
       "line": 114
@@ -3665,6 +3477,11 @@
       "line": 172
     },
     {
+      "name": "contract_delete_v1",
+      "file": "supabase/migrations/20261015000300_contract_delete_command.sql",
+      "line": 9
+    },
+    {
       "name": "contract_document_history",
       "file": "supabase/migrations/20260909002000_contract_appendices.sql",
       "line": 181
@@ -3673,6 +3490,11 @@
       "name": "contract_document_version_path",
       "file": "supabase/migrations/20260909002000_contract_appendices.sql",
       "line": 191
+    },
+    {
+      "name": "contract_notification_candidates_v1",
+      "file": "supabase/migrations/20261005001700_notification_candidate_projections.sql",
+      "line": 12
     },
     {
       "name": "contract_pdf_version_path",
@@ -3688,6 +3510,11 @@
       "name": "contract_renewal_snapshot",
       "file": "supabase/migrations/20260909001700_contract_renewal_task.sql",
       "line": 51
+    },
+    {
+      "name": "contract_write_v1",
+      "file": "supabase/migrations/20261015000100_contract_write_commands.sql",
+      "line": 4
     },
     {
       "name": "contracts_advance_revision",
@@ -3708,6 +3535,11 @@
       "name": "create_contract_renewal_task",
       "file": "supabase/migrations/20260909001700_contract_renewal_task.sql",
       "line": 70
+    },
+    {
+      "name": "critical_dates_preserve_identity",
+      "file": "supabase/migrations/20261004001000_demo_and_critical_date_boundaries.sql",
+      "line": 42
     },
     {
       "name": "critical_dates_set_updated_at",
@@ -3741,13 +3573,18 @@
     },
     {
       "name": "current_workspace_modules_v1",
-      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
-      "line": 105
+      "file": "supabase/migrations/20261005000500_task_module_notifications.sql",
+      "line": 24
     },
     {
       "name": "custom_access_token_hook",
       "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
       "line": 250
+    },
+    {
+      "name": "customer_notification_modules_v1",
+      "file": "supabase/migrations/20261005001600_customer_notification_modules.sql",
+      "line": 4
     },
     {
       "name": "daily_dashboard",
@@ -3770,9 +3607,109 @@
       "line": 183
     },
     {
+      "name": "document_ack_cleanup_v1",
+      "file": "supabase/migrations/20261015000500_document_cleanup_queue.sql",
+      "line": 36
+    },
+    {
+      "name": "document_cancel_upload_v1",
+      "file": "supabase/migrations/20261016000500_document_upload_cancellation.sql",
+      "line": 4
+    },
+    {
+      "name": "document_cleanup_delete_allowed_v1",
+      "file": "supabase/migrations/20261015000600_document_cleanup_retry.sql",
+      "line": 32
+    },
+    {
+      "name": "document_cleanup_path_guard_v1",
+      "file": "supabase/migrations/20261015000600_document_cleanup_retry.sql",
+      "line": 6
+    },
+    {
+      "name": "document_cleanup_target_v1",
+      "file": "supabase/migrations/20261015000600_document_cleanup_retry.sql",
+      "line": 57
+    },
+    {
+      "name": "document_delete_v1",
+      "file": "supabase/migrations/20261016000700_document_delete_command.sql",
+      "line": 3
+    },
+    {
+      "name": "document_edit_metadata_v1",
+      "file": "supabase/migrations/20261016000600_document_metadata_command.sql",
+      "line": 3
+    },
+    {
+      "name": "document_enqueue_cleanup_v1",
+      "file": "supabase/migrations/20261015000600_document_cleanup_retry.sql",
+      "line": 18
+    },
+    {
+      "name": "document_finalize_upload_v1",
+      "file": "supabase/migrations/20261016000300_document_finalize_upload.sql",
+      "line": 5
+    },
+    {
+      "name": "document_mark_upload_published_v1",
+      "file": "supabase/migrations/20261015000800_document_upload_attempts.sql",
+      "line": 44
+    },
+    {
+      "name": "document_notification_candidates_v1",
+      "file": "supabase/migrations/20261005001700_notification_candidate_projections.sql",
+      "line": 19
+    },
+    {
+      "name": "document_notification_state_v1",
+      "file": "supabase/migrations/20261005001700_notification_candidate_projections.sql",
+      "line": 27
+    },
+    {
       "name": "document_object_in_workspace",
       "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
       "line": 342
+    },
+    {
+      "name": "document_object_module_read_v1",
+      "file": "supabase/migrations/20261013000300_document_contract_module_access.sql",
+      "line": 24
+    },
+    {
+      "name": "document_pending_cleanup_v1",
+      "file": "supabase/migrations/20261015000600_document_cleanup_retry.sql",
+      "line": 46
+    },
+    {
+      "name": "document_pending_uploads_v1",
+      "file": "supabase/migrations/20261016000400_document_upload_recovery.sql",
+      "line": 5
+    },
+    {
+      "name": "document_prepare_upload_v1",
+      "file": "supabase/migrations/20261015000800_document_upload_attempts.sql",
+      "line": 16
+    },
+    {
+      "name": "document_storage_insert_allowed_v1",
+      "file": "supabase/migrations/20261016000800_document_insert_reservations.sql",
+      "line": 8
+    },
+    {
+      "name": "document_storage_retired_path_v1",
+      "file": "supabase/migrations/20261016001100_document_storage_module_barrier.sql",
+      "line": 11
+    },
+    {
+      "name": "document_upload_object_guard_v1",
+      "file": "supabase/migrations/20261016000300_document_finalize_upload.sql",
+      "line": 46
+    },
+    {
+      "name": "document_upload_recovery_target_v1",
+      "file": "supabase/migrations/20261016000400_document_upload_recovery.sql",
+      "line": 24
     },
     {
       "name": "documents_guard_version",
@@ -3875,9 +3812,19 @@
       "line": 211
     },
     {
+      "name": "note_execute_v1",
+      "file": "supabase/migrations/20261005001200_note_module_commands.sql",
+      "line": 4
+    },
+    {
       "name": "notes_set_updated_at",
       "file": "supabase/migrations/20260407000400_create_notes.sql",
       "line": 131
+    },
+    {
+      "name": "notification_company_names_v1",
+      "file": "supabase/migrations/20261005001600_customer_notification_modules.sql",
+      "line": 18
     },
     {
       "name": "operational_row_is_private",
@@ -4230,6 +4177,11 @@
       "line": 29
     },
     {
+      "name": "preview_workspace_modules_v1",
+      "file": "supabase/migrations/20261005002100_module_change_preview.sql",
+      "line": 5
+    },
+    {
       "name": "profile_guard_active_tasks",
       "file": "supabase/migrations/20260926000100_multi_workspace_cutover.sql",
       "line": 62
@@ -4331,8 +4283,8 @@
     },
     {
       "name": "reporting_source_access",
-      "file": "supabase/migrations/20260928000500_project_reporting_source_files.sql",
-      "line": 14
+      "file": "supabase/migrations/20261005002800_reporting_module_gates.sql",
+      "line": 114
     },
     {
       "name": "reporting_source_file",
@@ -4366,18 +4318,23 @@
     },
     {
       "name": "talent_attachment_access",
-      "file": "supabase/migrations/20260923000300_talent_attachment_cancellation.sql",
-      "line": 8
+      "file": "supabase/migrations/20261005002200_talent_module_rpc_gates.sql",
+      "line": 238
     },
     {
       "name": "talent_attachment_can_cleanup",
-      "file": "supabase/migrations/20260923000300_talent_attachment_cancellation.sql",
-      "line": 20
+      "file": "supabase/migrations/20261005002200_talent_module_rpc_gates.sql",
+      "line": 253
     },
     {
       "name": "talent_attachment_cancel",
       "file": "supabase/migrations/20260923000300_talent_attachment_cancellation.sql",
       "line": 26
+    },
+    {
+      "name": "talent_attachment_cleanup_read_v1",
+      "file": "supabase/migrations/20261005002900_talent_storage_read_only.sql",
+      "line": 7
     },
     {
       "name": "talent_attachment_finish",
@@ -4665,6 +4622,26 @@
       "line": 33
     },
     {
+      "name": "task_company_choices_v1",
+      "file": "supabase/migrations/20261005000600_task_company_projection.sql",
+      "line": 4
+    },
+    {
+      "name": "task_execute_v1",
+      "file": "supabase/migrations/20261005000200_task_module_gateway.sql",
+      "line": 50
+    },
+    {
+      "name": "task_notification_candidates_v1",
+      "file": "supabase/migrations/20261005000500_task_module_notifications.sql",
+      "line": 49
+    },
+    {
+      "name": "task_notification_modules_v1",
+      "file": "supabase/migrations/20261005000500_task_module_notifications.sql",
+      "line": 35
+    },
+    {
       "name": "task_transfer_directory",
       "file": "supabase/migrations/20260909001500_task_transfer.sql",
       "line": 14
@@ -4696,17 +4673,17 @@
     },
     {
       "name": "tenant_module_bootstrap_v1",
-      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "file": "supabase/migrations/20261005000100_tenant_module_foundation.sql",
       "line": 73
     },
     {
       "name": "tenant_module_key_guard_v1",
-      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "file": "supabase/migrations/20261005000100_tenant_module_foundation.sql",
       "line": 61
     },
     {
       "name": "tenant_module_on_create_v1",
-      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "file": "supabase/migrations/20261005000100_tenant_module_foundation.sql",
       "line": 88
     },
     {
@@ -4721,8 +4698,28 @@
     },
     {
       "name": "workspace_module_catalog_v1",
-      "file": "supabase/migrations/20260928000900_tenant_module_foundation.sql",
+      "file": "supabase/migrations/20261005000100_tenant_module_foundation.sql",
       "line": 9
+    },
+    {
+      "name": "workspace_module_enabled_v1",
+      "file": "supabase/migrations/20261005000200_task_module_gateway.sql",
+      "line": 7
+    },
+    {
+      "name": "workspace_module_snapshot_v1",
+      "file": "supabase/migrations/20261005000500_task_module_notifications.sql",
+      "line": 5
+    },
+    {
+      "name": "workspace_require_module_read_v1",
+      "file": "supabase/migrations/20261005002200_talent_module_rpc_gates.sql",
+      "line": 4
+    },
+    {
+      "name": "workspace_require_module_write_v1",
+      "file": "supabase/migrations/20261005000200_task_module_gateway.sql",
+      "line": 20
     },
     {
       "name": "workspace_setup",
