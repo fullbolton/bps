@@ -1,3 +1,4 @@
+import {parseModuleHistory} from '@/lib/modules/change-history';
 import { parseRequestedModules, parseModuleChangePreview } from '@/lib/modules/change-preview';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { WorkspaceScope } from '@/lib/workspace-context';
@@ -33,4 +34,10 @@ export async function previewWorkspaceModules(client: SupabaseClient<Database>, 
   }).abortSignal(AbortSignal.timeout(12_000));
   if (error) throw error;
   return parseModuleChangePreview(data, expected, revision, modules);
+}
+
+export async function loadModuleHistory(client: SupabaseClient<Database>, expected: import('@/lib/modules/context').WorkspaceModuleContext) {
+  const {data,error}=await client.rpc('workspace_module_history_v1',{p_actor:expected.actorId,p_tenant:expected.tenantId}).abortSignal(AbortSignal.timeout(12_000));
+  if(error) throw error;
+  return parseModuleHistory(data,expected);
 }

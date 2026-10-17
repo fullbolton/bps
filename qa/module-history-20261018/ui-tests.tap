@@ -1,0 +1,22 @@
+✔ history displays actual state differences and bootstrap separately (20.600875ms)
+✔ history rejects other tenant, stale revision, incomplete and repeated audit rows (3.521ms)
+✔ collapsed history makes no request; failure clears loaded entries (408.62375ms)
+✔ late previous-company history is discarded (35.136375ms)
+✔ shared module fixture includes every post-baseline repository migration in order (8.636ms)
+✔ a newly added migration makes stale acceptance fail closed (5.760916ms)
+✔ missing files, duplicates, reordered entries, malformed names and empty lists are rejected (2.809542ms)
+✔ historical files and non-SQL notes do not become fixture migrations (0.211167ms)
+✔ atomic command expects exactly the checks required by the preview parser (1390.309708ms)
+✔ module panel reads only for a verified manager and never invents default module states (1001.242583ms)
+✔ module panel shows server states and dependencies without mutation controls (162.369708ms)
+✔ failed reload clears previous settings instead of showing stale configuration (135.04375ms)
+✔ late previous-company response never appears in the new company panel (113.80575ms)
+✔ module editor receives a commit capability only with explicit release opt-in (163.473083ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4985.311125

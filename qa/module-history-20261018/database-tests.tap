@@ -1,0 +1,15 @@
+▶ manager module history on complete local schema
+  ✔ manager gets only own bootstrap without receipt hash (114.172709ms)
+  ✔ foreign actor and tenant rejected (73.1585ms)
+  ✔ nonmanager denied with current membership role (63.761833ms)
+  ✔ latest 20 exact revisions and original data remain intact (3249.197167ms)
+  ✔ anon and service role have no execute (299.78425ms)
+✔ manager module history on complete local schema (24563.908666ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 26435.192875

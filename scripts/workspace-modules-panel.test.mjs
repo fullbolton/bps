@@ -5,6 +5,7 @@ function setup(loader, changesEnabled=false) {
  const d=driver();let auth={user:{id:'actor',app_metadata:{active_tenant:'A'}},role:'yonetici',loading:false};
  const useScopedResource=compile('src/components/ui/useScopedResource.ts',d.hooks,{},'useScopedResource');
  const panel=compile('src/app/(main)/ayarlar/WorkspaceModules.tsx',d.hooks,{
+  './ModuleChangeHistory':{default:()=>null},
   './ModuleChangePreview':{default:()=>null},
   '@/context/AuthContext':{useAuth:()=>auth},
   '@/components/ui/useScopedResource':{useScopedResource},
@@ -45,7 +46,7 @@ test('late previous-company response never appears in the new company panel',asy
 test('module editor receives a commit capability only with explicit release opt-in',async()=>{
  for(const enabled of [false,true]){
   const x=setup(async()=>data('A'),enabled);x.render();await settle();const tree=x.render();
-  const preview=nodes(tree).find(n=>typeof n.type==='function'&&n.props.context);
+  const preview=nodes(tree).find(n=>typeof n.type==='function'&&n.props.context&&'commit' in n.props);
   assert.ok(preview);assert.equal(!!preview.props.commit,enabled);x.dispose();
  }
 });

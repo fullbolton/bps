@@ -680,5 +680,9 @@
   {
     "file": "scripts/navigation-modules.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/module-change-history.test.mjs",
+    "suite": "application"
   }
 ]

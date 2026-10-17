@@ -1,5 +1,6 @@
 "use client";
 
+import ModuleChangeHistory from "./ModuleChangeHistory";
 import ModuleChangePreview from "./ModuleChangePreview";
 import {useCallback, useMemo} from "react";
 import {useAuth} from "@/context/AuthContext";
@@ -46,6 +47,7 @@ export default function WorkspaceModules({changesEnabled = false}: {changesEnabl
           {module.requires.length > 0 && <p className="mt-3 text-xs text-slate-500">Gerekli modüller: {module.requires.map(key => MODULE_CATALOG.find(item => item.key === key)!.name).join(", ")}</p>}
         </li>)}
       </ul>
+      <ModuleChangeHistory key={`history:${resource.data.actorId}:${resource.data.tenantId}:${resource.data.membershipVersion}:${resource.data.selectionVersion}`} context={resource.data} />
       <ModuleChangePreview key={`${resource.data.actorId}:${resource.data.tenantId}:${resource.data.membershipVersion}:${resource.data.selectionVersion}:${resource.data.configRevision}`} context={resource.data} commit={commit} />
     </>}
   </section>;
