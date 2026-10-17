@@ -21,6 +21,7 @@ export const MODULE_CHANGE_CHECKS = [
   { module: 'contracts', code: 'contract_linked_tasks', label: 'Sözleşmelere bağlı tamamlanmamış görevler var.', href: '/gorevler' },
   { module: 'documents', code: 'pending_document_cleanup', label: 'Silinen belgelerin dosya temizliği bekliyor. Evraklar içindeki Dosya temizliği bölümünü kontrol edin.', href: '/evraklar' },
   { module: 'documents', code: 'pending_document_upload', label: 'Tamamlanmamış evrak yüklemeleri var. Evraklar içindeki Bekleyen yüklemeler bölümünden tamamlayın veya iptal edin.', href: '/evraklar' },
+  { module: 'contracts', code: 'pending_contract_upload', label: 'Tamamlanmamış sözleşme dosyası yüklemeleri var. İlgili sözleşmede yüklemeyi tamamlayın veya iptal edin.', href: '/sozlesmeler' },
 ] as const;
 
 export function parseModuleChangePreview(value: unknown, expected: ModuleContextExpectation, revision: string, requested: unknown) {

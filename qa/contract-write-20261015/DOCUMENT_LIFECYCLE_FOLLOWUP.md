@@ -582,3 +582,10 @@ Komut süiti 16/16: authenticated talep INSERT önceyse gerçek kapatma reddi; k
 ## 17 Ekim — modül test şeması güncel zincire tamamlandı
 
 Eski şablonun takvim/sözleşme gateway ve PT409 yamalarını içermediği saptandı. Komut testi artık fixture-migrations.json içindeki 23 migration'ı sırayla uyguluyor; 16/16 geçti. Yanlış 40001 test beklentileri güncel PT409 ile değiştirildi. Eski sonuçlar dar fixture kanıtıdır, bütün güncel zincir kanıtı sayılmaz. Güncel şemada sözleşme yükleme bariyerleri mevcut; metinsel definer yazıcı adayları post-migration-writer-candidates.json dosyasına kaydedildi ve bakım/kimlik yolları sınıflandı. Üretime işlem/yayın yapılmadı; diğer runtime sınırları ve UI kayıt bağlantısı açık.
+
+
+## 17 Ekim — yarım sözleşme PDF yüklemesi kapatma engeli
+
+20261017000200_contract_upload_module_preview.sql eklendi. Güncel preview gövde md5'i yerel güncel şemadan ölçüldü (4cde00fbcf8756586146ad19aba5d398); farklı gövde/anchor migration'ı durdurur. contracts kapanacaksa contract_pdf_upload_commands pending/publishing kayıtları ayrıca engel sayılır. Süresi dolmuş sözleşmede unfinished_contracts=false iken pending_contract_upload=true kanıtlandı; aday atomik komut 23514 ile reddetti. İptal edilmiş rezervasyon pending sayılmaz; iptal edilmiş dosyaların Storage temizliği bu kontrolün kapsamı değildir.
+
+Önizleme parser'ı 19 kontrolün ilgili alt kümesini doğrular; eksik sözleşme yükleme kontrolünü başarı saymaz. Bu nedenle migration frontend'den önce uygulanmalı; eski server + yeni UI fail-closed hata verir. Fixture artık 24 migration uygular. Veritabanı 17/17, önizleme/parser/bileşen 13/13, TypeScript temiz. Üretime hiçbir işlem yapılmadı; migration bekliyor. UI mutasyon ve diğer erişim/yayın kabul kapıları hâlâ açık.

@@ -1,0 +1,21 @@
+✔ selection is advisory, explicit, and passes verified context/revision to the service (65.531875ms)
+✔ dependencies and blocking checks get actionable explanations; nonblocking checks stay out (14.33425ms)
+✔ editing a selection hides previous results and discards a late response (10.9315ms)
+✔ failed checks show an error, allow retry, and resetting removes the result (11.294791ms)
+✔ complete advisory response preserves all checks but never permits mutation (0.988666ms)
+✔ a dependency-invalid draft is accepted so the UI can explain it; incomplete or coerced states are not (0.165ms)
+✔ scope revision membership role and advisory flags fail closed (0.430709ms)
+✔ missing duplicate foreign and non-boolean checks never become an empty successful report (0.264041ms)
+✔ dependency evidence must match the requested graph (0.17325ms)
+✔ every resolution link targets an existing page (0.2035ms)
+✔ missing upload assessment cannot be mistaken for permission to close documents (0.147416ms)
+✔ one bounded RPC; transport errors and malformed responses never fall back (0.326625ms)
+✔ unfinished contract file assessment is required, including for expired contracts (0.147125ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 385.193125

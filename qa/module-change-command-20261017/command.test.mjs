@@ -64,6 +64,18 @@ test('local module command candidate',async t=>{
    await assert.rejects(invoke(a,ctx,807,{...ctx.modules,documents:false,contracts:false}),{code:'23514'});
    assert.equal((await context(a)).configRevision,ctx.configRevision);
   });
+  await t.test('expired contract pending upload blocks closure independently of contract status',async()=>{
+   await a.query("insert into contracts(id,tenant_id,company_id,name,status) values($1,$2,$3,'Synthetic expired','suresi_doldu')",[id(894),id(1),id(890)]);
+   // Metadata-only synthetic reservation: no private file or upload is needed.
+   await a.query("insert into contract_pdf_upload_commands(command_id,actor_id,tenant_id,contract_id,company_id,filename,byte_size,declared_sha256,storage_path,target_document_id,target_role) values($1,$2,$3,$4,$5,'synthetic.pdf',10,repeat('a',64),$6,$7,'main')",[id(895),id(11),id(1),id(894),id(890),`${id(890)}/${id(895)}.pdf`,id(896)]);
+   const ctx=await context(a),draft={...ctx.modules,contracts:false};
+   const inspect=async()=>(await a.query('select preview_workspace_modules_v1($1,$2,$3,$4) value',[ctx.actorId,ctx.tenantId,ctx.configRevision,draft])).rows[0].value.checks;
+   let checks=await inspect();assert.equal(checks.find(c=>c.code==='unfinished_contracts').blocking,false);assert.equal(checks.find(c=>c.code==='pending_contract_upload').blocking,true);
+   await assert.rejects(invoke(a,ctx,821,draft),{code:'23514'});
+   await a.query("update contract_pdf_upload_commands set state='publishing' where command_id=$1",[id(895)]);assert.equal((await inspect()).find(c=>c.code==='pending_contract_upload').blocking,true);
+   await a.query("update contract_pdf_upload_commands set state='cancelled' where command_id=$1",[id(895)]);assert.equal((await inspect()).find(c=>c.code==='pending_contract_upload').blocking,false);
+   assert.equal((await context(a)).configRevision,ctx.configRevision);
+  });
   await t.test('two concurrent sessions with the same revision cannot overwrite one another',async()=>{
    const ctx=await context(a);await a.query('BEGIN');
    await invoke(a,ctx,808,{...ctx.modules,announcements:true});

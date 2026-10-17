@@ -11,7 +11,7 @@ const all=v=>Object.fromEntries(MODULE_CATALOG.map(m=>[m.key,v]));
 const snapshot=()=>({schemaVersion:1,context:{...scope,name:'Synthetic',role:'yonetici',schemaVersion:1,catalogVersion:1,configRevision:'1',modules:all(true)},requested:all(false),disabled:MODULE_CATALOG.map(m=>m.key).sort(),dependencies:[],checks:MODULE_CHANGE_CHECKS.map(c=>({module:c.module,code:c.code,blocking:false})),assessmentDate:'2026-09-29',advisoryOnly:true,mutationAvailable:false});
 const parse=x=>parseModuleChangePreview(x,scope,'1',all(false));
 test('complete advisory response preserves all checks but never permits mutation',()=>{
- const result=parse(snapshot());assert.equal(result.checks.length,18);assert.equal(result.mutationAvailable,false);assert.equal(result.advisoryOnly,true);
+ const result=parse(snapshot());assert.equal(result.checks.length,19);assert.equal(result.mutationAvailable,false);assert.equal(result.advisoryOnly,true);
 });
 test('a dependency-invalid draft is accepted so the UI can explain it; incomplete or coerced states are not',()=>{
  assert.equal(parseRequestedModules({...all(true),customers:false}).customers,false);
@@ -40,8 +40,14 @@ test('missing upload assessment cannot be mistaken for permission to close docum
 test('one bounded RPC; transport errors and malformed responses never fall back',async()=>{
  for(const response of [{data:snapshot(),error:null},{data:null,error:null},{data:snapshot(),error:{message:'transport'}}]){
   let calls=0;const client={rpc:(name,args)=>{calls++;assert.equal(name,'preview_workspace_modules_v1');assert.equal(args.p_expected_tenant,scope.tenantId);return {abortSignal:s=>{assert.ok(s instanceof AbortSignal);return Promise.resolve(response);}};}};
-  if(response.data&&!response.error)assert.equal((await previewWorkspaceModules(client,scope,'1',all(false))).checks.length,18);
+  if(response.data&&!response.error)assert.equal((await previewWorkspaceModules(client,scope,'1',all(false))).checks.length,19);
   else await assert.rejects(previewWorkspaceModules(client,scope,'1',all(false)));
   assert.equal(calls,1);
  }
+});
+
+test('unfinished contract file assessment is required, including for expired contracts',()=>{
+ const incomplete=snapshot();incomplete.checks=incomplete.checks.filter(c=>c.code!=='pending_contract_upload');assert.throws(()=>parse(incomplete));
+ const complete=snapshot();complete.checks.find(c=>c.code==='pending_contract_upload').blocking=true;
+ assert.equal(parse(complete).checks.find(c=>c.code==='pending_contract_upload').blocking,true);
 });

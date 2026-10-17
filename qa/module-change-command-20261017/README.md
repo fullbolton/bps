@@ -42,3 +42,10 @@ NODE_PATH=/private/tmp/bps-calendar-qa-runtime/node_modules node --test qa/modul
 Önceki komut testi base şablona yalnız evrak migration'larını ekliyordu; takvim, sözleşme gateway ve PT409 yamalarını kapsamıyordu. Önceki sonuçlar bu dar şema için geçerlidir, tam yayın zinciri kabulü değildir. Artık fixture-migrations.json içindeki 23 eksik migration (20261013000100–20261017000100) sırayla uygulanır. Şablonda duyuru politikası zaten bulunduğundan 20261005003000/03100 tekrar uygulanmaz. Son komut testi 16/16; eski 40001 beklentileri yayınlanmış PT409 sözleşmesine düzeltildi.
 
 post-migration-writer-candidates.json, bu yerel şemada authenticated EXECUTE taşıyan definer gövdelerinde belirli yazma ifadeleri bulunan ve doğrudan workspace_require_module_write_v1 içermeyen adayları kaydeder. Dinamik SQL/helper zinciri veya tüm yazım biçimleri için tam analiz değildir. Sözleşme hazırlama/finalize fonksiyonları eski şablonda aday görünürken güncel migration sonrası bu listeden çıkar.
+
+
+## 17 Ekim — yarım sözleşme PDF yüklemesi kapatma engeli
+
+20261017000200_contract_upload_module_preview.sql eklendi. Güncel preview gövde md5'i yerel güncel şemadan ölçüldü (4cde00fbcf8756586146ad19aba5d398); farklı gövde/anchor migration'ı durdurur. contracts kapanacaksa contract_pdf_upload_commands pending/publishing kayıtları ayrıca engel sayılır. Süresi dolmuş sözleşmede unfinished_contracts=false iken pending_contract_upload=true kanıtlandı; aday atomik komut 23514 ile reddetti. İptal edilmiş rezervasyon pending sayılmaz; iptal edilmiş dosyaların Storage temizliği bu kontrolün kapsamı değildir.
+
+Önizleme parser'ı 19 kontrolün ilgili alt kümesini doğrular; eksik sözleşme yükleme kontrolünü başarı saymaz. Bu nedenle migration frontend'den önce uygulanmalı; eski server + yeni UI fail-closed hata verir. Fixture artık 24 migration uygular. Veritabanı 17/17, önizleme/parser/bileşen 13/13, TypeScript temiz. Üretime hiçbir işlem yapılmadı; migration bekliyor. UI mutasyon ve diğer erişim/yayın kabul kapıları hâlâ açık.
