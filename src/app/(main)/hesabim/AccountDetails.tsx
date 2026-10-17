@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import Link from "next/link";
+import NotificationSoundControls from "@/components/communication/NotificationSoundControls";
 import DisplayNameEditor from "./DisplayNameEditor";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
@@ -44,6 +45,6 @@ export default function AccountDetails({ multiWorkspace, conversations }: { mult
         {role === "yonetici" && <Link className={button} href="/ayarlar" onClick={guard.handle}>Şirket ayarları</Link>}
       </div>
     </section>
-    {conversations && (role === "yonetici" || role === "operasyon") && <section aria-labelledby="account-notifications" className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><h2 id="account-notifications" className="font-semibold text-slate-900">Bildirim sesi</h2><p className="mt-2 text-sm leading-6 text-slate-600">Üst çubuktaki bildirim zilinden “Sesi aç” seçeneğini kullanabilirsiniz. Ses yalnız bu sekme için açılır; sayfayı yeniden açtığınızda tekrar etkinleştirmeniz gerekir. Talep konuşmalarında size gelen etiket ve yanıtlarda çalar.</p></section>}
+    {conversations && (role === "yonetici" || role === "operasyon") && <section aria-labelledby="account-notifications" className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><h2 id="account-notifications" className="font-semibold text-slate-900">Bildirim sesi</h2><p className="my-3 text-sm text-slate-600">Talep konuşmalarında size gelen etiket ve yanıtların sesini yönetin.</p><NotificationSoundControls /></section>}
   </div>;
 }

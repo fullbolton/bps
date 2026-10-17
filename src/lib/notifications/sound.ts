@@ -15,7 +15,6 @@ export function createInboxTone() {
    if(!context)context=new AudioContext();
    await context.resume();
    if(context.state!=='running')throw Error('SOUND_BLOCKED');
-   play();
   },
   play,
   close(){const old=context;context=null;if(old)void old.close().catch(()=>{});},

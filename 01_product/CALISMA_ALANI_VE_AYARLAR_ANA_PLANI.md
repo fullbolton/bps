@@ -439,3 +439,7 @@ Hesabım ad formu tamamlandı; üst çubuk da artık profiles.display_name okur.
 ## 18 Ekim — Hesabım paketi ÜRETİMDE
 
 Kaynak cef7b4d; Vercel dpl_6L7SC5x4BCGFfsaTxTXhwtyZru1Y www.bpsys.net alanına promote edildi ve bağımsız inspect ile READY doğrulandı. Yeni migration yok; ön kontrolde 186 sürüm ve mevcut kendi-profil/yalnız-ad yazma sınırı doğrulandı. Canlı kimlikli /hesabim ekranında ad ile üst çubuk aynı, şirket/rol doğru bağlamda, değişmemiş formun Kaydet düğmesi kapalı, bildirim yardım metni görünür. Gerçek profil değiştirilmedi; yazma ve iki sekme çakışması yalnız sentetik yerel ortamda sınandı. Otomatik e-posta false korundu. Kanıt qa/account-settings-20261018/release.json. Bu paket ad düzenleme ve hesap görünümünü kapatır; kalıcı ses tercihi veya görev/duyuru bildirimlerini bitirmiş sayılmaz.
+
+## 18 Ekim — ortak bildirim sesi tercih paketi (yayın adayı)
+
+Hesabım ve bildirim kutusu tek ses kontrolüne bağlandı. Hesap+şirket bazlı bu tarayıcı tercihi, kullanıcı hareketi ile etkinleştirme, deneme sesi, sekmeler arası kapatma ve bekleyen etkinleştirmeyi iptal etme tamamlandı. Depolama veya ses hatasında açık görünmez. 766/766 uygulama testi, TypeScript, build ve statik kontrol (0 FAIL/1 mevcut WARN) geçti. Gerçek yerel oturumla iki yüzey, yenileme, iki sekme kapatma ve 390px mobil kabulü yapıldı. Üretim salt okunur 186 ledger ön kontrolü geçti; migration yok. Kanıt qa/notification-preferences-20261018. Görev/duyuru olayları ve push/e-posta kapsam dışı; bu kayıt yayın tamamlandı anlamına gelmez.

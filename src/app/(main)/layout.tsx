@@ -1,12 +1,13 @@
 import { Layout } from "@/components/shell";
 import { RoleProvider } from "@/context/RoleContext";
 import { NavigationGuardProvider } from "@/context/NavigationGuardContext";
+import { NotificationSoundProvider } from "@/context/NotificationSoundContext";
 import { WorkspaceProvider } from "@/context/WorkspaceContext";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <RoleProvider>
-      <WorkspaceProvider><NavigationGuardProvider><Layout>{children}</Layout></NavigationGuardProvider></WorkspaceProvider>
+      <WorkspaceProvider><NavigationGuardProvider><NotificationSoundProvider><Layout>{children}</Layout></NotificationSoundProvider></NavigationGuardProvider></WorkspaceProvider>
     </RoleProvider>
   );
 }

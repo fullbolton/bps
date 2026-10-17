@@ -692,5 +692,9 @@
   {
     "file": "scripts/account-write.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/notification-sound-settings.test.mjs",
+    "suite": "application"
   }
 ]
