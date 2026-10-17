@@ -677,3 +677,10 @@ Storage HTTP harness 29 kontrolü tamamlayıp exit 0 ile kapandı; geçici conta
 Yerel authenticated-browser harness'e BPS_BROWSER_PAGINATION=1 seçeneği eklendi; gerçek prepare RPC ile bekleyen kayıt sayısı 51'e tamamlanır. CUA ile ilk sayfa → ikinci sayfa (tek kayıt) → iptal onayı çalıştırıldı. Başarı sonrası ilk sayfadaki 50 article göründü, Önceki ve Sonraki devre dışı kaldı ve iptal mesajı korundu. JSON ve ekran kanıtları browser-pagination-20261017.{json,png}. Bu tarayıcı senaryosu iptal yolunu kapsar; tamamlama yolunun son sayfa davranışı önceki bileşen testinde doğrulanmıştır.
 
 İlk fixture hazırlığı başarısız oldu; ayrı sentetik UUID aralığı ve ayrıntılı hata mesajıyla yeniden kurulum başarılı geçti. Son koşu 29 Storage HTTP kontrolünü tamamlayarak exit 0 ile kapandı; geçici DB/container temizliği yapıldı. Üretim değişmedi. Ürün arayüzünde yeni değişiklik yok; önceki 03f6b49 düzeltmesinin çok sayfalı iptal kabulü tamamlandı.
+
+
+## 17 Ekim — iptal sonrası açık temizlik listesini yenileme
+
+Evraklar sayfasında başarılı kurtarma/iptal callback'i ana evrak listesiyle birlikte cleanupRefreshVersion artırır. DocumentCleanupPanel bunu yükleme bağımlılığı olarak izler: panel açıksa mevcut sayfayı yeniden sorgular, kapalıysa sorgu yapmaz. Panelin açık/kapalı durumu korunur; şirket/kullanıcı kapsamına göre parent key koruması devam eder. Önceden açık bir temizlik listesi yeni iptalden sonra eski boş durumunu gösterebiliyordu.
+
+Bileşen testinde kapalı panelin sürüm değişiminde sorgu yapmadığı, açık boş listenin yeni iptal kaydını aldığı ve açık kaldığı doğrulandı. Cleanup ve pending upload süitleri birlikte 19/19 geçti; cleanup-refresh-tests.tap. Bu değişiklik için tarayıcı kabulü henüz yapılmadı. SQL/migration yok, üretim değişmedi.

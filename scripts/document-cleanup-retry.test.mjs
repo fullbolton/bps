@@ -38,3 +38,19 @@ test('panel loads on demand, prevents double retry and refreshes after confirmat
  button.props.onClick();button.props.onClick();assert.equal(retries,1);
  resolve({ok:true,message:'Done'});await settle();render();await settle();render();assert.equal(loads,2);d.dispose();
 });
+
+
+test('external refresh reloads an open cleanup panel without collapsing it and stays lazy when closed',async()=>{
+ const d=driver();let loads=0,refreshVersion=0;
+ const Panel=compile('src/components/documents/DocumentCleanupPanel.tsx',d.hooks,{
+  '@/lib/supabase/client':{createClient:()=>({rpc:async()=>{loads++;return {data:loads===1?[]:[{document_id:'cancelled',document_name:'Yeni iptal',company_name:'Synthetic',created_at:'2026-10-17T06:00:00Z'}],error:null};}})},
+  '@/app/(main)/evraklar/cleanup-actions':{retryDocumentCleanup:()=>assert.fail('no mutation')},
+ });
+ const render=()=>{const tree=d.render(Panel,{tenantId:'tenant',refreshVersion});d.flush();return tree;};
+ let tree=render();refreshVersion++;render();await settle();assert.equal(loads,0);
+ nodes(tree).find(n=>n.props?.['aria-expanded']===false).props.onClick();render();await settle();tree=render();assert.equal(loads,1);
+ refreshVersion++;render();await settle();tree=render();assert.equal(loads,2);
+ assert.ok(nodes(tree).some(n=>n.props?.['aria-expanded']===true));
+ assert.ok(nodes(tree).some(n=>n.props?.children==='Yeni iptal'));
+ nodes(tree).find(n=>n.props?.['aria-expanded']===true).props.onClick();render();refreshVersion++;render();await settle();assert.equal(loads,2);d.dispose();
+});

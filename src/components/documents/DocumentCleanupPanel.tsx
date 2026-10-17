@@ -6,7 +6,7 @@ import {retryDocumentCleanup} from "@/app/(main)/evraklar/cleanup-actions";
 
 type Job = {document_id: string; document_name: string | null; company_name: string | null; created_at: string};
 /** Parent keys this panel by authenticated tenant/user/role scope. */
-export default function DocumentCleanupPanel({tenantId}: {tenantId: string}) {
+export default function DocumentCleanupPanel({tenantId, refreshVersion = 0}: {tenantId: string; refreshVersion?: number}) {
   const [open, setOpen] = useState(false);
   const [offset, setOffset] = useState(0);
   const [version, setVersion] = useState(0);
@@ -33,7 +33,7 @@ export default function DocumentCleanupPanel({tenantId}: {tenantId: string}) {
       } finally {if (active) setLoading(false);}
     })();
     return () => {active = false;};
-  }, [open, offset, tenantId, version]);
+  }, [open, offset, tenantId, version, refreshVersion]);
   async function retry(id: string) {
     if (flight.current) return;
     flight.current = true; setBusy(id); setMessage("");

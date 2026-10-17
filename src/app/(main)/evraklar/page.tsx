@@ -170,6 +170,7 @@ export default function EvraklarPage() {
   const { search, filters, setSearch: handleSearch, setFilters, ready: viewReady } = useListViewState("evraklar", context.scope, LIST_FILTER_DEFAULTS);
   const [openUploadContext, setOpenUploadContext] = useState<typeof context | null>(null);
   const [validityTarget, setValidityTarget] = useState<{ context: typeof context; row: DocumentListRow } | null>(null);
+  const [cleanupRefreshVersion, setCleanupRefreshVersion] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   type DownloadState = { context: typeof context; row: DocumentListRow; phase: "loading" | "error" | "ready"; href?: string; expiresAt?: number; message?: string };
   const [download, setDownload] = useState<DownloadState | null>(null);
@@ -346,10 +347,10 @@ export default function EvraklarPage() {
 
       <ActionNotice message={notice.message} onDismiss={notice.clear} />
       {typeof user?.app_metadata?.active_tenant === "string" && (
-        <PendingDocumentUploads key={`uploads:${scope}`} tenantId={user.app_metadata.active_tenant} onRecovered={() => {if(liveContext.current===context) void reload();}} />
+        <PendingDocumentUploads key={`uploads:${scope}`} tenantId={user.app_metadata.active_tenant} onRecovered={() => {if(liveContext.current!==context)return; setCleanupRefreshVersion(v => v + 1); void reload();}} />
       )}
       {role === "yonetici" && typeof user?.app_metadata?.active_tenant === "string" && (
-        <DocumentCleanupPanel key={scope} tenantId={user.app_metadata.active_tenant} />
+        <DocumentCleanupPanel key={scope} tenantId={user.app_metadata.active_tenant} refreshVersion={cleanupRefreshVersion} />
       )}
       {currentDownload && <section aria-label="Evrak indirme" className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
         <div className="flex items-start justify-between gap-3">
