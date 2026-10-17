@@ -15,3 +15,7 @@ Hesabım ve talep bildirim kutusu aynı provider üzerinden çalışır. Tercih 
 ## Sınırlar
 
 Bu ayar yönetici/operasyon için mevcut talep etiket/yanıt kutusunu kapsar. Görev ve duyuru olayları, push ve e-posta bu pakete dahil değildir. Başka tarayıcı/cihazla senkronizasyon yok. İlk liste sessiz ve mevcut sekmeler arası olay deduplikasyonu korunur. Yerel browser yazmaları yalnız sentetik hesapta yapıldı.
+
+## Yayın
+
+6cd6007, dpl_DzXDKuGn8wt2bQdPwAP45qAnrVJR: www.bpsys.net üzerinde READY bağımsız inspect ile doğrulandı. Canlı Hesabım ve bildirim kutusunda yeni kontroller ve başarılı boş liste okuması görüldü; gerçek hesap tercihi değiştirilmedi. Ayrıntı release.json.

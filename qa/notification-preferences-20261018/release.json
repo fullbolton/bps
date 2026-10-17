@@ -1,0 +1,33 @@
+{
+  "measuredAt": "2026-10-17T23:06:28.490216+00:00",
+  "sourceCommit": "6cd6007",
+  "deploymentId": "dpl_DzXDKuGn8wt2bQdPwAP45qAnrVJR",
+  "url": "https://www.bpsys.net/hesabim",
+  "state": "READY",
+  "migrations": 186,
+  "newMigrations": 0,
+  "applicationTests": 766,
+  "typecheck": true,
+  "build": true,
+  "staticFailures": 0,
+  "staticWarnings": 1,
+  "localBrowser": {
+    "sharedControls": true,
+    "reloadRequiresGesture": true,
+    "crossTabDisable": true,
+    "mobileViewport": 390,
+    "horizontalOverflow": false
+  },
+  "liveReadOnly": {
+    "accountControls": true,
+    "inboxControls": true,
+    "emptyInboxLoaded": true,
+    "realPreferencesChanged": false
+  },
+  "automaticEmailEnabled": false,
+  "limits": [
+    "Browser-local preference only",
+    "Existing conversation mention/reply notifications only",
+    "No new task/announcement/push/email events"
+  ]
+}

@@ -907,3 +907,7 @@ Kaynak cef7b4d; Vercel dpl_6L7SC5x4BCGFfsaTxTXhwtyZru1Y www.bpsys.net alanına p
 ## 18 Ekim — ortak bildirim sesi tercih paketi (yayın adayı)
 
 Hesabım ve bildirim kutusu tek ses kontrolüne bağlandı. Hesap+şirket bazlı bu tarayıcı tercihi, kullanıcı hareketi ile etkinleştirme, deneme sesi, sekmeler arası kapatma ve bekleyen etkinleştirmeyi iptal etme tamamlandı. Depolama veya ses hatasında açık görünmez. 766/766 uygulama testi, TypeScript, build ve statik kontrol (0 FAIL/1 mevcut WARN) geçti. Gerçek yerel oturumla iki yüzey, yenileme, iki sekme kapatma ve 390px mobil kabulü yapıldı. Üretim salt okunur 186 ledger ön kontrolü geçti; migration yok. Kanıt qa/notification-preferences-20261018. Görev/duyuru olayları ve push/e-posta kapsam dışı; bu kayıt yayın tamamlandı anlamına gelmez.
+
+## 18 Ekim — bildirim sesi tercih paketi ÜRETİMDE
+
+Kaynak 6cd6007, Vercel dpl_DzXDKuGn8wt2bQdPwAP45qAnrVJR www.bpsys.net üzerinde READY. Hesabım ve bildirim kutusunda ortak kontroller canlı kimlikli okumayla doğrulandı; bildirim listesi hatasız yüklendi. Gerçek hesap tercihine yazılmadı; kalıcılık/iki sekme/mobil akışları sentetik yerelde kabul edildi. 766 test, TypeScript, build geçti. 186 migration, yeni SQL yok. Otomatik e-posta false. Kanıt qa/notification-preferences-20261018/release.json. Sıradaki onaylı kapsam görev/duyuru bildirimlerinin ayrı olay ve yetki tasarımıdır; bu paket onları tamamlamaz.
