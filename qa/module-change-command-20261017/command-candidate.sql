@@ -41,6 +41,46 @@ BEGIN
  END IF;
  -- Separate post-lock statement: committed work from a waiting writer is visible.
  assessment:=public.preview_workspace_modules_v1(p_actor,p_tenant,p_revision,p_modules);
+ -- Fail closed if a future helper revision omits a required assessment.
+ IF jsonb_typeof(assessment) IS DISTINCT FROM 'object'
+ OR assessment->'schemaVersion' IS DISTINCT FROM '1'::jsonb
+ OR assessment->'context' IS DISTINCT FROM context
+ OR assessment->'requested' IS DISTINCT FROM p_modules
+ OR jsonb_typeof(assessment->'dependencies') IS DISTINCT FROM 'array'
+ OR jsonb_typeof(assessment->'checks') IS DISTINCT FROM 'array' THEN
+  RAISE EXCEPTION 'MODULE_ASSESSMENT_INVALID' USING ERRCODE='55000';
+ END IF;
+ IF EXISTS(SELECT FROM jsonb_array_elements(assessment->'checks') c
+  WHERE jsonb_typeof(c->'blocking') IS DISTINCT FROM 'boolean') THEN
+  RAISE EXCEPTION 'MODULE_ASSESSMENT_INVALID' USING ERRCODE='55000';
+ END IF;
+ -- Generated from MODULE_CHANGE_CHECKS; fixture test verifies exact agreement.
+ IF (SELECT coalesce(jsonb_agg(jsonb_build_object('module',m,'code',code) ORDER BY m,code),'[]'::jsonb)
+  FROM (VALUES
+   ('tasks','unfinished_tasks'),
+   ('calendar','unfinished_appointments'),
+   ('contracts','unfinished_contracts'),
+   ('talent','pending_talent_import'),
+   ('talent','pending_talent_files'),
+   ('staffing','open_staffing_demands'),
+   ('staffing','upcoming_requests'),
+   ('staffing','upcoming_assignments'),
+   ('staffing','unapproved_work'),
+   ('staffing','active_roster'),
+   ('staffing','active_schedules'),
+   ('reporting','open_reporting_periods'),
+   ('reporting','pending_reporting_imports'),
+   ('customers','customer_linked_tasks'),
+   ('calendar','appointment_linked_tasks'),
+   ('contracts','contract_linked_tasks'),
+   ('documents','pending_document_cleanup'),
+   ('documents','pending_document_upload'),
+   ('contracts','pending_contract_upload')
+  ) expected(m,code) WHERE (context->'modules'->>m)::boolean AND NOT (p_modules->>m)::boolean)
+ IS DISTINCT FROM (SELECT coalesce(jsonb_agg(jsonb_build_object('module',c->>'module','code',c->>'code') ORDER BY c->>'module',c->>'code'),'[]'::jsonb)
+  FROM jsonb_array_elements(assessment->'checks') c) THEN
+  RAISE EXCEPTION 'MODULE_ASSESSMENT_INVALID' USING ERRCODE='55000';
+ END IF;
  IF jsonb_array_length(assessment->'dependencies')>0 OR EXISTS(
   SELECT FROM jsonb_array_elements(assessment->'checks') c WHERE (c->>'blocking')::boolean
  ) THEN RAISE EXCEPTION 'MODULE_CHANGE_BLOCKED' USING ERRCODE='23514';END IF;

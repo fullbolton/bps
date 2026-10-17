@@ -36,6 +36,22 @@ test('local module command candidate',async t=>{
    const rows=(await a.query("select r,has_function_privilege(r,'public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb)','execute') allowed from unnest(array['anon','authenticated','service_role']) r")).rows;
    assert.ok(rows.every(row=>!row.allowed));
   });
+  await t.test('incomplete or malformed assessment never permits a config write',async()=>{
+   const ctx=await context(a),draft={...ctx.modules,contracts:false};
+   const valid=(await a.query('select preview_workspace_modules_v1($1,$2,$3,$4) value',[ctx.actorId,ctx.tenantId,ctx.configRevision,draft])).rows[0].value;
+   const malformed=[null,{...valid,checks:null},{...valid,checks:valid.checks.slice(1)},
+    {...valid,checks:valid.checks.map(c=>({...c,blocking:'false'}))},{...valid,checks:[...valid.checks,valid.checks[0]]}];
+   for(const value of malformed){
+    await a.query('BEGIN');
+    try{
+     const literal=JSON.stringify(value).replaceAll("'","''");
+     await a.query(`CREATE OR REPLACE FUNCTION public.preview_workspace_modules_v1(p_expected_actor uuid,p_expected_tenant uuid,p_expected_revision text,p_modules jsonb) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $mock$ SELECT '${literal}'::jsonb $mock$`);
+     await assert.rejects(invoke(a,ctx,826,draft),{code:'55000'});
+    }finally{await a.query('ROLLBACK');}
+    assert.equal((await context(a)).configRevision,ctx.configRevision);
+    assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(826)])).rows[0].n,0);
+   }
+  });
   await t.test('change is atomic, replay creates no duplicate, changed payload and stale revision fail',async()=>{
    const ctx=await context(a);const draft={...ctx.modules,announcements:false};
    const first=(await invoke(a,ctx,801,draft)).rows[0].value;assert.equal(first.replayed,false);

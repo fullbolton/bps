@@ -617,3 +617,12 @@ Yerel aday SQL yanıtı schemaVersion, actorId, tenantId, commandId, revision, m
 Komut süiti 19/19 oldu. Aynı UUID ve payload ile iki bağlantı yarıştığında gerçek Lock beklemesi gözlendi: ilk işlem commit, ikincisi replay; tek receipt ve tek revision artışı. Daha sonraki bir komut ayarları değiştirdikten sonra eski komut tekrarlandığında eski commit receipt'i döndü, güncel ayarlar/revision değişmedi. Dönen gerçek yanıt TypeScript receipt parser ile doğrulandı. Ağ bağlantısı fiziksel olarak kesilmedi; DB seviyesinde tekrar semantiği kabulüdür.
 
 Ürün SQL/TS değişmedi. Üretim yayını, EXECUTE grant veya UI kaydetme açılmadı. Kanıt qa/module-change-command-20261017/result.tap.
+
+
+## 17 Ekim — eksik önizleme yanıtında güvenli ret
+
+Yerel modül değiştirme adayı, önizleme yanıtının şema sürümünü, doğrulanmış context ve istenen ayarlarla eşleşmesini, bağımlılık/kontrol dizilerini ve boolean blocking değerlerini doğrular. Kapatılan modüllerin beklenen kontrol kümesi tam olmalıdır; eksik, yinelenen veya bilinmeyen kontrol MODULE_ASSESSMENT_INVALID ile işlemi durdurur. SQL'deki 19 kontrolün TypeScript listesiyle birebir eşleşmesi fixture testine eklendi.
+
+Yerel işlem içinde güvenilir preview helper geçici olarak null yanıt, null checks, eksik kontrol, string blocking ve yinelenen kontrol döndürecek şekilde değiştirildi; her deneme reddedildi, revision ve receipt değişmedi. Her denemenin rollback'i gerçek helper'ı geri getirdi. Bu, gelecekteki helper değişikliklerine karşı savunma kabulüdür; üretimde bozuk yanıt görüldüğü iddiası değildir.
+
+PostgreSQL komut süiti 20/20, fixture bütünlüğü 5/5 geçti. Kanıtlar result.tap ve fixture-tests.tap. Komut hâlâ qa altında yetkisiz yerel adaydır; yeni migration, EXECUTE grant, UI kaydetme veya üretim yayını yok. Önceki Storage HTTP kabulü tekrar çalıştırılmadı.
