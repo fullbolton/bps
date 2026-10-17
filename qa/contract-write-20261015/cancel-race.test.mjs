@@ -17,8 +17,8 @@ async function blocked(observer,pid){
  }
  assert.fail('Concurrent command did not wait on a lock');
 }
-for(const cancelFirst of [true,false])test(cancelFirst?'cancel first rejects a waiting storage insert':'storage first leaves a durable cleanup job',async()=>{
- const database=`bps_cancel_race_${process.pid}_${cancelFirst?1:2}`;
+for(const operation of ['storage','finalize'])for(const cancelFirst of [true,false])test(`${operation}: ${cancelFirst?'cancel wins':'operation wins'} with a verified waiting connection`,async()=>{
+ const database=`bps_cancel_race_${process.pid}_${operation}_${cancelFirst?1:2}`;
  const clients=[];
  const password=execFileSync('docker',['exec',container,'printenv','POSTGRES_PASSWORD'],{encoding:'utf8',timeout:5000}).trim();
  admin(`CREATE DATABASE ${database} TEMPLATE bps_module_chain_20261005;`);
@@ -31,15 +31,20 @@ for(const cancelFirst of [true,false])test(cancelFirst?'cancel first rejects a w
   for(const c of clients)await c.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(11),active_tenant_id:id(1),role:'authenticated'})]);
   await a.query(`SELECT document_prepare_upload_v1($1,$2,$3,'Synthetic','diger',NULL,10)`,[id(982),id(1),id(981)]);
   await a.query("INSERT INTO storage.buckets(id,name) VALUES('documents','documents') ON CONFLICT DO NOTHING");
-  const upload=c=>c.query("INSERT INTO storage.objects(bucket_id,name,owner_id) VALUES('documents',$1,$2)",[path,id(11)]);
+  const upload=c=>c.query("INSERT INTO storage.objects(bucket_id,name,owner_id,metadata) VALUES('documents',$1,$2,'{\"mimetype\":\"application/pdf\",\"size\":10}')",[path,id(11)]);
   const cancel=c=>c.query('SELECT document_cancel_upload_v1($1,$2)',[id(1),id(982)]);
+  if(operation==='finalize')await upload(a);
+  const execute=operation==='storage'?upload:c=>c.query('SELECT document_finalize_upload_v1($1,$2)',[id(1),id(982)]);
   await a.query('BEGIN');await b.query('BEGIN');
-  if(cancelFirst)await cancel(a);else await upload(a);
-  const waiting=(cancelFirst?upload(b):cancel(b)).then(()=>({ok:true}),error=>({ok:false,code:error.code}));
+  if(cancelFirst)await cancel(a);else await execute(a);
+  const waiting=(cancelFirst?execute(b):cancel(b)).then(()=>({ok:true}),error=>({ok:false,code:error.code}));
   await blocked(observer,b.processID);await a.query('COMMIT');const result=await waiting;
-  if(cancelFirst){assert.equal(result.ok,false);assert.equal(result.code,'23514');await b.query('ROLLBACK');}
+  if(cancelFirst || operation==='finalize'){assert.equal(result.ok,false);assert.equal(result.code,'23514');await b.query('ROLLBACK');}
   else{assert.equal(result.ok,true);await b.query('COMMIT');}
   const state=await observer.query("SELECT (SELECT count(*)::int FROM storage.objects WHERE name=$1) AS objects,(SELECT count(*)::int FROM document_cleanup_jobs WHERE storage_path=$1 AND completed_at IS NULL) AS jobs",[path]);
-  assert.equal(state.rows[0].objects,cancelFirst?0:1);assert.equal(state.rows[0].jobs,1);
+  assert.equal(state.rows[0].objects,operation==='storage'&&cancelFirst?0:1);
+  assert.equal(state.rows[0].jobs,operation==='finalize'&&!cancelFirst?0:1);
+  const docs=await observer.query('SELECT count(*)::int AS n FROM documents WHERE id=$1',[id(982)]);
+  assert.equal(docs.rows[0].n,operation==='finalize'&&!cancelFirst?1:0);
  } finally {await Promise.all(clients.map(c=>c.end()));admin(`DROP DATABASE ${database} WITH (FORCE);`);}
 });

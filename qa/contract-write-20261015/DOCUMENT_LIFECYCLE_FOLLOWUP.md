@@ -524,3 +524,12 @@ Storage HTTP kabulüne gerçek parça gönderimli istek eklendi. A şirketinde r
 28/28 yerel HTTP kontrolü geçti; önceki 27 kontrol korundu. Kanıt storage-switch-stream-result-20261017.json. Bu test istemcinin HTTP gövdesini açık tuttuğu aralığı doğrular; sunucunun ilk parçayı hangi anda fiziksel depoya yazdığı veya her olası interleaving hakkında iddia taşımaz. Gerçek tarayıcı dosya aktarım UI'sinin kesintili bağlantı mesajı ve fiziksel mobil test ayrıca açık.
 
 Ürün SQL/TS değişmedi; yalnız test/kanıt eklendi. Üretime işlem yapılmadı, yeni yayın gerekmiyor. Geçici yerel klon ve servisler test sonunda kaldırıldı.
+
+
+## 17 Ekim — tamamlama ile iptalin aynı yüklemede yarışması
+
+Mevcut cancel-race.test.mjs yalnız Storage INSERT/iptal sırasını kapsıyordu; finalize/iptal için iki ek sıralama eklendi. İki ayrı bağlantı açık transaction ile çalışır; gözlemci pg_stat_activity üzerinden ikinci bağlantının gerçekten Lock beklediğini doğrular, sonra ilk transaction commit edilir.
+
+İptal önceyse bekleyen finalize 23514 ile reddedilir; documents=0, cleanup=1, dosya metadata kaydı korunur. Finalize önceyse bekleyen iptal 23514 ile reddedilir; documents=1, cleanup=0, dosya metadata kaydı korunur. İptal tamamlanmış evrakı yanlışlıkla temizlik listesine alamaz. Önceki iki Storage INSERT yarışı da korunarak **4/4** geçti. Kanıt finalize-cancel-race-20261017.tap. SQL transaction/claim kabulüdür; HTTP/tarayıcı yarışı olarak sunulmaz.
+
+Yalnız sentetik yerel klon kullanıldı, finally ile kaldırıldı. Ürün kodu ve migration değişmedi; üretime işlem veya yeni yayın yok.

@@ -1,0 +1,12 @@
+✔ storage: cancel wins with a verified waiting connection (638.9805ms)
+✔ storage: operation wins with a verified waiting connection (455.358292ms)
+✔ finalize: cancel wins with a verified waiting connection (582.576042ms)
+✔ finalize: operation wins with a verified waiting connection (469.851334ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2223.608416
