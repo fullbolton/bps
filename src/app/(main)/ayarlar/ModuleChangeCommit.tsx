@@ -10,11 +10,12 @@ type Props = {
   attempt: Attempt;
   transport: (payload: ModuleChangePayload) => Promise<unknown>;
   refresh: () => Promise<void>;
+  onBack?: () => void;
 };
 
 /** Integration candidate: not mounted in production. Parent must freeze the reviewed
  * draft while mounted and key this panel by actor/tenant/membership/selection. */
-export default function ModuleChangeCommit({ context, attempt, transport, refresh }: Props) {
+export default function ModuleChangeCommit({ context, attempt, transport, refresh, onBack }: Props) {
   const [state, setState] = useState<'ready' | 'saving' | 'uncertain' | 'refreshing' | 'refreshFailed' | 'done' | 'scopeError'>('ready');
   const busy = useRef(false);
   const active = useRef(true);
@@ -64,5 +65,6 @@ export default function ModuleChangeCommit({ context, attempt, transport, refres
     {!['done', 'scopeError'].includes(state) && <button type="button" disabled={state === 'saving' || state === 'refreshing'} onClick={() => void submit()} className="min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white disabled:opacity-50">
       {state === 'refreshFailed' ? 'Güncel ayarları yükle' : state === 'uncertain' ? 'Aynı işlemi tekrar dene' : 'Onayla ve kaydet'}
     </button>}
+    {state === 'ready' && onBack && <button type="button" onClick={() => { if (!busy.current) onBack(); }} className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm">Seçimlere dön</button>}
   </section>;
 }

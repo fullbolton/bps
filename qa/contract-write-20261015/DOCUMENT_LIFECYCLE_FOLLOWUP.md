@@ -769,3 +769,9 @@ Gerçek PostgreSQL süiti 26/26 geçti; önceki yarış/yetki/rollback senaryola
 ModuleChangeCommit.tsx eklendi: onayla/kaydediliyor, belirsiz sonuçta aynı işlemi tekrar dene, doğrulanmış commit sonrası ayarları yenile, yenileme başarısızsa yalnız okumayı tekrar dene. Ayrılan panel geç yanıtla refresh çağırmaz; niyet discard edilir. Parent entegrasyonu aynı reviewed draft/attempt'i korumalı, şirket/üyelik/seçim değişiminde paneli yeniden kurmalıdır.
 
 Bileşen + attempt + receipt 16/16 ve TypeScript geçti; commit-ui-tests.tap. Üç bileşen kabulü çift tıklama/belirsiz tekrar, commit sonrası yalnız okuma tekrarı, unmount sonrası geç yanıtı kapsar. Panel henüz WorkspaceModules'a bağlanmadı, gerçek RPC/grant açılmadı, tarayıcı kabulü yapılmadı. Üretim değişmedi.
+
+## 17 Ekim — önizlemeden onaya isteğe bağlı bağlantı
+
+ModuleChangePreview artık açıkça enjekte edilen commit capability ile ModuleChangeCommit panelini açabilir. Mevcut WorkspaceModules bu capability'yi sağlamaz: canlı davranış önizleme olarak kalır. Başarılı, güncel seçimle eşleşen, bağımlılık/engel içermeyen sonuç gerekir; hata/yükleniyor/eskimiş seçim onay hazırlayamaz. Onay niyeti bir kez hazırlanır, seçim ve reset kontrolleri kilitlenir. Kayıt başlamadan Seçimlere dön niyeti discard eder ve düzenlemeyi açar; belirsiz kayıt başladıktan sonra bu geri dönüş sunulmaz.
+
+İlgili dört süit 22/22, TypeScript geçti; editor-integration-tests.tap. Varsayılan önizleme davranışı, engel/bağımlılık/hata, çift hazırlama, sabit seçim ve kayıt öncesi geri dönüş kapsanır. Parent hâlâ şirket/üyelik/seçim/revision key sözleşmesiyle paneli yeniden kurmalıdır. Gerçek HTTP transport, SQL grant ve üretim etkinleştirmesi yok; tarayıcı kabulü hâlâ açık.

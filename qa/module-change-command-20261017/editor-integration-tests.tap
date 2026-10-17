@@ -1,0 +1,30 @@
+✔ lost response retries identical immutable intent, even after a newer revision (3.966208ms)
+✔ double click shares one in-flight request; confirmed repeat does not write again (0.29825ms)
+✔ malformed acknowledgement stays unconfirmed and can be retried (0.401334ms)
+✔ workspace, membership, selection and role changes cannot send the old intent (0.908458ms)
+✔ invalid or unchanged requests cannot create an attempt (0.468375ms)
+✔ unmount before dispatch prevents transport and future retries (0.179834ms)
+✔ late success or failure after scope teardown cannot become a visible result (0.559541ms)
+✔ discard also removes a cached commit result (0.260292ms)
+✔ uncertain result retries existing attempt; double clicks do not duplicate send (137.002625ms)
+✔ refresh failure retries only the read, never the committed write (38.368209ms)
+✔ unmount discards intent and suppresses refresh from a late receipt (44.716167ms)
+✔ selection is advisory, explicit, and passes verified context/revision to the service (172.602333ms)
+✔ dependencies and blocking checks get actionable explanations; nonblocking checks stay out (30.943667ms)
+✔ editing a selection hides previous results and discards a late response (58.452208ms)
+✔ failed checks show an error, allow retry, and resetting removes the result (21.065916ms)
+✔ optional save capability requires a clean reviewed result and freezes that exact draft (24.214542ms)
+✔ blockers, dependencies and failed previews cannot prepare a save (40.83075ms)
+✔ receipt keeps bigint precision and validates both fresh commit and replay (2.703792ms)
+✔ foreign identity, command, revision, state or protocol cannot show success (0.827708ms)
+✔ null, missing and partial responses fail closed (1.041625ms)
+✔ invalid expected commands cannot turn a response into proof (0.537583ms)
+✔ replayed receipt remains bound to original revision, not a later settings snapshot (0.103542ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 967.963334

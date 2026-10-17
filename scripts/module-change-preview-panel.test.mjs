@@ -3,16 +3,17 @@ import assert from 'node:assert/strict';
 import {compile,driver,nodes,settle} from './helpers/component-driver.mjs';
 const catalog=[{key:'customers',name:'Müşteriler'},{key:'documents',name:'Belgeler'}];
 const context={actorId:'actor',tenantId:'A',configRevision:'7',modules:{customers:true,documents:true}};
-function setup(preview) {
+function setup(preview,commit) {
  const d=driver();
  const useScopedResource=compile('src/components/ui/useScopedResource.ts',d.hooks,{},'useScopedResource');
  const panel=compile('src/app/(main)/ayarlar/ModuleChangePreview.tsx',d.hooks,{
+  './ModuleChangeCommit':{default:'commit-panel'},
   '@/components/ui/useScopedResource':{useScopedResource},
   '@/lib/modules/catalog':{MODULE_CATALOG:catalog},
   '@/lib/services/workspace-modules':{previewWorkspaceModules:preview},
   '@/lib/supabase/client':{createClient:()=>({})},
  });
- const x={render(){const t=d.render(panel,{context});d.flush();return t;},dispose:()=>d.dispose()};
+ const x={render(){const t=d.render(panel,{context,commit});d.flush();return t;},dispose:()=>d.dispose()};
  x.change=(key,value)=>nodes(x.render()).filter(n=>n.type==='input')[catalog.findIndex(m=>m.key===key)].props.onChange({target:{checked:value}});
  x.click=name=>nodes(x.render()).find(n=>n.type==='button'&&n.props.children===name).props.onClick();
  return x;
@@ -47,4 +48,28 @@ test('failed checks show an error, allow retry, and resetting removes the result
  assert.ok(nodes(tree).some(n=>n.props?.role==='alert'));assert.ok(!nodes(tree).some(n=>n.props?.['aria-label']==='Önizleme sonucu'));
  fail=false;x.click('Etkisini kontrol et');x.render();await settle();assert.ok(nodes(x.render()).some(n=>n.props?.['aria-label']==='Önizleme sonucu'));
  x.click('Seçimleri sıfırla');tree=x.render();assert.ok(nodes(tree).filter(n=>n.type==='input').every(n=>n.props.checked));assert.ok(!nodes(tree).some(n=>n.props?.['aria-label']==='Önizleme sonucu'));x.dispose();
+});
+
+test('optional save capability requires a clean reviewed result and freezes that exact draft',async()=>{
+ let prepared=[];const attempt={discard(){}};
+ const commit={prepare:(ctx,modules)=>{prepared.push({ctx,modules});return attempt;},transport:async()=>{},refresh:async()=>{}};
+ const x=setup(async(_,__,___,requested)=>result(requested),commit);
+ x.render();x.change('documents',false);
+ assert.ok(!nodes(x.render()).some(n=>n.props?.children==='Kaydetmeden önce onayla'));
+ x.click('Etkisini kontrol et');x.render();await settle();
+ const button=nodes(x.render()).find(n=>n.props?.children==='Kaydetmeden önce onayla');assert.ok(button);
+ button.props.onClick();button.props.onClick();assert.equal(prepared.length,1);
+ x.change('documents',true);x.click('Seçimleri sıfırla');
+ const tree=x.render();assert.equal(prepared[0].modules.documents,false);
+ assert.equal(nodes(tree).find(n=>n.type==='fieldset').props.disabled,true);
+ assert.equal(nodes(tree).find(n=>n.type==='commit-panel').props.attempt,attempt);
+ nodes(tree).find(n=>n.type==='commit-panel').props.onBack();x.change('documents',true);
+ assert.equal(nodes(x.render()).find(n=>n.type==='fieldset').props.disabled,false);x.dispose();
+});
+test('blockers, dependencies and failed previews cannot prepare a save',async()=>{
+ for(const extra of [{checks:[{code:'pending',blocking:true,label:'Pending'}]},{dependencies:[{module:'documents',requires:'customers'}]},null]){
+  const x=setup(async(_,__,___,requested)=>{if(!extra)throw Error('offline');return result(requested,extra);}, {prepare:()=>assert.fail('must not prepare')});
+  x.render();x.change('documents',false);x.click('Etkisini kontrol et');x.render();await settle();
+  assert.ok(!nodes(x.render()).some(n=>n.props?.children==='Kaydetmeden önce onayla'));x.dispose();
+ }
 });
