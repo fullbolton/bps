@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-18",
+  "scope": "local product integration; no production mutation",
+  "application": {
+    "files": 132,
+    "tests": 740,
+    "pass": 740,
+    "fail": 0
+  },
+  "targeted": {
+    "tests": 31,
+    "pass": 31
+  },
+  "static": {
+    "checks": 16,
+    "fail": 0,
+    "warn": 1,
+    "warning": "Unused CapacityRiskCard and TimelineList"
+  },
+  "typecheck": "passed",
+  "build": "passed with release UI flag enabled and synthetic localhost Supabase environment; not production connectivity",
+  "defaultWriteCapability": false,
+  "productionChanged": false
+}

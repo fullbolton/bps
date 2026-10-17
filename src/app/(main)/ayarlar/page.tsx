@@ -368,7 +368,7 @@ export default function AyarlarPage() {
             <dl className="grid gap-3 sm:grid-cols-2">{ROLLER.map(item => <div key={item.id} className="min-w-0 rounded-xl bg-slate-50 p-4"><dt className="font-semibold text-slate-900">{item.rolAdi}</dt><dd className="mt-1 text-sm leading-relaxed text-slate-600">{item.aciklama}</dd></div>)}</dl>
           </details>
         </>}
-        {activeTab === "moduller" && <WorkspaceModules />}
+        {activeTab === "moduller" && <WorkspaceModules changesEnabled={process.env.NEXT_PUBLIC_BPS_MODULE_CHANGES_ENABLED === "true"} />}
         {activeTab === "erisim-talepleri" && <>
           <p className="text-sm text-slate-600">Platforma gelen başvurular içindir. Şirketinize ekip üyesi eklemek için Ekip davetleri ve kurulum bölümünü kullanın.</p>
           <AccessRequestsTab />

@@ -1,0 +1,196 @@
+TAP version 13
+# Subtest: lost response retries identical immutable intent, even after a newer revision
+ok 1 - lost response retries identical immutable intent, even after a newer revision
+  ---
+  duration_ms: 1.5185
+  type: 'test'
+  ...
+# Subtest: double click shares one in-flight request; confirmed repeat does not write again
+ok 2 - double click shares one in-flight request; confirmed repeat does not write again
+  ---
+  duration_ms: 0.233333
+  type: 'test'
+  ...
+# Subtest: malformed acknowledgement stays unconfirmed and can be retried
+ok 3 - malformed acknowledgement stays unconfirmed and can be retried
+  ---
+  duration_ms: 0.28925
+  type: 'test'
+  ...
+# Subtest: workspace, membership, selection and role changes cannot send the old intent
+ok 4 - workspace, membership, selection and role changes cannot send the old intent
+  ---
+  duration_ms: 0.409125
+  type: 'test'
+  ...
+# Subtest: invalid or unchanged requests cannot create an attempt
+ok 5 - invalid or unchanged requests cannot create an attempt
+  ---
+  duration_ms: 0.13625
+  type: 'test'
+  ...
+# Subtest: unmount before dispatch prevents transport and future retries
+ok 6 - unmount before dispatch prevents transport and future retries
+  ---
+  duration_ms: 0.61375
+  type: 'test'
+  ...
+# Subtest: late success or failure after scope teardown cannot become a visible result
+ok 7 - late success or failure after scope teardown cannot become a visible result
+  ---
+  duration_ms: 0.504292
+  type: 'test'
+  ...
+# Subtest: discard also removes a cached commit result
+ok 8 - discard also removes a cached commit result
+  ---
+  duration_ms: 0.218042
+  type: 'test'
+  ...
+# Subtest: uncertain result retries existing attempt; double clicks do not duplicate send
+ok 9 - uncertain result retries existing attempt; double clicks do not duplicate send
+  ---
+  duration_ms: 159.580417
+  type: 'test'
+  ...
+# Subtest: refresh failure retries only the read, never the committed write
+ok 10 - refresh failure retries only the read, never the committed write
+  ---
+  duration_ms: 22.225792
+  type: 'test'
+  ...
+# Subtest: unmount discards intent and suppresses refresh from a late receipt
+ok 11 - unmount discards intent and suppresses refresh from a late receipt
+  ---
+  duration_ms: 37.3995
+  type: 'test'
+  ...
+# Subtest: scope changes without parent remount suppress a late commit and block further actions
+ok 12 - scope changes without parent remount suppress a late commit and block further actions
+  ---
+  duration_ms: 51.293666
+  type: 'test'
+  ...
+# Subtest: late refresh error cannot overwrite the new scope warning
+ok 13 - late refresh error cannot overwrite the new scope warning
+  ---
+  duration_ms: 5.786459
+  type: 'test'
+  ...
+# Subtest: selection is advisory, explicit, and passes verified context/revision to the service
+ok 14 - selection is advisory, explicit, and passes verified context/revision to the service
+  ---
+  duration_ms: 189.21825
+  type: 'test'
+  ...
+# Subtest: dependencies and blocking checks get actionable explanations; nonblocking checks stay out
+ok 15 - dependencies and blocking checks get actionable explanations; nonblocking checks stay out
+  ---
+  duration_ms: 34.861917
+  type: 'test'
+  ...
+# Subtest: editing a selection hides previous results and discards a late response
+ok 16 - editing a selection hides previous results and discards a late response
+  ---
+  duration_ms: 16.849833
+  type: 'test'
+  ...
+# Subtest: failed checks show an error, allow retry, and resetting removes the result
+ok 17 - failed checks show an error, allow retry, and resetting removes the result
+  ---
+  duration_ms: 32.079458
+  type: 'test'
+  ...
+# Subtest: optional save capability requires a clean reviewed result and freezes that exact draft
+ok 18 - optional save capability requires a clean reviewed result and freezes that exact draft
+  ---
+  duration_ms: 20.131416
+  type: 'test'
+  ...
+# Subtest: blockers, dependencies and failed previews cannot prepare a save
+ok 19 - blockers, dependencies and failed previews cannot prepare a save
+  ---
+  duration_ms: 33.611333
+  type: 'test'
+  ...
+# Subtest: receipt keeps bigint precision and validates both fresh commit and replay
+ok 20 - receipt keeps bigint precision and validates both fresh commit and replay
+  ---
+  duration_ms: 1.01725
+  type: 'test'
+  ...
+# Subtest: foreign identity, command, revision, state or protocol cannot show success
+ok 21 - foreign identity, command, revision, state or protocol cannot show success
+  ---
+  duration_ms: 0.402125
+  type: 'test'
+  ...
+# Subtest: null, missing and partial responses fail closed
+ok 22 - null, missing and partial responses fail closed
+  ---
+  duration_ms: 0.315458
+  type: 'test'
+  ...
+# Subtest: invalid expected commands cannot turn a response into proof
+ok 23 - invalid expected commands cannot turn a response into proof
+  ---
+  duration_ms: 0.173833
+  type: 'test'
+  ...
+# Subtest: replayed receipt remains bound to original revision, not a later settings snapshot
+ok 24 - replayed receipt remains bound to original revision, not a later settings snapshot
+  ---
+  duration_ms: 0.10175
+  type: 'test'
+  ...
+# Subtest: module transport preserves the original intent and uses a bounded request
+ok 25 - module transport preserves the original intent and uses a bounded request
+  ---
+  duration_ms: 1.006083
+  type: 'test'
+  ...
+# Subtest: RPC and transport failures propagate without retry or refresh
+ok 26 - RPC and transport failures propagate without retry or refresh
+  ---
+  duration_ms: 0.292541
+  type: 'test'
+  ...
+# Subtest: module panel reads only for a verified manager and never invents default module states
+ok 27 - module panel reads only for a verified manager and never invents default module states
+  ---
+  duration_ms: 129.365375
+  type: 'test'
+  ...
+# Subtest: module panel shows server states and dependencies without mutation controls
+ok 28 - module panel shows server states and dependencies without mutation controls
+  ---
+  duration_ms: 29.328333
+  type: 'test'
+  ...
+# Subtest: failed reload clears previous settings instead of showing stale configuration
+ok 29 - failed reload clears previous settings instead of showing stale configuration
+  ---
+  duration_ms: 20.485792
+  type: 'test'
+  ...
+# Subtest: late previous-company response never appears in the new company panel
+ok 30 - late previous-company response never appears in the new company panel
+  ---
+  duration_ms: 14.87775
+  type: 'test'
+  ...
+# Subtest: module editor receives a commit capability only with explicit release opt-in
+ok 31 - module editor receives a commit capability only with explicit release opt-in
+  ---
+  duration_ms: 32.864125
+  type: 'test'
+  ...
+1..31
+# tests 31
+# suites 0
+# pass 31
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 913.483583

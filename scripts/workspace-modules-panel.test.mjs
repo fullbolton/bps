@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {compile,driver,nodes,settle} from './helpers/component-driver.mjs';
-function setup(loader) {
+function setup(loader, changesEnabled=false) {
  const d=driver();let auth={user:{id:'actor',app_metadata:{active_tenant:'A'}},role:'yonetici',loading:false};
  const useScopedResource=compile('src/components/ui/useScopedResource.ts',d.hooks,{},'useScopedResource');
  const panel=compile('src/app/(main)/ayarlar/WorkspaceModules.tsx',d.hooks,{
@@ -9,10 +9,11 @@ function setup(loader) {
   '@/context/AuthContext':{useAuth:()=>auth},
   '@/components/ui/useScopedResource':{useScopedResource},
   '@/lib/supabase/client':{createClient:()=>({})},
+  '@/lib/services/module-change':{createModuleChangeCapability:()=>({prepare:()=>{},transport:async()=>{},refresh:async()=>{}})},
   '@/lib/services/workspace-modules':{loadCurrentWorkspaceModules:loader},
   '@/lib/modules/catalog':{MODULE_CATALOG:[{key:'customers',name:'Müşteriler',description:'Firma',requires:[]},{key:'documents',name:'Belgeler',description:'Evrak',requires:['customers']}]},
  });
- return {render(){const tree=d.render(panel,{});d.flush();return tree;},auth(next){auth=next;},dispose:()=>d.dispose()};
+ return {render(){const tree=d.render(panel,{changesEnabled});d.flush();return tree;},auth(next){auth=next;},dispose:()=>d.dispose()};
 }
 const data=name=>({name,modules:{customers:true,documents:false}});
 test('module panel reads only for a verified manager and never invents default module states',async()=>{
@@ -39,4 +40,12 @@ test('late previous-company response never appears in the new company panel',asy
  x.render();x.auth({user:{id:'actor',app_metadata:{active_tenant:'B'}},role:'yonetici',loading:false});x.render();await settle();x.render();
  finishA(data('Old company'));await settle();const tree=x.render();
  assert.ok(nodes(tree).some(n=>n.props?.children==='B'));assert.ok(!nodes(tree).some(n=>n.props?.children==='Old company'));x.dispose();
+});
+
+test('module editor receives a commit capability only with explicit release opt-in',async()=>{
+ for(const enabled of [false,true]){
+  const x=setup(async()=>data('A'),enabled);x.render();await settle();const tree=x.render();
+  const preview=nodes(tree).find(n=>typeof n.type==='function'&&n.props.context);
+  assert.ok(preview);assert.equal(!!preview.props.commit,enabled);x.dispose();
+ }
 });

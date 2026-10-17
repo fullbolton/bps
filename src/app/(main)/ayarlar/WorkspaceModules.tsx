@@ -1,15 +1,16 @@
 "use client";
 
 import ModuleChangePreview from "./ModuleChangePreview";
-import {useCallback} from "react";
+import {useCallback, useMemo} from "react";
 import {useAuth} from "@/context/AuthContext";
 import {useScopedResource} from "@/components/ui/useScopedResource";
 import {createClient} from "@/lib/supabase/client";
 import {loadCurrentWorkspaceModules} from "@/lib/services/workspace-modules";
+import {createModuleChangeCapability} from "@/lib/services/module-change";
 import {MODULE_CATALOG} from "@/lib/modules/catalog";
 
-/** Configuration visibility only. Module changes require the future atomic command. */
-export default function WorkspaceModules() {
+/** The release flag exposes UI only; the database command independently authorizes every write. */
+export default function WorkspaceModules({changesEnabled = false}: {changesEnabled?: boolean}) {
   const {user, role, loading} = useAuth();
   const actorId = user?.id;
   const tenantId = user?.app_metadata.active_tenant;
@@ -19,6 +20,11 @@ export default function WorkspaceModules() {
     return loadCurrentWorkspaceModules(createClient(), {actorId, tenantId, role});
   }, [actorId, tenantId, role]);
   const resource = useScopedResource(allowed ? `${actorId}:${tenantId}:${role}` : null, read);
+  const commit = useMemo(() => changesEnabled ? createModuleChangeCapability(createClient(), async () => {
+    // Recreate auth/module providers and navigation together after a verified commit.
+    // A partial panel reload would leave other mounted module snapshots stale.
+    window.location.reload();
+  }) : undefined, [changesEnabled]);
   if (loading) return <p role="status">Şirket ve yetkileriniz doğrulanıyor…</p>;
   if (!allowed) return <p role="alert">Modül bilgilerini görmek için seçili şirkette yönetici erişimi gerekir.</p>;
   return <section aria-label="Şirket modülleri" className="space-y-4">
@@ -27,7 +33,7 @@ export default function WorkspaceModules() {
         <p className="mt-1 text-sm text-slate-600">Bu şirketin kullandığı bölümler. Her kullanıcının erişimi ayrıca rolüne bağlıdır.</p></div>
       <button type="button" disabled={resource.loading} onClick={() => void resource.reload()} className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm disabled:opacity-50">Durumu yenile</button>
     </div>
-    <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">Bu ekranda mevcut durum gösterilir. Modül açma ve kapatma henüz kullanıma açık değildir.</p>
+    <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{changesEnabled ? "Değişiklikleri inceleyip onayladıktan sonra şirket ayarları güncellenir. Kapatılan modülün verileri silinmez." : "Bu ekranda mevcut durum gösterilir. Modül açma ve kapatma henüz kullanıma açık değildir."}</p>
     {resource.loading && <p role="status">Modül bilgileri yükleniyor…</p>}
     {resource.error && <p role="alert" className="text-sm text-red-700">Modül bilgileri alınamadı. Durumu yenileyerek tekrar deneyin.</p>}
     {resource.data && <>
@@ -40,7 +46,7 @@ export default function WorkspaceModules() {
           {module.requires.length > 0 && <p className="mt-3 text-xs text-slate-500">Gerekli modüller: {module.requires.map(key => MODULE_CATALOG.find(item => item.key === key)!.name).join(", ")}</p>}
         </li>)}
       </ul>
-      <ModuleChangePreview key={`${resource.data.actorId}:${resource.data.tenantId}:${resource.data.membershipVersion}:${resource.data.selectionVersion}:${resource.data.configRevision}`} context={resource.data} />
+      <ModuleChangePreview key={`${resource.data.actorId}:${resource.data.tenantId}:${resource.data.membershipVersion}:${resource.data.selectionVersion}:${resource.data.configRevision}`} context={resource.data} commit={commit} />
     </>}
   </section>;
 }

@@ -672,5 +672,9 @@
   {
     "file": "scripts/notification-module-state.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/module-change-transport.test.mjs",
+    "suite": "application"
   }
 ]
