@@ -17,3 +17,7 @@ Yazma: auth.getUser kimliği formun actorId değeriyle eşleşmeli; 1–80 karak
 Kalıcı ses tercihi, şifre değiştirme, görev/duyuru bildirimleri bu paketin kapsamı değildir. Ad güncellemesi tüm şirketlerdeki güncel profil görünümünü etkiler; geçmişte metin olarak kaydedilen yazar adlarını yeniden yazmaz. Diğer sekmeye anlık push güncellemesi vaat edilmez. Canlı yayın sonucu ayrı release.json ile kaydedilir.
 
 Yerel release build sentetik URL/anahtar ile exit0 geçti.
+
+## 18 Ekim — Hesabım paketi ÜRETİMDE
+
+Kaynak cef7b4d; Vercel dpl_6L7SC5x4BCGFfsaTxTXhwtyZru1Y www.bpsys.net alanına promote edildi ve bağımsız inspect ile READY doğrulandı. Yeni migration yok; ön kontrolde 186 sürüm ve mevcut kendi-profil/yalnız-ad yazma sınırı doğrulandı. Canlı kimlikli /hesabim ekranında ad ile üst çubuk aynı, şirket/rol doğru bağlamda, değişmemiş formun Kaydet düğmesi kapalı, bildirim yardım metni görünür. Gerçek profil değiştirilmedi; yazma ve iki sekme çakışması yalnız sentetik yerel ortamda sınandı. Otomatik e-posta false korundu. Kanıt qa/account-settings-20261018/release.json. Bu paket ad düzenleme ve hesap görünümünü kapatır; kalıcı ses tercihi veya görev/duyuru bildirimlerini bitirmiş sayılmaz.

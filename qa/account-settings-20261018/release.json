@@ -1,0 +1,34 @@
+{
+  "measuredAt": "2026-10-17T22:54:54.057439+00:00",
+  "sourceCommit": "cef7b4d",
+  "deploymentId": "dpl_6L7SC5x4BCGFfsaTxTXhwtyZru1Y",
+  "url": "https://www.bpsys.net/hesabim",
+  "state": "READY",
+  "migrations": 186,
+  "newMigrations": 0,
+  "liveAcceptance": {
+    "authenticatedAccountPage": true,
+    "profileAndTopbarAgree": true,
+    "companyAndRoleLoaded": true,
+    "unchangedSaveDisabled": true,
+    "notificationHelpVisible": true,
+    "realProfileChanged": false
+  },
+  "localAcceptance": {
+    "applicationTests": 757,
+    "latestTargetedTests": 10,
+    "databaseTestsIncludingParent": 5,
+    "twoTabConflict": true,
+    "draftPreserved": true,
+    "signOutGuard": true,
+    "mobileViewport": 390,
+    "mobileContentWidth": 375,
+    "build": true
+  },
+  "limits": [
+    "No production write/conflict injection",
+    "No persistent sound preference",
+    "Other tabs are not updated via push"
+  ],
+  "automaticEmailEnabled": false
+}
