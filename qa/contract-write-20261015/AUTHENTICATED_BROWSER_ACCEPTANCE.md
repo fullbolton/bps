@@ -79,3 +79,12 @@ Yerel Auth/Next/Storage kabul fixture'ına üçüncü sentetik kayıt eklendi: d
 Birinci sekmede Synthetic A evrak yükleme formu açılıp yalnız sentetik evrak adı yazıldı; kaydedilmedi. İkinci sekmede gerçek şirket seçici ile Synthetic B seçildi ve Auth yenilemesi tamamlandı. Birinci sekme kendiliğinden formu kaldırarak “Şirketinizi yeniden doğrulayın” ekranını gösterdi. İkinci sekmede Synthetic B başlığı görüldü. SQL: seçili tenant B, taslak adına ait documents=0 ve document_upload_attempts=0. Kanıt browser-multitab-result-20261017.json.
 
 Bu sonuç önceki çok sekmeli açık form kabul açığını, kaydedilmemiş evrak formu için kapatır. Devam eden byte transferi sırasında şirket değişimi, refresh ile eşzamanlı üyelik değişimi ve fiziksel mobil cihaz hâlâ ayrıca sınanmalıdır. Ürün kodu/SQL değiştirilmedi, canlıya işlem yapılmadı. Tarihsel metinlerdeki yayın bekliyor ifadeleri güncel değildir: 17 Ekim yayın manifesti geçerlidir.
+
+
+## 17 Ekim — HTTP gövdesi açıkken şirket değişimi
+
+Storage HTTP kabulüne gerçek parça gönderimli istek eklendi. A şirketinde rezervasyon açıldı; Content-Length taşıyan HTTP isteğinde ilk 5 byte yazılıp kalan gövde bekletildi. Gerçek select_workspace RPC ile B seçimi commit olduktan sonra gövde tamamlandı. Storage hata yanıtı verdi; storage.objects=0 ve documents=0. Eski A ve yeni B tokenlarıyla finalize 403, dosya okuma başarısız.
+
+28/28 yerel HTTP kontrolü geçti; önceki 27 kontrol korundu. Kanıt storage-switch-stream-result-20261017.json. Bu test istemcinin HTTP gövdesini açık tuttuğu aralığı doğrular; sunucunun ilk parçayı hangi anda fiziksel depoya yazdığı veya her olası interleaving hakkında iddia taşımaz. Gerçek tarayıcı dosya aktarım UI'sinin kesintili bağlantı mesajı ve fiziksel mobil test ayrıca açık.
+
+Ürün SQL/TS değişmedi; yalnız test/kanıt eklendi. Üretime işlem yapılmadı, yeni yayın gerekmiyor. Geçici yerel klon ve servisler test sonunda kaldırıldı.

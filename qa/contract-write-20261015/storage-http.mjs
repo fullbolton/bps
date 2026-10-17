@@ -3,6 +3,7 @@ import {execFileSync,spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {randomBytes,createHmac} from 'node:crypto';
 import assert from 'node:assert/strict';
+import http from 'node:http';
 const source='supabase_db_bps-supabase-acceptance',network='supabase_network_bps-supabase-acceptance';
 const suffix=process.pid,database=`bps_storage_http_${suffix}`,storage=`bps-storage-http-${suffix}`,rest=`bps-storage-rest-${suffix}`;
 const secrets=[];
@@ -213,8 +214,37 @@ try {
 
  sql(`INSERT INTO tenant_memberships(user_id,tenant_id,role) VALUES('${id(11)}','${id(2)}','yonetici');`);
  const memberB=sql(`SELECT version FROM tenant_memberships WHERE user_id='${id(11)}' AND tenant_id='${id(2)}';`);
+ // Hold an actual HTTP request body open across the workspace switch.
+ const streamingId=id(9403);
+ const streamingPrep=await rpcResult('document_prepare_upload_v1',{...preparation,p_id:streamingId},freshA);
+ assert.equal(streamingPrep.status,200);
+ const streamingPath=streamingPrep.data;
+ let streamRequest,streamStarted;
+ const firstChunk=new Promise(resolve=>{streamStarted=resolve;});
+ const streamResult=new Promise((resolve,reject)=>{
+  streamRequest=http.request(new URL(base+'/object/documents/'+streamingPath),{method:'POST',headers:{Authorization:'Bearer '+freshA,'Content-Type':'application/pdf','Content-Length':pdf.length}},response=>{
+   response.resume();response.on('end',()=>resolve(response.statusCode));response.on('error',reject);
+  });
+  streamRequest.on('error',reject);
+  streamRequest.setTimeout(10000,()=>streamRequest.destroy(Error('Local streamed upload deadline')));
+  streamRequest.write(pdf.subarray(0,5),()=>streamStarted());
+ });
+ // Attach a rejection handler immediately; the outcome is asserted below.
+ const streamOutcome=streamResult.then(status=>({status}),error=>({error:error.message}));
+ await firstChunk;
  const workspaceMoved=await rpcResult('select_workspace',{p_tenant_id:id(2),p_membership_version:memberB,p_command_id:id(9202),p_expected_version:selected.selectionVersion},freshA);
  assert.equal(workspaceMoved.status,200);const freshB=scoped(2,workspaceMoved.data.selectionVersion,memberB);
+ streamRequest.end(pdf.subarray(5));
+ const streamed=await streamOutcome;
+ assert.equal(streamed.error,undefined);assert.ok(streamed.status>=400,`stale streamed upload status ${streamed.status}`);
+ assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='documents' AND name='${streamingPath}';`),'0');
+ for(const auth of [freshA,freshB]){
+  assert.equal((await rpcResult('document_finalize_upload_v1',{p_tenant:id(1),p_id:streamingId},auth)).status,403);
+  assert.equal((await request('/object/authenticated/documents/'+streamingPath,'GET',undefined,auth)).ok,false);
+ }
+ assert.equal(sql(`SELECT count(*) FROM documents WHERE id='${streamingId}';`),'0');
+ checks.push('workspace switch while HTTP body is incomplete rejects old upload and finalize; no cross-tenant read');
+
  for(const auth of [freshA,freshB]){
   assert.equal((await rpcResult('document_pending_uploads_v1',{p_tenant:id(1)},auth)).status,403);
   assert.equal((await rpcResult('document_prepare_upload_v1',{...preparation,p_id:id(9203)},auth)).status,403);

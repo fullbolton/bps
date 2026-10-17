@@ -488,3 +488,12 @@ Salt okunur ön kontrol: 182 migration sürümü önceki yayınla birebir eşle�
 Hazır dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs ana alana promote edildi; bağımsız Vercel inspect www.bpsys.net eşleşmesini doğruladı. Kaynak 312a468 (ürün değişiklikleri 415dfff dahil). Otomatik e-posta false, bakım 0. Mevcut Mek Group oturumuyla /evraklar yüklendi; pending upload ve cleanup listeleri hatasız/boş. Gerçek veri değiştirilmedi; üretimde timeout veya yarım upload enjekte edilmedi. Yerel 692 uygulama testi ve 12 hedefli test kanıtı ayrı kalır.
 
 Kanıtlar: qa/release-chain-20261016/recovery-fix-preflight-20261017.json ve recovery-fix-release-20261017.json. Önceki “son iki düzeltme canlıda değil” ifadeleri bu kayıtla geçersizdir.
+
+
+## 17 Ekim — HTTP gövdesi açıkken şirket değişimi
+
+Storage HTTP kabulüne gerçek parça gönderimli istek eklendi. A şirketinde rezervasyon açıldı; Content-Length taşıyan HTTP isteğinde ilk 5 byte yazılıp kalan gövde bekletildi. Gerçek select_workspace RPC ile B seçimi commit olduktan sonra gövde tamamlandı. Storage hata yanıtı verdi; storage.objects=0 ve documents=0. Eski A ve yeni B tokenlarıyla finalize 403, dosya okuma başarısız.
+
+28/28 yerel HTTP kontrolü geçti; önceki 27 kontrol korundu. Kanıt storage-switch-stream-result-20261017.json. Bu test istemcinin HTTP gövdesini açık tuttuğu aralığı doğrular; sunucunun ilk parçayı hangi anda fiziksel depoya yazdığı veya her olası interleaving hakkında iddia taşımaz. Gerçek tarayıcı dosya aktarım UI'sinin kesintili bağlantı mesajı ve fiziksel mobil test ayrıca açık.
+
+Ürün SQL/TS değişmedi; yalnız test/kanıt eklendi. Üretime işlem yapılmadı, yeni yayın gerekmiyor. Geçici yerel klon ve servisler test sonunda kaldırıldı.
