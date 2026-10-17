@@ -39,7 +39,7 @@ export default function Topbar() {
   const { workspace, loading: workspaceLoading } = useWorkspace();
   const pathname = usePathname();
   const navigationGuard=useNavigationGuard();
-  const area = ({dashboard:"Genel bakış", firmalar:"Müşteri yönetimi", sozlesmeler:"Sözleşmeler", talepler:"Personel operasyonu", "personel-havuzu":"Personel havuzu", gorevler:"İş takibi", randevular:"Görüşmeler", evraklar:"Evrak yönetimi", "aktif-isgucu":"İş gücü", "finansal-ozet":"Finans", raporlar:"Raporlar", ayarlar:"Ayarlar", kurulum:"Çalışma alanı kurulumu", yonetim:"Şirket yönetimi"} as Record<string,string>)[pathname.split("/")[1]] ?? "Çalışma alanı";
+  const area = ({dashboard:"Genel bakış", firmalar:"Müşteri yönetimi", sozlesmeler:"Sözleşmeler", talepler:"Personel operasyonu", "personel-havuzu":"Personel havuzu", gorevler:"İş takibi", randevular:"Görüşmeler", evraklar:"Evrak yönetimi", "aktif-isgucu":"İş gücü", "finansal-ozet":"Finans", raporlar:"Raporlar", hesabim:"Hesabım", ayarlar:"Ayarlar", kurulum:"Çalışma alanı kurulumu", yonetim:"Şirket yönetimi"} as Record<string,string>)[pathname.split("/")[1]] ?? "Çalışma alanı";
   const [dateTimeStr, setDateTimeStr] = useState("");
 
   useEffect(() => {
@@ -101,6 +101,7 @@ export default function Topbar() {
 
             {userMenuOpen && (
               <div id="user-account-actions" className={`absolute right-0 top-full mt-1 w-48 ${SURFACE_PRIMARY} border ${BORDER_DEFAULT} ${RADIUS_SM} ${SHADOW_DROPDOWN} py-1 ${Z_OVERLAY}`}>
+                <Link href="/hesabim" onClick={event => { navigationGuard.handle(event); if (!event.defaultPrevented) setUserMenuOpen(false); }} className={`min-h-11 w-full px-3 py-2 ${TYPE_BODY} ${TEXT_BODY} hover:bg-slate-50 flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-600`}><User size={14} />Hesabım</Link>
                 <button
                   onClick={() => { setUserMenuOpen(false); signOut(); }}
                   className={`min-h-11 w-full text-left px-3 py-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 ${TYPE_BODY} ${TEXT_BODY} hover:bg-slate-50 flex items-center gap-2`}

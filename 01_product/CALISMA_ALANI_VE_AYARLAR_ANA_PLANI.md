@@ -421,3 +421,13 @@ Ayarlar → Modüller içine isteğe bağlı açılan Değişiklik geçmişi ekl
 Canlı ön kontrolde 185 migration, bakım bariyeri yok, doğrulanmış context fonksiyon gövdesi aynıydı. Yeni migration ve defter kaydı exact prefix kontrolüyle aynı transaction'da uygulandı; sayı 186. Kaynak 1e99a70, Vercel dpl_6tdQgVxfnnZiJk5zEsMUNPAo3zT3 ana alana promote edildi ve inspect ile doğrulandı. Mek Group kimlikli geçmiş okumasında ilk kurulum kaydı görüldü. Üretimde şirket ayarları değiştirilmedi, veri silinmedi veya yedeklenmedi. Otomatik e-posta false kalır. Kanıt qa/module-history-20261018/production-release.json.
 
 Sınır: son 20 kayıt; eski geçmiş korunur ama panelde sayfalama yok. İsimler tarihsel snapshot değildir. Canlı yeni değişiklik ve yarış/ağ hatası enjeksiyonu yapılmadı; bunların yerel kabulü ayrı kanıttır. F paketinin audit yüzeyi tamamlandı; kişisel tercihler ve bildirim devamı otomatik olarak tamamlanmış sayılmaz.
+
+## 18 Ekim — Hesabım giriş yüzeyi (YEREL)
+
+Kullanıcı menüsüne /hesabim eklendi. Hesap adı mevcut profiles servisinden kimlik eşleşmesi doğrulanarak okunur; giriş e-postası oturumdan, şirket ve rol doğrulanmış çalışma alanından gösterilir. Şirket uyuşmazlığı veya okuma hatasında önceki bilgi gösterilmez. Şirket ayarları yalnız yöneticiye, şirket değişimi ve bildirim sesi açıklaması mevcut capability/rol koşullarına göre görünür. Menü bağlantısı kaydedilmemiş form korumasını kullanır. Yeni DB yetkisi veya migration yok.
+
+Beş hedefli bileşen testi geçti: doğrulanmış bilgiler, hesap değişimi/hata, geç yanıt, auth öncesi istek atmama, eksik/yanlış profil ve yeniden deneme. TypeScript geçti; statik 0 FAIL/1 bilinen kullanılmayan bileşen WARN. Bunlar DOM/tarayıcı kabulü değildir. Tarayıcı kabulü ve yayın henüz yapılmadı.
+
+Bulgu: updateOwnDisplayName profiles.display_name yazar; AuthContext üst çubuk adı için auth metadata okur. Bu nedenle düzenleme formu açılmadı. Sıradaki iş bu iki kaynağın tutarlı hale getirilmesi ve gerçek yerel RLS yazma kabulü; sonra ad düzenleme. Kalıcı ses tercihi, görev/duyuru bildirimleri veya F/H paketlerinin tamamlandığı iddiası yok. Canlı son kaynak 1e99a70 ve 186 migration kaydı önceki yayın kanıtına dayanır; bu tur üretim yeniden ölçülmedi.
+
+Genel uygulama koşusu 752/752 geçti (111,7 sn); koşu başladıktan sonra eklenen beşinci hesap testi dahil hedefli dosya ayrıca 5/5 geçti. Tam koşuda 753 test çalıştığı iddia edilmez. git diff --check temiz.
