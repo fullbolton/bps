@@ -56,3 +56,10 @@ post-migration-writer-candidates.json, bu yerel şemada authenticated EXECUTE ta
 storage-http.mjs artık modül komut testiyle aynı fixture-migrations.json listesini (24 migration) kullanıyor. Eski ayrı/dar evrak listesi kaldırıldı. BPS_LOCAL_BROWSER modu da aynı kurulumdan yararlanır; bu tur tarayıcı UI kabulü yapılmadı.
 
 Gerçek yerel Storage/PostgREST üzerinden 29/29 kontrol geçti. Yeni kontrol: pending sözleşme PDF rezervasyonunda HTTP preview pending_contract_upload=true; gerçek dosya upload ve finalize sonrasında false. Önceki kurtarma/iptal/Storage sahiplik ve şirket değişimi kontrolleri korundu. Kanıt qa/module-change-command-20261017/storage-http-result.json. Geçici klon/container'lar finally ile kaldırıldı. Üretim değişmedi; migration ve modül UI yayını hâlâ bekliyor.
+
+
+## 17 Ekim — ortak fixture eksiksizlik kontrolü
+
+fixture-migrations.mjs, manifesti repo migration diziniyle karşılaştırır: baseline 20261005003100 sonrasındaki her SQL dosyası tam ve sıralı bulunmalı. Yeni migration atlanması, eksik dosya, tekrar, sıra hatası veya geçersiz ad kabulü durdurur. Komut DB testi ve Storage/browser harness aynı loader'ı kullanır. Baseline şablonun içeriği veya geçmiş dosya hash'i bu kontrolle doğrulanmaz; tam şema/üretim preflight yerini tutmaz.
+
+module-fixture-integrity.test.mjs 4/4 geçti, application envanterine kaydedildi (127 dosya). Ürün SQL/arayüz değişmediği için 29 HTTP ve 17 DB kontrolü tekrar koşturulmadı; önceki kanıtlar korunur. Üretim yayını yok.

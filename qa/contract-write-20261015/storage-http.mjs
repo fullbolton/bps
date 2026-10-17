@@ -1,3 +1,4 @@
+import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-migrations.mjs';
 // Disposable LOCAL Storage HTTP acceptance. No production URLs or credentials.
 import {execFileSync,spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
@@ -20,7 +21,7 @@ const uri=`postgres://${process.env.BPS_RELEASE_BARRIER==='1'?'authenticator':'p
 const storageUri=`postgres://supabase_storage_admin:${encodeURIComponent(password)}@${source}:5432/${database}`;secrets.push(storageUri);
 let created=false;
 const checks=[];
-const migrations=JSON.parse(readFileSync(new URL('../module-change-command-20261017/fixture-migrations.json',import.meta.url),'utf8'));
+const migrations=loadFixtureMigrations();
 const claim=`SELECT set_config('request.jwt.claims','${JSON.stringify({sub:id(11),active_tenant_id:id(1)})}',true);SET LOCAL ROLE authenticated;`;
 const pdf=Buffer.from('%PDF-1.4\nSynthetic local acceptance file\n%%EOF\n');
 try {

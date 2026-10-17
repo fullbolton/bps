@@ -1,3 +1,4 @@
+import {loadFixtureMigrations} from './fixture-migrations.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -15,7 +16,7 @@ test('local module command candidate',async t=>{
   const password=execFileSync('docker',['exec',container,'printenv','POSTGRES_PASSWORD'],{encoding:'utf8'}).trim();
   for(let n=0;n<3;n++){let c=new Client({host:'127.0.0.1',port:54322,user:'postgres',password,database,statement_timeout:8000});await c.connect();clients.push(c);await c.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(11),active_tenant_id:id(1),role:'authenticated'})]);}
   const [a,b,o]=clients;
-  const files=JSON.parse(readFileSync(new URL('./fixture-migrations.json',import.meta.url),'utf8'));
+  const files=loadFixtureMigrations();
   for(const file of files)await a.query(readFileSync(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
   const writerCandidates=(await a.query(`select p.oid::regprocedure::text signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef and has_function_privilege('authenticated',p.oid,'execute') and p.prosrc ~* '(insert into|update public[.]|delete from)' and p.prosrc not like '%workspace_require_module_write_v1%' order by 1`)).rows;
   writeFileSync(new URL('./post-migration-writer-candidates.json',import.meta.url),JSON.stringify({scope:'local synthetic clone, textual candidates only; not exhaustive runtime authorization',applied:files,candidates:writerCandidates},null,2)+'\n');
