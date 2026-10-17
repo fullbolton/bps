@@ -707,3 +707,10 @@ Cleanup + pending upload süitleri 21/21 geçti. Yeni testler geçerli nullable 
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:3061 ve açıkça sentetik build-only anon değeriyle ayrı npm run build exit 0 geçti. Bu derleme gerçek üretim bağlantısı veya canlı veri kabulü değildir. İlk koşu ve tekrar ayrı loglarda korundu: release-check-20261017.log, build-local-env-20261017.log.
 
 RELEASE_READINESS_20261017.md tamamlanan kanıtları ve kalan kapıları tek yerde toplar. Son cleanup parser tarayıcı kabulü, güncel üretim şema/ledger ölçümü, iki pending migration'ın sıralı provası ve modül gerçek kayıt akışının kalan işleri açık. Üretim ölçümü/yayını bu tur yapılmadı. Statik WARN: kullanılmayan CapacityRiskCard, TimelineList; kapsam dışı silme yapılmadı.
+
+
+## 17 Ekim — son cleanup parser tarayıcı kapısı tamamlandı
+
+f3b11eb kaynak (ürün 0dc821b) ile gerçek yerel Auth/PostgREST/Storage kuruldu. CUA tarayıcısında temizlik paneli açıldı; sentetik 9205 işi isim, firma ve tarih alanlarıyla görüntülendi. Listeyi yenile sonrası aynı geçerli kayıt ve işlem düğmesi korundu; boş/hata görünümü oluşmadı. Gerçek RPC yanıtı yeni parser ile uyumlu. Bozuk yanıt senaryoları önceki bileşen testinde kalır; tarayıcıda hata enjeksiyonu yapılmadı. Temizlik/silme düğmesi çalıştırılmadı.
+
+browser-cleanup-parser-20261017.png/.txt kanıtları eklendi. Kurulumun 29 HTTP kontrolü geçti; exit 0 ve geçici kaynak temizliği tamamlandı. RELEASE_READINESS listesindeki son parser tarayıcı kapısı kaldırıldı. Kalanlar güncel üretim ölçümü, iki migration provası/sırası ve ayrı gerçek modül kayıt işidir. Üretime yayın/veri işlemi yapılmadı.

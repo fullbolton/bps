@@ -11,13 +11,14 @@
 - Temizlik yanıtının eksik/bozuk/tekrarlı satırlarında hata, eski listeyi temizleme: `cleanup-validation-tests.tap`, ilgili iki süit 21/21.
 - Yerel aday modül komutu: `../module-change-command-20261017/result.tap`, 25/25. Kapatma/prepare yarışının iki sırası, iptal→temizlik engeli, audit hatasında rollback ve tekrar, rol/şirket değişimi, idempotency içerir. Komut qa altında; istemci EXECUTE kapalı.
 
+- Cleanup yanıt parser'ı gerçek yerel RPC yanıtıyla ilk açılış/yenileme tarayıcı kabulü: `browser-cleanup-parser-20261017.txt` (kaynak f3b11eb; ürün 0dc821b).
+
 ## Yayından önce açık kapılar
 
-1. `0dc821b` ile eklenen cleanup yanıt parser'ının gerçek sunucu yanıtıyla son tarayıcı kabulü. Önceki tarayıcı kanıtı `6fe34a4` kaynak içindir.
-2. Güncel üretim ledger, fonksiyon gövdeleri ve izinlerinin salt okunur ölçümü; bekleyen `20261017000100` ve `20261017000200` için sıralı prova. Önceki üretim ölçümü güncelmiş gibi kullanılamaz.
-3. SQL ve frontend sırası: yeni preview parser'ı `pending_contract_upload` kontrolünü bekler; SQL önce. Eski sunucu + yeni parser hatayla durur.
-4. Aday modül değiştirme komutunun kalan RPC/servis yazma yüzeyi incelemesi, uygulama bağlantısı ve gerçek kayıt tarayıcı kabulü. Bu yayın hazırlığı gerçek modül kapatmayı açmaz.
-5. Seçilen yayın commit'i ve dağıtım kaydı, canlı kimlikli smoke. GitHub push otomatik üretim yayını değildir.
+1. Güncel üretim ledger, fonksiyon gövdeleri ve izinlerinin salt okunur ölçümü; bekleyen `20261017000100` ve `20261017000200` için sıralı prova. Önceki üretim ölçümü güncelmiş gibi kullanılamaz.
+2. SQL ve frontend sırası: yeni preview parser'ı `pending_contract_upload` kontrolünü bekler; SQL önce. Eski sunucu + yeni parser hatayla durur.
+3. Aday modül değiştirme komutunun kalan RPC/servis yazma yüzeyi incelemesi, uygulama bağlantısı ve gerçek kayıt tarayıcı kabulü. Bu yayın hazırlığı gerçek modül kapatmayı açmaz.
+4. Seçilen yayın commit'i ve dağıtım kaydı, canlı kimlikli smoke. GitHub push otomatik üretim yayını değildir.
 
 ## Son kayıtlı üretim durumu (bu tur yeniden ölçülmedi)
 
