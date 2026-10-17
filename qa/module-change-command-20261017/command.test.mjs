@@ -1,3 +1,5 @@
+import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
+const {parseModuleChangeReceipt}=await importActualTypeScript(new URL('../../src/lib/modules/change-receipt.ts',import.meta.url));
 import {loadFixtureMigrations} from './fixture-migrations.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,7 +39,8 @@ test('local module command candidate',async t=>{
   await t.test('change is atomic, replay creates no duplicate, changed payload and stale revision fail',async()=>{
    const ctx=await context(a);const draft={...ctx.modules,announcements:false};
    const first=(await invoke(a,ctx,801,draft)).rows[0].value;assert.equal(first.replayed,false);
-   assert.equal((await invoke(a,ctx,801,draft)).rows[0].value.replayed,true);
+   assert.equal(parseModuleChangeReceipt(first,{context:ctx,commandId:id(801),modules:draft}).replayed,false);
+   assert.equal(parseModuleChangeReceipt((await invoke(a,ctx,801,draft)).rows[0].value,{context:ctx,commandId:id(801),modules:draft}).replayed,true);
    assert.equal((await context(a)).configRevision,String(BigInt(ctx.configRevision)+1n));
    await assert.rejects(invoke(a,ctx,801,{...draft,announcements:true}),{code:'22023'});
    await assert.rejects(invoke(a,ctx,802,draft),{code:'PT409'});

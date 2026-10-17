@@ -37,7 +37,7 @@ BEGIN
   IF receipt.kind<>'settings' OR receipt.actor_id IS DISTINCT FROM p_actor OR receipt.request_hash<>fingerprint THEN
    RAISE EXCEPTION 'MODULE_COMMAND_REUSED' USING ERRCODE='22023';
   END IF;
-  RETURN jsonb_build_object('commandId',p_command,'revision',receipt.after_revision::text,'replayed',true);
+  RETURN jsonb_build_object('schemaVersion',1,'actorId',p_actor,'tenantId',p_tenant,'commandId',p_command,'revision',receipt.after_revision::text,'modules',receipt.after_state,'replayed',true);
  END IF;
  -- Separate post-lock statement: committed work from a waiting writer is visible.
  assessment:=public.preview_workspace_modules_v1(p_actor,p_tenant,p_revision,p_modules);
@@ -50,7 +50,7 @@ BEGIN
  WHERE tenant_id=p_tenant RETURNING revision INTO next_revision;
  INSERT INTO public.tenant_module_changes(tenant_id,command_id,actor_id,kind,request_hash,before_revision,after_revision,before_state,after_state)
  VALUES(p_tenant,p_command,p_actor,'settings',fingerprint,next_revision-1,next_revision,context->'modules',p_modules);
- RETURN jsonb_build_object('commandId',p_command,'revision',next_revision::text,'replayed',false);
+ RETURN jsonb_build_object('schemaVersion',1,'actorId',p_actor,'tenantId',p_tenant,'commandId',p_command,'revision',next_revision::text,'modules',p_modules,'replayed',false);
 END $$;
 REVOKE ALL ON FUNCTION public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb) FROM PUBLIC,anon,authenticated,service_role;
 COMMIT;

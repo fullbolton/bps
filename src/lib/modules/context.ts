@@ -17,7 +17,7 @@ export type WorkspaceModuleContext = ModuleContextExpectation & {
   modules: ModuleStates;
 };
 
-function isRevision(value: unknown): value is string {
+export function isRevision(value: unknown): value is string {
   return typeof value === 'string' && /^[1-9][0-9]{0,18}$/.test(value) && BigInt(value) <= BigInt('9223372036854775807');
 }
 

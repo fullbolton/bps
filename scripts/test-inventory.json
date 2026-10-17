@@ -656,5 +656,9 @@
   {
     "file": "scripts/module-fixture-integrity.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/module-change-receipt.test.mjs",
+    "suite": "application"
   }
 ]

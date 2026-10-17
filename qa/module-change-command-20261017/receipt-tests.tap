@@ -1,0 +1,23 @@
+✔ receipt keeps bigint precision and validates both fresh commit and replay (0.908375ms)
+✔ foreign identity, command, revision, state or protocol cannot show success (0.366083ms)
+✔ null, missing and partial responses fail closed (0.259458ms)
+✔ invalid expected commands cannot turn a response into proof (0.159042ms)
+✔ replayed receipt remains bound to original revision, not a later settings snapshot (0.104542ms)
+✔ hard dependencies are a DAG; unknown, duplicate and self edges are rejected (0.573417ms)
+✔ talent, tasks and announcements stand alone; reporting and staffing do not require each other (0.446291ms)
+✔ every one of the 1024 configurations is accepted iff all required dependencies are enabled (6.321ms)
+✔ partial, unknown, inherited and non-boolean module values never imply enabled (0.252125ms)
+✔ context keeps bigint revisions exact and discards unrelated response fields (0.352292ms)
+✔ actor/company/generation/role/protocol mismatches cannot supply a context (0.291917ms)
+✔ all existing member roles retain their role without receiving new privileges (0.123875ms)
+✔ an older response from another workspace is rejected and no RPC fallback runs (0.308208ms)
+✔ one bounded RPC returns the whole snapshot, without a client-selected tenant argument (0.145958ms)
+✔ migration catalog is generated from the same manifest, not a second hand-maintained graph (0.230792ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 388.902917
