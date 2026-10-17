@@ -3,9 +3,15 @@ Auth/storage/extensions come from a local synthetic template, not production.
 Usage: python3 rehearse-pending.py /path/to/schema-only.sql
 """
 from pathlib import Path
-import sys, subprocess, hashlib, json, os, datetime
+import sys, subprocess, hashlib, json, os, datetime, argparse
+parser=argparse.ArgumentParser()
+parser.add_argument("snapshot")
+parser.add_argument("--preflight",type=Path)
+parser.add_argument("--out",type=Path)
+parser.add_argument("--candidate",action="store_true")
+args=parser.parse_args()
 ROOT = Path(__file__).resolve().parents[2]
-OUT = Path(__file__).resolve().parent / 'pending-rehearsal-20261017'
+OUT = args.out or Path(__file__).resolve().parent / 'pending-rehearsal-20261017'
 OUT.mkdir(exist_ok=True)
 DB = 'bps_pending_rehearsal_' + str(os.getpid())
 CONTAINER = 'supabase_db_bps-supabase-acceptance'
@@ -19,10 +25,13 @@ def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 report={'measuredAt':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'scope':'Pinned production public schema; local synthetic auth/storage/extensions dependencies. No production DDL or business data.', 'success':False,'cleaned':False,'applied':[]}
 created=False
 try:
-    snapshot=Path(sys.argv[1])
-    if digest(snapshot)!='706e8399171f68a8cb454c275b933ba653623da6503be0b64884b0d39c288ce2': raise ValueError('Snapshot drift')
+    snapshot=Path(args.snapshot)
+    preflight=json.loads(args.preflight.read_text()) if args.preflight else None
+    if preflight and preflight['project']!='dffdzbmnmnokbftbujsy': raise ValueError('Project drift')
+    expected=preflight['schemaSha256'] if preflight else '706e8399171f68a8cb454c275b933ba653623da6503be0b64884b0d39c288ce2'
+    if digest(snapshot)!=expected: raise ValueError('Snapshot drift')
     report['snapshotSha256']=digest(snapshot)
-    pending=json.loads((OUT.parent/'live-ledger-preflight-20261017.json').read_text())['pending']
+    pending=preflight['pending'] if preflight else json.loads((Path(__file__).resolve().parent/'live-ledger-preflight-20261017.json').read_text())['pending']
     for item in pending:
         if digest(ROOT/'supabase/migrations'/item['file'])!=item['sha256']: raise ValueError('Migration drift')
     check('CREATE DATABASE '+DB+' OWNER postgres TEMPLATE bps_module_chain_20261005;', 'postgres','supabase_admin'); created=True
@@ -50,7 +59,14 @@ try:
       'pendingContractCheck',(SELECT position('pending_contract_upload' in prosrc)>0 FROM pg_proc WHERE oid='public.preview_workspace_modules_v1(uuid,uuid,text,jsonb)'::regprocedure));"""))
     c=report['catalog']
     if c['barrierOwner']!='postgres' or not c['barrierDefiner'] or c['clientExecute'] or c['statementTriggers']!=2 or c['restrictivePolicies']!=2 or not c['pendingContractCheck']: raise ValueError('Catalog assertions failed')
-    inventory=json.loads(check((OUT.parent/'writer-catalog.sql').read_text()))
+    if args.candidate:
+        candidate=ROOT/'qa/module-change-command-20261017/command-candidate.sql'
+        check(candidate.read_text())
+        signature='public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb)'
+        metadata=json.loads(check("SELECT json_build_object('owner',proowner::regrole::text,'definer',prosecdef,'config',proconfig,'clientExecute',(SELECT bool_or(has_function_privilege(r,'"+signature+"','EXECUTE')) FROM unnest(ARRAY['anon','authenticated','service_role']) r)) FROM pg_proc WHERE oid='"+signature+"'::regprocedure"))
+        if metadata['owner']!='postgres' or not metadata['definer'] or metadata['clientExecute']: raise ValueError('Candidate ACL mismatch')
+        report['candidate']={'sha256':digest(candidate),**metadata}
+    inventory=json.loads(check((Path(__file__).resolve().parent/'writer-catalog.sql').read_text()))
     (OUT/'writer-catalog.json').write_text(json.dumps(inventory,indent=2)+'\n')
     report['inventoryCounts']={key:len(value or []) for key,value in inventory.items()}
     report['success']=True

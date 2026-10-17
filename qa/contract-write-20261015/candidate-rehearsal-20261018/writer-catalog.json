@@ -1,0 +1,5926 @@
+{
+  "triggers": [
+    {
+      "name": "appointments_set_updated_at",
+      "table": "appointments",
+      "enabled": "O",
+      "function": "appointments_set_updated_at()",
+      "definition": "CREATE TRIGGER appointments_set_updated_at BEFORE UPDATE ON public.appointments FOR EACH ROW EXECUTE FUNCTION appointments_set_updated_at()"
+    },
+    {
+      "name": "appointments_validate_linked_fks",
+      "table": "appointments",
+      "enabled": "O",
+      "function": "trg_appointments_validate_linked_fks()",
+      "definition": "CREATE TRIGGER appointments_validate_linked_fks BEFORE INSERT OR UPDATE ON public.appointments FOR EACH ROW EXECUTE FUNCTION trg_appointments_validate_linked_fks()"
+    },
+    {
+      "name": "companies_set_updated_at",
+      "table": "companies",
+      "enabled": "O",
+      "function": "companies_set_updated_at()",
+      "definition": "CREATE TRIGGER companies_set_updated_at BEFORE UPDATE ON public.companies FOR EACH ROW EXECUTE FUNCTION companies_set_updated_at()"
+    },
+    {
+      "name": "contacts_enforce_max_per_company",
+      "table": "contacts",
+      "enabled": "O",
+      "function": "contacts_enforce_max_per_company()",
+      "definition": "CREATE CONSTRAINT TRIGGER contacts_enforce_max_per_company AFTER INSERT ON public.contacts DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION contacts_enforce_max_per_company()"
+    },
+    {
+      "name": "contacts_guard_write_fields",
+      "table": "contacts",
+      "enabled": "O",
+      "function": "guard_contact_write_fields()",
+      "definition": "CREATE TRIGGER contacts_guard_write_fields BEFORE INSERT OR UPDATE ON public.contacts FOR EACH ROW EXECUTE FUNCTION guard_contact_write_fields()"
+    },
+    {
+      "name": "contacts_set_updated_at",
+      "table": "contacts",
+      "enabled": "O",
+      "function": "contacts_set_updated_at()",
+      "definition": "CREATE TRIGGER contacts_set_updated_at BEFORE UPDATE ON public.contacts FOR EACH ROW EXECUTE FUNCTION contacts_set_updated_at()"
+    },
+    {
+      "name": "contracts_advance_revision",
+      "table": "contracts",
+      "enabled": "O",
+      "function": "contracts_advance_revision()",
+      "definition": "CREATE TRIGGER contracts_advance_revision BEFORE INSERT OR UPDATE ON public.contracts FOR EACH ROW EXECUTE FUNCTION contracts_advance_revision()"
+    },
+    {
+      "name": "contracts_guard_pdf_context",
+      "table": "contracts",
+      "enabled": "O",
+      "function": "contracts_guard_pdf_context()",
+      "definition": "CREATE TRIGGER contracts_guard_pdf_context BEFORE UPDATE ON public.contracts FOR EACH ROW EXECUTE FUNCTION contracts_guard_pdf_context()"
+    },
+    {
+      "name": "contracts_guard_upload_context",
+      "table": "contracts",
+      "enabled": "O",
+      "function": "guard_contract_upload_context()",
+      "definition": "CREATE TRIGGER contracts_guard_upload_context BEFORE UPDATE ON public.contracts FOR EACH ROW EXECUTE FUNCTION guard_contract_upload_context()"
+    },
+    {
+      "name": "contracts_set_updated_at",
+      "table": "contracts",
+      "enabled": "O",
+      "function": "contracts_set_updated_at()",
+      "definition": "CREATE TRIGGER contracts_set_updated_at BEFORE UPDATE ON public.contracts FOR EACH ROW EXECUTE FUNCTION contracts_set_updated_at()"
+    },
+    {
+      "name": "critical_dates_preserve_identity",
+      "table": "critical_dates",
+      "enabled": "O",
+      "function": "critical_dates_preserve_identity()",
+      "definition": "CREATE TRIGGER critical_dates_preserve_identity BEFORE UPDATE ON public.critical_dates FOR EACH ROW EXECUTE FUNCTION critical_dates_preserve_identity()"
+    },
+    {
+      "name": "critical_dates_set_updated_at",
+      "table": "critical_dates",
+      "enabled": "O",
+      "function": "critical_dates_set_updated_at()",
+      "definition": "CREATE TRIGGER critical_dates_set_updated_at BEFORE UPDATE ON public.critical_dates FOR EACH ROW EXECUTE FUNCTION critical_dates_set_updated_at()"
+    },
+    {
+      "name": "demo_requests_set_updated_at",
+      "table": "demo_requests",
+      "enabled": "O",
+      "function": "demo_requests_set_updated_at()",
+      "definition": "CREATE TRIGGER demo_requests_set_updated_at BEFORE UPDATE ON public.demo_requests FOR EACH ROW EXECUTE FUNCTION demo_requests_set_updated_at()"
+    },
+    {
+      "name": "documents_cleanup_path_guard",
+      "table": "documents",
+      "enabled": "O",
+      "function": "document_cleanup_path_guard_v1()",
+      "definition": "CREATE TRIGGER documents_cleanup_path_guard BEFORE INSERT OR UPDATE OF storage_path ON public.documents FOR EACH ROW EXECUTE FUNCTION document_cleanup_path_guard_v1()"
+    },
+    {
+      "name": "documents_enqueue_cleanup",
+      "table": "documents",
+      "enabled": "O",
+      "function": "document_enqueue_cleanup_v1()",
+      "definition": "CREATE TRIGGER documents_enqueue_cleanup AFTER DELETE ON public.documents FOR EACH ROW EXECUTE FUNCTION document_enqueue_cleanup_v1()"
+    },
+    {
+      "name": "documents_guard_contract_role",
+      "table": "documents",
+      "enabled": "O",
+      "function": "guard_contract_document_role()",
+      "definition": "CREATE TRIGGER documents_guard_contract_role BEFORE INSERT OR UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION guard_contract_document_role()"
+    },
+    {
+      "name": "documents_guard_reserved_upload",
+      "table": "documents",
+      "enabled": "O",
+      "function": "guard_reserved_pdf_upload()",
+      "definition": "CREATE TRIGGER documents_guard_reserved_upload BEFORE INSERT OR UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION guard_reserved_pdf_upload()"
+    },
+    {
+      "name": "documents_guard_version",
+      "table": "documents",
+      "enabled": "O",
+      "function": "documents_guard_version()",
+      "definition": "CREATE TRIGGER documents_guard_version BEFORE INSERT OR UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION documents_guard_version()"
+    },
+    {
+      "name": "documents_mark_upload_published",
+      "table": "documents",
+      "enabled": "O",
+      "function": "document_mark_upload_published_v1()",
+      "definition": "CREATE TRIGGER documents_mark_upload_published AFTER INSERT ON public.documents FOR EACH ROW EXECUTE FUNCTION document_mark_upload_published_v1()"
+    },
+    {
+      "name": "documents_record_version",
+      "table": "documents",
+      "enabled": "O",
+      "function": "documents_record_version()",
+      "definition": "CREATE TRIGGER documents_record_version AFTER INSERT OR UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION documents_record_version()"
+    },
+    {
+      "name": "documents_set_updated_at",
+      "table": "documents",
+      "enabled": "O",
+      "function": "documents_set_updated_at()",
+      "definition": "CREATE TRIGGER documents_set_updated_at BEFORE UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION documents_set_updated_at()"
+    },
+    {
+      "name": "record_company_document_event",
+      "table": "documents",
+      "enabled": "O",
+      "function": "record_company_document_event()",
+      "definition": "CREATE TRIGGER record_company_document_event AFTER INSERT ON public.documents FOR EACH ROW EXECUTE FUNCTION record_company_document_event()"
+    },
+    {
+      "name": "notes_guard_write_fields",
+      "table": "notes",
+      "enabled": "O",
+      "function": "guard_note_write_fields()",
+      "definition": "CREATE TRIGGER notes_guard_write_fields BEFORE INSERT OR UPDATE ON public.notes FOR EACH ROW EXECUTE FUNCTION guard_note_write_fields()"
+    },
+    {
+      "name": "notes_set_updated_at",
+      "table": "notes",
+      "enabled": "O",
+      "function": "notes_set_updated_at()",
+      "definition": "CREATE TRIGGER notes_set_updated_at BEFORE UPDATE ON public.notes FOR EACH ROW EXECUTE FUNCTION notes_set_updated_at()"
+    },
+    {
+      "name": "ops_assignment_shift_snapshot",
+      "table": "ops_assignments",
+      "enabled": "O",
+      "function": "ops_assignment_shift_snapshot()",
+      "definition": "CREATE TRIGGER ops_assignment_shift_snapshot BEFORE INSERT OR UPDATE ON public.ops_assignments FOR EACH ROW EXECUTE FUNCTION ops_assignment_shift_snapshot()"
+    },
+    {
+      "name": "ops_fixed_roster_assignment_guard",
+      "table": "ops_assignments",
+      "enabled": "O",
+      "function": "ops_fixed_roster_assignment_guard()",
+      "definition": "CREATE TRIGGER ops_fixed_roster_assignment_guard BEFORE INSERT OR UPDATE ON public.ops_assignments FOR EACH ROW EXECUTE FUNCTION ops_fixed_roster_assignment_guard()"
+    },
+    {
+      "name": "ops_guard_approved_attendance",
+      "table": "ops_assignments",
+      "enabled": "O",
+      "function": "ops_guard_approved_attendance()",
+      "definition": "CREATE TRIGGER ops_guard_approved_attendance BEFORE UPDATE ON public.ops_assignments FOR EACH ROW EXECUTE FUNCTION ops_guard_approved_attendance()"
+    },
+    {
+      "name": "ops_guard_confirmed_start",
+      "table": "ops_assignments",
+      "enabled": "O",
+      "function": "ops_guard_confirmed_start()",
+      "definition": "CREATE TRIGGER ops_guard_confirmed_start BEFORE UPDATE OF attendance ON public.ops_assignments FOR EACH ROW EXECUTE FUNCTION ops_guard_confirmed_start()"
+    },
+    {
+      "name": "ops_idp_request_guard",
+      "table": "ops_daily_requests",
+      "enabled": "O",
+      "function": "ops_idp_request_guard()",
+      "definition": "CREATE TRIGGER ops_idp_request_guard BEFORE UPDATE OF required_count, work_date ON public.ops_daily_requests FOR EACH ROW EXECUTE FUNCTION ops_idp_request_guard()"
+    },
+    {
+      "name": "ops_request_mode_guard",
+      "table": "ops_daily_requests",
+      "enabled": "O",
+      "function": "ops_request_mode_guard()",
+      "definition": "CREATE TRIGGER ops_request_mode_guard BEFORE INSERT OR UPDATE ON public.ops_daily_requests FOR EACH ROW EXECUTE FUNCTION ops_request_mode_guard()"
+    },
+    {
+      "name": "ops_request_shift_history_guard",
+      "table": "ops_daily_requests",
+      "enabled": "O",
+      "function": "ops_request_shift_history_guard()",
+      "definition": "CREATE TRIGGER ops_request_shift_history_guard BEFORE UPDATE ON public.ops_daily_requests FOR EACH ROW EXECUTE FUNCTION ops_request_shift_history_guard()"
+    },
+    {
+      "name": "ops_fixed_roster_source_guard",
+      "table": "ops_fixed_roster",
+      "enabled": "O",
+      "function": "ops_fixed_roster_source_guard()",
+      "definition": "CREATE TRIGGER ops_fixed_roster_source_guard BEFORE UPDATE ON public.ops_fixed_roster FOR EACH ROW EXECUTE FUNCTION ops_fixed_roster_source_guard()"
+    },
+    {
+      "name": "ops_idp_period_context_guard",
+      "table": "ops_idp_context",
+      "enabled": "O",
+      "function": "ops_idp_period_context_guard()",
+      "definition": "CREATE TRIGGER ops_idp_period_context_guard BEFORE UPDATE ON public.ops_idp_context FOR EACH ROW EXECUTE FUNCTION ops_idp_period_context_guard()"
+    },
+    {
+      "name": "ops_fixed_roster_period_guard",
+      "table": "ops_idp_periods",
+      "enabled": "O",
+      "function": "ops_fixed_roster_period_guard()",
+      "definition": "CREATE TRIGGER ops_fixed_roster_period_guard BEFORE UPDATE ON public.ops_idp_periods FOR EACH ROW EXECUTE FUNCTION ops_fixed_roster_period_guard()"
+    },
+    {
+      "name": "ops_messages_private_guard",
+      "table": "ops_messages",
+      "enabled": "O",
+      "function": "operational_text_guard()",
+      "definition": "CREATE TRIGGER ops_messages_private_guard BEFORE INSERT OR UPDATE ON public.ops_messages FOR EACH ROW EXECUTE FUNCTION operational_text_guard()"
+    },
+    {
+      "name": "ops_replacement_outreach_private_guard",
+      "table": "ops_replacement_outreach",
+      "enabled": "O",
+      "function": "operational_text_guard()",
+      "definition": "CREATE TRIGGER ops_replacement_outreach_private_guard BEFORE INSERT OR UPDATE ON public.ops_replacement_outreach FOR EACH ROW EXECUTE FUNCTION operational_text_guard()"
+    },
+    {
+      "name": "ops_work_record_events_private_guard",
+      "table": "ops_work_record_events",
+      "enabled": "O",
+      "function": "operational_text_guard()",
+      "definition": "CREATE TRIGGER ops_work_record_events_private_guard BEFORE INSERT OR UPDATE ON public.ops_work_record_events FOR EACH ROW EXECUTE FUNCTION operational_text_guard()"
+    },
+    {
+      "name": "ops_work_records_private_guard",
+      "table": "ops_work_records",
+      "enabled": "O",
+      "function": "operational_text_guard()",
+      "definition": "CREATE TRIGGER ops_work_records_private_guard BEFORE INSERT OR UPDATE ON public.ops_work_records FOR EACH ROW EXECUTE FUNCTION operational_text_guard()"
+    },
+    {
+      "name": "talent_worker_sync",
+      "table": "ops_workers",
+      "enabled": "O",
+      "function": "talent_sync_worker()",
+      "definition": "CREATE TRIGGER talent_worker_sync AFTER INSERT OR UPDATE OF name ON public.ops_workers FOR EACH ROW EXECUTE FUNCTION talent_sync_worker()"
+    },
+    {
+      "name": "profile_guard_active_tasks",
+      "table": "profiles",
+      "enabled": "O",
+      "function": "profile_guard_active_tasks()",
+      "definition": "CREATE TRIGGER profile_guard_active_tasks BEFORE UPDATE OF role ON public.profiles FOR EACH ROW EXECUTE FUNCTION profile_guard_active_tasks()"
+    },
+    {
+      "name": "profiles_set_updated_at",
+      "table": "profiles",
+      "enabled": "O",
+      "function": "profiles_set_updated_at()",
+      "definition": "CREATE TRIGGER profiles_set_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_set_updated_at()"
+    },
+    {
+      "name": "reporting_imports_private_guard",
+      "table": "reporting_imports",
+      "enabled": "O",
+      "function": "reporting_person_code_guard()",
+      "definition": "CREATE TRIGGER reporting_imports_private_guard BEFORE INSERT OR UPDATE ON public.reporting_imports FOR EACH ROW EXECUTE FUNCTION reporting_person_code_guard()"
+    },
+    {
+      "name": "reporting_period_pending_guard",
+      "table": "reporting_periods",
+      "enabled": "O",
+      "function": "reporting_period_pending_guard()",
+      "definition": "CREATE TRIGGER reporting_period_pending_guard BEFORE UPDATE ON public.reporting_periods FOR EACH ROW EXECUTE FUNCTION reporting_period_pending_guard()"
+    },
+    {
+      "name": "reporting_person_code_events_private_guard",
+      "table": "reporting_person_code_events",
+      "enabled": "O",
+      "function": "reporting_person_code_guard()",
+      "definition": "CREATE TRIGGER reporting_person_code_events_private_guard BEFORE INSERT OR UPDATE ON public.reporting_person_code_events FOR EACH ROW EXECUTE FUNCTION reporting_person_code_guard()"
+    },
+    {
+      "name": "reporting_person_codes_private_guard",
+      "table": "reporting_person_codes",
+      "enabled": "O",
+      "function": "reporting_person_code_guard()",
+      "definition": "CREATE TRIGGER reporting_person_codes_private_guard BEFORE INSERT OR UPDATE ON public.reporting_person_codes FOR EACH ROW EXECUTE FUNCTION reporting_person_code_guard()"
+    },
+    {
+      "name": "reporting_actual_link_guard",
+      "table": "reporting_project_locations",
+      "enabled": "O",
+      "function": "reporting_actual_link_guard()",
+      "definition": "CREATE TRIGGER reporting_actual_link_guard BEFORE UPDATE ON public.reporting_project_locations FOR EACH ROW EXECUTE FUNCTION reporting_actual_link_guard()"
+    },
+    {
+      "name": "sector_templates_set_updated_at",
+      "table": "sector_templates",
+      "enabled": "O",
+      "function": "sector_templates_set_updated_at()",
+      "definition": "CREATE TRIGGER sector_templates_set_updated_at BEFORE UPDATE ON public.sector_templates FOR EACH ROW EXECUTE FUNCTION sector_templates_set_updated_at()"
+    },
+    {
+      "name": "staffing_demands_module_write",
+      "table": "staffing_demands",
+      "enabled": "O",
+      "function": "legacy_staffing_write_barrier_v1()",
+      "definition": "CREATE TRIGGER staffing_demands_module_write BEFORE INSERT OR DELETE OR UPDATE ON public.staffing_demands FOR EACH STATEMENT EXECUTE FUNCTION legacy_staffing_write_barrier_v1()"
+    },
+    {
+      "name": "staffing_demands_set_updated_at",
+      "table": "staffing_demands",
+      "enabled": "O",
+      "function": "staffing_demands_set_updated_at()",
+      "definition": "CREATE TRIGGER staffing_demands_set_updated_at BEFORE UPDATE ON public.staffing_demands FOR EACH ROW EXECUTE FUNCTION staffing_demands_set_updated_at()"
+    },
+    {
+      "name": "talent_attachment_person_guard",
+      "table": "talent_attachments",
+      "enabled": "O",
+      "function": "talent_guard_person_child()",
+      "definition": "CREATE TRIGGER talent_attachment_person_guard BEFORE INSERT OR UPDATE ON public.talent_attachments FOR EACH ROW EXECUTE FUNCTION talent_guard_person_child()"
+    },
+    {
+      "name": "talent_availability_person_guard",
+      "table": "talent_availability",
+      "enabled": "O",
+      "function": "talent_guard_person_child()",
+      "definition": "CREATE TRIGGER talent_availability_person_guard BEFORE INSERT OR UPDATE ON public.talent_availability FOR EACH ROW EXECUTE FUNCTION talent_guard_person_child()"
+    },
+    {
+      "name": "talent_conversation_person_guard",
+      "table": "talent_conversations",
+      "enabled": "O",
+      "function": "talent_guard_person_child()",
+      "definition": "CREATE TRIGGER talent_conversation_person_guard BEFORE INSERT OR UPDATE ON public.talent_conversations FOR EACH ROW EXECUTE FUNCTION talent_guard_person_child()"
+    },
+    {
+      "name": "talent_conversations_private_guard",
+      "table": "talent_conversations",
+      "enabled": "O",
+      "function": "operational_text_guard()",
+      "definition": "CREATE TRIGGER talent_conversations_private_guard BEFORE INSERT OR UPDATE ON public.talent_conversations FOR EACH ROW EXECUTE FUNCTION operational_text_guard()"
+    },
+    {
+      "name": "talent_closed_person_guard",
+      "table": "talent_people",
+      "enabled": "O",
+      "function": "talent_guard_closed_person()",
+      "definition": "CREATE TRIGGER talent_closed_person_guard BEFORE DELETE OR UPDATE ON public.talent_people FOR EACH ROW EXECUTE FUNCTION talent_guard_closed_person()"
+    },
+    {
+      "name": "talent_import_write_fence",
+      "table": "talent_people",
+      "enabled": "O",
+      "function": "talent_import_write_fence()",
+      "definition": "CREATE TRIGGER talent_import_write_fence BEFORE INSERT OR DELETE OR UPDATE ON public.talent_people FOR EACH ROW EXECUTE FUNCTION talent_import_write_fence()"
+    },
+    {
+      "name": "talent_pool_delete_version",
+      "table": "talent_people",
+      "enabled": "O",
+      "function": "talent_bump_pool_version()",
+      "definition": "CREATE TRIGGER talent_pool_delete_version AFTER DELETE ON public.talent_people REFERENCING OLD TABLE AS changed_people FOR EACH STATEMENT EXECUTE FUNCTION talent_bump_pool_version()"
+    },
+    {
+      "name": "talent_pool_insert_version",
+      "table": "talent_people",
+      "enabled": "O",
+      "function": "talent_bump_pool_version()",
+      "definition": "CREATE TRIGGER talent_pool_insert_version AFTER INSERT ON public.talent_people REFERENCING NEW TABLE AS changed_people FOR EACH STATEMENT EXECUTE FUNCTION talent_bump_pool_version()"
+    },
+    {
+      "name": "talent_pool_truncate_version",
+      "table": "talent_people",
+      "enabled": "O",
+      "function": "talent_bump_pool_version()",
+      "definition": "CREATE TRIGGER talent_pool_truncate_version AFTER TRUNCATE ON public.talent_people FOR EACH STATEMENT EXECUTE FUNCTION talent_bump_pool_version()"
+    },
+    {
+      "name": "talent_pool_update_version",
+      "table": "talent_people",
+      "enabled": "O",
+      "function": "talent_bump_pool_version()",
+      "definition": "CREATE TRIGGER talent_pool_update_version AFTER UPDATE ON public.talent_people REFERENCING NEW TABLE AS changed_people FOR EACH STATEMENT EXECUTE FUNCTION talent_bump_pool_version()"
+    },
+    {
+      "name": "tasks_advance_revision",
+      "table": "tasks",
+      "enabled": "O",
+      "function": "tasks_advance_revision()",
+      "definition": "CREATE TRIGGER tasks_advance_revision BEFORE INSERT OR UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION tasks_advance_revision()"
+    },
+    {
+      "name": "tasks_guard_active_assignee",
+      "table": "tasks",
+      "enabled": "O",
+      "function": "tasks_guard_active_assignee()",
+      "definition": "CREATE TRIGGER tasks_guard_active_assignee BEFORE INSERT OR UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION tasks_guard_active_assignee()"
+    },
+    {
+      "name": "tasks_guard_renewal_context",
+      "table": "tasks",
+      "enabled": "O",
+      "function": "tasks_guard_renewal_context()",
+      "definition": "CREATE TRIGGER tasks_guard_renewal_context BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION tasks_guard_renewal_context()"
+    },
+    {
+      "name": "tasks_record_assignment",
+      "table": "tasks",
+      "enabled": "O",
+      "function": "tasks_record_assignment()",
+      "definition": "CREATE TRIGGER tasks_record_assignment AFTER INSERT OR UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION tasks_record_assignment()"
+    },
+    {
+      "name": "tasks_set_updated_at",
+      "table": "tasks",
+      "enabled": "O",
+      "function": "tasks_set_updated_at()",
+      "definition": "CREATE TRIGGER tasks_set_updated_at BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION tasks_set_updated_at()"
+    },
+    {
+      "name": "tasks_validate_linked_fks",
+      "table": "tasks",
+      "enabled": "O",
+      "function": "trg_tasks_validate_linked_fks()",
+      "definition": "CREATE TRIGGER tasks_validate_linked_fks BEFORE INSERT OR UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION trg_tasks_validate_linked_fks()"
+    },
+    {
+      "name": "membership_guard_active_tasks",
+      "table": "tenant_memberships",
+      "enabled": "O",
+      "function": "membership_guard_active_tasks()",
+      "definition": "CREATE TRIGGER membership_guard_active_tasks BEFORE DELETE OR UPDATE ON public.tenant_memberships FOR EACH ROW EXECUTE FUNCTION membership_guard_active_tasks()"
+    },
+    {
+      "name": "tenant_module_key_guard_v1",
+      "table": "tenant_module_settings",
+      "enabled": "O",
+      "function": "tenant_module_key_guard_v1()",
+      "definition": "CREATE TRIGGER tenant_module_key_guard_v1 BEFORE INSERT OR UPDATE ON public.tenant_module_settings FOR EACH ROW EXECUTE FUNCTION tenant_module_key_guard_v1()"
+    },
+    {
+      "name": "tenant_module_on_create_v1",
+      "table": "tenants",
+      "enabled": "O",
+      "function": "tenant_module_on_create_v1()",
+      "definition": "CREATE TRIGGER tenant_module_on_create_v1 AFTER INSERT ON public.tenants FOR EACH ROW EXECUTE FUNCTION tenant_module_on_create_v1()"
+    },
+    {
+      "name": "workforce_summary_module_write",
+      "table": "workforce_summary",
+      "enabled": "O",
+      "function": "legacy_staffing_write_barrier_v1()",
+      "definition": "CREATE TRIGGER workforce_summary_module_write BEFORE INSERT OR DELETE OR UPDATE ON public.workforce_summary FOR EACH STATEMENT EXECUTE FUNCTION legacy_staffing_write_barrier_v1()"
+    },
+    {
+      "name": "workforce_summary_set_updated_at",
+      "table": "workforce_summary",
+      "enabled": "O",
+      "function": "workforce_summary_set_updated_at()",
+      "definition": "CREATE TRIGGER workforce_summary_set_updated_at BEFORE UPDATE ON public.workforce_summary FOR EACH ROW EXECUTE FUNCTION workforce_summary_set_updated_at()"
+    }
+  ],
+  "functions": [
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "4fcc1a32b61e5485e6e587ff9bcbefb2",
+      "definer": true,
+      "signature": "accept_workspace_invitation(uuid,uuid,text)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "0d3007bebc12f56fa8bfd2e08814801b",
+      "definer": true,
+      "signature": "active_tenant_profiles()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "d6d24b12af052933b0438fd15ab5a378",
+      "definer": true,
+      "signature": "admin_assign_role_and_tenant(uuid,text,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "e27c242594fc278f9f36419e5ada6273",
+      "definer": true,
+      "signature": "admin_create_tenant(text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "55a298c27f05c17b8041794c78fedad1",
+      "definer": true,
+      "signature": "admin_list_tenants()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "97cd7b8b31ef2237ff64eb3560acddae",
+      "definer": true,
+      "signature": "admin_list_users()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "8a9036e0c19a8d7c368dbca6dcb4a2fe",
+      "definer": true,
+      "signature": "admin_manage_membership(uuid,uuid,text,text,text,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "235ebeab1d480e858c6f83e1476a7114",
+      "definer": true,
+      "signature": "admin_user_memberships(uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "ac7c135cffa5a2de65b17697edcb0f96",
+      "definer": true,
+      "signature": "admin_workspace_users(integer,text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "41d5213634645a5b9ef3104bfdadcab2",
+      "definer": true,
+      "signature": "announcement_execute_v1(text,uuid,uuid,text)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "41ac8afc2c231512bc854e4b2f024a0d",
+      "definer": true,
+      "signature": "appointment_execute_v1(text,uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c4179c7b275fb91f5269b79d18081623",
+      "definer": true,
+      "signature": "appointment_notification_candidates_v1(date)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "162024b1adbb058e7c8248ef4fd40861",
+      "definer": true,
+      "signature": "appointments_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "ec6a1ae0fc300b2808b6b0904e445075",
+      "definer": true,
+      "signature": "can_access_pdf_upload(text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "673d983fbaa2fd8b807cb61b12721075",
+      "definer": true,
+      "signature": "can_read_retained_contract_object(text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "f40a3272dfc1a440f28562446b66830a",
+      "definer": true,
+      "signature": "change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "1c4318bee4240d4113d86fad7eb15623",
+      "definer": true,
+      "signature": "companies_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "e11f2e72d8cd9bb6382077cd5332dd19",
+      "definer": true,
+      "signature": "company_execute_v1(text,uuid,uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "4daff5c25c9d33caf7120d571914c201",
+      "definer": true,
+      "signature": "complete_appointment_atomic(uuid,text,text,boolean)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "73a455b99b40be6d45a95b3454a28ccd",
+      "definer": true,
+      "signature": "complete_appointment_scoped(uuid,uuid,uuid,text,text,boolean)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "428d6422de86676bcad7a3b3b9a16cd6",
+      "definer": true,
+      "signature": "confirm_financial_data(jsonb,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "0aa431a7c8ed627a3a1e53413d3925a1",
+      "definer": true,
+      "signature": "confirm_mizan_atomic(uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "7e6d75ed28fb5d9a6a8959d52fc03a1d",
+      "definer": true,
+      "signature": "contact_execute_v1(text,uuid,uuid,uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": null,
+      "bodyMd5": "6959808de809fff571eb7933aa9b9760",
+      "definer": false,
+      "signature": "contacts_enforce_max_per_company()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "1c4318bee4240d4113d86fad7eb15623",
+      "definer": true,
+      "signature": "contacts_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "5e800d36169ca9cbc809dc37f4c5d3e4",
+      "definer": true,
+      "signature": "contract_appendices(uuid,uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "fd5fd5a41cb40e4c6910679a15d51f48",
+      "definer": true,
+      "signature": "contract_delete_v1(uuid,uuid,bigint)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "30820dac06a85ba86741bf820c956d7e",
+      "definer": true,
+      "signature": "contract_document_history(uuid,uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "abe379cc29fa54436a7a8165ad6c5170",
+      "definer": true,
+      "signature": "contract_document_version_path(uuid,uuid,uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "f2a33e35327d52a722477b316041dd7f",
+      "definer": true,
+      "signature": "contract_notification_candidates_v1()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "09060c9d5e97bc389e2b5d430ca75300",
+      "definer": true,
+      "signature": "contract_pdf_version_path(uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "9b9a46ef78345032d4d3c9d3666c6cac",
+      "definer": true,
+      "signature": "contract_pdf_versions(uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "eb6f22f0e0beb34dacd1af3ed8df6d20",
+      "definer": true,
+      "signature": "contract_renewal_snapshot(uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "e21e1f69f5776357a3ffe4fb065cbc62",
+      "definer": true,
+      "signature": "contract_write_v1(uuid,uuid,bigint,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "d7bbbebac53af197f7c92ea3c8b14a91",
+      "definer": true,
+      "signature": "contracts_advance_revision()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "f20103250c49a5d47b150bd06e7e19ff",
+      "definer": true,
+      "signature": "contracts_guard_pdf_context()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "1c4318bee4240d4113d86fad7eb15623",
+      "definer": true,
+      "signature": "contracts_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "3b13e6f37524e3f746b70a6d0c4d08f0",
+      "definer": true,
+      "signature": "create_contract_renewal_task(uuid,uuid,uuid,uuid,bigint,uuid,date,text)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "7d135cf3f59a4768da6bf0526d71715c",
+      "definer": false,
+      "signature": "critical_dates_preserve_identity()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "def7d6de13a7d344195f42963dbf936e",
+      "definer": false,
+      "signature": "critical_dates_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "87cfb373686860fb0725190a96467bb7",
+      "definer": true,
+      "signature": "current_user_active_tenant()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "6978db146e419cd1db05d91e998f0f06",
+      "definer": true,
+      "signature": "current_user_has_company_scope(uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "b0abcb16dffc761d4f760bb29f4dcb1f",
+      "definer": true,
+      "signature": "current_user_role()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "b1251210fbb050a70b471948d009c5a1",
+      "definer": true,
+      "signature": "current_user_verified_tenant()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "316b7c42b6792a49bac6a4b32c0505cd",
+      "definer": true,
+      "signature": "current_workspace_context()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "06e4de1c8c32f710df15f70ed7ca9c0e",
+      "definer": true,
+      "signature": "current_workspace_modules_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "27536d8699bb45aaa535700e1e5063fb",
+      "definer": true,
+      "signature": "custom_access_token_hook(jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "46d2f69a7c5c07340109946ec1b220ef",
+      "definer": true,
+      "signature": "customer_notification_modules_v1(uuid[],text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c8c1776dd508c6ef4d7c22eeba7ab34e",
+      "definer": true,
+      "signature": "daily_dashboard(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c4997f5f7d887d9a7f4b0d935f43e7f6",
+      "definer": true,
+      "signature": "dashboard_activity(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "2a228ba2b16950b59d6d8cf24fd2cdc2",
+      "definer": true,
+      "signature": "demo_requests_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "4ddde922d1afd6f8668c9a6a37c92c54",
+      "definer": true,
+      "signature": "derive_financial_summaries_from_mizan(uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "74361acfe602f739eb18df8e879b8086",
+      "definer": true,
+      "signature": "document_ack_cleanup_v1(uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "fea3b6e723008d2b07a81a7b04a2ef23",
+      "definer": true,
+      "signature": "document_cancel_upload_v1(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "890a4692f554f69fd133050ae7a7b670",
+      "definer": true,
+      "signature": "document_cleanup_delete_allowed_v1(text,text)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "407947a9a42bad5d129280a005b95004",
+      "definer": true,
+      "signature": "document_cleanup_path_guard_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "7962537d2d608ac46261b14d5ff5288c",
+      "definer": true,
+      "signature": "document_cleanup_target_v1(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "34ce856a09c1637f97b47ed3486f5f13",
+      "definer": true,
+      "signature": "document_delete_v1(uuid,uuid,uuid,bigint)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "1e75c22f0f5f0f301dd2819c2a25dcc0",
+      "definer": true,
+      "signature": "document_edit_metadata_v1(uuid,uuid,uuid,bigint,text,text)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "168993e455b9aae9be009197c602b215",
+      "definer": true,
+      "signature": "document_enqueue_cleanup_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "34857632aefb21d4f0591699338c206a",
+      "definer": true,
+      "signature": "document_finalize_upload_v1(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "0415367029bd558e98057259dc81ed44",
+      "definer": true,
+      "signature": "document_mark_upload_published_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "43d137725aeb828b66061e67a1c7aaa8",
+      "definer": true,
+      "signature": "document_notification_candidates_v1(date)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "8f44cbe2d7776b6bacfbd7b8998527e9",
+      "definer": true,
+      "signature": "document_notification_state_v1(uuid[],uuid[])",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "59a76ec07ae9c3002e6e61cb4bd3e3f5",
+      "definer": true,
+      "signature": "document_object_in_workspace(text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "78d35af32fb4d3c3eef80447d89502f1",
+      "definer": true,
+      "signature": "document_object_module_read_v1(text,text)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "eb7e322d933a6ee399168bf70d060055",
+      "definer": true,
+      "signature": "document_pending_cleanup_v1(uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "51c1a75501a84654ae7e27d8fd422c0a",
+      "definer": true,
+      "signature": "document_pending_uploads_v1(uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "314521450077dad1f0b368b123ad510d",
+      "definer": true,
+      "signature": "document_prepare_upload_v1(uuid,uuid,uuid,text,text,date,bigint)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "80b5f4a7b321050ab08581618085260f",
+      "definer": true,
+      "signature": "document_storage_insert_allowed_v1(text,text,text)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "b819179a119b5bb3249efcb10cf2ff0d",
+      "definer": true,
+      "signature": "document_storage_retired_path_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "4e39da10e01fca3b2fd86ae1bb2b94e3",
+      "definer": true,
+      "signature": "document_upload_object_guard_v1(text,text,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "d2728900473f889d12e9fd1707cc9123",
+      "definer": true,
+      "signature": "document_upload_recovery_target_v1(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "514e543974b7aa685b4621d2fba84f3e",
+      "definer": true,
+      "signature": "documents_guard_version()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "1d4f9db109cd54022270bfa9cb78b172",
+      "definer": true,
+      "signature": "documents_record_version()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": null,
+      "bodyMd5": "301a884953d37769916294bb60562e05",
+      "definer": false,
+      "signature": "documents_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "34431e41043f6777c9441dd229ccea72",
+      "definer": true,
+      "signature": "finish_contract_pdf_upload(uuid,uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "4d46e6663b1557529641303470c9ba62",
+      "definer": true,
+      "signature": "get_contract_pdf_upload(uuid,uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "d37813dda82b8bb3364d26ae23e649fe",
+      "definer": true,
+      "signature": "guard_contact_write_fields()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "40abdd2836d2f695d56962ce7ed7eefc",
+      "definer": true,
+      "signature": "guard_contract_document_role()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e1800241ef49ad6efc54aca619e72792",
+      "definer": true,
+      "signature": "guard_contract_upload_context()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c8f13b790ef83dd6cc0947b81deb65d0",
+      "definer": true,
+      "signature": "guard_note_write_fields()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "21ae4b2fc87944388109b7d2faa646af",
+      "definer": true,
+      "signature": "guard_reserved_pdf_upload()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "42910ace585523f49904c610fcbeecef",
+      "definer": true,
+      "signature": "handle_new_user()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "0eb2b45e1d3903f0214848244575dab4",
+      "definer": true,
+      "signature": "invitation_registration_allowed(uuid,text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "ec797b1f1f845c6a77a884c1a415348c",
+      "definer": true,
+      "signature": "is_active_tenant_member(uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "b9b150516850189014f0bbf3e468a968",
+      "definer": true,
+      "signature": "is_platform_admin()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "6b1fb03f8de9448d4cebe6cbfb36454b",
+      "definer": true,
+      "signature": "is_reserved_pdf_upload(text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "4ca0fcd0e81b62c4d532a2a75e0fa1f1",
+      "definer": true,
+      "signature": "is_retained_contract_object(text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "cf1e30c6a2997bb25b376025e9be4890",
+      "definer": true,
+      "signature": "legacy_staffing_write_barrier_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c29c91b297ca992f866299af4b88dd53",
+      "definer": true,
+      "signature": "list_workspace_invitations(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "c735f9d6307267b7c10cfabce5dbca29",
+      "definer": true,
+      "signature": "manage_workspace_invitation(uuid,uuid,uuid,text,text,text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "7a9ebe92cbfc3ebf316210023b3beedb",
+      "definer": true,
+      "signature": "membership_guard_active_tasks()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "99042f7fe7230775e972289ad716d8f3",
+      "definer": true,
+      "signature": "my_workspace_choices()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "387b2420e7eae6b3fa90eee1322fc363",
+      "definer": true,
+      "signature": "note_execute_v1(text,uuid,uuid,uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "1c4318bee4240d4113d86fad7eb15623",
+      "definer": true,
+      "signature": "notes_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "3db2bb2ef3eb4e1e9a9a90b0b69f54f3",
+      "definer": true,
+      "signature": "notification_company_names_v1(uuid[],uuid[],text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "695382dff0d67bf94f356bb5d92a885c",
+      "definer": false,
+      "signature": "operational_row_is_private(jsonb)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "56d52895937dfb92c9b8d7e9ecc4b156",
+      "definer": false,
+      "signature": "operational_text_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e5c572e4b28c87feac9d1395cae18c57",
+      "definer": false,
+      "signature": "operational_text_is_private(text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "1bdc0fbeeaf545d97203349430423892",
+      "definer": true,
+      "signature": "ops_assignment_shift_snapshot()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e84c51863475190e516d9e3bef09cab9",
+      "definer": false,
+      "signature": "ops_attendance_week(uuid,date)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "ae15c7608752379044fb2916636007bf",
+      "definer": true,
+      "signature": "ops_board(uuid,date)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "fa843950f0fd78a37def02906c00772f",
+      "definer": true,
+      "signature": "ops_comment_context(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "5a5d7b46789f494d53b02ce5d3c5d4a5",
+      "definer": true,
+      "signature": "ops_comment_inbox_page(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "cb3093be3822140028b30366d73908c4",
+      "definer": true,
+      "signature": "ops_comment_inbox(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "688d25fbe3655600f3fea48bc73cebdb",
+      "definer": true,
+      "signature": "ops_comment_list(uuid,uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "d67aed71e56f82d10de94cae2b594003",
+      "definer": true,
+      "signature": "ops_comment_people(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "9d311f6ce7078619ff92f0a2d0cce19a",
+      "definer": true,
+      "signature": "ops_comment_read(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "dba20f574beba6a07f1b4540096ab252",
+      "definer": true,
+      "signature": "ops_comment_resolve(uuid,uuid,uuid,uuid,text,uuid,uuid[])",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e6344412f1b5e9db180ae0bc5cf8c96e",
+      "definer": true,
+      "signature": "ops_comment_send(uuid,uuid,uuid,uuid,text,uuid,uuid[])",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "fc8cbb93f71937004b8502f6e1415fa3",
+      "definer": true,
+      "signature": "ops_create_request_batch(uuid,uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "c30a98ff74246943842dd23c7ebc8804",
+      "definer": true,
+      "signature": "ops_create_timed_requests(uuid,uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "924f54f10230490abfd0bc9aaa3f9bda",
+      "definer": false,
+      "signature": "ops_directory(text,uuid,text,text,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "95db6c8ebb8ea0ef3e7dd7eb4398593d",
+      "definer": true,
+      "signature": "ops_execute_scoped(uuid,uuid,uuid,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "5ade748e64336ac791a8081d3ece9c8b",
+      "definer": true,
+      "signature": "ops_fixed_roster_assignment_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "451dceb6be846678a851d30b8c1ccd21",
+      "definer": true,
+      "signature": "ops_fixed_roster_history(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "19c6a909145aad9bf34633c5e1e53c8b",
+      "definer": true,
+      "signature": "ops_fixed_roster_idp_create(uuid,uuid,uuid,uuid,integer,date,date,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "5380fd5eda3c27d513b6cddedb8f2267",
+      "definer": true,
+      "signature": "ops_fixed_roster_list(uuid,uuid,uuid,uuid,date,integer,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "7efa784e0e716d64349bd35d4936ef25",
+      "definer": true,
+      "signature": "ops_fixed_roster_period_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "832456f5750b928ef52a06a0a1630de2",
+      "definer": true,
+      "signature": "ops_fixed_roster_save(uuid,uuid,uuid,uuid,integer,uuid,uuid,uuid,text,text,date,date,text,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "135edeb322039c7b7748ce4167a9b899",
+      "definer": true,
+      "signature": "ops_fixed_roster_source_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "dda0f604714b68136f67bfed1b3ddd9b",
+      "definer": true,
+      "signature": "ops_guard_approved_attendance()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "881a124353911e32059148536c18cf91",
+      "definer": true,
+      "signature": "ops_guard_confirmed_start()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c8f20906a935cb50d19508c35d6673f5",
+      "definer": true,
+      "signature": "ops_idp_list(uuid,date)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "cdcb05748e6ad5569f4080f1558978ea",
+      "definer": true,
+      "signature": "ops_idp_period_context_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "b3382e051f98d2f3a6e241bb7ced2a47",
+      "definer": true,
+      "signature": "ops_idp_period_create(uuid,uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "0081c4720b4db755911eb51c74f5e01d",
+      "definer": true,
+      "signature": "ops_idp_period_history(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "9402ac6897958cf71c5856ba12fe92d7",
+      "definer": true,
+      "signature": "ops_idp_period_manage(uuid,uuid,uuid,uuid,integer,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c47b5a49fff74ac923c0f950c52fde03",
+      "definer": true,
+      "signature": "ops_idp_period_read(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "3e554d419e731deb15cdca4906628bad",
+      "definer": true,
+      "signature": "ops_idp_read(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "74fdf042adea2eb03475ea6f994e3d71",
+      "definer": true,
+      "signature": "ops_idp_request_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "d289b361148bf385fa26b7e96fa8c6ce",
+      "definer": true,
+      "signature": "ops_idp_save(uuid,uuid,uuid,uuid,integer,text,date,date)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "f0658e9b7a1d567bbd5d4b3ea1595df9",
+      "definer": true,
+      "signature": "ops_import_locations(uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c33951e468efe6de997374651d88ae73",
+      "definer": true,
+      "signature": "ops_mutate(uuid,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "10b83331af6693408fe1cd9d73c9eb74",
+      "definer": true,
+      "signature": "ops_reconcile_commands(uuid,uuid,uuid[],boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "a35b893ea485cb1a31e286edd9012d1f",
+      "definer": true,
+      "signature": "ops_record_attendance(uuid,uuid,uuid,uuid,integer,text)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "5db4be27949639e17c844cee240cdd2c",
+      "definer": true,
+      "signature": "ops_record_replacement_outreach(uuid,uuid,uuid,uuid,uuid,integer,text,text)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "c87eec1ccf52f8eef508f5783b25b271",
+      "definer": true,
+      "signature": "ops_replace_assignment_before_start(uuid,uuid,uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "6cab0de87bbdc47b59e3d1a1b39cbc10",
+      "definer": true,
+      "signature": "ops_replace_assignment(uuid,uuid,uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "74023dd98e62fc6ccc77ae3b7803a8d7",
+      "definer": true,
+      "signature": "ops_replacement_outreach_history(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "ab8f7bc5a33fe236138d6f9289e18148",
+      "definer": true,
+      "signature": "ops_replacement_outreach_latest(uuid,uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "5962df32d27553b2367fe15642683d20",
+      "definer": true,
+      "signature": "ops_request_mode_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "93570f20a60742a115f886fe0bc78059",
+      "definer": true,
+      "signature": "ops_request_shift_history_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "e840c180fe0f663d2af2120b074e2c39",
+      "definer": true,
+      "signature": "ops_resize_request(uuid,uuid,uuid,uuid,integer,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "e56e553598425c890636c01d69ae300e",
+      "definer": true,
+      "signature": "ops_schedule_generate(uuid,uuid,uuid,uuid,integer,date,date)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e4de8d518ebd9bbc35f9c2a24dfd4d0f",
+      "definer": true,
+      "signature": "ops_schedule_list(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "f9449955fffa0927f0443ca10217a1c4",
+      "definer": true,
+      "signature": "ops_schedule_preview(uuid,uuid,uuid,integer,date,date)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "437d99e1c28d5daf2ab0873a6c6aeed3",
+      "definer": true,
+      "signature": "ops_schedule_save(uuid,uuid,uuid,uuid,integer,jsonb,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "7f889b0c26df4cabe716f537d5401098",
+      "definer": true,
+      "signature": "ops_schedule_scope(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "77e0bde138547cbf222e30b09a99d4a9",
+      "definer": false,
+      "signature": "ops_schedule_validate(jsonb)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "81e46f0b3f07aab1677789cb01497e30",
+      "definer": true,
+      "signature": "ops_schedule_window(uuid,uuid,integer,date,date)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "c1b72f720aab9109a27b4b12e2943b94",
+      "definer": true,
+      "signature": "ops_set_directory_active(uuid,uuid,uuid,text,uuid,integer,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "ad11011f42794c4b6fbe1e63606f108f",
+      "definer": false,
+      "signature": "ops_shift_range(date,text,text,boolean)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a4d6a4a88bcd4a71c84dee980ae6477e",
+      "definer": true,
+      "signature": "ops_start_board_filtered(uuid,uuid,date,integer,text,boolean,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "82b82576fe27ea2815c7721de18fbbaa",
+      "definer": true,
+      "signature": "ops_start_board(uuid,uuid,date,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "276bd6226257f7e07881fe2e69693889",
+      "definer": true,
+      "signature": "ops_start_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "a95d3a4ddea419ae10cdb5bf0159fcda",
+      "definer": true,
+      "signature": "ops_update_location(uuid,uuid,uuid,uuid,uuid,integer,text,text)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a620d407630c6dc9489b975f0645010d",
+      "definer": false,
+      "signature": "ops_week(uuid,date)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "aaedd6443cfed060a52e83890925982c",
+      "definer": true,
+      "signature": "ops_work_record_execute(uuid,uuid,uuid,uuid,integer,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "76e3300368abb8682bca8c9cc5156d38",
+      "definer": true,
+      "signature": "ops_work_record_list(uuid,uuid,uuid,date)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "dfd4c1f2a258fdeff391fa044854be06",
+      "definer": true,
+      "signature": "ops_work_record_read(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e4358f8a216f0009e2616adde3b3f593",
+      "definer": true,
+      "signature": "pdf_upload_payload(uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "5d01e8694acc5e5b801c53eb6aeadc28",
+      "definer": true,
+      "signature": "prepare_contract_document_upload(uuid,uuid,uuid,uuid,uuid,bigint,text,integer,text,boolean,text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "3b067afe8136a9f56ffadda8606e979c",
+      "definer": true,
+      "signature": "prepare_contract_pdf_upload(uuid,uuid,uuid,uuid,uuid,bigint,text,integer,text,boolean)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "5526988f04bd3e10d5b9ebb1088e2889",
+      "definer": true,
+      "signature": "prepare_invited_profile(uuid,text)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "f9899cb8d9721bd208498cdaf7ec0aac",
+      "definer": true,
+      "signature": "preview_task_transfer(uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "587526517a1fe7516f0761451c3f30c7",
+      "definer": true,
+      "signature": "preview_workspace_modules_v1(uuid,uuid,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "ab3f4f09b3806e8fe6b6e68708e1f661",
+      "definer": true,
+      "signature": "profile_guard_active_tasks()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "1c4318bee4240d4113d86fad7eb15623",
+      "definer": true,
+      "signature": "profiles_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "330e82cec5e2b7ee9c00598d86b87ae3",
+      "definer": true,
+      "signature": "record_company_document_event()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "065444f53cd4d2544a494fda663d4fd6",
+      "definer": false,
+      "signature": "reporting_actual_link_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a1a8dd0af3983df05dc7dad893cd4e25",
+      "definer": true,
+      "signature": "reporting_assert_scope(uuid,uuid,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "d6dbb513572cebf45df0d0a5cb900e25",
+      "definer": true,
+      "signature": "reporting_import_finish(uuid,uuid,uuid,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "b5bafee8f1cabcaea36c7dc9013a2cc3",
+      "definer": true,
+      "signature": "reporting_import_list(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "63e154c2bfd5ea88132497ae7928bb2f",
+      "definer": true,
+      "signature": "reporting_import_people(uuid,uuid,uuid,text,text[],text)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "c3460162dc9e2e508606a876f825327f",
+      "definer": true,
+      "signature": "reporting_import_prepare(uuid,uuid,uuid,uuid,text,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "401d56a262a86bd97e4160427f2e8221",
+      "definer": true,
+      "signature": "reporting_import_read(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a573cee990f6128ee7515a6924bbafbd",
+      "definer": true,
+      "signature": "reporting_import_validate(uuid,uuid,date,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "6097d4c0c3654b1917ef067182876a52",
+      "definer": false,
+      "signature": "reporting_json_has_private_person_code(jsonb)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "72b7c0c5a13e073638908f0042375320",
+      "definer": true,
+      "signature": "reporting_monthly_report(uuid,uuid,uuid,text,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "12d8dcf1611e8ed5dc92156d5b8da2d4",
+      "definer": false,
+      "signature": "reporting_period_pending_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "2e02d3008028a6785daf53fdbc5fbf73",
+      "definer": false,
+      "signature": "reporting_person_code_guard()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "5738ff44187ab0266df21cbfc00e3ef4",
+      "definer": false,
+      "signature": "reporting_person_code_is_private(text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "7807047a25a56c25c7c5e99535170cda",
+      "definer": true,
+      "signature": "reporting_person_code_set(uuid,uuid,uuid,integer,text,text,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a9f27e85b8d74aa7666191587ffbed21",
+      "definer": true,
+      "signature": "reporting_project_detail(uuid,uuid,uuid,integer,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "643e4018fd178230d1a5d39808c3b919",
+      "definer": true,
+      "signature": "reporting_project_execute(uuid,uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "4aff7d656dee25a3641c182a50839b06",
+      "definer": true,
+      "signature": "reporting_project_list(uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "fbdc141f07f9283dfa7092fa7150513c",
+      "definer": true,
+      "signature": "reporting_source_access(text,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "178a49ac88642efe96adfede868e912d",
+      "definer": true,
+      "signature": "reporting_source_file(uuid,uuid,uuid,text,text,integer,text)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e6589d1d556329a261567199877c524a",
+      "definer": true,
+      "signature": "reporting_work_details(uuid,uuid,uuid,text,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "99be20677b456ea8d3be47bdd44fb369",
+      "definer": true,
+      "signature": "rls_auto_enable()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": true,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "a64b65277d68dd927a539d24c7c84c3e",
+      "definer": true,
+      "signature": "sector_templates_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "a4a70336b5a22a1533b5cc619e50f7e5",
+      "definer": true,
+      "signature": "select_workspace(uuid,uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "162024b1adbb058e7c8248ef4fd40861",
+      "definer": true,
+      "signature": "staffing_demands_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "1dd1d52b90b10fd9f5e1b06407f91bff",
+      "definer": true,
+      "signature": "talent_assert_scope(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "05c5ff2649d2fabd1c32a8fa34bfea76",
+      "definer": true,
+      "signature": "talent_attachment_access(uuid,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "d649735154aa360513564831b56fd677",
+      "definer": true,
+      "signature": "talent_attachment_can_cleanup(uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "128b5f4a928287caf1495e697add000d",
+      "definer": true,
+      "signature": "talent_attachment_cancel(uuid,uuid,uuid,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "27338f3ff01b0f1264efdd0759ffea1d",
+      "definer": true,
+      "signature": "talent_attachment_cleanup_read_v1(uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "dae907c49a972b5e44a62edf32d0b54e",
+      "definer": true,
+      "signature": "talent_attachment_finish(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "b2f4451809f68ae1b259ef473ff33d77",
+      "definer": true,
+      "signature": "talent_attachment_list(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "543d57ebce361a328031f7dcae5117ee",
+      "definer": true,
+      "signature": "talent_attachment_pending(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a7440b484deb59b452fbeb0fb45b6d41",
+      "definer": true,
+      "signature": "talent_attachment_reserve(uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "8b90dbcb02d96a9122caff051055050a",
+      "definer": true,
+      "signature": "talent_availability_read(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "f29b1de787ee76b0e2ad8b804163431b",
+      "definer": true,
+      "signature": "talent_availability_save(uuid,uuid,uuid,uuid,integer,text,date,date)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "8a27ae0627045d90db183151b6042dd8",
+      "definer": true,
+      "signature": "talent_bump_pool_version()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "96db81a15cf441363e80720adb1a36da",
+      "definer": true,
+      "signature": "talent_call_list_archive(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "9e34d7e60ec9b4a4481586597531e736",
+      "definer": true,
+      "signature": "talent_call_list_create(uuid,uuid,uuid,text,uuid[])",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "457e0ffadae8119136d6dbbff2331764",
+      "definer": true,
+      "signature": "talent_call_list_edit(uuid,uuid,uuid,uuid,integer,text,text,uuid[])",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "c0336cad68ca2eac9db757ab0fea9d37",
+      "definer": true,
+      "signature": "talent_call_list_people_base(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "cd0235360ebc50a7d0106a792e0191a1",
+      "definer": true,
+      "signature": "talent_call_list_people(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "4b9a817407bf07d2fa81676e9f36ff77",
+      "definer": true,
+      "signature": "talent_call_lists_read(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "4e8ad6aa77b6ebe1e02d9dde616d79f5",
+      "definer": true,
+      "signature": "talent_canonical_person(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "ff5951d4ff9c41a7fcec523abc5081be",
+      "definer": true,
+      "signature": "talent_compare_snapshot(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "statement_timeout=10s"
+      ],
+      "bodyMd5": "d7d11f1c7e99dcfdc93a864911b2ecfa",
+      "definer": true,
+      "signature": "talent_contact_summaries(uuid,uuid,uuid[])",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "3b3de0854f1d61c7d423209da26f6baa",
+      "definer": true,
+      "signature": "talent_conversation_list_base(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "b66de30da2cad209c4bc6f2814705ce6",
+      "definer": true,
+      "signature": "talent_conversation_list(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "2ffe9bbd4cbf972a64600305feefe6a4",
+      "definer": true,
+      "signature": "talent_conversation_save(uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e9655e9b468998c67816642b400294cf",
+      "definer": false,
+      "signature": "talent_fold(text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "af8bb7fe6bb9fc2e537897393bc8936c",
+      "definer": true,
+      "signature": "talent_guard_closed_person()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "fbac34332abd409da8eb59f553067a31",
+      "definer": true,
+      "signature": "talent_guard_person_child()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "a7d0966ee5a9aeafbdf446becc6bbaa2",
+      "definer": true,
+      "signature": "talent_import_apply_row(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "f32d05ad02691f649f72153748c1a17c",
+      "definer": true,
+      "signature": "talent_import_cancel(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "3921ef5a21cf876758384ed58d518779",
+      "definer": true,
+      "signature": "talent_import_change_review(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "17ba5aef3c9115dfc31ce0d0a55b75d0",
+      "definer": true,
+      "signature": "talent_import_close(uuid,uuid,uuid,text,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "609897acc2c7d49571d2862893d12768",
+      "definer": false,
+      "signature": "talent_import_contact_key(text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "523562974817ae116dcd0924c0b9f3ae",
+      "definer": false,
+      "signature": "talent_import_contacts(text,text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "d84556a30cf2183beb5830f0fc91c15b",
+      "definer": false,
+      "signature": "talent_import_fence(uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "b300000f7d78cdc4f9a4b4dc6bd64041",
+      "definer": true,
+      "signature": "talent_import_history(uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "dd2f54ff072b3cddd6b54d01b054cfb2",
+      "definer": false,
+      "signature": "talent_import_list(text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "3021e395a29699e42c4c7434784056e6",
+      "definer": false,
+      "signature": "talent_import_name_key(text)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "b6c07e41605cd832b59764c031c49bb7",
+      "definer": false,
+      "signature": "talent_import_person_fields(talent_people)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "2438b0658314e072a86ba0bc941a4793",
+      "definer": true,
+      "signature": "talent_import_prepare_v1(uuid,uuid,uuid,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "c9a411261363fe86c2b0723c8d81f1b5",
+      "definer": true,
+      "signature": "talent_import_prepare(uuid,uuid,uuid,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "524f457b28b7963b1e0e8c620a30747f",
+      "definer": true,
+      "signature": "talent_import_recover(uuid,uuid,uuid,text,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "f712f20d81ccf35af7b3e8f796ef4e1f",
+      "definer": true,
+      "signature": "talent_import_status(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "ca96c7b3d58e7c1c86a249ea314358f0",
+      "definer": true,
+      "signature": "talent_import_undo_update(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "64529b42e8cdecd58db8bd1d32ab83e3",
+      "definer": false,
+      "signature": "talent_import_validate_row(jsonb)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "9c26da724e815d908472d26d1ac2e427",
+      "definer": true,
+      "signature": "talent_import_write_fence()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "dfe55748e20979f123e98d154d9110be",
+      "definer": true,
+      "signature": "talent_latest_general_contact(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "20a421116dcce555544ffcf5bba11622",
+      "definer": false,
+      "signature": "talent_match_contact_keys(uuid,jsonb)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "statement_timeout=10s"
+      ],
+      "bodyMd5": "9fa5f92450914e73179210e3f6b6c5a7",
+      "definer": true,
+      "signature": "talent_match_source(uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "da5f6151a439a23b87885aa0201f862f",
+      "definer": true,
+      "signature": "talent_merge_apply(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,boolean,boolean)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "a9fa5033448c96698e4bd8b030e71ad6",
+      "definer": true,
+      "signature": "talent_merge_resolve(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "55949edbebeca73dd9024d0a08f6e829",
+      "definer": true,
+      "signature": "talent_merge_review(uuid,uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "5b98cdb2b85babf259a4f6ee68813fd4",
+      "definer": true,
+      "signature": "talent_merge_snapshot(uuid,uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "1b464f46adef69a8e1c79b311c8f25b9",
+      "definer": true,
+      "signature": "talent_merged_availability(uuid,uuid,uuid,integer)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "statement_timeout=10s"
+      ],
+      "bodyMd5": "4b8805b4c6de19adfcefad88b9ea6ac2",
+      "definer": true,
+      "signature": "talent_people_page(uuid,uuid,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "03d4187e394aa92117d4e49c322f254f",
+      "definer": true,
+      "signature": "talent_person_detail(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "aeedd6143064fea7555271532acb9d4a",
+      "definer": true,
+      "signature": "talent_person_family(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "83f127c6020fe12fde44f332baa8f400",
+      "definer": true,
+      "signature": "talent_person_json(talent_people)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "8bead53a165c50b1b0664711ae630681",
+      "definer": true,
+      "signature": "talent_prepare_worker(uuid,uuid,uuid,uuid,integer,text,text)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "b55eb4afef311d4506090fdd3915ce22",
+      "definer": true,
+      "signature": "talent_resolve_person_command(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=3s"
+      ],
+      "bodyMd5": "a98441c377e5a0f40300c3be6de047d3",
+      "definer": true,
+      "signature": "talent_save_person(uuid,uuid,uuid,uuid,integer,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "cc763d0d1df8193f2de2c0e30997961e",
+      "definer": true,
+      "signature": "talent_shared_view_archive(uuid,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "1beff02b31d6821275b9ee3881e29950",
+      "definer": true,
+      "signature": "talent_shared_view_create(uuid,uuid,uuid,text,jsonb)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a5c6aaed71bfc80168d5504e06bc06e8",
+      "definer": true,
+      "signature": "talent_shared_views_read(uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "9ea51a6a4906cffd57e9e47de803768f",
+      "definer": true,
+      "signature": "talent_sync_worker()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a28123392dcae3c6888b86b32ed810a9",
+      "definer": true,
+      "signature": "talent_work_copy_page(uuid,uuid,uuid,text)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "d8fbf31286895f49c915e52a4f072d22",
+      "definer": false,
+      "signature": "task_company_choices_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "ac87a024e426ca0150ef092c61e7ef06",
+      "definer": true,
+      "signature": "task_execute_v1(text,uuid,bigint,jsonb,uuid,uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "2a36b4185782bfb66404f05cefc669fe",
+      "definer": true,
+      "signature": "task_notification_candidates_v1()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "149e07a6102a8c5d16aabcfd6c702ab5",
+      "definer": true,
+      "signature": "task_notification_modules_v1(uuid[])",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a4b7cde295c73d1b6f85dc11733bc1e2",
+      "definer": true,
+      "signature": "task_transfer_directory(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "57182c7bfba346b75e767588c1a4e538",
+      "definer": false,
+      "signature": "tasks_advance_revision()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a42bcbf6fe3174e6bc3645a05fcea127",
+      "definer": true,
+      "signature": "tasks_guard_active_assignee()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "876d6fc7371615d3780efc09cddbee2d",
+      "definer": true,
+      "signature": "tasks_guard_renewal_context()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "283405161e999429a61c1dd01e6447e9",
+      "definer": true,
+      "signature": "tasks_record_assignment()",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "162024b1adbb058e7c8248ef4fd40861",
+      "definer": true,
+      "signature": "tasks_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "00ff5878750f20b0e2fd7fa045ae9aef",
+      "definer": true,
+      "signature": "tenant_module_bootstrap_v1(uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a18621d95296ef70bbc477ce908a95d7",
+      "definer": true,
+      "signature": "tenant_module_key_guard_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "b64fc23e2525db56849afa61d09e673b",
+      "definer": true,
+      "signature": "tenant_module_on_create_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "ad8d20fe1dc0483d52221a26b02954b6",
+      "definer": true,
+      "signature": "transfer_tasks_scoped(uuid,uuid,uuid,uuid,uuid,jsonb)",
+      "serviceExecute": true,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "017cb90e138292061bd01bd5a5ae18dc",
+      "definer": true,
+      "signature": "trg_appointments_validate_linked_fks()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "b0c709c99696cb1888d584c4f2f26b21",
+      "definer": true,
+      "signature": "trg_tasks_validate_linked_fks()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "cb6d9956089a1ba8fc0f6208ff04449a",
+      "definer": true,
+      "signature": "validate_same_company_appointment(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "e96aea66a276ce72cf2362995c490bfe",
+      "definer": true,
+      "signature": "validate_same_company_contract(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=public"
+      ],
+      "bodyMd5": "162024b1adbb058e7c8248ef4fd40861",
+      "definer": true,
+      "signature": "workforce_summary_set_updated_at()",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": true,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "3c8fd65bbb9c07116150c2d9a417ada1",
+      "definer": false,
+      "signature": "workspace_module_catalog_v1()",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "ee2f0755976b30da71d780be6504813c",
+      "definer": true,
+      "signature": "workspace_module_enabled_v1(text)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "a5fc86a99bcc3c72b3375f5dd269c6ff",
+      "definer": true,
+      "signature": "workspace_module_snapshot_v1(uuid)",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "b6cdef5ef03704c903cbf7e63332677c",
+      "definer": true,
+      "signature": "workspace_require_module_read_v1(uuid,text[])",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "9ad76b26dcf577844260a4db7cff4d70",
+      "definer": true,
+      "signature": "workspace_require_module_write_v1(uuid,text[])",
+      "serviceExecute": false,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": false
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "bodyMd5": "e4e97674766d84278c55a420136fdff3",
+      "definer": true,
+      "signature": "workspace_setup(uuid,uuid)",
+      "serviceExecute": true,
+      "writeTextSignal": false,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": false,
+      "authenticatedExecute": true
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\"",
+        "lock_timeout=5s"
+      ],
+      "bodyMd5": "238531715bfc6906525fbb77f223f656",
+      "definer": true,
+      "signature": "write_company_contact(uuid,uuid,text,text,text,text,boolean,text)",
+      "serviceExecute": false,
+      "writeTextSignal": true,
+      "anonymousExecute": false,
+      "dynamicSqlSignal": false,
+      "directGuardSignal": true,
+      "authenticatedExecute": true
+    }
+  ],
+  "foreignKeys": [
+    {
+      "name": "announcements_created_by_fkey",
+      "table": "announcements",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "appointment_completion_receipts_appointment_id_fkey",
+      "table": "appointment_completion_receipts",
+      "target": "appointments",
+      "definition": "FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "appointments_company_tenant_fkey",
+      "table": "appointments",
+      "target": "companies",
+      "definition": "FOREIGN KEY (tenant_id, company_id) REFERENCES companies(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "appointments_contract_company_tenant_fkey",
+      "table": "appointments",
+      "target": "contracts",
+      "definition": "FOREIGN KEY (contract_id, company_id, tenant_id) REFERENCES contracts(id, company_id, tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "appointments_created_by_fkey",
+      "table": "appointments",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "appointments_tenant_id_fkey",
+      "table": "appointments",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "companies_created_by_fkey",
+      "table": "companies",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "companies_tenant_id_fkey",
+      "table": "companies",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contacts_company_id_fkey",
+      "table": "contacts",
+      "target": "companies",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contacts_created_by_fkey",
+      "table": "contacts",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contract_document_versions_contract_id_fkey",
+      "table": "contract_document_versions",
+      "target": "contracts",
+      "definition": "FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contract_document_versions_document_id_fkey",
+      "table": "contract_document_versions",
+      "target": "documents",
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contract_document_versions_object_id_fkey",
+      "table": "contract_document_versions",
+      "target": "storage.objects",
+      "definition": "FOREIGN KEY (object_id) REFERENCES storage.objects(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contract_expiry_emails_sent_contract_id_fkey",
+      "table": "contract_expiry_emails_sent",
+      "target": "contracts",
+      "definition": "FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "contract_expiry_emails_sent_recipient_profile_id_fkey",
+      "table": "contract_expiry_emails_sent",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (recipient_profile_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "contract_pdf_upload_commands_contract_id_fkey",
+      "table": "contract_pdf_upload_commands",
+      "target": "contracts",
+      "definition": "FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contract_pdf_upload_commands_document_id_fkey",
+      "table": "contract_pdf_upload_commands",
+      "target": "documents",
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contract_pdf_upload_commands_version_id_fkey",
+      "table": "contract_pdf_upload_commands",
+      "target": "contract_document_versions",
+      "definition": "FOREIGN KEY (version_id) REFERENCES contract_document_versions(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contract_renewal_tasks_contract_id_fkey",
+      "table": "contract_renewal_tasks",
+      "target": "contracts",
+      "definition": "FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contract_renewal_tasks_task_id_fkey",
+      "table": "contract_renewal_tasks",
+      "target": "tasks",
+      "definition": "FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contracts_company_tenant_fkey",
+      "table": "contracts",
+      "target": "companies",
+      "definition": "FOREIGN KEY (tenant_id, company_id) REFERENCES companies(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "contracts_created_by_fkey",
+      "table": "contracts",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "contracts_tenant_id_fkey",
+      "table": "contracts",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "critical_dates_created_by_fkey",
+      "table": "critical_dates",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "critical_dates_tenant_id_fkey",
+      "table": "critical_dates",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "documents_company_id_fkey",
+      "table": "documents",
+      "target": "companies",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "documents_contract_id_fkey",
+      "table": "documents",
+      "target": "contracts",
+      "definition": "FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "documents_created_by_fkey",
+      "table": "documents",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "documents_tenant_id_fkey",
+      "table": "documents",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "financial_summaries_company_id_fkey",
+      "table": "financial_summaries",
+      "target": "companies",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "financial_summaries_confirmed_by_fkey",
+      "table": "financial_summaries",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (confirmed_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "financial_summaries_created_by_fkey",
+      "table": "financial_summaries",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "financial_summaries_tenant_id_fkey",
+      "table": "financial_summaries",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "mizan_upload_rows_matched_company_id_fkey",
+      "table": "mizan_upload_rows",
+      "target": "companies",
+      "definition": "FOREIGN KEY (matched_company_id) REFERENCES companies(id)"
+    },
+    {
+      "name": "mizan_upload_rows_upload_id_fkey",
+      "table": "mizan_upload_rows",
+      "target": "mizan_uploads",
+      "definition": "FOREIGN KEY (upload_id) REFERENCES mizan_uploads(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "mizan_uploads_tenant_id_fkey",
+      "table": "mizan_uploads",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "mizan_uploads_uploaded_by_fkey",
+      "table": "mizan_uploads",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (uploaded_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "notes_author_id_fkey",
+      "table": "notes",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (author_id) REFERENCES profiles(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "notes_company_id_fkey",
+      "table": "notes",
+      "target": "companies",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "notes_tenant_id_fkey",
+      "table": "notes",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "notification_log_recipient_profile_id_fkey",
+      "table": "notification_log",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (recipient_profile_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "ops_assignments_attendance_recorded_by_fkey",
+      "table": "ops_assignments",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (attendance_recorded_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_assignments_created_by_fkey",
+      "table": "ops_assignments",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_assignments_tenant_id_request_id_work_date_fkey",
+      "table": "ops_assignments",
+      "target": "ops_daily_requests",
+      "definition": "FOREIGN KEY (tenant_id, request_id, work_date) REFERENCES ops_daily_requests(tenant_id, id, work_date)"
+    },
+    {
+      "name": "ops_assignments_tenant_id_worker_id_fkey",
+      "table": "ops_assignments",
+      "target": "ops_workers",
+      "definition": "FOREIGN KEY (tenant_id, worker_id) REFERENCES ops_workers(tenant_id, id)"
+    },
+    {
+      "name": "ops_closed_comment_commands_actor_id_fkey",
+      "table": "ops_closed_comment_commands",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_closed_comment_commands_tenant_id_request_id_fkey",
+      "table": "ops_closed_comment_commands",
+      "target": "ops_daily_requests",
+      "definition": "FOREIGN KEY (tenant_id, request_id) REFERENCES ops_daily_requests(tenant_id, id)"
+    },
+    {
+      "name": "ops_commands_actor_id_fkey",
+      "table": "ops_commands",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_commands_tenant_id_fkey",
+      "table": "ops_commands",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "ops_daily_requests_created_by_fkey",
+      "table": "ops_daily_requests",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_daily_requests_tenant_id_company_id_location_id_fkey",
+      "table": "ops_daily_requests",
+      "target": "ops_locations",
+      "definition": "FOREIGN KEY (tenant_id, company_id, location_id) REFERENCES ops_locations(tenant_id, company_id, id)"
+    },
+    {
+      "name": "ops_daily_requests_tenant_id_fkey",
+      "table": "ops_daily_requests",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "ops_events_actor_id_fkey",
+      "table": "ops_events",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_events_tenant_id_fkey",
+      "table": "ops_events",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "ops_fixed_roster_created_by_fkey",
+      "table": "ops_fixed_roster",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_fixed_roster_tenant_id_company_id_location_id_fkey",
+      "table": "ops_fixed_roster",
+      "target": "ops_locations",
+      "definition": "FOREIGN KEY (tenant_id, company_id, location_id) REFERENCES ops_locations(tenant_id, company_id, id)"
+    },
+    {
+      "name": "ops_fixed_roster_tenant_id_fkey",
+      "table": "ops_fixed_roster",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "ops_fixed_roster_tenant_id_worker_id_fkey",
+      "table": "ops_fixed_roster",
+      "target": "ops_workers",
+      "definition": "FOREIGN KEY (tenant_id, worker_id) REFERENCES ops_workers(tenant_id, id)"
+    },
+    {
+      "name": "ops_fixed_roster_updated_by_fkey",
+      "table": "ops_fixed_roster",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_fixed_roster_commands_actor_id_fkey",
+      "table": "ops_fixed_roster_commands",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_fixed_roster_commands_tenant_id_fkey",
+      "table": "ops_fixed_roster_commands",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "ops_fixed_roster_idp_tenant_id_period_id_fkey",
+      "table": "ops_fixed_roster_idp",
+      "target": "ops_idp_periods",
+      "definition": "FOREIGN KEY (tenant_id, period_id) REFERENCES ops_idp_periods(tenant_id, id)"
+    },
+    {
+      "name": "ops_fixed_roster_idp_tenant_id_roster_id_fkey",
+      "table": "ops_fixed_roster_idp",
+      "target": "ops_fixed_roster",
+      "definition": "FOREIGN KEY (tenant_id, roster_id) REFERENCES ops_fixed_roster(tenant_id, id)"
+    },
+    {
+      "name": "ops_idp_context_tenant_id_request_id_fkey",
+      "table": "ops_idp_context",
+      "target": "ops_daily_requests",
+      "definition": "FOREIGN KEY (tenant_id, request_id) REFERENCES ops_daily_requests(tenant_id, id)"
+    },
+    {
+      "name": "ops_idp_context_updated_by_fkey",
+      "table": "ops_idp_context",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_idp_period_fk",
+      "table": "ops_idp_context",
+      "target": "ops_idp_periods",
+      "definition": "FOREIGN KEY (tenant_id, period_id) REFERENCES ops_idp_periods(tenant_id, id)"
+    },
+    {
+      "name": "ops_idp_periods_created_by_fkey",
+      "table": "ops_idp_periods",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_idp_periods_tenant_id_fkey",
+      "table": "ops_idp_periods",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "ops_locations_tenant_id_company_id_fkey",
+      "table": "ops_locations",
+      "target": "companies",
+      "definition": "FOREIGN KEY (tenant_id, company_id) REFERENCES companies(tenant_id, id)"
+    },
+    {
+      "name": "ops_locations_tenant_id_fkey",
+      "table": "ops_locations",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "ops_message_notifications_recipient_id_fkey",
+      "table": "ops_message_notifications",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (recipient_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_message_notifications_tenant_id_request_id_message_id_fkey",
+      "table": "ops_message_notifications",
+      "target": "ops_messages",
+      "definition": "FOREIGN KEY (tenant_id, request_id, message_id) REFERENCES ops_messages(tenant_id, request_id, id)"
+    },
+    {
+      "name": "ops_messages_author_id_fkey",
+      "table": "ops_messages",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (author_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_messages_tenant_id_request_id_fkey",
+      "table": "ops_messages",
+      "target": "ops_daily_requests",
+      "definition": "FOREIGN KEY (tenant_id, request_id) REFERENCES ops_daily_requests(tenant_id, id)"
+    },
+    {
+      "name": "ops_messages_tenant_id_request_id_parent_id_fkey",
+      "table": "ops_messages",
+      "target": "ops_messages",
+      "definition": "FOREIGN KEY (tenant_id, request_id, parent_id) REFERENCES ops_messages(tenant_id, request_id, id)"
+    },
+    {
+      "name": "ops_replacement_outreach_tenant_id_actor_id_command_id_fkey",
+      "table": "ops_replacement_outreach",
+      "target": "ops_commands",
+      "definition": "FOREIGN KEY (tenant_id, actor_id, command_id) REFERENCES ops_commands(tenant_id, actor_id, id)"
+    },
+    {
+      "name": "ops_replacement_outreach_tenant_id_assignment_id_fkey",
+      "table": "ops_replacement_outreach",
+      "target": "ops_assignments",
+      "definition": "FOREIGN KEY (tenant_id, assignment_id) REFERENCES ops_assignments(tenant_id, id)"
+    },
+    {
+      "name": "ops_replacement_outreach_tenant_id_worker_id_fkey",
+      "table": "ops_replacement_outreach",
+      "target": "ops_workers",
+      "definition": "FOREIGN KEY (tenant_id, worker_id) REFERENCES ops_workers(tenant_id, id)"
+    },
+    {
+      "name": "ops_schedule_dates_tenant_id_request_id_work_date_fkey",
+      "table": "ops_schedule_dates",
+      "target": "ops_daily_requests",
+      "definition": "FOREIGN KEY (tenant_id, request_id, work_date) REFERENCES ops_daily_requests(tenant_id, id, work_date)"
+    },
+    {
+      "name": "ops_schedule_dates_tenant_id_schedule_id_fkey",
+      "table": "ops_schedule_dates",
+      "target": "ops_schedules",
+      "definition": "FOREIGN KEY (tenant_id, schedule_id) REFERENCES ops_schedules(tenant_id, id)"
+    },
+    {
+      "name": "ops_schedules_created_by_fkey",
+      "table": "ops_schedules",
+      "target": "auth.users",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "ops_schedules_tenant_id_company_id_location_id_fkey",
+      "table": "ops_schedules",
+      "target": "ops_locations",
+      "definition": "FOREIGN KEY (tenant_id, company_id, location_id) REFERENCES ops_locations(tenant_id, company_id, id)"
+    },
+    {
+      "name": "ops_schedules_tenant_id_fkey",
+      "table": "ops_schedules",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "ops_schedules_updated_by_fkey",
+      "table": "ops_schedules",
+      "target": "auth.users",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    {
+      "name": "ops_start_events_actor_id_fkey",
+      "table": "ops_start_events",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_start_events_tenant_id_assignment_id_fkey",
+      "table": "ops_start_events",
+      "target": "ops_start_plans",
+      "definition": "FOREIGN KEY (tenant_id, assignment_id) REFERENCES ops_start_plans(tenant_id, assignment_id)"
+    },
+    {
+      "name": "ops_start_plans_claimed_by_fkey",
+      "table": "ops_start_plans",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (claimed_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_start_plans_responsible_id_fkey",
+      "table": "ops_start_plans",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (responsible_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_start_plans_tenant_id_assignment_id_fkey",
+      "table": "ops_start_plans",
+      "target": "ops_assignments",
+      "definition": "FOREIGN KEY (tenant_id, assignment_id) REFERENCES ops_assignments(tenant_id, id)"
+    },
+    {
+      "name": "ops_work_record_events_assignment_id_fkey",
+      "table": "ops_work_record_events",
+      "target": "ops_work_records",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES ops_work_records(assignment_id)"
+    },
+    {
+      "name": "ops_work_record_events_tenant_id_actor_id_command_id_fkey",
+      "table": "ops_work_record_events",
+      "target": "ops_commands",
+      "definition": "FOREIGN KEY (tenant_id, actor_id, command_id) REFERENCES ops_commands(tenant_id, actor_id, id)"
+    },
+    {
+      "name": "ops_work_records_tenant_id_assignment_id_fkey",
+      "table": "ops_work_records",
+      "target": "ops_assignments",
+      "definition": "FOREIGN KEY (tenant_id, assignment_id) REFERENCES ops_assignments(tenant_id, id)"
+    },
+    {
+      "name": "ops_work_records_updated_by_fkey",
+      "table": "ops_work_records",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "ops_worker_source_person_fk",
+      "table": "ops_workers",
+      "target": "talent_people",
+      "definition": "FOREIGN KEY (tenant_id, source_person_id) REFERENCES talent_people(tenant_id, id)"
+    },
+    {
+      "name": "ops_workers_tenant_id_fkey",
+      "table": "ops_workers",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "partner_company_assignments_assigned_by_fkey",
+      "table": "partner_company_assignments",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (assigned_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "partner_company_assignments_company_id_fkey",
+      "table": "partner_company_assignments",
+      "target": "companies",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "partner_company_assignments_partner_user_id_fkey",
+      "table": "partner_company_assignments",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (partner_user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "partner_company_assignments_tenant_id_fkey",
+      "table": "partner_company_assignments",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "profiles_id_fkey",
+      "table": "profiles",
+      "target": "auth.users",
+      "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "reporting_actuals_location_id_fkey",
+      "table": "reporting_actuals",
+      "target": "ops_locations",
+      "definition": "FOREIGN KEY (location_id) REFERENCES ops_locations(id)"
+    },
+    {
+      "name": "reporting_actuals_tenant_id_batch_id_fkey",
+      "table": "reporting_actuals",
+      "target": "reporting_imports",
+      "definition": "FOREIGN KEY (tenant_id, batch_id) REFERENCES reporting_imports(tenant_id, id)"
+    },
+    {
+      "name": "reporting_actuals_tenant_id_person_id_fkey",
+      "table": "reporting_actuals",
+      "target": "talent_people",
+      "definition": "FOREIGN KEY (tenant_id, person_id) REFERENCES talent_people(tenant_id, id)"
+    },
+    {
+      "name": "reporting_actuals_tenant_id_project_id_month_fkey",
+      "table": "reporting_actuals",
+      "target": "reporting_periods",
+      "definition": "FOREIGN KEY (tenant_id, project_id, month) REFERENCES reporting_periods(tenant_id, project_id, month)"
+    },
+    {
+      "name": "reporting_commands_actor_id_fkey",
+      "table": "reporting_commands",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "reporting_commands_tenant_id_fkey",
+      "table": "reporting_commands",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "reporting_import_files_tenant_id_batch_id_fkey",
+      "table": "reporting_import_files",
+      "target": "reporting_imports",
+      "definition": "FOREIGN KEY (tenant_id, batch_id) REFERENCES reporting_imports(tenant_id, id)"
+    },
+    {
+      "name": "reporting_imports_actor_id_fkey",
+      "table": "reporting_imports",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "reporting_imports_approved_by_fkey",
+      "table": "reporting_imports",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (approved_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "reporting_imports_tenant_id_project_id_month_fkey",
+      "table": "reporting_imports",
+      "target": "reporting_periods",
+      "definition": "FOREIGN KEY (tenant_id, project_id, month) REFERENCES reporting_periods(tenant_id, project_id, month)"
+    },
+    {
+      "name": "reporting_period_events_actor_id_fkey",
+      "table": "reporting_period_events",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "reporting_period_events_tenant_id_project_id_month_fkey",
+      "table": "reporting_period_events",
+      "target": "reporting_periods",
+      "definition": "FOREIGN KEY (tenant_id, project_id, month) REFERENCES reporting_periods(tenant_id, project_id, month)"
+    },
+    {
+      "name": "reporting_periods_created_by_fkey",
+      "table": "reporting_periods",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "reporting_periods_tenant_id_project_id_fkey",
+      "table": "reporting_periods",
+      "target": "reporting_projects",
+      "definition": "FOREIGN KEY (tenant_id, project_id) REFERENCES reporting_projects(tenant_id, id)"
+    },
+    {
+      "name": "reporting_person_code_events_actor_id_fkey",
+      "table": "reporting_person_code_events",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "reporting_person_code_events_tenant_id_project_id_fkey",
+      "table": "reporting_person_code_events",
+      "target": "reporting_projects",
+      "definition": "FOREIGN KEY (tenant_id, project_id) REFERENCES reporting_projects(tenant_id, id)"
+    },
+    {
+      "name": "reporting_person_codes_created_by_fkey",
+      "table": "reporting_person_codes",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "reporting_person_codes_tenant_id_person_id_fkey",
+      "table": "reporting_person_codes",
+      "target": "talent_people",
+      "definition": "FOREIGN KEY (tenant_id, person_id) REFERENCES talent_people(tenant_id, id)"
+    },
+    {
+      "name": "reporting_person_codes_tenant_id_project_id_fkey",
+      "table": "reporting_person_codes",
+      "target": "reporting_projects",
+      "definition": "FOREIGN KEY (tenant_id, project_id) REFERENCES reporting_projects(tenant_id, id)"
+    },
+    {
+      "name": "reporting_project_locations_tenant_id_company_id_location__fkey",
+      "table": "reporting_project_locations",
+      "target": "ops_locations",
+      "definition": "FOREIGN KEY (tenant_id, company_id, location_id) REFERENCES ops_locations(tenant_id, company_id, id)"
+    },
+    {
+      "name": "reporting_project_locations_tenant_id_company_id_project_i_fkey",
+      "table": "reporting_project_locations",
+      "target": "reporting_projects",
+      "definition": "FOREIGN KEY (tenant_id, company_id, project_id) REFERENCES reporting_projects(tenant_id, company_id, id)"
+    },
+    {
+      "name": "reporting_projects_created_by_fkey",
+      "table": "reporting_projects",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "reporting_projects_tenant_id_company_id_fkey",
+      "table": "reporting_projects",
+      "target": "companies",
+      "definition": "FOREIGN KEY (tenant_id, company_id) REFERENCES companies(tenant_id, id)"
+    },
+    {
+      "name": "reporting_projects_tenant_id_fkey",
+      "table": "reporting_projects",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "staffing_demands_company_id_fkey",
+      "table": "staffing_demands",
+      "target": "companies",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "staffing_demands_created_by_fkey",
+      "table": "staffing_demands",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "staffing_demands_tenant_id_fkey",
+      "table": "staffing_demands",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "talent_attachments_actor_id_fkey",
+      "table": "talent_attachments",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "talent_attachments_tenant_id_person_id_fkey",
+      "table": "talent_attachments",
+      "target": "talent_people",
+      "definition": "FOREIGN KEY (tenant_id, person_id) REFERENCES talent_people(tenant_id, id)"
+    },
+    {
+      "name": "talent_availability_actor_id_fkey",
+      "table": "talent_availability",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "talent_availability_tenant_id_fkey",
+      "table": "talent_availability",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_availability_tenant_id_person_id_fkey",
+      "table": "talent_availability",
+      "target": "talent_people",
+      "definition": "FOREIGN KEY (tenant_id, person_id) REFERENCES talent_people(tenant_id, id)"
+    },
+    {
+      "name": "talent_call_list_commands_actor_id_fkey",
+      "table": "talent_call_list_commands",
+      "target": "auth.users",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "talent_call_list_commands_list_id_fkey",
+      "table": "talent_call_list_commands",
+      "target": "talent_call_lists",
+      "definition": "FOREIGN KEY (list_id) REFERENCES talent_call_lists(id)"
+    },
+    {
+      "name": "talent_call_list_commands_tenant_id_fkey",
+      "table": "talent_call_list_commands",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_call_lists_creator_id_fkey",
+      "table": "talent_call_lists",
+      "target": "auth.users",
+      "definition": "FOREIGN KEY (creator_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "talent_call_lists_tenant_id_fkey",
+      "table": "talent_call_lists",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_conversations_actor_id_fkey",
+      "table": "talent_conversations",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "talent_conversations_tenant_id_fkey",
+      "table": "talent_conversations",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_conversations_tenant_id_person_id_fkey",
+      "table": "talent_conversations",
+      "target": "talent_people",
+      "definition": "FOREIGN KEY (tenant_id, person_id) REFERENCES talent_people(tenant_id, id)"
+    },
+    {
+      "name": "talent_conversations_tenant_id_request_id_fkey",
+      "table": "talent_conversations",
+      "target": "ops_daily_requests",
+      "definition": "FOREIGN KEY (tenant_id, request_id) REFERENCES ops_daily_requests(tenant_id, id)"
+    },
+    {
+      "name": "talent_import_batches_actor_id_fkey",
+      "table": "talent_import_batches",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "talent_import_batches_tenant_id_fkey",
+      "table": "talent_import_batches",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_import_changes_batch_id_row_number_fkey",
+      "table": "talent_import_changes",
+      "target": "talent_import_rows",
+      "definition": "FOREIGN KEY (batch_id, row_number) REFERENCES talent_import_rows(batch_id, row_number)"
+    },
+    {
+      "name": "talent_import_changes_tenant_id_batch_id_fkey",
+      "table": "talent_import_changes",
+      "target": "talent_import_batches",
+      "definition": "FOREIGN KEY (tenant_id, batch_id) REFERENCES talent_import_batches(tenant_id, id)"
+    },
+    {
+      "name": "talent_import_closures_actor_id_fkey",
+      "table": "talent_import_closures",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "talent_import_closures_tenant_id_fkey",
+      "table": "talent_import_closures",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_import_rows_tenant_id_batch_id_fkey",
+      "table": "talent_import_rows",
+      "target": "talent_import_batches",
+      "definition": "FOREIGN KEY (tenant_id, batch_id) REFERENCES talent_import_batches(tenant_id, id)"
+    },
+    {
+      "name": "talent_merge_commands_actor_id_fkey",
+      "table": "talent_merge_commands",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "talent_merge_commands_tenant_id_fkey",
+      "table": "talent_merge_commands",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_merge_target_fk",
+      "table": "talent_people",
+      "target": "talent_people",
+      "definition": "FOREIGN KEY (tenant_id, merged_into_id) REFERENCES talent_people(tenant_id, id)"
+    },
+    {
+      "name": "talent_people_tenant_id_fkey",
+      "table": "talent_people",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_people_tenant_id_worker_id_fkey",
+      "table": "talent_people",
+      "target": "ops_workers",
+      "definition": "FOREIGN KEY (tenant_id, worker_id) REFERENCES ops_workers(tenant_id, id)"
+    },
+    {
+      "name": "talent_person_commands_actor_id_fkey",
+      "table": "talent_person_commands",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "talent_person_commands_tenant_id_fkey",
+      "table": "talent_person_commands",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "talent_person_events_actor_id_fkey",
+      "table": "talent_person_events",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES profiles(id)"
+    },
+    {
+      "name": "talent_person_events_tenant_id_person_id_fkey",
+      "table": "talent_person_events",
+      "target": "talent_people",
+      "definition": "FOREIGN KEY (tenant_id, person_id) REFERENCES talent_people(tenant_id, id)"
+    },
+    {
+      "name": "talent_pool_versions_tenant_id_fkey",
+      "table": "talent_pool_versions",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "talent_shared_views_creator_id_fkey",
+      "table": "talent_shared_views",
+      "target": "auth.users",
+      "definition": "FOREIGN KEY (creator_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "talent_shared_views_tenant_id_fkey",
+      "table": "talent_shared_views",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "task_assignment_history_task_id_fkey",
+      "table": "task_assignment_history",
+      "target": "tasks",
+      "definition": "FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "tasks_appointment_company_tenant_fkey",
+      "table": "tasks",
+      "target": "appointments",
+      "definition": "FOREIGN KEY (appointment_id, company_id, tenant_id) REFERENCES appointments(id, company_id, tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "tasks_assigned_to_user_id_fkey",
+      "table": "tasks",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (assigned_to_user_id) REFERENCES profiles(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "tasks_company_tenant_fkey",
+      "table": "tasks",
+      "target": "companies",
+      "definition": "FOREIGN KEY (tenant_id, company_id) REFERENCES companies(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "tasks_contract_company_tenant_fkey",
+      "table": "tasks",
+      "target": "contracts",
+      "definition": "FOREIGN KEY (contract_id, company_id, tenant_id) REFERENCES contracts(id, company_id, tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "tasks_created_by_fkey",
+      "table": "tasks",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "tasks_tenant_id_fkey",
+      "table": "tasks",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "tenant_memberships_tenant_id_fkey",
+      "table": "tenant_memberships",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "tenant_memberships_user_id_fkey",
+      "table": "tenant_memberships",
+      "target": "auth.users",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "tenant_module_changes_tenant_id_fkey",
+      "table": "tenant_module_changes",
+      "target": "tenant_module_config",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenant_module_config(tenant_id) ON DELETE CASCADE"
+    },
+    {
+      "name": "tenant_module_config_tenant_id_fkey",
+      "table": "tenant_module_config",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "tenant_module_settings_tenant_id_fkey",
+      "table": "tenant_module_settings",
+      "target": "tenant_module_config",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenant_module_config(tenant_id) ON DELETE CASCADE"
+    },
+    {
+      "name": "workforce_summary_company_id_fkey",
+      "table": "workforce_summary",
+      "target": "companies",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "workforce_summary_tenant_id_fkey",
+      "table": "workforce_summary",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "workspace_invitations_accepted_by_fkey",
+      "table": "workspace_invitations",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (accepted_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "workspace_invitations_created_by_fkey",
+      "table": "workspace_invitations",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id)"
+    },
+    {
+      "name": "workspace_invitations_tenant_id_fkey",
+      "table": "workspace_invitations",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "workspace_selections_tenant_id_fkey",
+      "table": "workspace_selections",
+      "target": "tenants",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id)"
+    },
+    {
+      "name": "workspace_selections_user_id_fkey",
+      "table": "workspace_selections",
+      "target": "profiles",
+      "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+    }
+  ]
+}
