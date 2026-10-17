@@ -663,3 +663,10 @@ Süit 25/25 geçti; result.tap güncellendi. Bu kabul metadata rezervasyonu ve c
 PendingDocumentUploads.tsx: sonraki sayfalardan birinde tek kalan yükleme başarıyla tamamlandığında veya iptal edildiğinde önceki sayfaya dönülür. İlk sayfada veya birden fazla satır varsa mevcut sayfa yenilenir. Başarı mesajı korunur; belirsiz/başarısız işlem sayfayı değiştirmez. Şirket bağlamı değişiminde parent key ile yeniden kurulma ve useScopedResource korumaları mevcut.
 
 scripts/document-pending-uploads.test.mjs: tamamlama ve iptal için 0→50→0 offset akışı ve mesajın korunması bileşen sürücüsünde doğrulandı. Kanıt pending-upload-pagination-tests.tap. Bu tarayıcı/üretim kabulü değildir. Yeni SQL/migration yok; arayüz düzeltmesi yerelde, yayınlanmadı.
+
+
+## 17 Ekim — güncel kaynakla yerel oturum ve Storage tarayıcı kabulü
+
+03f6b49 kaynak, ortak güncel migration fixture, gerçek yerel GoTrue/PostgREST/Storage kullanıldı. CUA tarayıcısında sentetik document-qa hesabıyla /evraklar açıldı. Yarım kalanlar yalnız açılınca listelendi; dosyası bulunan Tarayıcı kurtarma için tamamla işlemi başarı mesajı verdi, bekleyen satır kayboldu ve ana evrak listesi 2→3 oldu. Dosyası bulunmayan Tarayıcı iptal onayla iptal edildi; listeden çıktı ve temizlik kuyruğuna alındığı mesajı görüldü. Ana evrak sayısı 3 kaldı.
+
+Storage HTTP harness 29 kontrolü tamamlayıp exit 0 ile kapandı; geçici container/DB temizliği finally üzerinden geçti. browser-storage-result-20261017.json ve browser-recovery-cancel-20261017.png kanıtları kaydedildi. Üretim sekmesine/verisine dokunulmadı. Son sayfadan önceki sayfaya dönüş bu tarayıcı fixture'ında 50+ satır bulunmadığından yalnız önceki 13/13 bileşen testinde doğrulanmıştır; bu tur çok sayfalı tarayıcı kabulü değildir. Üretime yayın yapılmadı.
