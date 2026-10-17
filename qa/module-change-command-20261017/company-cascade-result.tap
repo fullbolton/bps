@@ -1,0 +1,14 @@
+▶ company deletion is inaccessible and status changes preserve child records
+  ✔ anonymous, authenticated and service roles cannot delete or truncate companies (4.840125ms)
+  ✔ staffing_demands: closed/open deletion denied and deactivation preserves rows (20.257167ms)
+  ✔ workforce_summary: closed/open deletion denied and deactivation preserves rows (13.312292ms)
+  ✔ financial_summaries: closed/open deletion denied and deactivation preserves rows (14.273042ms)
+✔ company deletion is inaccessible and status changes preserve child records (659.551166ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 738.681708
