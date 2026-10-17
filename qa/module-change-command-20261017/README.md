@@ -137,3 +137,11 @@ Bileşen + attempt + receipt 16/16 ve TypeScript geçti; commit-ui-tests.tap. Ü
 ModuleChangePreview artık açıkça enjekte edilen commit capability ile ModuleChangeCommit panelini açabilir. Mevcut WorkspaceModules bu capability'yi sağlamaz: canlı davranış önizleme olarak kalır. Başarılı, güncel seçimle eşleşen, bağımlılık/engel içermeyen sonuç gerekir; hata/yükleniyor/eskimiş seçim onay hazırlayamaz. Onay niyeti bir kez hazırlanır, seçim ve reset kontrolleri kilitlenir. Kayıt başlamadan Seçimlere dön niyeti discard eder ve düzenlemeyi açar; belirsiz kayıt başladıktan sonra bu geri dönüş sunulmaz.
 
 İlgili dört süit 22/22, TypeScript geçti; editor-integration-tests.tap. Varsayılan önizleme davranışı, engel/bağımlılık/hata, çift hazırlama, sabit seçim ve kayıt öncesi geri dönüş kapsanır. Parent hâlâ şirket/üyelik/seçim/revision key sözleşmesiyle paneli yeniden kurmalıdır. Gerçek HTTP transport, SQL grant ve üretim etkinleştirmesi yok; tarayıcı kabulü hâlâ açık.
+
+## 17 Ekim — gerçek yerel PostgREST komut kabulü
+
+http-acceptance.mjs disposable DB + PostgREST v14.3 oluşturur; authenticator bağlantısı ve yalnız yerel rastgele anahtarla imzalı sentetik JWT kullanır. Gerçek GoTrue giriş/tarayıcı kabulü değildir. Aday SQL ve güncel ortak migration fixture uygulanır. İlk authenticated çağrı 403; yalnız geçici DB'de authenticated EXECUTE verildiğinde çağrı açılır. anon/service hâlâ reddedilir.
+
+Gerçek HTTP commit yanıtından sonra istemcide hata enjeksiyonu yapılır; createModuleChangeAttempt unconfirmed döndürür. Context tekrar okunur, aynı payload/UUID ile HTTP replay doğrulanır: tek receipt, tek revision artışı. Başka tenant/actor çağrısı 403; grant geri alınınca replay de 403. Beş kontrol başarılı, http-result.json success=true/cleaned=true. Container ve DB sonunda kaldırıldı. Bu grant üretim migration'ına veya ürün ekranına eklenmedi; üretim değişmedi.
+
+Kalan: write-surface incelemesinin kalanları, gerçek oturumlu tarayıcıda capability bağlantısı, yayın öncesi güncel ledger/katalog doğrulaması. HTTP testi, canlı modül kaydetmenin açıldığı anlamına gelmez.

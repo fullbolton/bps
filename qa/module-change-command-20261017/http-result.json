@@ -1,0 +1,12 @@
+{
+  "scope": "Local PostgREST with synthetic signed JWTs, not GoTrue login or browser acceptance",
+  "checks": [
+    "candidate denied before local-only grant",
+    "anon and service remain denied after authenticated-only local grant",
+    "HTTP commit followed by response-loss injection replays exactly one receipt and revision",
+    "another tenant cannot invoke the original actor intent",
+    "revoked permission prevents even replay"
+  ],
+  "success": true,
+  "cleaned": true
+}
