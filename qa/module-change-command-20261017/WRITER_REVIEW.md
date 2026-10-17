@@ -17,7 +17,7 @@ legacy-staffing-result.tap: 6 alt senaryo + kapsayıcı = 7/7. Hatanın düzeltm
 | Yüzey | İnceleme / sınır |
 |---|---|
 | profiles, access_requests; demo/access request API | Kimlik/platform altyapısı; staffing gibi ürün modülü olarak kapatılmamalı. Mevcut rol/tenant kuralları ayrı. |
-| critical_dates | Ortak tarih altyapısı; modül sahipliği ve bağlantılı kaynak davranışı ayrıca kararlaştırılmalı, keyfi staffing kapısı eklenmedi. |
+| critical_dates | Ortak kurumsal tarih altyapısı; firma/randevu/sözleşme FK'sı yok. Modüller kapalıyken kendi şirkete yazma ve şirket sınırı yerel kabulde doğrulandı; aşağıdaki kapsam notuna bakın. |
 | documents Storage | 20261016001100 config bariyeri + rezervasyon + profile sonrası tekrar kontrol; önceki HTTP/yarış kanıtları mevcut. |
 | person-files Storage | talent_attachment_access(upload=true) ve cleanup helper config bariyeri taşıyor; 20261005002200. Bu tur yeni HTTP testi yapılmadı. |
 | project-sources Storage | reporting_source_access(write=true) config bariyeri; 20261005002800. Kaynak aksiyondaki dinamik bucket sabit project-sources'a çözülüyor. Yeni HTTP testi yapılmadı. |
@@ -35,3 +35,12 @@ legacy-staffing-result.tap: 6 alt senaryo + kapsayıcı = 7/7. Hatanın düzeltm
 ## Güncel yerel katalog devamı
 
 Staffing/workforce tablolarına başvuran public fonksiyonlar için yerel katalog taramasında yalnız yöneticinin modül önizlemesi bulundu. Bu, kaynak/runtime dışı yolları dışlamaz. Komut test şeması 23 eksik migration ile tamamlandı; aday metadata çıktısı post-migration-writer-candidates.json. Kalan doğrudan bariyersiz adaylar altı kimlik/davet/platform işlemi ve document_ack_cleanup_v1. Sonuncusu yeni evrak üretmez: yönetici/tenant doğrular, cleanup satırını kilitler, Storage/evrak/sürüm referansı yoksa tamamlanma kaydı yazar; tombstone'u kaldırmaz. Modül kapatma ön kontrolü pending cleanup'ı engeller. Bu iç bakım tamamlamasına iş üretme yetkisi gibi davranılmadı. Üretim yeniden ölçümü veya bütün servis/RPC yollarının tam kapanma kanıtı değildir.
+
+
+## 17 Ekim — kurumsal tarihlerin modül sahipliği
+
+critical_dates şeması ve src/app/(main)/kurumsal-tarihler/actions.ts incelendi: firma, sözleşme veya randevu FK'sı yok; ruhsat/izin/tescil gibi şirket geneli tarihleri tutuyor. Mevcut on modül kataloğunda bağımsız ortak altyapı olarak kalır; calendar veya staffing kapısı eklenmedi. Tarihlerdeki serbest metin, bir başka modülün kayıt ilişkisi sayılmaz.
+
+Yerel sentetik transaction'da tüm modül ayarları fixture kurulumu için kapatıldı. authenticated yönetici kendi şirketinde tarih oluşturup okuyabildi; başka şirkete INSERT 42501, mevcut tarihi başka şirkete taşıma 23514 ile reddedildi. Test sonunda rollback yapıldı. Bu test tüm modüllerin gerçek komutla kapatılabileceği veya bütün rol matrisinin doğrulandığı iddiası değildir.
+
+Komut/kabul süiti 22/22 geçti; result.tap güncellendi. Ürün kodu, migration veya üretim değişmedi. Yazma incelemesinde kurumsal tarihler başlığı bu kapsamla netleştirildi; diğer RPC/servis yolları ve yayın ön kontrolü açık kalır.

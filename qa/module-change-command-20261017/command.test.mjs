@@ -52,6 +52,22 @@ test('local module command candidate',async t=>{
     assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(826)])).rows[0].n,0);
    }
   });
+  await t.test('corporate dates remain core with modules off and retain tenant boundaries',async()=>{
+   await a.query('BEGIN');
+   try{
+    // Fixture setup only: this is not acceptance of closing every module via the command.
+    await a.query('update tenant_module_settings set enabled=false where tenant_id=$1',[id(1)]);
+    await a.query('SET LOCAL ROLE authenticated');
+    await a.query("insert into critical_dates(id,tenant_id,created_by,title,deadline_date) values($1,$2,$3,'Synthetic core deadline','2026-12-31')",[id(829),id(1),id(11)]);
+    assert.equal((await a.query('select count(*)::int n from critical_dates where id=$1',[id(829)])).rows[0].n,1);
+    await a.query('SAVEPOINT cross_tenant');
+    await assert.rejects(a.query("insert into critical_dates(id,tenant_id,created_by,title,deadline_date) values($1,$2,$3,'Synthetic forbidden deadline','2026-12-31')",[id(830),id(2),id(11)]),{code:'42501'});
+    await a.query('ROLLBACK TO SAVEPOINT cross_tenant');
+    await a.query('SAVEPOINT move_tenant');
+    await assert.rejects(a.query('update critical_dates set tenant_id=$1 where id=$2',[id(2),id(829)]),{code:'23514'});
+    await a.query('ROLLBACK TO SAVEPOINT move_tenant');
+   }finally{await a.query('ROLLBACK');}
+  });
   await t.test('audit write failure rolls back settings and revision; same command can retry',async()=>{
    const ctx=await context(a),draft={...ctx.modules,announcements:!ctx.modules.announcements};
    await a.query(`CREATE FUNCTION public.qa_reject_module_receipt() RETURNS trigger LANGUAGE plpgsql AS $$
