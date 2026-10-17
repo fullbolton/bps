@@ -1,5 +1,6 @@
 import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
 const {parseModuleChangeReceipt}=await importActualTypeScript(new URL('../../src/lib/modules/change-receipt.ts',import.meta.url));
+const {createModuleChangeAttempt}=await importActualTypeScript(new URL('../../src/lib/modules/change-attempt.ts',import.meta.url));
 import {loadFixtureMigrations} from './fixture-migrations.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -32,6 +33,29 @@ test('local module command candidate',async t=>{
    const choice=(await c.query('select select_workspace($1,$2,$3,$4) value',[tenant,member,id(command),selected])).rows[0].value;
    await c.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:actor,role:'authenticated',active_tenant_id:tenant,workspace_membership_version:choice.membershipVersion,workspace_selection_version:choice.selectionVersion})]);
   };
+  await t.test('attempt controller recovers a lost committed response with one receipt',async()=>{
+   const ctx=await context(a),draft={...ctx.modules,announcements:!ctx.modules.announcements};
+   const attempt=createModuleChangeAttempt(ctx,id(837),draft);const sent=[];
+   const transport=async payload=>{
+    sent.push(payload);
+    return (await a.query(`select change_workspace_modules_v1(
+     p_actor => $1, p_tenant => $2, p_membership_version => $3,
+     p_selection_version => $4, p_revision => $5, p_command => $6, p_modules => $7) value`,
+     [payload.p_actor,payload.p_tenant,payload.p_membership_version,payload.p_selection_version,
+      payload.p_revision,payload.p_command,payload.p_modules])).rows[0].value;
+   };
+   const first=await attempt.send(ctx,async payload=>{await transport(payload);throw Error('Synthetic response loss after committed SQL');});
+   assert.equal(first.status,'unconfirmed');
+   const current=await context(a);
+   assert.equal(BigInt(current.configRevision),BigInt(ctx.configRevision)+1n);
+   const second=await attempt.send(current,transport);
+   assert.equal(second.status,'committed');assert.equal(second.receipt.replayed,true);
+   assert.equal(sent.length,2);assert.equal(sent[0],sent[1]);
+   assert.equal((await context(a)).configRevision,current.configRevision);
+   assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(837)])).rows[0].n,1);
+   await attempt.send(await context(a),transport);assert.equal(sent.length,2);
+   await invoke(a,await context(a),838,ctx.modules);
+  });
   await t.test('candidate remains inaccessible to client and service roles',async()=>{
    const rows=(await a.query("select r,has_function_privilege(r,'public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb)','execute') allowed from unnest(array['anon','authenticated','service_role']) r")).rows;
    assert.ok(rows.every(row=>!row.allowed));

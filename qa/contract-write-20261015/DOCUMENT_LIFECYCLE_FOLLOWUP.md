@@ -757,3 +757,9 @@ Genişletilmiş kelime taramasında authenticated EXECUTE sahibi definer yazma a
 Modül kayıt denemesine discard yaşam döngüsü eklendi. UI bağlandığında unmount veya şirket/yetki değişiminde çağrılacak. İstek henüz başlamadıysa gönderilmez; başlamış isteğin geç başarı/hata yanıtı discarded döner, önceki commit cache'i de gösterilmez. Bu sunucuya ulaşmış işlemi geri almaz; tekrar girişte güncel ayarlar yeniden okunmalıdır.
 
 Attempt + receipt süiti 13/13, TypeScript geçti. Yeni kabuller: dispatch öncesi ayrılma, dispatch sonrası geç başarı/hata, doğrulanmış receipt sonrası ayrılma. Kanıt attempt-tests.tap. Henüz component bağlantısı bulunmadığından tarayıcıda şirket geçişi koruması tamamlandı denmez. Yeni SQL/grant veya üretim yayını yok.
+
+## 17 Ekim — tekrar deneme katmanı gerçek SQL komutuyla birlikte
+
+command.test.mjs artık gerçek TypeScript createModuleChangeAttempt katmanını yerel change_workspace_modules_v1 adayına, SQL'in gerçek isimli argümanlarıyla bağlar. İlk SQL commit'inden sonra transport kasıtlı hata verir (fiziksel ağ kesintisi değil, yanıt kaybı enjeksiyonu). İstemci unconfirmed olur. Yenilenmiş context ile aynı deneme tekrar gönderildiğinde replayed=true receipt doğrulanır: aynı immutable payload/UUID, yalnız bir receipt ve tek revision artışı. Sonraki tekrar transport çağırmaz. Fixture ayarları ayrı komutla eski durumuna döndürülür.
+
+Gerçek PostgreSQL süiti 26/26 geçti; önceki yarış/yetki/rollback senaryoları da geçti. Kanıt qa/module-change-command-20261017/result.tap. Geçici DB temizlendi. Bu PostgreSQL sürücüsü üzerinden kabul; HTTP/RPC grant veya tarayıcı entegrasyonu değildir. Aday komut istemcilere hâlâ kapalı. Ürün kodu/migration/üretim değişmedi.
