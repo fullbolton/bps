@@ -162,6 +162,28 @@ test('local module command candidate',async t=>{
    assert.equal((await a.query('select count(*)::int n from document_cleanup_jobs where document_id=$1 and completed_at is not null',[id(891)])).rows[0].n,1);
    assert.equal((await a.query('select document_ack_cleanup_v1($1) value',[id(891)])).rows[0].value,true);
   });
+  await t.test('upload preparation commits first: waiting close sees the reservation',async()=>{
+   const ctx=await context(a),draft={...ctx.modules,documents:false,contracts:false};
+   await b.query('BEGIN');await b.query('SET LOCAL ROLE authenticated');
+   await b.query("select document_prepare_upload_v1($1,$2,$3,'Synthetic upload race','diger',NULL,10)",[id(832),id(1),id(890)]);
+   const waiting=invoke(a,ctx,833,draft).then(()=>null,e=>e.code);
+   await blocked(o,a.processID);await b.query('COMMIT');assert.equal(await waiting,'23514');
+   assert.deepEqual(await context(a),ctx);
+   assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(833)])).rows[0].n,0);
+   await a.query('select document_cancel_upload_v1($1,$2)',[id(1),id(832)]);
+   await a.query('select document_ack_cleanup_v1($1)',[id(832)]);
+  });
+  await t.test('document close commits first: waiting upload cannot create a reservation',async()=>{
+   const ctx=await context(a),draft={...ctx.modules,documents:false,contracts:false};
+   await a.query('BEGIN');await invoke(a,ctx,834,draft);
+   await b.query('SET ROLE authenticated');
+   const waiting=b.query("select document_prepare_upload_v1($1,$2,$3,'Synthetic blocked upload','diger',NULL,10)",[id(835),id(1),id(890)]).then(()=>null,e=>e.code);
+   await blocked(o,b.processID);await a.query('COMMIT');assert.equal(await waiting,'BM001');
+   await b.query('RESET ROLE');
+   assert.equal((await a.query('select count(*)::int n from document_upload_attempts where document_id=$1',[id(835)])).rows[0].n,0);
+   const closed=await context(a);assert.equal(closed.modules.documents,false);
+   await invoke(a,closed,836,ctx.modules);
+  });
   await t.test('expired contract pending upload blocks closure independently of contract status',async()=>{
    await a.query("insert into contracts(id,tenant_id,company_id,name,status) values($1,$2,$3,'Synthetic expired','suresi_doldu')",[id(894),id(1),id(890)]);
    // Metadata-only synthetic reservation: no private file or upload is needed.

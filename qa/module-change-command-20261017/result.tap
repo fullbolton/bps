@@ -1,32 +1,34 @@
 ▶ local module command candidate
-  ✔ candidate remains inaccessible to client and service roles (1.180375ms)
-  ✔ incomplete or malformed assessment never permits a config write (25.186917ms)
-  ✔ corporate dates remain core with modules off and retain tenant boundaries (9.010792ms)
-  ✔ audit write failure rolls back settings and revision; same command can retry (13.382209ms)
-  ✔ change is atomic, replay creates no duplicate, changed payload and stale revision fail (7.519042ms)
-  ✔ retry after a later configuration change returns original receipt without reverting settings (8.284708ms)
-  ✔ concurrent identical commands serialize into one commit and one replay (35.678875ms)
-  ✔ dependencies, wrong actor, stale membership and no-op cannot write (6.940458ms)
-  ✔ repeatable read and cross-tenant calls fail closed (3.257916ms)
-  ✔ pending document preparation prevents closing with no metadata receipt (8.90175ms)
-  ✔ cancelled upload blocks closure until cleanup acknowledgement and retains its tombstone (13.294875ms)
-  ✔ expired contract pending upload blocks closure independently of contract status (9.295375ms)
-  ✔ two concurrent sessions with the same revision cannot overwrite one another (6.922167ms)
-  ✔ writer commits first: waiting close sees newly committed open task and rejects (7.84125ms)
-  ✔ close commits first: waiting business writer rejects disabled module (28.672708ms)
-  ✔ reopening preserves work and increments revision once (4.432333ms)
-  ✔ authenticated legacy demand commits first: real close command sees it and rejects (10.817458ms)
-  ✔ real close commits first: authenticated legacy upsert is rejected and reopen preserves data (41.014458ms)
-  ✔ role revoked while command waits on profile: no settings or receipt written (7.528125ms)
-  ✔ role revoked while command waits on config: no settings or receipt written (6.228417ms)
-  ✔ different managers serialize by tenant and cannot replay another actor receipt (12.270833ms)
-  ✔ workspace selection commits during profile wait: old company command is rejected (7.734958ms)
-✔ local module command candidate (646.282834ms)
-ℹ tests 23
+  ✔ candidate remains inaccessible to client and service roles (1.741792ms)
+  ✔ incomplete or malformed assessment never permits a config write (26.340459ms)
+  ✔ corporate dates remain core with modules off and retain tenant boundaries (9.498125ms)
+  ✔ audit write failure rolls back settings and revision; same command can retry (13.876166ms)
+  ✔ change is atomic, replay creates no duplicate, changed payload and stale revision fail (7.100292ms)
+  ✔ retry after a later configuration change returns original receipt without reverting settings (8.225458ms)
+  ✔ concurrent identical commands serialize into one commit and one replay (34.999333ms)
+  ✔ dependencies, wrong actor, stale membership and no-op cannot write (6.30575ms)
+  ✔ repeatable read and cross-tenant calls fail closed (2.94625ms)
+  ✔ pending document preparation prevents closing with no metadata receipt (8.559542ms)
+  ✔ cancelled upload blocks closure until cleanup acknowledgement and retains its tombstone (12.329666ms)
+  ✔ upload preparation commits first: waiting close sees the reservation (12.779417ms)
+  ✔ document close commits first: waiting upload cannot create a reservation (12.579625ms)
+  ✔ expired contract pending upload blocks closure independently of contract status (8.746708ms)
+  ✔ two concurrent sessions with the same revision cannot overwrite one another (6.684167ms)
+  ✔ writer commits first: waiting close sees newly committed open task and rejects (7.510875ms)
+  ✔ close commits first: waiting business writer rejects disabled module (29.745541ms)
+  ✔ reopening preserves work and increments revision once (5.058041ms)
+  ✔ authenticated legacy demand commits first: real close command sees it and rejects (10.202042ms)
+  ✔ real close commits first: authenticated legacy upsert is rejected and reopen preserves data (39.74275ms)
+  ✔ role revoked while command waits on profile: no settings or receipt written (7.312791ms)
+  ✔ role revoked while command waits on config: no settings or receipt written (6.612ms)
+  ✔ different managers serialize by tenant and cannot replay another actor receipt (11.450375ms)
+  ✔ workspace selection commits during profile wait: old company command is rejected (7.919208ms)
+✔ local module command candidate (694.4195ms)
+ℹ tests 25
 ℹ suites 0
-ℹ pass 23
+ℹ pass 25
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1065.347083
+ℹ duration_ms 1098.006458

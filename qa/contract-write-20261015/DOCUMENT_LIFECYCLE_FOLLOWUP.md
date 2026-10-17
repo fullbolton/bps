@@ -649,3 +649,10 @@ Komut/kabul süiti 22/22 geçti; result.tap güncellendi. Ürün kodu, migration
 Gerçek document_cancel_upload_v1 ve document_ack_cleanup_v1 helper'ları aday modül komutuyla aynı güncel yerel fixture üzerinde çalıştırıldı. İptalde pending_document_upload=false olurken pending_document_cleanup=true kalıyor; kapatma komutu 23514 ile reddediliyor, revision ve receipt değişmiyor. Storage nesnesi hiç oluşturulmamış sentetik rezervasyonda ack, nesne yokluğunu doğruladı; ardından iki engel de false oldu. completed_at taşıyan cleanup satırı korundu ve tekrar ack başarılıydı. Bu satırın korunması eski yolun yeniden kullanımını engelleyen tombstone sözleşmesidir.
 
 Süit 23/23 geçti; result.tap güncellendi. Bu senaryoda gerçek HTTP dosya yükleme/silme yapılmadı; önceki 29/29 Storage HTTP kanıtı ayrı kapsamda kalır. Bütün diğer engellerin kalktığı veya UI kaydetmenin hazır olduğu iddia edilmez. Ürün SQL/arayüz değişmedi, yeni migration veya üretim yayını yok.
+
+
+## 17 Ekim — evrak hazırlama ile gerçek kapatma komutu yarışı
+
+İki ayrı PostgreSQL bağlantısında authenticated document_prepare_upload_v1 ile yerel aday change_workspace_modules_v1 yarıştırıldı; pg_stat_activity üzerinden gerçek Lock beklemesi doğrulandı. Hazırlama önce commit ettiğinde bekleyen kapatma yeni rezervasyonu gördü ve 23514 ile reddedildi; context ve receipt değişmedi. Kapatma önce commit ettiğinde bekleyen hazırlama BM001 ile reddedildi, document_upload_attempts satırı oluşmadı. Test sonunda modüller aday komutla yeniden açıldı; ilk yarışın sentetik rezervasyonu gerçek cancel/ack helper'larıyla kapatıldı.
+
+Süit 25/25 geçti; result.tap güncellendi. Bu kabul metadata rezervasyonu ve config kilidi içindir; HTTP byte aktarımı veya tarayıcı testi değildir. Önceki Storage HTTP kanıtı ayrı kapsamda kalır. Yalnız test ve kanıt değişikliği; ürün kodu, yeni migration, EXECUTE grant veya üretim yayını yok.
