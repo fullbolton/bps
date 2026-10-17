@@ -290,7 +290,7 @@ try {
   const {writeFileSync}=await import('node:fs');writeFileSync(new URL('../release-chain-20261016/barrier/http-result.json',import.meta.url),JSON.stringify(evidence,null,2)+'\n');
   checks.push('release barrier rejects HTTP RPC/upload/delete; bytes survive; reopening works');
  }
- if(process.env.BPS_LOCAL_BROWSER==='1')await (await import('./authenticated-browser.mjs')).serve({docker,sql,run,source,network,database,password,secret,anon,service,restBase,storageBase:base,id,pdf});
+ if(process.env.BPS_LOCAL_BROWSER==='1')await (await import('./authenticated-browser.mjs')).serve({docker,sql,run,source,network,database,password,secret,anon,service,rest,restBase,storageBase:base,id,pdf});
  console.log(JSON.stringify({passed:checks.length,checks,scope:'isolated local Storage HTTP and cloned synthetic DB'},null,2));
 } catch(e){console.error(redact(e.message));try{console.error(redact(logs()).slice(-6500));}catch{}process.exitCode=1;}
 finally {

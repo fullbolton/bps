@@ -1,8 +1,9 @@
 // Local synthetic acceptance only. Never imports production environment files.
 import http from 'node:http';
 import {spawn,spawnSync} from 'node:child_process';
-import {openSync,closeSync} from 'node:fs';
-export async function serve({docker,sql,run,source,network,database,password,secret,anon,service,restBase,storageBase,id,pdf}){
+import {openSync,closeSync,existsSync,mkdirSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
+export async function serve({docker,sql,run,source,network,database,password,secret,anon,service,rest,restBase,storageBase,id,pdf}){
+ const moduleRoute='src/app/qa-module-acceptance';let moduleRouteCreated=false;
  const auth='bps-browser-auth-'+process.pid,authDatabase='bps_browser_auth_'+process.pid;let server,app,authCreated=false;
  try{
   // Fresh official Auth migrations; do not fabricate a ledger for a schema dump.
@@ -67,9 +68,19 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    }
    console.log('LOCAL_BROWSER_PAGINATION 51 pending uploads');
   }
+  if(process.env.BPS_BROWSER_MODULES==='1'){
+   if(existsSync(moduleRoute))throw Error('Local acceptance route already exists; refusing overwrite');
+   sql(`UPDATE profiles SET role='yonetici' WHERE id='${id(11)}';`);
+   sql(readFileSync(new URL('../module-change-command-20261017/command-candidate.sql',import.meta.url),'utf8'));
+   sql('GRANT EXECUTE ON FUNCTION public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb) TO authenticated;');
+   docker(['restart',rest]);
+   restBase='http://127.0.0.1:'+docker(['port',rest,'3000/tcp']).split(':').at(-1);
+   mkdirSync(moduleRoute);moduleRouteCreated=true;
+   writeFileSync(moduleRoute+'/page.tsx',readFileSync(new URL('../module-change-command-20261017/browser-panel.tsx',import.meta.url)));
+  }
   const out=openSync('/tmp/bps-authenticated-next.log','w',0o600);
   app=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--hostname','127.0.0.1','--port','3060'],{cwd:process.cwd(),env:{...process.env,NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3061',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon},stdio:['ignore',out,out]});closeSync(out);
   console.log('LOCAL_BROWSER_READY http://127.0.0.1:3060/login — synthetic document-qa@example.test');
   await new Promise(resolve=>{process.once('SIGTERM',resolve);process.once('SIGINT',resolve);app.once('exit',resolve);});
- }finally{if(app){app.kill('SIGTERM');await new Promise(r=>app.exitCode!==null?r():app.once('exit',r));}if(server)await new Promise(r=>server.close(r));try{docker(['rm','-f',auth]);}catch{}if(authCreated)sql(`DROP DATABASE ${authDatabase} WITH (FORCE);`,'postgres');}
+ }finally{if(moduleRouteCreated)rmSync(moduleRoute,{recursive:true});if(app){app.kill('SIGTERM');await new Promise(r=>app.exitCode!==null?r():app.once('exit',r));}if(server)await new Promise(r=>server.close(r));try{docker(['rm','-f',auth]);}catch{}if(authCreated)sql(`DROP DATABASE ${authDatabase} WITH (FORCE);`,'postgres');}
 }

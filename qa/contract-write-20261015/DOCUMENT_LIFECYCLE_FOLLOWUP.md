@@ -783,3 +783,11 @@ http-acceptance.mjs disposable DB + PostgREST v14.3 oluşturur; authenticator ba
 Gerçek HTTP commit yanıtından sonra istemcide hata enjeksiyonu yapılır; createModuleChangeAttempt unconfirmed döndürür. Context tekrar okunur, aynı payload/UUID ile HTTP replay doğrulanır: tek receipt, tek revision artışı. Başka tenant/actor çağrısı 403; grant geri alınınca replay de 403. Beş kontrol başarılı, http-result.json success=true/cleaned=true. Container ve DB sonunda kaldırıldı. Bu grant üretim migration'ına veya ürün ekranına eklenmedi; üretim değişmedi.
 
 Kalan: write-surface incelemesinin kalanları, gerçek oturumlu tarayıcıda capability bağlantısı, yayın öncesi güncel ledger/katalog doğrulaması. HTTP testi, canlı modül kaydetmenin açıldığı anlamına gelmez.
+
+## 17 Ekim — oturumlu tarayıcıda ilk gerçek modül kaydı
+
+BPS_LOCAL_BROWSER=1 BPS_BROWSER_MODULES=1 ile gerçek yerel GoTrue, PostgREST, Storage ve Next çalıştı. Harness geçici /qa-module-acceptance sayfasını yalnız yeni dizine kurar; mevcut dizinin üzerine yazmaz, kapanışta kaldırır. Aday komuta authenticated grant yalnız disposable DB'dedir. CUA sentetik document-qa hesabıyla giriş yaptı; Duyurular kapatma seçimi → Etkisini kontrol et → Kaydetmeden önce onayla → kilitli seçimler → Onayla ve kaydet çalıştı. Yenilenen context sürüm 1→2, Duyurular=false gösterdi. Kanıt browser-commit.png ve browser-commit.txt.
+
+İlk kurulumda eksik rest parametresi, ardından Docker restart sonrası değişen rastgele REST portunun eski proxy adresinde kalması düzeltildi. Önceki yetki senaryosundan kalan sentetik profiles rolü bu kabul için açıkça yöneticiye ayarlanır. Ürün yetki kontrolü gevşetilmedi. Son harness exit 0; önceki 29 Storage kontrolü geçti, geçici route/container/DB temizlendi. Geçici route'un Next tipleri temizlenip next typegen ve TypeScript tekrar çalıştırıldı.
+
+Bu kabul izole test sayfasındaki gerçek ürün bileşenleri içindir; üretim ayarlar ekranında capability açılmadı. Tarayıcıda belirsiz yanıt, şirket geçişi ve geri açma henüz ölçülmedi; önceki katman testleri ayrı kanıttır. Üretim SQL/yayın yapılmadı.
