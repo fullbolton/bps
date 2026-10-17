@@ -411,3 +411,13 @@ M2p attachment helper beklenen gövdesi eski migration'a dayanıyordu; güncel i
 Henüz uygulanmamış 000200 önizlemesi 16 kontrol: tamamlanmamış yükleme/iptal temizliği talent için engel. ready veya cleaned dosya engel değil. Önizleme hâlâ salt okunur; kapatma açılmadı.
 
 631 uygulama + 15 modül DB süitinde 315 test geçti, TypeScript temiz, statik 0 FAIL / 2 WARN. Gerçek iptal politika SQL'i sentetik Storage tablosunda kapalı modülde SELECT/DELETE sıfır satır verdi. Kanıt `qa/tenant-file-lifecycle-20261004/`. Gerçek Storage HTTP/canlı/tarayıcı bu kanıtın dışında. Üretime yayın yok.
+
+## 18 Ekim — modül değişiklik geçmişi ÜRETİMDE
+
+Ayarlar → Modüller içine isteğe bağlı açılan Değişiklik geçmişi eklendi. workspace_module_history_v1 yalnız seçili şirket yöneticisine son 20 kaydı verir; anon/service EXECUTE kapalı, tablolara doğrudan okuma verilmedi. Kullanıcının güncel profil adı, İstanbul saatiyle tarih, açılan/kapatılan modüller ve ayrı ilk kurulum kaydı gösterilir. Hash/command ID ekrana taşınmaz. İstemci context, sıra, eksiksiz kayıt sayısı ve önce/sonra durum zincirini doğrular; şirket değişiminde eski yanıt ve hata durumunda eski liste gösterilmez.
+
+14 hedefli UI/fixture testi, 6 gerçek yerel DB testi ve 748/748 uygulama testi geçti. Yerel GoTrue/PostgREST tarayıcı akışında Duyurular kaydedilerek kapatıldı ve yeni geçmiş satırı doğrulandı; 29 Storage HTTP kontrolü geçti, geçici ortam temizlendi. Dev/typegen çakışmasında ilk commit durdu; sunucu kapatılıp tipler yeniden üretildi, TypeScript temiz. Statik kontrol 0 FAIL; çalışma ağacında henüz commitlenmemiş migration uyarısı ve bilinen iki kullanılmayan bileşen uyarısı vardı.
+
+Canlı ön kontrolde 185 migration, bakım bariyeri yok, doğrulanmış context fonksiyon gövdesi aynıydı. Yeni migration ve defter kaydı exact prefix kontrolüyle aynı transaction'da uygulandı; sayı 186. Kaynak 1e99a70, Vercel dpl_6tdQgVxfnnZiJk5zEsMUNPAo3zT3 ana alana promote edildi ve inspect ile doğrulandı. Mek Group kimlikli geçmiş okumasında ilk kurulum kaydı görüldü. Üretimde şirket ayarları değiştirilmedi, veri silinmedi veya yedeklenmedi. Otomatik e-posta false kalır. Kanıt qa/module-history-20261018/production-release.json.
+
+Sınır: son 20 kayıt; eski geçmiş korunur ama panelde sayfalama yok. İsimler tarihsel snapshot değildir. Canlı yeni değişiklik ve yarış/ağ hatası enjeksiyonu yapılmadı; bunların yerel kabulü ayrı kanıttır. F paketinin audit yüzeyi tamamlandı; kişisel tercihler ve bildirim devamı otomatik olarak tamamlanmış sayılmaz.

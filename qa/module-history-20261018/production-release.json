@@ -1,0 +1,22 @@
+{
+  "measuredAt": "2026-10-17T22:27:05.919430+00:00",
+  "sourceCommit": "1e99a70",
+  "deploymentId": "dpl_6tdQgVxfnnZiJk5zEsMUNPAo3zT3",
+  "url": "https://www.bpsys.net",
+  "productionPromoted": true,
+  "migrationCount": 186,
+  "newMigration": "20261018000200_workspace_module_history.sql",
+  "moduleChangesEnabled": true,
+  "notificationEmailsEnabled": false,
+  "browser": {
+    "workspace": "Mek Group",
+    "historyLoaded": true,
+    "bootstrapVisible": true,
+    "productionBusinessWrites": false
+  },
+  "limits": [
+    "Canlıda yeni modül değişikliği üretilmedi; geçmişe eklenen yeni kayıt yerel gerçek oturumla doğrulandı.",
+    "Son 20 kayıt gösterilir; eski kayıtlar silinmez, bu panelde sayfalama yoktur.",
+    "Kullanıcı adları tarihsel snapshot değil güncel profil adıdır."
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-17T22:21:07.352789+00:00",
+  "applicationTests": 748,
+  "applicationFailures": 0,
+  "targetedUiAndFixtureTests": 14,
+  "databaseTests": 6,
+  "typescript": "passed after stopping local dev and regenerating Next types",
+  "storageHttpChecks": 29,
+  "browser": "local real GoTrue/PostgREST + actual module save, then history read",
+  "scope": "synthetic local writes only; no production module settings changed"
+}
