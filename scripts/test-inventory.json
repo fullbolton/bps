@@ -644,5 +644,9 @@
   {
     "file": "scripts/maintenance.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/workspace-modules-panel.test.mjs",
+    "suite": "application"
   }
 ]

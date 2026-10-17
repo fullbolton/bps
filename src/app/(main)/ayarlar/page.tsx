@@ -8,6 +8,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import Link from "next/link";
+import WorkspaceModules from "./WorkspaceModules";
 import { useNavigationGuard } from "@/context/NavigationGuardContext";
 import { useRole } from "@/context/RoleContext";
 import { useAuth } from "@/context/AuthContext";
@@ -71,6 +72,7 @@ import {
 
 const TABS: TabItem[] = [
   { key: "kullanicilar", label: "Şirket ekibi" },
+  { key: "moduller", label: "Modüller" },
   { key: "erisim-talepleri", label: "Platform başvuruları" },
 ];
 
@@ -329,7 +331,7 @@ export default function AyarlarPage() {
   if (authLoading) {
     return (
       <>
-        <PageHeader title="Ayarlar" subtitle="Şirket ekibi, davetler ve erişim başvuruları" />
+        <PageHeader title="Ayarlar" subtitle="Şirket ekibi, modüller ve erişim başvuruları" />
         <EmptyState title="Yükleniyor…" description="Yetki bilgisi kontrol ediliyor." size="page" />
       </>
     );
@@ -338,7 +340,7 @@ export default function AyarlarPage() {
   if (role !== "yonetici") {
     return (
       <>
-        <PageHeader title="Ayarlar" subtitle="Şirket ekibi, davetler ve erişim başvuruları" />
+        <PageHeader title="Ayarlar" subtitle="Şirket ekibi, modüller ve erişim başvuruları" />
         <EmptyState
           title="Erişim kısıtlı"
           description="Bu ekran yönetici erişimi gerektirir."
@@ -350,7 +352,7 @@ export default function AyarlarPage() {
 
   return (
     <>
-      <PageHeader title="Ayarlar" subtitle="Şirket ekibi, davetler ve erişim başvuruları" />
+      <PageHeader title="Ayarlar" subtitle="Şirket ekibi, modüller ve erişim başvuruları" />
       <div className="mb-5 grid gap-3 sm:grid-cols-2">
         <Link href="/kurulum" onClick={guard.handle} className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-blue-600"><span className="block font-semibold">Ekip davetleri ve kurulum →</span><span className="mt-1 block text-sm">Ekibe erişim verin; firma, şube ve ilk plan adımlarını tamamlayın.</span></Link>
         <Link href="/yonetim" onClick={guard.handle} className="rounded-xl border border-slate-200 bg-white p-4 text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"><span className="block font-semibold">İş dağılımını görüntüle →</span><span className="mt-1 block text-sm">Kimde hangi iş var, hangi işler üstlenilmeyi bekliyor görün.</span></Link>
@@ -366,6 +368,7 @@ export default function AyarlarPage() {
             <dl className="grid gap-3 sm:grid-cols-2">{ROLLER.map(item => <div key={item.id} className="min-w-0 rounded-xl bg-slate-50 p-4"><dt className="font-semibold text-slate-900">{item.rolAdi}</dt><dd className="mt-1 text-sm leading-relaxed text-slate-600">{item.aciklama}</dd></div>)}</dl>
           </details>
         </>}
+        {activeTab === "moduller" && <WorkspaceModules />}
         {activeTab === "erisim-talepleri" && <>
           <p className="text-sm text-slate-600">Platforma gelen başvurular içindir. Şirketinize ekip üyesi eklemek için Ekip davetleri ve kurulum bölümünü kullanın.</p>
           <AccessRequestsTab />

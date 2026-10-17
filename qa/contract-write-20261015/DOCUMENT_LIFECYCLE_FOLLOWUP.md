@@ -533,3 +533,10 @@ Mevcut cancel-race.test.mjs yalnız Storage INSERT/iptal sırasını kapsıyordu
 İptal önceyse bekleyen finalize 23514 ile reddedilir; documents=0, cleanup=1, dosya metadata kaydı korunur. Finalize önceyse bekleyen iptal 23514 ile reddedilir; documents=1, cleanup=0, dosya metadata kaydı korunur. İptal tamamlanmış evrakı yanlışlıkla temizlik listesine alamaz. Önceki iki Storage INSERT yarışı da korunarak **4/4** geçti. Kanıt finalize-cancel-race-20261017.tap. SQL transaction/claim kabulüdür; HTTP/tarayıcı yarışı olarak sunulmaz.
 
 Yalnız sentetik yerel klon kullanıldı, finally ile kaldırıldı. Ürün kodu ve migration değişmedi; üretime işlem veya yeni yayın yok.
+
+
+## 17 Ekim — Ayarlar / Modüller görünürlüğü (YEREL, yayımlanmadı)
+
+Mevcut modül planındaki durum ekranı eklendi. Seçili şirkette yönetici erişimi doğrulandıktan sonra current workspace RPC yanıtı kullanılır; şirket adı, 10 modülün açık/kapalı durumu ve zorunlu bağımlılıkları gösterilir. Açma/kapatma veya kaydetme komutu yoktur. Hatalı yenilemede eski durum gizlenir; şirket değişiminden sonra geç gelen yanıt gösterilmez. Atomik modül değiştirme akışı henüz tamamlanmadı.
+
+14/14 hedefli test ve TypeScript kontrolü geçti. Gerçek yerel Auth/PostgREST/Next oturumunda Ayarlar → Modüller açıldı; Synthetic A ve 10 modül görüntülendi, Durumu yenile başarılı. Bu tarayıcı kabulü sentetik yerel ortam içindir; üretim testi değildir. Kanıt: modules-panel-20261017.tap ve modules-panel-20261017.jpg. Yeni migration yok. Canlı sürüm 312a468 ve ledger 182 olarak kalır.
