@@ -1,0 +1,32 @@
+{
+  "measuredAt": "2026-10-17T19:27:38.909056+00:00",
+  "scope": "Pinned production public schema; local synthetic auth/storage/extensions dependencies. No production DDL or business data.",
+  "success": true,
+  "cleaned": true,
+  "applied": [
+    {
+      "file": "20261017000100_legacy_staffing_module_barriers.sql",
+      "sha256": "1f332ebd1b5dd162b5e08d47e8802bb506e29c5954ea265a5960dc98e9054c2d",
+      "exit": 0
+    },
+    {
+      "file": "20261017000200_contract_upload_module_preview.sql",
+      "sha256": "1d1cb5fbe68444405a445e7e65e19508961d5ca4f7a139705742b4d65c56c720",
+      "exit": 0
+    }
+  ],
+  "snapshotSha256": "706e8399171f68a8cb454c275b933ba653623da6503be0b64884b0d39c288ce2",
+  "previewOwnerAclPreserved": true,
+  "catalog": {
+    "barrierOwner": "postgres",
+    "barrierDefiner": true,
+    "barrierConfig": [
+      "search_path=\"\"",
+      "lock_timeout=5s"
+    ],
+    "clientExecute": false,
+    "statementTriggers": 2,
+    "restrictivePolicies": 2,
+    "pendingContractCheck": true
+  }
+}

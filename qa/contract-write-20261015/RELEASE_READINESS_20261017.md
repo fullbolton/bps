@@ -15,7 +15,7 @@
 
 ## Yayından önce açık kapılar
 
-1. Ledger ve hedef preview gövdesi 17 Ekim canlı ölçümüyle eşleşti (live-ledger-preflight-20261017.json, live-schema-preflight-20261017.json). Tam izin/owner incelemesi ve bekleyen `20261017000100` ve `20261017000200` için sıralı prova. Önceki üretim ölçümü güncelmiş gibi kullanılamaz.
+1. Ledger ve hedef preview gövdesi 17 Ekim canlı ölçümüyle eşleşti (live-ledger-preflight-20261017.json, live-schema-preflight-20261017.json). Bekleyen `20261017000100` ve `20261017000200` sıralı yerel provası ve değişen nesnelerin owner/ACL kontrolü tamamlandı (pending-rehearsal-20261017/result.json). Kalan: yayın öncesi güncel canlı ölçüm ve kapsamlı yazma yüzeyi incelemesi. Önceki üretim ölçümü güncelmiş gibi kullanılamaz.
 2. SQL ve frontend sırası: yeni preview parser'ı `pending_contract_upload` kontrolünü bekler; SQL önce. Eski sunucu + yeni parser hatayla durur.
 3. Aday modül değiştirme komutunun kalan RPC/servis yazma yüzeyi incelemesi, uygulama bağlantısı ve gerçek kayıt tarayıcı kabulü. Bu yayın hazırlığı gerçek modül kapatmayı açmaz.
 4. Seçilen yayın commit'i ve dağıtım kaydı, canlı kimlikli smoke. GitHub push otomatik üretim yayını değildir.
@@ -36,3 +36,11 @@ Statik tarama kullanılmayan `CapacityRiskCard` ve `TimelineList` bileşenlerini
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:3061 ve açıkça sentetik build-only anon değeriyle ayrı npm run build exit 0 geçti. Bu derleme gerçek üretim bağlantısı veya canlı veri kabulü değildir. İlk koşu ve tekrar ayrı loglarda korundu: release-check-20261017.log, build-local-env-20261017.log.
 
 RELEASE_READINESS_20261017.md tamamlanan kanıtları ve kalan kapıları tek yerde toplar. Son cleanup parser tarayıcı kabulü, güncel üretim şema/ledger ölçümü, iki pending migration'ın sıralı provası ve modül gerçek kayıt akışının kalan işleri açık. Üretim ölçümü/yayını bu tur yapılmadı. Statik WARN: kullanılmayan CapacityRiskCard, TimelineList; kapsam dışı silme yapılmadı.
+
+## 17 Ekim — iki bekleyen migration için sıralı prova
+
+`rehearse-pending.py`, SHA256 ile sabitlenen 17 Ekim public şema ölçümüne `20261017000100` ve `20261017000200` dosyalarını sırayla uyguladı: ikisi de exit 0. Kanıt: `pending-rehearsal-20261017/result.json`. Geçici yerel veritabanı kaldırıldı. Üretime SQL uygulanmadı.
+
+Katalog kabulü: iki statement-level BEFORE yazma trigger'ı, iki restrictive politika, postgres sahipli SECURITY DEFINER bariyeri, boş search_path/5s lock timeout; anon/authenticated/service_role için bariyer EXECUTE kapalı. Preview fonksiyonunun owner/ACL değeri değişmedi ve pending_contract_upload kontrolü eklendi.
+
+Sınır: public şeması üretimden; auth/storage/extensions bağımlılıkları sentetik yerel şablondan geldi. DROP public CASCADE ile kaldırılan şemalar arası bağımlılıklar bu provayla üretim eşdeğeri sayılmaz. Bu bir sıralı DDL/katalog provasıdır; canlı trafik, lock süresi veya tüm yetki/yazma yüzeyleri için kanıt değildir. Yayından hemen önce canlı ledger ve gövde ölçümü yenilenmeli. Gerçek modül kapatma hâlâ açılmadı.

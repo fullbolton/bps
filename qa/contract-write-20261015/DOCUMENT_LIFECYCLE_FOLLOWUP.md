@@ -723,3 +723,11 @@ Supabase CLI'nin mevcut oturumu ile proje dffdzbmnmnokbftbujsy doğrulandı. Kay
 Yalnız public şeması (iş tablosu satırları olmadan) geçici kullanıcı erişimli dosyaya alındı. preview_workspace_modules_v1 tam argümanları eşleşti ve gövde md5'i 4cde00fbcf8756586146ad19aba5d398 çıktı: 000200 yamasının beklediği gövdeyle aynı. staffing_demands/workforce_summary tabloları, UUID NOT NULL tenant_id ve açık RLS doğrulandı; iki önkoşul helper adı bulundu. Metadata kanıtı live-schema-preflight-20261017.json. Bu sınırlı şema metni kontrolüdür; tam izin/owner/trigger kabulü veya iki migration'ın güncel şemada provası değildir. productionReady=false korunur.
 
 İş verisi okunmadı, tam içerik yedeği alınmadı, migration/üretim DML/yayın yapılmadı. Geçici şema dosyası repo dışındadır; sonraki sıralı prova için korunur. Sonraki kapı bu yeni şema üzerinden prova ve izin kontrolüdür.
+
+## 17 Ekim — iki bekleyen migration için sıralı prova
+
+`rehearse-pending.py`, SHA256 ile sabitlenen 17 Ekim public şema ölçümüne `20261017000100` ve `20261017000200` dosyalarını sırayla uyguladı: ikisi de exit 0. Kanıt: `pending-rehearsal-20261017/result.json`. Geçici yerel veritabanı kaldırıldı. Üretime SQL uygulanmadı.
+
+Katalog kabulü: iki statement-level BEFORE yazma trigger'ı, iki restrictive politika, postgres sahipli SECURITY DEFINER bariyeri, boş search_path/5s lock timeout; anon/authenticated/service_role için bariyer EXECUTE kapalı. Preview fonksiyonunun owner/ACL değeri değişmedi ve pending_contract_upload kontrolü eklendi.
+
+Sınır: public şeması üretimden; auth/storage/extensions bağımlılıkları sentetik yerel şablondan geldi. DROP public CASCADE ile kaldırılan şemalar arası bağımlılıklar bu provayla üretim eşdeğeri sayılmaz. Bu bir sıralı DDL/katalog provasıdır; canlı trafik, lock süresi veya tüm yetki/yazma yüzeyleri için kanıt değildir. Yayından hemen önce canlı ledger ve gövde ölçümü yenilenmeli. Gerçek modül kapatma hâlâ açılmadı.
