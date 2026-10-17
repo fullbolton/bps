@@ -1,0 +1,52 @@
+Browser tab: 19, Title: "BPS — B2B Operasyon Platformu", URL: "http://127.0.0.1:3060/qa-module-acceptance".
+1 AXWebArea BPS — B2B Operasyon Platformu, URL: 127.0.0.1:3060/qa-module-acceptance
+	2 container
+		3 heading Yerel modül kayıt kabulü, Value: 1
+			4 text Yerel modül kayıt kabulü
+		5 checkbox (settable, integer) Description: Sonraki başarılı yanıtı bir kez kaybet (yerel test), Value: 0
+		58 container Yerel HTTP kanıtı
+			59 text Komut: 0fe52354-39f5-4e2d-a10a-324f0814ec5d; sürüm: 3; tekrar: false
+		6 text Güncel sürüm:  3
+		60 container Modül değişikliği önizlemesi
+			61 heading Değişiklikleri incele, Value: 3
+				62 text Değişiklikleri incele
+			63 text Kullanmak istediğiniz modülleri seçin; açık işleri ve gerekli bağlantıları kontrol edin. Bu seçimler şirket ayarlarını değiştirmez.
+			64 container Önizleme için modül seçimi
+				65 text Önizleme için modül seçimi
+				66 container
+					67 checkbox (settable, integer) Description: Müşteriler, Value: 1
+					68 text Müşteriler
+				69 container
+					70 checkbox (settable, integer) Description: Görevler, Value: 1
+					71 text Görevler
+				72 container
+					73 checkbox (settable, integer) Description: Takvim ve görüşmeler, Value: 1
+					74 text Takvim ve görüşmeler
+				75 container
+					76 checkbox (settable, integer) Description: Belgeler, Value: 1
+					77 text Belgeler
+				78 container
+					79 checkbox (settable, integer) Description: Sözleşmeler, Value: 1
+					80 text Sözleşmeler
+				81 container
+					82 checkbox (settable, integer) Description: Personel havuzu, Value: 1
+					83 text Personel havuzu
+				84 container
+					85 checkbox (settable, integer) Description: Personel operasyonu, Value: 1
+					86 text Personel operasyonu
+				87 container
+					88 checkbox (settable, integer) Description: Proje raporlama, Value: 1
+					89 text Proje raporlama
+				90 container
+					91 checkbox (settable, integer) Description: Finansal özet, Value: 1
+					92 text Finansal özet
+				93 container
+					94 checkbox (settable, integer) Description: Duyurular, Value: 1
+					95 text Duyurular
+			96 text Henüz değişiklik seçilmedi.
+			97 button (disabled) Etkisini kontrol et
+			98 button (disabled) Seçimleri sıfırla
+	46 pop up button (collapsed) Description: Open Next.js Dev Tools, ID: next-logo, Secondary Actions: Expand
+		47 image
+
+The focused UI element is 1 AXWebArea BPS — B2B Operasyon Platformu, URL: 127.0.0.1:3060/qa-module-acceptance

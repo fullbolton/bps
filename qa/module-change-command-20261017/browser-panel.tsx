@@ -1,6 +1,6 @@
 "use client";
 // Synthetic local acceptance route, installed temporarily by the browser harness.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { loadCurrentWorkspaceModules } from '@/lib/services/workspace-modules';
 import { createModuleChangeAttempt, type ModuleChangePayload } from '@/lib/modules/change-attempt';
@@ -8,6 +8,9 @@ import type { WorkspaceModuleContext } from '@/lib/modules/context';
 import ModuleChangePreview from '@/app/(main)/ayarlar/ModuleChangePreview';
 export default function BrowserModuleAcceptance() {
  const [context,setContext]=useState<WorkspaceModuleContext|null>(null);
+ const loseResponse=useRef(false);
+ const [simulateLoss,setSimulateLoss]=useState(false);
+ const [proof,setProof]=useState('');
  const [error,setError]=useState('');
  async function refresh() {
   const client=createClient();const {data,error}=await client.auth.getUser();
@@ -21,9 +24,15 @@ export default function BrowserModuleAcceptance() {
   const {data,error}=await createClient().auth.getSession();
   if(error||!data.session)throw Error('LOCAL_AUTH_REQUIRED');
   const response=await fetch('http://127.0.0.1:3061/rest/v1/rpc/change_workspace_modules_v1',{method:'POST',headers:{Authorization:`Bearer ${data.session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  if(!response.ok)throw Error('LOCAL_COMMAND_FAILED');return response.json();
+  if(!response.ok)throw Error('LOCAL_COMMAND_FAILED');
+  const receipt=await response.json();
+  setProof(`Komut: ${receipt.commandId}; sürüm: ${receipt.revision}; tekrar: ${receipt.replayed}`);
+  if(loseResponse.current){loseResponse.current=false;setSimulateLoss(false);throw Error('SYNTHETIC_LOST_COMMITTED_RESPONSE');}
+  return receipt;
  }
  return <main className="mx-auto max-w-3xl space-y-4 p-6"><h1>Yerel modül kayıt kabulü</h1>
+  <label><input type="checkbox" checked={simulateLoss} onChange={event=>{loseResponse.current=event.target.checked;setSimulateLoss(event.target.checked);}} /> Sonraki başarılı yanıtı bir kez kaybet (yerel test)</label>
+  {proof&&<p aria-label="Yerel HTTP kanıtı">{proof}</p>}
   {error&&<p role="alert">Yerel oturum açılamadı: {error}</p>}
   {context?<><p>Güncel sürüm: {context.configRevision}</p><ModuleChangePreview key={`${context.actorId}:${context.tenantId}:${context.membershipVersion}:${context.selectionVersion}:${context.configRevision}`} context={context} commit={{prepare:(ctx,modules)=>createModuleChangeAttempt(ctx,crypto.randomUUID(),modules),transport,refresh}} /></>:<p>Yerel ayarlar yükleniyor…</p>}
  </main>;

@@ -791,3 +791,9 @@ BPS_LOCAL_BROWSER=1 BPS_BROWSER_MODULES=1 ile gerçek yerel GoTrue, PostgREST, S
 İlk kurulumda eksik rest parametresi, ardından Docker restart sonrası değişen rastgele REST portunun eski proxy adresinde kalması düzeltildi. Önceki yetki senaryosundan kalan sentetik profiles rolü bu kabul için açıkça yöneticiye ayarlanır. Ürün yetki kontrolü gevşetilmedi. Son harness exit 0; önceki 29 Storage kontrolü geçti, geçici route/container/DB temizlendi. Geçici route'un Next tipleri temizlenip next typegen ve TypeScript tekrar çalıştırıldı.
 
 Bu kabul izole test sayfasındaki gerçek ürün bileşenleri içindir; üretim ayarlar ekranında capability açılmadı. Tarayıcıda belirsiz yanıt, şirket geçişi ve geri açma henüz ölçülmedi; önceki katman testleri ayrı kanıttır. Üretim SQL/yayın yapılmadı.
+
+## 17 Ekim — tarayıcıda yanıt kaybı, replay ve yeniden açma
+
+QA paneline yalnız sentetik ortamda tek başarılı HTTP yanıtını kaybettiren seçim eklendi. CUA ile Duyurular kapatıldı: SQL/HTTP başarılı olsa da istemciye hata enjeksiyonu nedeniyle belirsiz sonuç ve Aynı işlemi tekrar dene düğmesi göründü. Tekrar sonrası aynı UUID, revision=2, replayed=true; context 2'ye yenilendi. Ardından yeniden açma ayrı UUID ile revision=3/replayed=false tamamlandı, Duyurular tekrar seçili göründü.
+
+Kanıtlar browser-unconfirmed.txt, browser-replay.txt, browser-reopen.png/.txt. Yerel SQL metadata ölçümü browser-retry-ledger.json: iki farklı komut, yalnız iki receipt, revision 2 ve 3. Fiziksel ağ kesintisi değil başarılı HTTP cevabının istemci katmanında kayıp simülasyonudur. Test ortamı exit 0 ile temizlendi; 29 Storage kontrolü geçti. Next route tipleri yenilendi ve TypeScript kontrol edildi. Şirket geçişinin tarayıcı kabulü ve kalan yazma incelemesi açık; üretim değişmedi.
