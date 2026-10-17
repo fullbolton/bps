@@ -1,0 +1,13 @@
+{
+  "measuredAt": "2026-10-17T22:05:50.892202+00:00",
+  "scope": "local synthetic dependencies + pinned production public schema",
+  "installSha256": "b13af19aea44ab6b64b02f1e5a248ad7a095f87a55643cbe315a26fcd5f4fc63",
+  "checks": [
+    "injected final error rolls back all three migrations and ledger entries",
+    "three migration installs commit with ledger 185 and no client grant",
+    "reapplication rejected by exact ledger prefix",
+    "activation and revocation work on schema rehearsal"
+  ],
+  "success": true,
+  "cleaned": true
+}

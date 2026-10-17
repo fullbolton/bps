@@ -1,0 +1,3 @@
+Browser tab: 23, Title: "BPS — B2B Operasyon Platformu", URL: "https://www.bpsys.net/ayarlar?bolum=moduller".
+There has been no change in the accessibility tree.
+The focused UI element is 0 AXWebArea BPS — B2B Operasyon Platformu, URL: bpsys.net/ayarlar?bolum=moduller

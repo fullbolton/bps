@@ -1,0 +1,38 @@
+{
+  "measuredAt": "2026-10-17T22:10:53.793566+00:00",
+  "sourceCommit": "132feaba5ea199ba350bfbe799911dcea2b9d8a8",
+  "deploymentId": "dpl_BKQKaeNxjU1kZDhNR3sncDFrtokF",
+  "url": "https://www.bpsys.net",
+  "productionPromoted": true,
+  "migrationCount": 185,
+  "newMigrationCount": 3,
+  "moduleChangesEnabled": true,
+  "notificationEmailsEnabled": false,
+  "schemaBeforeSha256": "706e8399171f68a8cb454c275b933ba653623da6503be0b64884b0d39c288ce2",
+  "applicationTests": {
+    "pass": 744,
+    "fail": 0
+  },
+  "static": {
+    "fail": 0,
+    "warn": 1
+  },
+  "build": "Vercel READY",
+  "sqlAtomicAcceptance": "atomic-install-result.json",
+  "browser": {
+    "tenant": "Mek Group",
+    "modulesLoaded": true,
+    "openTasksBlockClosure": true,
+    "unblockedPreviewReachesFinalConfirmation": true,
+    "savedModuleChanges": false,
+    "existingDocumentsLoaded": true,
+    "pendingUploadsLoadedEmpty": true,
+    "pendingCleanupLoadedEmpty": true,
+    "previewSelectionsReset": true
+  },
+  "limits": [
+    "Canlı şirkette modül aç/kapat kaydı yapılmadı; kayıt ve kayıp yanıt tekrar kabulü yerel testlerde ölçüldü.",
+    "Canlıda eşzamanlı kullanıcı/tenant veya kesilen yükleme enjeksiyonu yapılmadı.",
+    "Şema provası yerel sentetik auth/storage bağımlılıkları kullanır."
+  ]
+}
