@@ -159,3 +159,9 @@ Bu kabul izole test sayfasındaki gerçek ürün bileşenleri içindir; üretim 
 QA paneline yalnız sentetik ortamda tek başarılı HTTP yanıtını kaybettiren seçim eklendi. CUA ile Duyurular kapatıldı: SQL/HTTP başarılı olsa da istemciye hata enjeksiyonu nedeniyle belirsiz sonuç ve Aynı işlemi tekrar dene düğmesi göründü. Tekrar sonrası aynı UUID, revision=2, replayed=true; context 2'ye yenilendi. Ardından yeniden açma ayrı UUID ile revision=3/replayed=false tamamlandı, Duyurular tekrar seçili göründü.
 
 Kanıtlar browser-unconfirmed.txt, browser-replay.txt, browser-reopen.png/.txt. Yerel SQL metadata ölçümü browser-retry-ledger.json: iki farklı komut, yalnız iki receipt, revision 2 ve 3. Fiziksel ağ kesintisi değil başarılı HTTP cevabının istemci katmanında kayıp simülasyonudur. Test ortamı exit 0 ile temizlendi; 29 Storage kontrolü geçti. Next route tipleri yenilendi ve TypeScript kontrol edildi. Şirket geçişinin tarayıcı kabulü ve kalan yazma incelemesi açık; üretim değişmedi.
+
+## 17 Ekim — kayıt panelinin kendi bağlam koruması
+
+ModuleChangeCommit artık yalnız parent key/unmount sözleşmesine güvenmez. Aynı mount içinde actor/tenant/üyelik/seçim/rol değişirse niyet kalıcı olarak geçersizleşir, işlem düğmeleri kalkar ve güncel ayarları açma uyarısı gösterilir. Eski isteğin veya refresh'in geç sonucu yeni duruma yazamaz. A→B→A da eski denemeyi canlandırmaz. Parent key kullanımı korunur.
+
+İlgili dört süit 24/24 geçti (scope-ui-tests.tap); yeni senaryolar beş bağlam alanı değişimini, geç commit, eski refresh hatası ve eski bağlama dönüşü kapsar. Bu bileşen sürücüsü kabulüdür; gerçek tarayıcıda şirket seçimi henüz ölçülmedi. Üretim değişmedi; son tarayıcı kanıtları önceki kaydetme/replay/yeniden açma sürümüne aittir.

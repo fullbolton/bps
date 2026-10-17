@@ -19,10 +19,20 @@ export default function ModuleChangeCommit({ context, attempt, transport, refres
   const [state, setState] = useState<'ready' | 'saving' | 'uncertain' | 'refreshing' | 'refreshFailed' | 'done' | 'scopeError'>('ready');
   const busy = useRef(false);
   const active = useRef(true);
+  const scope = JSON.stringify([context.actorId, context.tenantId, context.membershipVersion, context.selectionVersion, context.role]);
+  const initialScope = useRef(scope);
+  const liveScope = useRef(scope);
+  liveScope.current = scope;
+  const invalidated = useRef(false);
+  if (initialScope.current !== scope) invalidated.current = true;
+  const scopeChanged = invalidated.current;
   const currentAttempt = useRef(attempt);
+  currentAttempt.current = attempt;
+  const isCurrent = () => !invalidated.current && active.current && liveScope.current === scope
+    && initialScope.current === scope && currentAttempt.current === attempt;
   useEffect(() => {
-    currentAttempt.current = attempt;
     active.current = true;
+    if (scopeChanged) attempt.discard();
     return () => {
       active.current = false;
       // React Strict Mode immediately replays effects on the same mount.
@@ -30,30 +40,31 @@ export default function ModuleChangeCommit({ context, attempt, transport, refres
         if (!active.current || currentAttempt.current !== attempt) attempt.discard();
       });
     };
-  }, [attempt]);
+  }, [attempt, scopeChanged]);
   async function reload() {
     setState('refreshing');
     try {
       await refresh();
-      if (active.current) setState('done');
+      if (isCurrent()) setState('done');
     } catch {
-      if (active.current) setState('refreshFailed');
+      if (isCurrent()) setState('refreshFailed');
     }
   }
   async function submit() {
-    if (busy.current || !active.current) return;
+    if (busy.current || !isCurrent()) return;
     busy.current = true;
     try {
       if (state === 'refreshFailed') { await reload(); return; }
       setState('saving');
       const outcome = await attempt.send(context, transport);
-      if (!active.current || outcome.status === 'discarded') return;
+      if (!isCurrent() || outcome.status === 'discarded') return;
       if (outcome.status === 'unconfirmed') { setState('uncertain'); return; }
       await reload();
     } catch {
-      if (active.current) setState('scopeError');
+      if (isCurrent()) setState('scopeError');
     } finally { busy.current = false; }
   }
+  if (scopeChanged) return <p role="alert">Şirket veya yetkileriniz değişti. Güncel ayarları açıp değişiklikleri yeniden inceleyin.</p>;
   return <section aria-label="Modül değişikliğini kaydet" className="space-y-3 rounded-xl border border-slate-200 p-4">
     {state === 'ready' && <p>İncelediğiniz modül değişiklikleri bu şirkete uygulanacak. Mevcut kayıtlar silinmez.</p>}
     {state === 'saving' && <p role="status">Değişiklikler kaydediliyor…</p>}
