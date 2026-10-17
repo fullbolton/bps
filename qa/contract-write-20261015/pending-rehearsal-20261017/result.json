@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-17T19:27:38.909056+00:00",
+  "measuredAt": "2026-10-17T19:30:06.267759+00:00",
   "scope": "Pinned production public schema; local synthetic auth/storage/extensions dependencies. No production DDL or business data.",
   "success": true,
   "cleaned": true,
@@ -28,5 +28,10 @@
     "statementTriggers": 2,
     "restrictivePolicies": 2,
     "pendingContractCheck": true
+  },
+  "inventoryCounts": {
+    "triggers": 70,
+    "functions": 285,
+    "foreignKeys": 179
   }
 }

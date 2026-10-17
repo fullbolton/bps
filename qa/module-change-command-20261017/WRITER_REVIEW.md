@@ -44,3 +44,11 @@ critical_dates şeması ve src/app/(main)/kurumsal-tarihler/actions.ts incelendi
 Yerel sentetik transaction'da tüm modül ayarları fixture kurulumu için kapatıldı. authenticated yönetici kendi şirketinde tarih oluşturup okuyabildi; başka şirkete INSERT 42501, mevcut tarihi başka şirkete taşıma 23514 ile reddedildi. Test sonunda rollback yapıldı. Bu test tüm modüllerin gerçek komutla kapatılabileceği veya bütün rol matrisinin doğrulandığı iddiası değildir.
 
 Komut/kabul süiti 22/22 geçti; result.tap güncellendi. Ürün kodu, migration veya üretim değişmedi. Yazma incelemesinde kurumsal tarihler başlığı bu kapsamla netleştirildi; diğer RPC/servis yolları ve yayın ön kontrolü açık kalır.
+
+## 17 Ekim — şema temelli yazma yüzeyi envanteri
+
+Güncel public şema snapshot'ı + iki bekleyen migration yeniden yerelde uygulandı. `qa/contract-write-20261015/writer-catalog.sql` 285 fonksiyonun tam imzasını, owner/definer/config/rol EXECUTE durumunu ve gövde MD5'ini; 70 kullanıcı tetikleyicisini ve 179 FK tanımını kaydetti. Kanıt: `qa/contract-write-20261015/pending-rehearsal-20261017/writer-catalog.json`. İş verisi veya fonksiyon gövdeleri rapora alınmadı; geçici DB temizlendi.
+
+Genişletilmiş kelime taramasında authenticated EXECUTE sahibi definer yazma adaylarından doğrudan modül guard sinyali olmayanlar önceki yedi imzayla aynı: accept_workspace_invitation, admin_create_tenant, admin_manage_membership, document_ack_cleanup_v1, manage_workspace_invitation, prepare_invited_profile, select_workspace. Bunlar önceki kimlik/platform ve cleanup sınıflandırmasıyla uyumlu. Anon EXECUTE + definer + yazma kelime sinyali birleşiminde aday yok. Bu metin taramasıdır; dolaylı çağrı veya yetki kanıtı değildir.
+
+18 ON DELETE CASCADE ilişkisi var. Özellikle companies → financial_summaries, staffing_demands, workforce_summary ve partner_company_assignments yolları doğrudan child tablo çağrılarından ayrı test edilmeli. Profil/tenant silme yolları da bakım sınırında tutulmalı. FK iç işlemlerinde RLS yeterli kanıt değildir; trigger ve gerçek rol altında transaction sonucu ölçülmeli. Henüz açıkların istismar edilebilir olduğu iddia edilmez. Kalan kabul: bu silme zincirleri, diğer dolaylı RPC/servis yolları, ardından gerçek modül kayıt UI bağlantısı. Üretim yayını yapılmadı.

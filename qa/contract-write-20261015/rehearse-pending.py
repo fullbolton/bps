@@ -50,6 +50,9 @@ try:
       'pendingContractCheck',(SELECT position('pending_contract_upload' in prosrc)>0 FROM pg_proc WHERE oid='public.preview_workspace_modules_v1(uuid,uuid,text,jsonb)'::regprocedure));"""))
     c=report['catalog']
     if c['barrierOwner']!='postgres' or not c['barrierDefiner'] or c['clientExecute'] or c['statementTriggers']!=2 or c['restrictivePolicies']!=2 or not c['pendingContractCheck']: raise ValueError('Catalog assertions failed')
+    inventory=json.loads(check((OUT.parent/'writer-catalog.sql').read_text()))
+    (OUT/'writer-catalog.json').write_text(json.dumps(inventory,indent=2)+'\n')
+    report['inventoryCounts']={key:len(value or []) for key,value in inventory.items()}
     report['success']=True
 except Exception as e:
     report['error']=str(e)
