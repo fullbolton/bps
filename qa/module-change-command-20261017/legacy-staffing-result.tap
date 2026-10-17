@@ -1,15 +1,16 @@
 ▶ legacy staffing module fences on a disposable schema clone
-  ✔ reproduces the existing closed-module direct write gap (5.234542ms)
-  ✔ staffing_demands: closed reads hidden and insert/update/delete rejected (7.300208ms)
-  ✔ workforce_summary: closed reads hidden and insert/update/delete rejected (4.817542ms)
-  ✔ open state preserves legitimate writes and tenant RLS (12.227958ms)
-  ✔ waiting direct writer reads the closed state after config commit (4.357791ms)
-✔ legacy staffing module fences on a disposable schema clone (281.555458ms)
-ℹ tests 6
+  ✔ reproduces the existing closed-module direct write gap (6.180666ms)
+  ✔ schema drift aborts migration without leaving helper or policy behind (5.080125ms)
+  ✔ staffing_demands: closed reads hidden and insert/update/delete rejected (8.593708ms)
+  ✔ workforce_summary: closed reads hidden and insert/update/delete rejected (4.867458ms)
+  ✔ open state preserves legitimate writes and tenant RLS (11.928458ms)
+  ✔ waiting direct writer reads the closed state after config commit (4.327125ms)
+✔ legacy staffing module fences on a disposable schema clone (311.659166ms)
+ℹ tests 7
 ℹ suites 0
-ℹ pass 6
+ℹ pass 7
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 335.057958
+ℹ duration_ms 391.576958

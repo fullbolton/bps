@@ -1,23 +1,25 @@
 ▶ local module command candidate
-  ✔ candidate remains inaccessible to client and service roles (1.258875ms)
-  ✔ change is atomic, replay creates no duplicate, changed payload and stale revision fail (12.395333ms)
-  ✔ dependencies, wrong actor, stale membership and no-op cannot write (5.948209ms)
-  ✔ repeatable read and cross-tenant calls fail closed (2.283375ms)
-  ✔ pending document preparation prevents closing with no metadata receipt (8.028375ms)
-  ✔ two concurrent sessions with the same revision cannot overwrite one another (32.9865ms)
-  ✔ writer commits first: waiting close sees newly committed open task and rejects (8.049417ms)
-  ✔ close commits first: waiting business writer rejects disabled module (28.952666ms)
-  ✔ reopening preserves work and increments revision once (4.3965ms)
-  ✔ role revoked while command waits on profile: no settings or receipt written (7.992875ms)
-  ✔ role revoked while command waits on config: no settings or receipt written (6.248ms)
-  ✔ different managers serialize by tenant and cannot replay another actor receipt (11.935375ms)
-  ✔ workspace selection commits during profile wait: old company command is rejected (7.806917ms)
-✔ local module command candidate (409.328584ms)
-ℹ tests 14
+  ✔ candidate remains inaccessible to client and service roles (1.16575ms)
+  ✔ change is atomic, replay creates no duplicate, changed payload and stale revision fail (13.430458ms)
+  ✔ dependencies, wrong actor, stale membership and no-op cannot write (6.298459ms)
+  ✔ repeatable read and cross-tenant calls fail closed (2.245041ms)
+  ✔ pending document preparation prevents closing with no metadata receipt (7.681ms)
+  ✔ two concurrent sessions with the same revision cannot overwrite one another (32.269541ms)
+  ✔ writer commits first: waiting close sees newly committed open task and rejects (7.836ms)
+  ✔ close commits first: waiting business writer rejects disabled module (28.482667ms)
+  ✔ reopening preserves work and increments revision once (5.054667ms)
+  ✔ authenticated legacy demand commits first: real close command sees it and rejects (11.897459ms)
+  ✔ real close commits first: authenticated legacy upsert is rejected and reopen preserves data (39.529167ms)
+  ✔ role revoked while command waits on profile: no settings or receipt written (7.456ms)
+  ✔ role revoked while command waits on config: no settings or receipt written (6.851458ms)
+  ✔ different managers serialize by tenant and cannot replay another actor receipt (12.945583ms)
+  ✔ workspace selection commits during profile wait: old company command is rejected (9.470542ms)
+✔ local module command candidate (441.424083ms)
+ℹ tests 16
 ℹ suites 0
-ℹ pass 14
+ℹ pass 16
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 456.495
+ℹ duration_ms 495.072625

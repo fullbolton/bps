@@ -12,7 +12,7 @@
 
 ## Ölçülen kabul
 
-`result.tap`: 13 alt senaryo + kapsayıcı test = 14/14. Gerçek yerel PostgreSQL üzerinde sentetik `bps_module_chain_20261005` klonu; son evrak migration'ları ayrıca uygulanır. Sonunda klon kaldırılır.
+`result.tap`: 15 alt senaryo + kapsayıcı test = 16/16. Gerçek yerel PostgreSQL üzerinde sentetik `bps_module_chain_20261005` klonu; son evrak migration'ları ayrıca uygulanır. Sonunda klon kaldırılır.
 
 Doğrulananlar: istemci yetkileri kapalı; idempotent tekrar; farklı payload reddi; stale revision; bağımlılık/actor/membership/no-op; yanlış tenant ve repeatable-read; bekleyen evrak; aynı actor'ın iki eşzamanlı oturumu; iş yazma/kapatma iki sıralama; yeniden açmada verinin korunması. Yarış testleri pg_stat_activity ile gerçek Lock beklemesini ölçer. İki farklı yönetici; config ve profile kilidinde beklerken rol düşürme; rol geri verilse bile eski üyelik sürümünü reddetme; gerçek select_workspace RPC ile şirket seçimi değişirken eski komutun reddi ayrıca doğrulandı. Her ret sonrası revision ve receipt yokluğu kontrol edildi. HTTP/tarayıcı veya bütün mutasyon yollarının kabulü değildir.
 
@@ -32,3 +32,7 @@ NODE_PATH=/private/tmp/bps-calendar-qa-runtime/node_modules node --test qa/modul
 ## Yetki yarışı genişletmesi
 
 İlk genişletme çalışmasında çoklu üyeliğe geçişten sonra açık şirket seçimi yapılmayan fixture WORKSPACE_SCOPE ile reddedildi. Test, gerçek select_workspace çağrısı ve dönen üyelik/seçim sürümlerini taşıyan sentetik claim ile düzeltildi; ürün kontrolü gevşetilmedi. Son çalışma 14/14. Ürün SQL değişikliği gerekmedi. Geçici klon sonunda kaldırıldı.
+
+## Eski personel tablolarıyla birleşik kabul
+
+20261017000100_legacy_staffing_module_barriers.sql komuttan önce uygulanır. Authenticated staffing_demands INSERT önce commit ederse gerçek komut 23514 ile kapanmayı reddeder, receipt oluşmaz. Gerçek komut önce kapatırsa bekleyen authenticated workforce_summary UPSERT BM001 ile reddedilir. Yeniden açmada talep görünür ve başarısız upsert değeri değişmemiştir. Toplam komut süiti 16/16; ayrı tablo/migration süiti 7/7. Migration dosyası hazır fakat üretime uygulanmadı. Kayıt komutu hâlâ yerel aday ve istemci EXECUTE kapalıdır.

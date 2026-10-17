@@ -17,6 +17,7 @@ test('local module command candidate',async t=>{
   const [a,b,o]=clients;
   const files=['20261015000500_document_cleanup_queue.sql','20261015000600_document_cleanup_retry.sql','20261015000700_document_cleanup_module_preview.sql','20261015000800_document_upload_attempts.sql','20261016000100_document_upload_module_preview.sql','20261016000200_document_pending_uploads.sql','20261016000300_document_finalize_upload.sql','20261016000400_document_upload_recovery.sql','20261016000500_document_upload_cancellation.sql','20261016000600_document_metadata_command.sql','20261016000700_document_delete_command.sql','20261016000800_document_insert_reservations.sql','20261016000900_document_storage_legacy_write_fences.sql','20261016001100_document_storage_module_barrier.sql'];
   for(const file of files)await a.query(readFileSync(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
+  await a.query(readFileSync(new URL('../../supabase/migrations/20261017000100_legacy_staffing_module_barriers.sql',import.meta.url),'utf8'));
   await a.query(readFileSync(new URL('./command-candidate.sql',import.meta.url),'utf8'));
   const context=async c=>(await c.query('select current_workspace_modules_v1() AS value')).rows[0].value;
   const invoke=(c,ctx,command,modules)=>c.query('select change_workspace_modules_v1($1,$2,$3,$4,$5,$6,$7) AS value',[ctx.actorId,ctx.tenantId,ctx.membershipVersion,ctx.selectionVersion,ctx.configRevision,id(command),modules]);
@@ -89,6 +90,31 @@ test('local module command candidate',async t=>{
    const ctx=await context(a);await invoke(a,ctx,806,{...ctx.modules,tasks:true});
    assert.equal((await context(a)).modules.tasks,true);
    assert.equal((await a.query('select count(*)::int n from tasks where id=$1',[id(880)])).rows[0].n,1);
+  });
+  await t.test('authenticated legacy demand commits first: real close command sees it and rejects',async()=>{
+   const ctx=await context(a);
+   await b.query('SET ROLE authenticated');await b.query('BEGIN');
+   await b.query("insert into staffing_demands(id,tenant_id,company_id,position) values($1,$2,$3,'Synthetic integrated race')",[id(892),id(1),id(890)]);
+   const waiting=invoke(a,ctx,818,{...ctx.modules,staffing:false}).then(()=>null,e=>e.code);
+   await blocked(o,a.processID);await b.query('COMMIT');assert.equal(await waiting,'23514');
+   await b.query('RESET ROLE');assert.equal((await context(a)).modules.staffing,true);
+   assert.equal((await a.query('select count(*)::int n from tenant_module_changes where command_id=$1',[id(818)])).rows[0].n,0);
+  });
+  await t.test('real close commits first: authenticated legacy upsert is rejected and reopen preserves data',async()=>{
+   await a.query("update staffing_demands set status='tamamen_doldu' where tenant_id=$1",[id(1)]);
+   await a.query('insert into workforce_summary(id,tenant_id,company_id) values($1,$2,$3)',[id(893),id(1),id(890)]);
+   const ctx=await context(a);await a.query('BEGIN');
+   await invoke(a,ctx,819,{...ctx.modules,staffing:false});
+   await b.query('SET ROLE authenticated');
+   const waiting=b.query("insert into workforce_summary(id,tenant_id,company_id,target_count) values($1,$2,$3,99) on conflict(id) do update set target_count=excluded.target_count",[id(893),id(1),id(890)]).then(()=>null,e=>e.code);
+   await blocked(o,b.processID);await a.query('COMMIT');assert.equal(await waiting,'BM001');
+   assert.equal((await b.query('select id from staffing_demands where id=$1',[id(892)])).rowCount,0);
+   await b.query('RESET ROLE');
+   const closed=await context(a);await invoke(a,closed,820,{...closed.modules,staffing:true});
+   await b.query('SET ROLE authenticated');
+   assert.equal((await b.query('select id from staffing_demands where id=$1',[id(892)])).rowCount,1);
+   assert.equal((await b.query('select target_count from workforce_summary where id=$1',[id(893)])).rows[0].target_count,0);
+   await b.query('RESET ROLE');
   });
   for(const waitingOn of ['profile','config'])await t.test(`role revoked while command waits on ${waitingOn}: no settings or receipt written`,async()=>{
    const ctx=await context(a);

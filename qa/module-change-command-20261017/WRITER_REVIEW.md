@@ -8,9 +8,9 @@
 
 staffing_demands ve workforce_summary doğrudan insert/update/upsert kullanıyor. Yerel şema klonunda mevcut policy/trigger katalogları modül kontrolü taşımıyordu. authenticated rolüyle staffing kapalıyken iki tabloya yazma ve talebi okuma başarıyla yeniden üretildi.
 
-legacy-staffing-candidate.sql, iki tabloda restrictive ALL modül/tenant policy ve BEFORE STATEMENT yazma bariyeri ekler. Statement bariyeri config SHARE kilidini UPDATE/DELETE iş satırı kilidinden önce alır; profile SHARE sonrası canlı bağlam tekrar denetlenir. Mevcut rol politikaları korunur. Salt okunur SELECT kilit almaz. Yönetici/service maintenance bypass'ı değişmez; bu rollerin dış yazıcı denetimi ayrıca gerekir.
+supabase/migrations/20261017000100_legacy_staffing_module_barriers.sql, iki tabloda restrictive ALL modül/tenant policy ve BEFORE STATEMENT yazma bariyeri ekler. Statement bariyeri config SHARE kilidini UPDATE/DELETE iş satırı kilidinden önce alır; profile SHARE sonrası canlı bağlam tekrar denetlenir. Mevcut rol politikaları korunur. Salt okunur SELECT kilit almaz. Yönetici/service maintenance bypass'ı değişmez; bu rollerin dış yazıcı denetimi ayrıca gerekir.
 
-legacy-staffing-result.tap: 5 alt senaryo + kapsayıcı = 6/6. Hatanın düzeltme öncesi yeniden üretimi, kapalı okuma ve üç DML reddi, açıkken normal güncelleme, tenant değiştirme reddi ve gerçek config Lock beklemesinden sonra kapalı durumun görülmesi. Sentetik klon sonunda kaldırıldı. Aday henüz migration zincirinde veya canlıda değil.
+legacy-staffing-result.tap: 6 alt senaryo + kapsayıcı = 7/7. Hatanın düzeltme öncesi yeniden üretimi, kapalı okuma ve üç DML reddi, açıkken normal güncelleme, tenant değiştirme reddi ve gerçek config Lock beklemesinden sonra kapalı durumun görülmesi. Sentetik klon sonunda kaldırıldı. Migration dosyası hazır; canlıya uygulanmadı. RLS kapalı şema sapmasıyla atomik ret ve geride helper/policy kalmaması ayrıca test edildi.
 
 ## Diğer görülen yüzeyler
 
@@ -27,7 +27,7 @@ legacy-staffing-result.tap: 5 alt senaryo + kapsayıcı = 6/6. Hatanın düzeltm
 
 ## Açık işler
 
-- İki tablo düzeltmesini kaynak/hash ön kontrolü olan tarihli migration'a dönüştür, aday komutla birlikte zincir kabulünü yap.
+- İki tablo düzeltmesi 20261017000100 migration dosyasına taşındı; RLS/tenant tipi/önkoşul fonksiyon kontrolleri var. Eski fonksiyon gövdesi değiştirilmediği için gövde hash yaması yok. Aday komutla aynı yerel klonda doğrudan authenticated INSERT ve UPSERT yarış kabulü geçti; bütün üretim zinciri provası ayrı.
 - Definer RPC/trigger/FK/servis yollarını güncel katalogdan signature bazında tamamla. Bu doküman bütün SQL fonksiyonlarının incelendiği iddiası değildir.
 - Üretim katalog ve migration sırasını yayın öncesinde yeniden ölç.
 - Kayıt komutu/receipt protokolü ve menü/cache/UI bağlantısı ile gerçek kayıt tarayıcı kabulü hâlâ açık; komuta EXECUTE verilmedi.

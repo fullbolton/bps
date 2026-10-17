@@ -22,7 +22,15 @@ test('legacy staffing module fences on a disposable schema clone',async t=>{
    await b.query('insert into workforce_summary(id,tenant_id,company_id) values($1,$2,$3)',[id(902),id(1),id(900)]);
    assert.equal((await b.query('select id from staffing_demands where id=$1',[id(901)])).rowCount,1);
   });
-  await a.query(readFileSync(new URL('./legacy-staffing-candidate.sql',import.meta.url),'utf8'));
+  await t.test('schema drift aborts migration without leaving helper or policy behind',async()=>{
+   await a.query('alter table workforce_summary disable row level security');
+   await assert.rejects(a.query(readFileSync(new URL('../../supabase/migrations/20261017000100_legacy_staffing_module_barriers.sql',import.meta.url),'utf8')), /LEGACY_STAFFING_MODULE_SCHEMA/);
+   await a.query('ROLLBACK');
+   assert.equal((await a.query("select to_regprocedure('public.legacy_staffing_write_barrier_v1()') value")).rows[0].value,null);
+   assert.equal((await a.query("select count(*)::int n from pg_policy where polname='staffing_demands_module_fence'")).rows[0].n,0);
+   await a.query('alter table workforce_summary enable row level security');
+  });
+  await a.query(readFileSync(new URL('../../supabase/migrations/20261017000100_legacy_staffing_module_barriers.sql',import.meta.url),'utf8'));
   for(const table of ['staffing_demands','workforce_summary'])await t.test(`${table}: closed reads hidden and insert/update/delete rejected`,async()=>{
    assert.equal((await b.query(`select id from ${table}`)).rowCount,0);
    for(const sql of [`update ${table} set location='no'`,`delete from ${table}`,table==='staffing_demands'?`insert into ${table}(tenant_id,company_id,position) values('${id(1)}','${id(900)}','no')`:`insert into ${table}(tenant_id,company_id) values('${id(1)}','${id(900)}')`])await assert.rejects(b.query(sql),{code:'BM001'});

@@ -1,7 +1,23 @@
--- LOCAL CANDIDATE. Apply and verify before granting the module-change command.
+-- Legacy staffing boundaries. Does not grant or enable module configuration changes.
 BEGIN;
 SET LOCAL lock_timeout='15s';
 LOCK TABLE public.staffing_demands,public.workforce_summary IN ACCESS EXCLUSIVE MODE;
+DO $guard$
+DECLARE relation regclass; name text;
+BEGIN
+ IF to_regprocedure('public.workspace_require_module_write_v1(uuid,text[])') IS NULL
+ OR to_regprocedure('public.workspace_module_enabled_v1(text)') IS NULL THEN
+  RAISE EXCEPTION 'LEGACY_STAFFING_MODULE_PREREQUISITE';
+ END IF;
+ FOREACH name IN ARRAY ARRAY['staffing_demands','workforce_summary'] LOOP
+  relation:=to_regclass('public.'||name);
+  IF NOT EXISTS(SELECT FROM pg_class WHERE oid=relation AND relkind='r' AND relrowsecurity)
+   OR NOT EXISTS(SELECT FROM pg_attribute WHERE attrelid=relation AND attname='tenant_id'
+    AND atttypid='uuid'::regtype AND attnotnull AND NOT attisdropped) THEN
+   RAISE EXCEPTION 'LEGACY_STAFFING_MODULE_SCHEMA: %',name;
+  END IF;
+ END LOOP;
+END $guard$;
 CREATE FUNCTION public.legacy_staffing_write_barrier_v1() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' SET lock_timeout='5s' AS $$
 DECLARE tenant uuid;

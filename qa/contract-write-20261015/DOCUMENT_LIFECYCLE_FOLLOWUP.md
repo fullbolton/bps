@@ -570,3 +570,10 @@ Yerel aday komut süiti 14/14 oldu (13 alt senaryo + kapsayıcı). Config veya p
 AST envanteri yenilendi: 473 kaynak / 47 route / 322 çağrı / 6 dinamik hedef. staffing_demands ve workforce_summary üzerinde modül kapalıyken authenticated doğrudan yazma/okuma yerel klonda yeniden üretildi. İki tabloya restrictive modül policy + satır kilidinden önce config kilidi alan statement trigger adayı eklendi. 6/6 yerel PostgreSQL testi geçti; açık modül davranışı, tenant reddi ve kapatma sırasında bekleyen yazım dahil.
 
 Kanıt ve kalan kapsam: qa/module-change-command-20261017/WRITER_REVIEW.md ve legacy-staffing-result.tap. Üretim katalog bu tur ölçülmedi; aday SQL migration zincirine alınmadı, yayımlanmadı. Gerçek modül kapatma hâlâ kapalı.
+
+
+## 17 Ekim — eski personel sınırı migration ve birleşik kabul
+
+20261017000100_legacy_staffing_module_barriers.sql hazırlandı; eski QA SQL kopyası kaldırıldı, testler doğrudan migration dosyasını çalıştırıyor. RLS/tenant UUID NOT NULL ve önkoşul kontrolleri eklendi. Şema sapmasında hiçbir helper/policy bırakmadan ret dahil 7/7 tablo testi geçti.
+
+Komut süiti 16/16: authenticated talep INSERT önceyse gerçek kapatma reddi; kapatma önceyse bekleyen workforce UPSERT reddi; yeniden açmada veri korunması. İki paket aynı yerel sentetik şema üzerinde çalıştı; gerçek veri kullanılmadı. Üretime migration veya uygulama yayını yapılmadı. Kayıt komutu yerel aday, istemci EXECUTE kapalı. Diğer writer denetimi/üretim preflight/istemci kayıt akışı açık.
