@@ -20,7 +20,7 @@ const uri=`postgres://${process.env.BPS_RELEASE_BARRIER==='1'?'authenticator':'p
 const storageUri=`postgres://supabase_storage_admin:${encodeURIComponent(password)}@${source}:5432/${database}`;secrets.push(storageUri);
 let created=false;
 const checks=[];
-const migrations=['20261013000300_document_contract_module_access.sql','20261015000500_document_cleanup_queue.sql','20261015000600_document_cleanup_retry.sql','20261015000700_document_cleanup_module_preview.sql','20261015000800_document_upload_attempts.sql','20261016000100_document_upload_module_preview.sql','20261016000200_document_pending_uploads.sql','20261016000300_document_finalize_upload.sql','20261016000400_document_upload_recovery.sql','20261016000500_document_upload_cancellation.sql','20261016000600_document_metadata_command.sql','20261016000700_document_delete_command.sql','20261016000800_document_insert_reservations.sql','20261016000900_document_storage_legacy_write_fences.sql','20261016001000_workspace_conflict_http.sql','20261016001100_document_storage_module_barrier.sql'];
+const migrations=JSON.parse(readFileSync(new URL('../module-change-command-20261017/fixture-migrations.json',import.meta.url),'utf8'));
 const claim=`SELECT set_config('request.jwt.claims','${JSON.stringify({sub:id(11),active_tenant_id:id(1)})}',true);SET LOCAL ROLE authenticated;`;
 const pdf=Buffer.from('%PDF-1.4\nSynthetic local acceptance file\n%%EOF\n');
 try {
@@ -137,6 +137,11 @@ try {
  assert.equal((await request('/object/documents/'+abandonedPath,'POST',pdf,token,{'Content-Type':'application/pdf'})).ok,false);
  checks.push('uploaded cancellation prevents finalize and retires path after queued HTTP cleanup');
  sql(`UPDATE companies SET status='aktif' WHERE id='${id(991)}';INSERT INTO contracts(id,company_id,tenant_id,name) VALUES('${id(995)}','${id(991)}','${id(1)}','Synthetic contract HTTP');BEGIN;${claim}SELECT prepare_contract_document_upload('${id(11)}','${id(1)}','${id(995)}','${id(996)}',NULL,NULL,'contract.pdf',${pdf.length},repeat('a',64),false,'main',NULL);COMMIT;`);
+ async function contractPreview(){
+  const snapshot=await rpc('current_workspace_modules_v1',{});
+  return rpc('preview_workspace_modules_v1',{p_expected_actor:id(11),p_expected_tenant:id(1),p_expected_revision:snapshot.configRevision,p_modules:{...snapshot.modules,contracts:false}});
+ }
+ assert.equal((await contractPreview()).checks.find(c=>c.code==='pending_contract_upload')?.blocking,true);
  const contractPath=sql(`SELECT storage_path FROM contract_pdf_upload_commands WHERE command_id='${id(996)}';`);
  sql(`BEGIN;SELECT 1 FROM tenant_module_config WHERE tenant_id='${id(1)}' FOR UPDATE;UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='contracts';COMMIT;`);
  assert.equal((await request('/object/documents/'+contractPath,'POST',pdf,token,{'Content-Type':'application/pdf'})).ok,false);
@@ -161,6 +166,8 @@ try {
  const legacyRemoved=await request('/object/documents','DELETE',JSON.stringify({prefixes:[legacyPath]}),token,{'Content-Type':'application/json'});
  assert.ok(legacyRemoved.ok,legacyRemoved.text);assert.ok(JSON.parse(legacyRemoved.text).some(x=>x.name===legacyPath));
  assert.equal(sql(`BEGIN;${claim}SELECT document_ack_cleanup_v1('${id(997)}');COMMIT;`).split('\n').at(-1),'t');checks.push('legacy deletion works after durable cleanup job');
+ assert.equal((await contractPreview()).checks.find(c=>c.code==='pending_contract_upload')?.blocking,false);
+ checks.push('HTTP preview includes pending contract upload blocker and clears it after finalize');
  // Workspace conflicts are real HTTP calls, not direct SQL exception tests.
  async function conflict(name,args,message){const result=await rpcResult(name,args);assert.equal(result.status,409);assert.equal(result.data.code,'PT409');assert.equal(result.data.message,message);}
  const context=await rpc('current_workspace_modules_v1',{});

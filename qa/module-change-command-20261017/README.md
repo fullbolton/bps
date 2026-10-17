@@ -49,3 +49,10 @@ post-migration-writer-candidates.json, bu yerel şemada authenticated EXECUTE ta
 20261017000200_contract_upload_module_preview.sql eklendi. Güncel preview gövde md5'i yerel güncel şemadan ölçüldü (4cde00fbcf8756586146ad19aba5d398); farklı gövde/anchor migration'ı durdurur. contracts kapanacaksa contract_pdf_upload_commands pending/publishing kayıtları ayrıca engel sayılır. Süresi dolmuş sözleşmede unfinished_contracts=false iken pending_contract_upload=true kanıtlandı; aday atomik komut 23514 ile reddetti. İptal edilmiş rezervasyon pending sayılmaz; iptal edilmiş dosyaların Storage temizliği bu kontrolün kapsamı değildir.
 
 Önizleme parser'ı 19 kontrolün ilgili alt kümesini doğrular; eksik sözleşme yükleme kontrolünü başarı saymaz. Bu nedenle migration frontend'den önce uygulanmalı; eski server + yeni UI fail-closed hata verir. Fixture artık 24 migration uygular. Veritabanı 17/17, önizleme/parser/bileşen 13/13, TypeScript temiz. Üretime hiçbir işlem yapılmadı; migration bekliyor. UI mutasyon ve diğer erişim/yayın kabul kapıları hâlâ açık.
+
+
+## 17 Ekim — güncel ortak fixture ile Storage HTTP kabulü
+
+storage-http.mjs artık modül komut testiyle aynı fixture-migrations.json listesini (24 migration) kullanıyor. Eski ayrı/dar evrak listesi kaldırıldı. BPS_LOCAL_BROWSER modu da aynı kurulumdan yararlanır; bu tur tarayıcı UI kabulü yapılmadı.
+
+Gerçek yerel Storage/PostgREST üzerinden 29/29 kontrol geçti. Yeni kontrol: pending sözleşme PDF rezervasyonunda HTTP preview pending_contract_upload=true; gerçek dosya upload ve finalize sonrasında false. Önceki kurtarma/iptal/Storage sahiplik ve şirket değişimi kontrolleri korundu. Kanıt qa/module-change-command-20261017/storage-http-result.json. Geçici klon/container'lar finally ile kaldırıldı. Üretim değişmedi; migration ve modül UI yayını hâlâ bekliyor.
