@@ -38,3 +38,26 @@ test('invalid or unchanged requests cannot create an attempt',()=>{
  assert.throws(()=>createModuleChangeAttempt(context,'invalid',draft));
  assert.throws(()=>createModuleChangeAttempt({...context,role:'operasyon'},id(4),draft));
 });
+
+test('unmount before dispatch prevents transport and future retries',async()=>{
+ const attempt=createModuleChangeAttempt(context,id(4),draft);let calls=0;
+ const transport=async()=>{calls++;return receipt;};
+ const pending=attempt.send(context,transport);attempt.discard();
+ assert.deepEqual(await pending,{status:'discarded'});
+ assert.deepEqual(await attempt.send(context,transport),{status:'discarded'});
+ assert.equal(calls,0);
+});
+test('late success or failure after scope teardown cannot become a visible result',async()=>{
+ for(const fail of [false,true]){
+  const attempt=createModuleChangeAttempt(context,id(4),draft);let finish;
+  const pending=attempt.send(context,()=>new Promise((resolve,reject)=>{finish=()=>fail?reject(Error('late network failure')):resolve(receipt);}));
+  await Promise.resolve();attempt.discard();finish();
+  assert.deepEqual(await pending,{status:'discarded'});
+ }
+});
+test('discard also removes a cached commit result',async()=>{
+ const attempt=createModuleChangeAttempt(context,id(4),draft);
+ assert.equal((await attempt.send(context,async()=>receipt)).status,'committed');
+ attempt.discard();
+ assert.deepEqual(await attempt.send(context,async()=>{throw Error('must not dispatch');}),{status:'discarded'});
+});

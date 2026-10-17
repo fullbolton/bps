@@ -1,18 +1,21 @@
-✔ lost response retries identical immutable intent, even after a newer revision (1.761333ms)
-✔ double click shares one in-flight request; confirmed repeat does not write again (0.202584ms)
-✔ malformed acknowledgement stays unconfirmed and can be retried (0.253459ms)
-✔ workspace, membership, selection and role changes cannot send the old intent (0.186834ms)
-✔ invalid or unchanged requests cannot create an attempt (0.107625ms)
-✔ receipt keeps bigint precision and validates both fresh commit and replay (1.458958ms)
-✔ foreign identity, command, revision, state or protocol cannot show success (0.396042ms)
-✔ null, missing and partial responses fail closed (0.266209ms)
-✔ invalid expected commands cannot turn a response into proof (0.163375ms)
-✔ replayed receipt remains bound to original revision, not a later settings snapshot (0.08675ms)
-ℹ tests 10
+✔ lost response retries identical immutable intent, even after a newer revision (1.894083ms)
+✔ double click shares one in-flight request; confirmed repeat does not write again (0.214583ms)
+✔ malformed acknowledgement stays unconfirmed and can be retried (0.26975ms)
+✔ workspace, membership, selection and role changes cannot send the old intent (0.1815ms)
+✔ invalid or unchanged requests cannot create an attempt (0.109792ms)
+✔ unmount before dispatch prevents transport and future retries (0.107042ms)
+✔ late success or failure after scope teardown cannot become a visible result (0.176ms)
+✔ discard also removes a cached commit result (0.120084ms)
+✔ receipt keeps bigint precision and validates both fresh commit and replay (1.535416ms)
+✔ foreign identity, command, revision, state or protocol cannot show success (0.365459ms)
+✔ null, missing and partial responses fail closed (0.259667ms)
+✔ invalid expected commands cannot turn a response into proof (0.174291ms)
+✔ replayed receipt remains bound to original revision, not a later settings snapshot (0.083208ms)
+ℹ tests 13
 ℹ suites 0
-ℹ pass 10
+ℹ pass 13
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 444.704417
+ℹ duration_ms 452.451125

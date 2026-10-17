@@ -751,3 +751,9 @@ Genişletilmiş kelime taramasında authenticated EXECUTE sahibi definer yazma a
 `src/lib/modules/change-attempt.ts` tek onaylanmış niyetin immutable snapshot/payload'unu ve UUID'sini korur. İstek devam ederken ikinci çağrı aynı promise'i paylaşır. Transport hatası veya geçersiz receipt unconfirmed döner; başarı gösterilmez. Tekrarda güncel revision ilerlemiş olsa da ilk revision/payload gönderilir: önceki commit'in replay kanıtı alınabilir. Actor/tenant/üyelik/seçim veya yönetici rolü değişmişse transport çağrılmaz. Doğrulanmış commit tekrar yazılmaz.
 
 `module-change-attempt.test.mjs` + receipt süiti 10/10, TypeScript ve test envanteri geçti (129 application). Kanıt attempt-tests.tap. Bu injectable transport altyapısıdır; gerçek RPC çağrısı, grant, migration veya UI bağlantısı eklenmedi. Component unmount/context değişiminde eski sonucu göstermeme, reload sonrası kalıcı kurtarma ve kullanıcı mesajları sonraki UI kabulünün konusudur. Receipt güncel ayar görüntüsü değildir; sonrası context refresh zorunludur. Üretim değişmedi.
+
+## 17 Ekim — ayrılan ekranın geç yanıtını yok sayma
+
+Modül kayıt denemesine discard yaşam döngüsü eklendi. UI bağlandığında unmount veya şirket/yetki değişiminde çağrılacak. İstek henüz başlamadıysa gönderilmez; başlamış isteğin geç başarı/hata yanıtı discarded döner, önceki commit cache'i de gösterilmez. Bu sunucuya ulaşmış işlemi geri almaz; tekrar girişte güncel ayarlar yeniden okunmalıdır.
+
+Attempt + receipt süiti 13/13, TypeScript geçti. Yeni kabuller: dispatch öncesi ayrılma, dispatch sonrası geç başarı/hata, doğrulanmış receipt sonrası ayrılma. Kanıt attempt-tests.tap. Henüz component bağlantısı bulunmadığından tarayıcıda şirket geçişi koruması tamamlandı denmez. Yeni SQL/grant veya üretim yayını yok.
