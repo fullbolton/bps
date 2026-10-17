@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: real local Storage policies enforce module closure
+    # Subtest: person-files: enabled upload succeeds; closed read/upload is denied
+    ok 1 - person-files: enabled upload succeeds; closed read/upload is denied
+      ---
+      duration_ms: 210.612958
+      type: 'test'
+      ...
+    # Subtest: person-files: waiting upload sees committed closure and leaves no metadata
+    ok 2 - person-files: waiting upload sees committed closure and leaves no metadata
+      ---
+      duration_ms: 55.30275
+      type: 'test'
+      ...
+    # Subtest: project-sources: enabled upload succeeds; closed read/upload is denied
+    ok 3 - project-sources: enabled upload succeeds; closed read/upload is denied
+      ---
+      duration_ms: 62.408916
+      type: 'test'
+      ...
+    # Subtest: project-sources: waiting upload sees committed closure and leaves no metadata
+    ok 4 - project-sources: waiting upload sees committed closure and leaves no metadata
+      ---
+      duration_ms: 60.001458
+      type: 'test'
+      ...
+    1..4
+ok 1 - real local Storage policies enforce module closure
+  ---
+  duration_ms: 2303.386625
+  type: 'test'
+  ...
+1..1
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2544.957667
