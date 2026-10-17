@@ -1,8 +1,8 @@
-> **17 Ekim güncel durum: yayın tamamlandı, üretim ledger 182, bakım kaldırıldı.** Son bölüm ve release-manifest-20261017.json esas alınır; aşağıdaki hazırlık bölümleri tarihsel kayıttır.
+> **17 Ekim son yayın:** `312a468`, deployment `dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs`, 182 migration. Güncel yayın kanıtı `recovery-fix-release-20261017.json`; önceki büyük şema yayını `release-manifest-20261017.json` içinde korunur.
 
-# Güncel yayın kontrolü — 16 Ekim, hazırlık dağıtımları sonrası
+# Tarihsel yayın hazırlığı — 16 Ekim
 
-Bu bölüm alttaki kronolojik notların güncel özetidir; eski “henüz yapılmadı” maddeleri tek başına kullanılmaz.
+Bu bölüm 16 Ekim hazırlığını anlatır; güncel durum olarak kullanılmaz.
 
 - Canlı www.bpsys.net: dpl_CamuYBKVLbRg1WgStdWgjuRF4xVw. Son bağımsız inspect kanıtı production-alias-after-module-stage.json.
 - Eski kod + bakım kapısı hazır: dpl_2K2qPJNmHybF13XJUVagGtVTG248.

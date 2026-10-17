@@ -1,4 +1,31 @@
-# Genel evrak yaşam döngüsü — 15 Ekim 2026
+# Genel evrak yaşam döngüsü — güncel durum ve kronolojik kayıt
+
+## Güncel durum — 17 Ekim 2026
+
+Bu özet son kayıtlı ölçümlere dayanır; aşağıdaki 15–16 Ekim notları kronolojik geçmişi korur. Bu özet hazırlanırken üretime yeniden sorgu gönderilmedi.
+
+- **Canlı kaynak:** `312a468` (ürün düzeltmeleri `415dfff` dahil), deployment `dpl_CQ9mr8chp8Ppat2BEWunDquhgzMs`. Kanıt: `qa/release-chain-20261016/recovery-fix-release-20261017.json`.
+- **Veritabanı:** son salt okunur ölçümde 182 migration; bakım bariyeri yok. Kanıt: `qa/release-chain-20261016/recovery-fix-preflight-20261017.json`.
+- **Evrak paketi yayımlandı:** kalıcı hazırlama/yayınlama defteri, bekleyen liste, güvenli kurtarma/iptal, revision kontrollü metadata/silme ve kalıcı dosya temizliği. Son bağlantı hatası mesajları ve istek başına deadline da canlıda.
+- **Modül kapatma:** pending upload ve pending cleanup ön kontrolüne bağlı; gerçek kapatma işlemi **hâlâ kapalı** (`advisoryOnly=true`, `mutationAvailable=false`). Evrak paketinin bitmesi tüm modüllerin güvenle kapatılabildiği anlamına gelmez.
+- **Son doğrulama:** 692 uygulama testi, 12 hedefli evrak testi; statik 0 FAIL / 1 mevcut WARN; TypeScript temiz. Güncel yerel Storage HTTP 28/28. Farklı tarihlerdeki test sayıları toplanmaz.
+- **Canlı kabul:** kimlikli evrak/pending/cleanup ekranları açıldı. Önceki sentetik belge yükleme/klasör değişikliği, randevu ve sözleşme yazma kontrolleri ayrı tarihli kanıtlardır.
+
+### Kabul kapsamı ve kalanlar
+
+| Akış | Kanıtlı kapsam | Kalan sınır |
+|---|---|---|
+| Kurtarma ve iptal | Yerel gerçek Auth + Next server action + Storage; dosyalı/dosyasız iptal; eşzamanlı finalize tek evrak | Üretimde kasıtlı kesinti/timeout enjekte edilmedi |
+| Şirket geçişi | İki tarayıcı sekmesinde açık form kapanıyor; HTTP gövdesi açıkken şirket değişirse eski upload/finalize reddediliyor | Bu iki kanıt, kesintili dosya aktarımı sırasında tarayıcı UX'inin uçtan uca testi değildir |
+| Yetki değişimi | Eski token ve güncel salt okunur rol reddediliyor; gerçek Auth refresh sonrası kısıtlı ekran | Refresh isteğiyle tam eşzamanlı üyelik değişimi ayrı senaryo |
+| Modül kapatma koordinasyonu | İki DB bağlantısıyla Storage/config kilit sırası; bekleyen işlem ön kontrolü | Gerçek kapatma yazma komutu ve bütün modül engellerinin uçtan uca kabulü ayrı iş |
+| Mobil | Önceki 390×844 tarayıcı viewport kabulü | Fiziksel cihaz, dosya seçici ve zayıf bağlantı testi yapılmadı |
+
+Bu evrak bloğunda bekleyen ürün düzeltmesi veya migration yok. Sonraki ek kabul işleri yukarıdaki sınırlarla sınırlanır; tamamlanan kontrol listesi yeniden başlatılmaz. Otomatik e-postalar kapalı; gerçek veri temizliği veya tam içerik yedeği yapılmadı.
+
+---
+
+## Tarihsel başlangıç — 15 Ekim 2026
 
 Bu çalışma yereldir. Yeni migration, üretim verisi değişikliği veya yayın yoktur.
 
