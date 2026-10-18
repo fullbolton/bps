@@ -17,3 +17,17 @@ Arşiv, okunmamışa geri alma ve toplu okundu: yeni server komutu, güncel üye
 ## Kabul
 
 14/14 hedefli action/bileşen testi; TypeScript temiz; statik 0 FAIL/0 WARN; diff kontrolü temiz. Yeni filtre testi Türkçe arama, kaynak+arama kesişimi, temizleme, okunmamış, sayfalama ve global sayacın korunmasını çalıştırır. Bunlar gerçek bileşen callback testleri; DOM/tarayıcı kabulü değildir. Yeni SQL yok. Bu paket ve önceki bağlantı düzeltmesi yereldedir; tarayıcı kabulü ve üretim yayını yapılmadı. Önceki 787 genel test/build kanıtı önceki kaynak içindir; bu filtre değişikliğinin tüm suite/build sonucu olarak sunulmaz.
+
+## Sonraki kabul — 18 Ekim
+
+Gerçek yerel Auth/PostgREST/Next tarayıcı akışı 33 sentetik olayla çalıştırıldı. Görev+metin filtresi 30 yüklü satırdan 1 sonuç verdi; yalnız okunmamış açıkken görev okundu işaretlendi, sayaç 33→32 ve filtre sonucu 0 oldu. Filtre temizleme yerel AX düğmesiyle doğrulandı. `duyuru 1:` ilk sayfada 0 sonuçtu, Önceki bildirimler ile 33 yüklü satırdan 1 sonuç olarak bulundu. Playwright click iki kez paneli kapattı ve amaçlanan işlem gerçekleşmedi; AX kontrolüne geçildi, başarılı sonuçlar oradan ölçüldü.
+
+Yalnız sentetik bps-storage-rest konteyneri pause edildi. Panel açılış okuması timeout olunca eski satırlar/sayaç/son kontrol temizlendi, Kontrol edilemedi + hata mesajı görüldü. Unpause ve Yenile sonrası sayaç 32 ve liste geri geldi. Bu sunucu kesintisi kabulüdür; browser offline/online event enjeksiyonu değildir. Okundu timeout testi tarayıcıda tamamlandı denmez; otomatik bileşen testindedir.
+
+390×844 mobilde arama/tür/okunmamış/işlem düğmeleri kontrol edildi (mobile.png); fiziksel cihaz değildir. Sekme kapatıldı, viewport sıfırlandı; harness SIGTERM ile temiz kapandı.
+
+Güncel kaynakta 788/788 genel uygulama testi, Next production build geçti. Üretim salt okunur ledger 190 ve önceki yayınla birebir eşleşti, yeni migration yok. Bu bölüm tek başına deployment başarısı değildir; sonuç release.json ile ayrıca kaydedilir.
+
+## Yayın sonucu
+
+Paket ÜRETİMDE: f58db6c / dpl_55LYaXDQCB1L2onxtqbNUAPRr9xY, www.bpsys.net READY. Canlı kimlikli kutuda arama/tür/okunmamış kontrolleri ve hatasız boş liste doğrulandı; gerçek kayıt/tercih değiştirilmedi. 190 migration, yeni SQL yok. Otomatik e-posta kapalı. release.json güncel yayın kaydıdır; önceki yerel durum paragrafları tarihseldir.

@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "f58db6c5de12bc51d2edb284ea8f8d3fe109d261",
+  "deploymentId": "dpl_55LYaXDQCB1L2onxtqbNUAPRr9xY",
+  "url": "https://www.bpsys.net",
+  "state": "READY",
+  "recordedAt": "2026-10-18T00:57:38.281115+00:00",
+  "migrationCount": 190,
+  "newMigrations": 0,
+  "applicationTests": 788,
+  "localBuild": true,
+  "liveAuthenticatedReadOnly": true,
+  "automaticEmails": false,
+  "limits": [
+    "Filters cover loaded pages only",
+    "Browser service outage tested locally; offline events covered by component tests",
+    "No production write or failure injection"
+  ]
+}
