@@ -1,0 +1,19 @@
+▶ announcement inbox on complete local schema
+  ✔ future publication snapshots current recipients, never writer or other tenant (18.47375ms)
+  ✔ mark is private and idempotent without altering announcement (13.893791ms)
+  ✔ new membership gets no earlier publication delivery (10.902917ms)
+  ✔ removed membership denies stale session; current viewer and accounting roles can read (5.920541ms)
+  ✔ foreign scopes, invalid cursor, disabled module and raw access fail closed (10.231625ms)
+  ✔ fanout failure rolls back publication (7.014958ms)
+  ✔ 32 notifications page without omission; source delete removes deliveries (130.441875ms)
+  ✔ acknowledgement waiting on source deletion rejects without resurrecting delivery (14.830708ms)
+  ✔ anonymous and service cannot use RPCs (2.930416ms)
+✔ announcement inbox on complete local schema (487.615292ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 536.038042

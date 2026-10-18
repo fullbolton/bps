@@ -929,3 +929,7 @@ read-candidate.sql eklendi; üretim zincirinde değil. task_inbox_visible_v1 öz
 İlk test koşusu sentetik ikinci hesabın çoklu üyeliğine rağmen selection/version içermeyen JWT yüzünden WORKSPACE_SCOPE ile durdu. Test gerçek select_workspace çağrısıyla düzeltildi. Aktif işi olan üyeyi muhasebeye düşürmenin mevcut korumayla reddedilmesi korunarak rol testi transaction içinde görevler kapatıldıktan sonra yapıldı. Yarış testinin ilk kontrolü önceden okunmuş kayıt seçiyordu; açıkça okunmamış kayıt seçimine düzeltildi. Üretim korumaları gevşetilmedi.
 
 Açık: duyuru olay/alıcıları, ortak kaynak kimliği/ses dedupe, ortak UI ve hedef bağlantıları; diğer eşzamanlı üyelik/modül yarışları ve büyük veri plan ölçümü. Yeni uygulama veya üretim SQL yayını yok. Canlı son kayıt 6cd6007/186 olarak kalır.
+
+## 18 Ekim — duyuru bildirimleri yerel kabul
+
+qa/announcement-inbox-20261018/candidate.sql: paylaşım anındaki tenant alıcıları (yazar hariç), atomik teslim, özel okundu, güncel üyelik/rol/modül kapısı ve 30 satır sayfalama eklendi. Yeni üyeye eski duyuru dağıtılmıyor; önceki alıcı yeniden katılırsa mevcut kaynağın eski teslimini görebilir. 9 alt senaryo, üst test dahil 10/10 gerçek DB testi geçti; silme kilidini bekleyen okundu çağrısı iki bağlantıda 42501 ile reddedildi. Şema/client yetkileri production'a uygulanmadı. Ortak kutu, hedef bağlantıları ve büyük alıcı sayısı ölçümü açık. Kanıt qa/announcement-inbox-20261018/README.md ve access.tap; canlı son yayın 6cd6007/186, bu tur yeniden ölçülmedi.
