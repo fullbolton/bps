@@ -1,5 +1,60 @@
 # BPS — Çalışma Alanı ve Ayarlar ana planı
 
+## Bağlayıcı ürün yönü ve faz sınırı — 18 Ekim 2026
+
+Kullanıcının açık kararı: **BPS yalnız operasyon yazılımı değildir. Güçlü İnsan Kaynakları ve diğer şirket yönetimi modülleri, tenant bazında seçilebilir ürünün ana kapsamıdır.** Operasyon öncelikli mevcut geliştirme sırası, İK veya diğer modüllerin önemsiz/kalıcı kapsam dışı olduğu şeklinde yorumlanamaz. İK artık yalnız değerlendirilen bir aday değildir; onaylı ürün yönüdür. Eski dar operasyon paketlerindeki kapsam dışı notları bu kararı geçersiz kılmaz.
+
+İK kullanan şirket müşteri, müşteri şubesi veya personel talebi açmak zorunda değildir. Operasyon kapalı + İK açık; İK kapalı + operasyon açık; ikisi açık senaryoları desteklenecek. MEK ve Partner ayrı tenanttır. Modül hakkı, etkinliği ve kullanıcı veri yetkisi ayrı kontrollerdir. Operasyondaki kişi görünürlüğü özel İK belgelerine erişim vermez.
+
+### Faz 1: mevcut operasyon çekirdeğini teslim edilebilir noktada kapat
+
+Faz 1 hedefi kusursuz veya bütün sektörleri kapsayan ürün değil: mevcut talep→atama→teyit/yedek→gerçekleşme→çalışma onayı zincirinin çalışması ve açık risklerin dürüst kaydı. 791 uygulama testi, 9 birleşik SQL kontrol grubu ve evrak kabulü tekrar tekrar bağımsız iş paketi olarak açılmaz; yeni kod/failure gerekçesi olmadan yeniden çalıştırılmaz.
+
+**Üç kapanış paketi; yeni özellik eklenmez:**
+
+| Paket | İş | Tamamlanma kanıtı |
+|---|---|---|
+| F1-A Günlük operasyon tarayıcı kabulü | Sentetik talep, atama, gelememe, yedek görüşmesi ve ayrı ataması, personel beyanı, bağımsız şube teyidi; tamamlanmış vardiyada gerçekleşme, çalışma taslağı/gönder/onay | Gerçek Next/Auth/PostgREST üzerinde UI adımları ve DB son durumları; yenilemede kayıt korunur, çift kayıt yok. Tarih gerektiren iki senaryo açık ayrılır. |
+| F1-B Yetki ve mobil kabulü | Yönetici/operasyon olumlu yolları; İK/muhasebe/görüntüleyici için mevcut rol politikasına uygun ret; tenant değişimi; 390×844 ve masaüstü ana akış | Tarayıcı/HTTP kanıt matrisi; yanlış tenant erişimi veya yetkisiz onay yok. Viewport testi fiziksel cihaz diye sunulmaz. |
+| F1-C Düzeltme ve teslim | Yalnız A/B'de bulunan engelleri düzelt, ilgili regresyon/build, değişiklik varsa şema ön kontrolü ve kontrollü yayın; kısa operatör kullanım yolu ve açık işler listesi | Çözümsüz P0/P1 yok; yayın/source kanıtı, kalan maddelerin etki ve sonraki faz kaydı. Ürün farkı yoksa gereksiz yayın yok. |
+
+P0: veri kaybı, yetkisiz erişim/tenant sızıntısı veya üretim çökmesi. P1: ana işi tamamlamayı engelleyen hata, çift atama, yanlış gerçekleşme/onay veya yanlış toplam. Bunlar faz kapatmayı engeller. Kozmetik P2/P3, yeni rapor/filtre ve rakipte görülen ek özellikler yeni faz iş listesine taşınır. Kritik bulgu çıkarsa kapsam yalnız o bulgu için uzar; genel tarama döngüsü yeniden açılmaz.
+
+**Faz 1 kapanış kuralı:** F1-A/B/C kanıtları tamam + açık P0/P1 yok + ertelenenler kayıtlı. Sonrasında sıradaki uygulama bloğu İK-1 olur; kullanıcıdan tekrar yön seçmesi istenmez. İK araştırması ve veri sözleşmesi şimdi hazırlanabilir; şema/UI uygulaması bu kapıdan sonra başlar.
+
+Fiziksel telefon/zayıf ağ kabulü, gerçek Excel/Luca dosyası mutabakatı, bulut/S3 felaket kurtarma, bildirim sağlayıcısı ve tüm ikincil modüllerin kapsamlı kabulü ayrı takip edilir; tamamlandı sayılmaz, fakat İK kodlamasına başlama ön koşulu değildir. İlgili özellik gerçek kullanıma açılırken kendi kabulü gerekir. Keşfedilmiş veri kaybı/güvenlik açığı varsa bu erteleme kullanılamaz. Mevcut gerçek veriyi temizleme ve tam içerik yedeği almama sınırı korunur.
+
+### Faz 2: İK yönetimi — somut teslim sırası
+
+Önceki ayrıntılı tasarım referansı (salt okunur eski kaynak): `/Users/furkanyahsi/Desktop/BPS/01_product/IK_MODULU_ZEOPS_TEKNIK_TASARIM.md`. Aktif uygulama sözleşmesi bu kararla uzlaştırılarak geliştirilecek; eski dosyanın tüm önerileri otomatik uygulanmış/onaylanmış sayılmaz.
+
+| Paket | Kullanıcı ve karar | Kapsam ve kabul |
+|---|---|---|
+| İK-1 Personel ve organizasyon | İK/yönetici: kim çalışıyor, hangi birimde, hangi istihdam döneminde? | Ortak kişiye bağlı istihdam dönemleri; personel kodu; departman/pozisyon/yönetici geçmişi; yeniden işe alma; temel çalışan kartı; Excel önizleme/eşleme/mükerrer kararı; yetkili özel belge alanı. Operasyon kapalıyken baştan sona çalışır; aday→çalışan dönüşümü ikinci kişi üretmez. |
+| İK-2 İzin ve çalışan self servis | Çalışan: talebim/bakiyem; yönetici: ekibin izin planı | Çalışma takvimi, izin türü, hareket defteriyle bakiye, başvuru/iptal/iade/onay, ekip takvimi; kendi kaydına dar erişim. Çakışma, kısmi gün, bakiye düzeltmesi ve revizyon testleri. Hukuki hesap varsayımları doğrulanmadan otomatik yasal hak iddiası yok. |
+| İK-3 İşe giriş/çıkış ve zimmet | İK/ekip: hangi adım kimde, ne teslim/iade edildi? | Mevcut görev altyapısına bağlı kontrol listeleri, sorumlular, belge durumu, zimmet teslim/iade geçmişi. İşten ayrılma kaydı hesap erişimini belirsizce otomatik değiştirmez; ayrı açık işlem. |
+| İK-4 Masraf/avans ve dış bordro bağlantısı | Çalışan/İK/finans: talep, onay ve ödeme hangi aşamada? | Belge ekli masraf/avans, sınırlı sıralı onay; onay≠ödeme; dönemli Luca/harici bordro aktarımı ve mutabakat. Kendi bordro hesap motoru ve banka ödemesi bu paketin ilk sürümü değil. |
+
+İK-1 veri sözleşmesi: kişi ≠ adaylık ≠ istihdam ≠ organizasyon görevi ≠ müşteri ataması ≠ uygulama hesabı. Ortak kişi kaydında mevcut havuz yeniden kullanılır; ayrı bir paralel kişi tabanı kurulmaz. Modül/rol/tenant kontrolleri UI+server+DB katmanında; belgeler özel storage ve süreli erişim; kapanışta açık İK işi ön kontrolü, veri silmeden kapatma. İçe aktarma yeniden denemesi ve onay komutları idempotent, değişiklikler revizyonlu ve izlenebilir olmalı. Hassas alanlar genel kişi kartına taşınmaz; önceki telefon/TC kararları yeni kullanıcı kararı olmadan genişletilmez.
+
+İK-1 kabulünün zorunlu kombinasyonları: yalnız İK; yalnız operasyonun bozulmaması; iki modül açık ortak kişi; şirket değişiminde form/sonuç sızıntısı olmaması; kapalı İK'ya doğrudan URL/RPC erişiminin reddi. Dashboard ve kurulum etkin modüllere göre şekillenir; herkese personel talebi akışı gösterilmez.
+
+### Diğer modüllerin ürün yolundaki yeri
+
+Müşteri/sözleşme, görev/ekip, evrak, finans/Luca, proje raporlama ve duyuru/bildirim de birinci sınıf modüllerdir. Kaldırılmaz veya yalnız operasyonun yan ekranı sayılmazlar. İK-1 sonrasında İK-2/3 ilerlerken bu modüllerin gerçek kullanım eksikleri ayrı teslim bloklarıyla ele alınır. Hepsini aynı anda genişleten genel iş akışı motoru kurulmaz. Abonelik/lisans motoru ve e-imza sağlayıcısı ayrı paketlerdir. Kişisel performans puanı ve süreye bağlı yönetici eskalasyonu eklememe kararı devam eder.
+
+### Güncellenen benchmark eşlemesi — 18 Ekim
+
+Bu tur kamuya açık resmi kaynaklar araştırıldı; hesap içi yeni test yapılmadı. Üretici açıklaması backend kanıtı veya tüm ürünün incelendiği iddiası değildir.
+
+- Zeops: personel/özlük, izin, zimmet ve masraf aileleri İK paketlerinin dayanağı. Eski yetkili hesap incelemelerinin eksik alanları (yazma gerektiren onay/iptal/geri alma, kapalı modüller) hâlâ doğrulanmamış; gerçek şirket hesabında test kaydı açılmaz. https://www.zeops.com/tr/ ve https://www.zeops.com/tr/masraf-yonetimi
+- Personio: izin bakiye/takvim ve onboarding iş takibi → İK-2/3. https://www.personio.com/product/absence-management/ ve https://www.personio.com/product/onboarding/
+- BambooHR: onboarding ile çalışan kaydının bağlantısı, işe giriş/çıkış → İK-1/3; ikinci kişi girişi yerine açık dönüşüm. https://www.bamboohr.com/platform/onboarding/
+- Recruiter: mevcut aday havuzu/görüşme/ekler → işe alma geçişi; adaylık istihdamın yerine kullanılmaz. Mevcut kayıtlı incelemeler referans; bu tur yeniden giriş yok.
+
+Eksik benchmark araştırmasının teslim çıktısı ekran sayısı değil karar tablosudur: çalışan/istihdam kimliği ve yeniden işe alma; izin bakiyesi/iptal/kısmi gün; alan ve belge yetkileri; Excel hata düzeltme/tekrar; işten çıkış/zimmet; self servis; çok adımlı onay ve ödeme ayrımı. Her birinde resmi kaynak veya yetkili salt okunur gözlem, BPS kararı, mevcut karşılık ve açık soru yazılacak. Gerekli kararlar yeterli kanıta ulaştığında araştırma durup uygulamaya geçilir; sınırsız benchmark turu açılmaz.
+
+
 > Güncel yayın özeti — 18 Ekim 2026: Modüller aç/kapat, değişiklik geçmişi, Hesabım ve ortak ses tercihi yayında. H görev/duyuru/talep kutusu da `a0230dd` / 190 migration ile yayımlandı; kanıt `qa/unified-inbox-20261018/release.json`. Aşağıdaki uygulama sırası ve eski “sıradaki” kayıtları tarihsel ilerlemeyi gösterir. Dış e-posta/push teslimi, fiziksel mobil ve tüm rollerin tarayıcı kabulü tamamlanmış sayılmaz.
 
 

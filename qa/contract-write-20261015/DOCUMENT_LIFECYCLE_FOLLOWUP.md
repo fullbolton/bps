@@ -1139,3 +1139,7 @@ Yeni personelin claimed_arrival araması attendance=unreported ve confirmed_at=N
 Operasyon zinciri 9/9 kontrol grubu geçti. concurrency.mjs iki ayrı psql oturumu açar. A atamayı yapıp transaction'ı açık tutar; gözlemci idle-in-transaction durumunu görür. B aynı tek kişilik talebe farklı personel atamak ister; pg_stat_activity üzerinde gerçek wait_event_type=Lock gözlenir. A commit sonrası B OPS_CAPACITY_FULL ile reddedilir. Tek aktif atama, A'nın personeli ve B için sıfır komut makbuzu doğrulanır. Bu yalnız sıralı iki çağrı testi değildir.
 
 Oturumlar yalnız geçici DB kapsamında finally ile kapatılır; ana harness kendi DB'sini siler. Kanıt qa/operations-chain-20261018/result.json; ürün kodu/üretim değişmedi. Kapsam: aynı sentetik yönetici, farklı bağlantılar. Çoklu rol, A rollback olursa B'nin devamı ve tarayıcı kabulü bu ölçüme dahil değildir.
+
+## 18 Ekim — ürün yönü ve Faz 1 kapanış kararı
+
+Kullanıcı İK'nın ve diğer seçilebilir modüllerin operasyon kadar önemli olduğunu açıkça teyit etti. Ana karar CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md başına işlendi. Operasyon Faz 1 üç kapanış paketiyle sınırlandı: gerçek tarayıcı zinciri, rol/mobil viewport, engel düzeltme ve teslim. Açık P0/P1 olmadan kapanır; yeni özellikler/kozmetik işler bu fazı uzatmaz. Sonraki uygulama bloğu İK-1 personel/organizasyon ve bağımsız çalışma kabulüdür. Fiziksel cihaz, gerçek Luca ve bulut kurtarma açık kalır ama İK geliştirmesini süresiz bekletmez. Bu tur plan/kayıt değişikliği; ürün kodu veya yayın yok.
