@@ -1054,3 +1054,9 @@ Kanıt: document-owner-http-result.json; helper document-owner-acceptance.mjs. H
 Sentetik authenticated-browser düzeneğinde yalnız geçici Storage container docker pause ile duraklatıldı. Tarayıcıdan 9101 için Yüklemeyi tamamla seçildi. Gerçek server action süre sınırı sonrası Dosya okunamadı mesajı gösterdi; başarı mesajı yok, kontroller yeniden açıldı. SQL ölçümü documents=0, pending=1, storage.objects=1. Storage unpause sonrası aynı düğme ile yeniden denemede başarı; documents=1, pending=0, object=1. Dosya tekrar yüklenmedi.
 
 Kanıt: storage-outage-browser-result.json; ../synthetic-restore-20261018/storage-outage.png ve storage-reconnected.png. Test sekmesi kapatıldı, harness SIGTERM exit 0, geçici servisler temizlendi. Bu fiziksel mobil/zayıf internet veya upload body kesintisi kabulü değil; gerçek Storage yanıt vermemesi ve UI toparlanma kabulüdür. Tam gecikme ölçülmedi. Ürün kodu ve üretim değişmedi.
+
+## 18 Ekim — dosya gövdesi yarıda kesildiğinde yeniden yükleme
+
+`BPS_UPLOAD_BODY_INTERRUPTION=1 node qa/contract-write-20261015/storage-http.mjs` exit 0, 32/32 (29 mevcut + 3 yeni kontrol grubu). Kaynak e47e88e üzerine QA eklemesi. Gerçek yerel Storage'a Content-Length=47 ile 12 bayt gönderilip istemci soketi kapatıldı. Storage katalog kaydı ve documents kaydı sıfır; finalize HTTP 400; rezervasyon yayımlanmamış ve pending file_present=false kaldı. Aynı path'e upsert=false ile tam dosya yeniden gönderildi; indirilen byte'lar eşit; iki finalize çağrısı tek documents kaydı üretti.
+
+Kanıt `upload-body-interruption-result.json`; tekrarlanabilir yardımcı `upload-body-interruption.mjs`. Test sonunda geçici DB ve konteynerler harness tarafından kaldırıldı. Bu istemci HTTP soket kesintisi kabulüdür; fiziksel mobil, tarayıcı yükleme hata ekranı veya file-backend içindeki olası geçici byte temizliği ölçülmedi. Ürün kodu, üretim, gerçek veri değişmedi.

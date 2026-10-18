@@ -1,0 +1,12 @@
+{
+  "passed": 3,
+  "checks": [
+    "partial HTTP body leaves no registered object or document and finalize is rejected",
+    "reservation survives interruption with file_present=false",
+    "complete same-path retry preserves bytes and publishes exactly once"
+  ],
+  "advertisedBytes": 47,
+  "sentBytes": 12,
+  "finalizeRejectedStatus": 400,
+  "scope": "disposable local Storage HTTP; client socket aborted before complete body; not browser or physical mobile"
+}

@@ -78,6 +78,7 @@ try {
  }
  const scope={p_tenant:id(1),p_id:id(992)};
  const preparation={...scope,p_company:id(991),p_name:'Synthetic PDF',p_category:'diger',p_validity:null,p_size:pdf.length};
+ if(process.env.BPS_UPLOAD_BODY_INTERRUPTION==='1')checks.push(...await (await import('./upload-body-interruption.mjs')).acceptUploadInterruption({base,token,rpc,rpcResult,request,sql,id,preparation,pdf}));
  assert.equal((await rpcResult('document_prepare_upload_v1',preparation,foreign)).ok,false);
  assert.equal((await rpcResult('document_prepare_upload_v1',preparation,anon)).ok,false);
  checks.push('foreign and anonymous RPC preparation denied');
