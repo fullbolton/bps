@@ -2,6 +2,7 @@
 import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
+import {capacityRace} from './concurrency.mjs';
 import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-migrations.mjs';
 const server='supabase_db_bps-supabase-acceptance',db=`bps_ops_chain_${process.pid}`;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -68,6 +69,9 @@ try{
  assert.equal(sql(`SELECT count(*) FROM ops_start_events WHERE assignment_id='${id(8825)}' AND kind='confirm'`),'1');
  assert.equal(sql(`SELECT count(*) FROM ops_work_records WHERE assignment_id='${id(8825)}'`),'0','Arrival confirmation must not approve working hours');
  checks.push('Claimed arrival stays unverified; branch confirmation marks present exactly once without work approval');
- writeFileSync(new URL('./result.json',import.meta.url),JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),measuredAt:new Date().toISOString(),checks,limits:['SQL chain, not browser acceptance','Manager synthetic actor; no role matrix','Confirmation/replacement covered in SQL; concurrent connections and UI remain open','Historical synthetic template plus manifest migrations; no production data']},null,2)+'\n');
+ mutate(8840,'request',{companyId:id(8800),locationId:id(8801),workDate:'2026-01-02',serviceLine:'Güvenlik',position:'Güvenlik',requiredCount:1});
+ await capacityRace({server,db,sql,id,claims});
+ checks.push('Two real transactions contend for last slot: observed lock wait, one committed assignment, loser has no receipt');
+ writeFileSync(new URL('./result.json',import.meta.url),JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),measuredAt:new Date().toISOString(),checks,limits:['SQL chain, not browser acceptance','Manager synthetic actor; no role matrix','Confirmation/replacement and last-slot concurrency covered in SQL; UI remains open','Historical synthetic template plus manifest migrations; no production data']},null,2)+'\n');
  console.log(`PASS ${checks.length} integrated groups`);
 } finally {if(created)sql(`DROP DATABASE ${db} WITH(FORCE)`,'postgres');}

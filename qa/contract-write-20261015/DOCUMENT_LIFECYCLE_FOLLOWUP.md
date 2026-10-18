@@ -1133,3 +1133,9 @@ Sonuç qa/operations-chain-20261018/result.json. Her koşu finally ile yalnız k
 Aynı yerel geçici DB provasının ikinci talebi güncel İstanbul gününde oluşturuldu; olay tarihleri geri yazılmadı. Gerçek ops_start_execute / ops_record_replacement_outreach / ops_replace_assignment fonksiyonları üzerinden 8/8 kontrol grubu geçti. Gelememe araması ardından yedek görüşmesi accepted: mevcut atama değişmedi. Ayrı yedek atama komutu tek aktif atama ve miras alınan plan oluşturdu; komut tekrarı çoğaltmadı. Eski atamaya arama START_CLOSED ile reddedildi ve makbuz bırakmadı.
 
 Yeni personelin claimed_arrival araması attendance=unreported ve confirmed_at=NULL bıraktı. worker kaynaklı teyit START_WITNESS ile reddedildi. branch + tanık teyidi present yaptı; tekrarı yalnız bir confirm olayı bıraktı. Şube teyidi için ops_work_records hâlâ sıfır: çalışma/ücret onayıyla karışmadı. Kanıt qa/operations-chain-20261018/result.json. finally geçici DB'yi temizledi; üretim değişmedi. Kalan: aynı zincirin gerçek tarayıcı kabulü, çoklu rol ve iki eşzamanlı bağlantı senaryosu.
+
+## 18 Ekim — son kontenjan için gerçek eşzamanlılık kabulü
+
+Operasyon zinciri 9/9 kontrol grubu geçti. concurrency.mjs iki ayrı psql oturumu açar. A atamayı yapıp transaction'ı açık tutar; gözlemci idle-in-transaction durumunu görür. B aynı tek kişilik talebe farklı personel atamak ister; pg_stat_activity üzerinde gerçek wait_event_type=Lock gözlenir. A commit sonrası B OPS_CAPACITY_FULL ile reddedilir. Tek aktif atama, A'nın personeli ve B için sıfır komut makbuzu doğrulanır. Bu yalnız sıralı iki çağrı testi değildir.
+
+Oturumlar yalnız geçici DB kapsamında finally ile kapatılır; ana harness kendi DB'sini siler. Kanıt qa/operations-chain-20261018/result.json; ürün kodu/üretim değişmedi. Kapsam: aynı sentetik yönetici, farklı bağlantılar. Çoklu rol, A rollback olursa B'nin devamı ve tarayıcı kabulü bu ölçüme dahil değildir.

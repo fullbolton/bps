@@ -1,6 +1,6 @@
 {
-  "source": "6c702bdd93aa2c90cd02800fc4f33083b8afdac0",
-  "measuredAt": "2026-10-18T17:49:47.184Z",
+  "source": "4513a3b4ff98528e9e0f6b86f03554fec080f79a",
+  "measuredAt": "2026-10-18T18:09:35.405Z",
   "checks": [
     "Request/location/worker/assignment through scoped commands; exact replay creates one assignment",
     "Capacity overflow rejected atomically without a command receipt",
@@ -9,12 +9,13 @@
     "Save → submit → approve yields 480 net minutes; approval replay leaves 3 audit events",
     "Cannot-attend call and accepted replacement conversation do not silently change assignment",
     "Replacement replay leaves one active assignment and inherited plan; old assignment rejects calls",
-    "Claimed arrival stays unverified; branch confirmation marks present exactly once without work approval"
+    "Claimed arrival stays unverified; branch confirmation marks present exactly once without work approval",
+    "Two real transactions contend for last slot: observed lock wait, one committed assignment, loser has no receipt"
   ],
   "limits": [
     "SQL chain, not browser acceptance",
     "Manager synthetic actor; no role matrix",
-    "Confirmation/replacement covered in SQL; concurrent connections and UI remain open",
+    "Confirmation/replacement and last-slot concurrency covered in SQL; UI remains open",
     "Historical synthetic template plus manifest migrations; no production data"
   ]
 }
