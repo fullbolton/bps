@@ -1100,3 +1100,24 @@ Test: genel koşu 791 testte 789 geçti, 2 eski bileşen fixture'ı yeni bağım
 ## 18 Ekim — kurtarma UX genel kabulü tamamlandı
 
 Son kaynak c4f8c8e üzerinde genel uygulama 791/791, 0 fail/skip/todo; statik 16 kontrol 0 FAIL/0 WARN; sentetik public ortam değerleriyle production build exit 0. Önceki iki fixture hatası düzeltildikten sonraki tam koşudur. Kanıt review-help-preflight.json. Üretim değişmedi, UX henüz yayında değil; canlı kaynak 3585375. Eski ana klasördeki durum belgesi tek güncel tablo ve ayrı 18 Ekim tarihçesi olarak düzenlendi; tarihsel kanıtlar silinmedi.
+
+## 18 Ekim — evrak sonrası operasyon kabul kapsamı
+
+Mevcut 791 uygulama testini yeniden çalıştırmadan kaynak kapsamı incelendi. Bu bir uçtan uca kabul sonucu değildir. Sıradaki sentetik günlük prova aşağıdaki tek iş zincirini izlemelidir:
+
+| Adım | Mevcut kod/test dayanağı | Kapanması gereken kabul |
+|---|---|---|
+| Şube talebi ve uygun personel atama | daily-demand.test.mjs; talepler/gunluk/DailyOperations.tsx | Talep aç, uygun kişiyi ata; ikinci oturumun aynı kapasiteyi aşması engellensin. |
+| Arama ve bağımsız şube teyidi | start-tracking.test.mjs, start-board.test.mjs, start-shift-db.test.mjs | Geldim beyanı teyit sayılmasın; şube teyidi kalan aramaları kapatsın; gece vardiyası korunsun. |
+| Gelmeme ve yedek | replacement-options.test.mjs, replacement-outreach.test.mjs | Uygun olmayan kişi seçilemesin; görüşmede kabul ile fiili atama ayrı doğrulansın; eski atamanın kontrolü kapanmalı. |
+| Gerçekleşme | attendance-controls.test.mjs, attendance-lifecycle-db.test.mjs, weekly-attendance.test.mjs | İptal/kaldırılmış atamaya yeni bildirim reddedilsin; önceki gerçekleşme raporda korunmalı. |
+| Çalışma onayı | work-approval.test.mjs; WorkApprovalDialog.tsx | Gerçek saat, mola, gece geçişi, düzeltme nedeni ve revizyon görülsün; teyit otomatik ücret onayı olmamalı. |
+| Tekrar/bağlantı kaybı ve mobil | start-failure.test.mjs, mobile-operations.test.mjs | Aynı komut tekrarında çift kayıt oluşmasın; belirsizlik başarıya dönmesin; fiziksel cihaz ayrıca ölçülsün. |
+
+Kapsam sınırı: kaynak testleri farklı fixture ve katmanları doğrular; tek zincir tarayıcı kanıtı yerine kullanılamaz. Gerçek üretim verisinde deneme yazımı, bildirim gönderimi veya veri temizliği yapılmadı. Prova sentetik yerel ortamda yapılacak.
+
+## 18 Ekim — kurtarma UX üretim yayını tamamlandı
+
+6300bee kaynak arşivi Vercel dpl_CiWugmjyyW4wtyBqj7tSR5i9t1FA olarak yayımlandı; www.bpsys.net inspect READY ve aynı kimliği doğruladı. Uzak production build geçti. Öncesinde salt okunur 190 migration birebir eşleşti, bariyer yok; SQL yok. Otomatik Git yayını kapalı. 791/791 uygulama ve 16 temiz statik kontrol aynı ürün koduna ait.
+
+Canlı kimlikli /evraklar#yarim-kalan-yuklemeler yeni sekmede açıldı: pending panel expanded, liste yüklü, boş durum doğru. Üretimde form gönderimi veya timeout enjeksiyonu yapılmadı; belirsiz yükleme formu yerel tarayıcı kabulüne dayanır. Ekran kanıtı /tmp/bps-review-help-live.png, üretim ekranı olduğu için GitHub'a alınmadı; test sekmesi kapatıldı. Kanıt review-help-release.json ve review-help-production-preflight.json. Operasyon zinciri tablosu kabul planıdır, tamamlanmış prova değildir.

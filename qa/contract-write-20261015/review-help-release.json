@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "6300bee0f0b52f4f63c95f7691e0d5c8f5b6c374",
+  "deploymentId": "dpl_CiWugmjyyW4wtyBqj7tSR5i9t1FA",
+  "state": "READY",
+  "url": "https://www.bpsys.net",
+  "recordedAt": "2026-10-18T17:28:03.399812+00:00",
+  "migrationCount": 190,
+  "newMigrations": 0,
+  "applicationTests": 791,
+  "staticFail": 0,
+  "staticWarn": 0,
+  "vercelBuild": true,
+  "automaticGitDeployment": false,
+  "liveAuthenticatedReadOnly": true,
+  "liveProof": "Authenticated evraklar hash link opens pending panel; list loaded; no writes",
+  "limits": [
+    "Production timeout not injected; corresponding recovery form accepted locally",
+    "Physical mobile and expired-session hash redirect not accepted",
+    "Daily operations end-to-end rehearsal remains open"
+  ]
+}
