@@ -24,3 +24,5 @@ Yerel Docker açıkken aktif repo kökünden `node qa/synthetic-restore-20261018
 ## Sayaç kabulü — 18 Ekim devamı
 
 Tatbikat genişletilerek tekrar geçti: 120 tablo ve 3 sequence. auth.refresh_tokens_id_seq, public.ops_events_id_seq ve public.talent_person_events_id_seq için last_value/is_called eşleşti; ardından iki geçici veritabanında nextval çağrısı aynı sonraki değeri üretti. Bu, geri yüklemenin sayaç durumunu koruduğunu kanıtlar; kaynakta önceden var olabilecek sayaç/veri tutarsızlıklarını tarayan bir denetim değildir. Sonuçlar result.json içindedir. Geçici veritabanları kaldırıldı.
+
+Başlangıç değerlerinde kalan sayaçların yetersiz kanıt üretmemesi için dump öncesi yalnız geçici kaynakta ops_events=101/true ve talent_person_events=202/false ayarlandı. Restore sonrası nextval sırasıyla 102 ve 202 verdi; refresh_tokens 1/false → 1 olarak ayrıca korundu. Böylece sequence DATA atlanırsa bu test başarısız olur.

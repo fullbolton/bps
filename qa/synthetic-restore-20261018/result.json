@@ -125,7 +125,7 @@
     }
   ],
   "schemaSha256": "a7319e1bef8c28be2107c2a3420c2d781eb1af891d4dafc85121a3613621c2d2",
-  "dumpBytes": 1240945,
+  "dumpBytes": 1240948,
   "tables": [
     {
       "table": "auth.audit_log_entries",
@@ -616,13 +616,13 @@
     },
     {
       "name": "public.ops_events_id_seq",
-      "state": "1:false",
-      "nextValue": "1"
+      "state": "101:true",
+      "nextValue": "102"
     },
     {
       "name": "public.talent_person_events_id_seq",
-      "state": "1:false",
-      "nextValue": "1"
+      "state": "202:false",
+      "nextValue": "202"
     }
   ],
   "checks": [
@@ -633,7 +633,7 @@
     "anonymous inbox execution denied",
     "authenticated inbox execution retained"
   ],
-  "elapsedMs": 13885,
+  "elapsedMs": 13782,
   "limits": [
     "Same local PostgreSQL server roles and extensions; not a fresh Supabase installation",
     "No production data or backup",

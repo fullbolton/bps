@@ -18,6 +18,9 @@ try {
  sql('postgres',`CREATE DATABASE ${source} TEMPLATE bps_module_chain_20261005;`);made.push(source);
  const migrations=loadFixtureMigrations();
  for(const name of migrations)sql(source,readFileSync(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'));
+ // Exercise non-default called and uncalled counters: default 1/false alone
+ // would not detect a restore that accidentally omitted sequence data.
+ sql(source,"select setval('public.ops_events_id_seq',101,true); select setval('public.talent_person_events_id_seq',202,false);");
  // Full local database dump includes ACLs, owners and synthetic rows, not external Storage bytes.
  const archive=dump(source);
  sql('postgres',`CREATE DATABASE ${target} TEMPLATE template0;`);made.push(target);
