@@ -982,3 +982,7 @@ Kaynak f58db6c, Vercel dpl_55LYaXDQCB1L2onxtqbNUAPRr9xY www.bpsys.net üzerinde 
 ## 18 Ekim — sentetik geri yükleme tatbikatı
 
 qa/synthetic-restore-20261018/rehearse.mjs geçti: mevcut sentetik baseline + 30 migration, bellekte dump, template0 hedefe restore. 120 tablonun satır sayısı/içerik hash'i ve sahiplik/ACL dahil şema birebir; inbox anon/authenticated EXECUTE sınırı korundu. Normal postgres restore sahipliği yetmedi; yerel supabase_admin bağlantısı ile sahiplik/ACL atlanmadan doğrulandı. Geçici iki DB kaldırıldı, gerçek veri/yedek veya üretim değişikliği yok. Bu aynı yerel sunucuda DB restore kabulüdür; eksik tarihsel baseline, yeni sunucu rolleri/eklenti kurulumu, harici Storage byte'ları, sequence değerleri ve uçtan uca kurtarma hâlâ ayrı kabul. Canlı son yayın f58db6c / 190 değişmedi.
+
+## 18 Ekim — geri yükleme sayaç kabulü
+
+Sentetik restore testi 3 sequence için last_value/is_called ve restore sonrası nextval eşitliğiyle genişletildi. 120 tablo + 3 sayaç + 30 migration tatbikatı geçti. Önceki sequence kabul sınırı kapandı; boş sunucu/harici Storage/uçtan uca kurtarma sınırları duruyor. Üretim değişmedi. Kanıt qa/synthetic-restore-20261018/result.json.

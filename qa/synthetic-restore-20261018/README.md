@@ -15,8 +15,12 @@
 
 ## Sınır
 
-Bu, tamamen yeni sunucuya üretim kurtarma veya repo migration'larından sıfırdan kurulum kanıtı değildir. Aynı yerel PostgreSQL sunucusunun mevcut rollerine ve kurulu eklentilerine dayanır; başlangıç şeması önceden hazırlanmış fixture'dır. Tarihsel eksik temel migration sorunu kapanmış sayılmaz. Sequence güncel değerleri ayrıca karşılaştırılmadı. Harici Storage dosya byte'ları, Auth HTTP, uygulama tarayıcı akışları ve fiziksel cihaz bu tatbikatta yoktur. Gerçek operasyon Excel/Luca mutabakatının yerine geçmez.
+Bu, tamamen yeni sunucuya üretim kurtarma veya repo migration'larından sıfırdan kurulum kanıtı değildir. Aynı yerel PostgreSQL sunucusunun mevcut rollerine ve kurulu eklentilerine dayanır; başlangıç şeması önceden hazırlanmış fixture'dır. Tarihsel eksik temel migration sorunu kapanmış sayılmaz. Harici Storage dosya byte'ları, Auth HTTP, uygulama tarayıcı akışları ve fiziksel cihaz bu tatbikatta yoktur. Gerçek operasyon Excel/Luca mutabakatının yerine geçmez.
 
 ## Tekrar çalıştırma
 
 Yerel Docker açıkken aktif repo kökünden `node qa/synthetic-restore-20261018/rehearse.mjs`. Script yalnız sabit kabul konteyneri ve bps_module_chain_20261005 sentetik template kullanır; mevcut veritabanının üzerine yazmaz. Migration manifesti repodan saparsa durur. Parola/log/dump repoya alınmaz. Test üretim yayınını değiştirmez.
+
+## Sayaç kabulü — 18 Ekim devamı
+
+Tatbikat genişletilerek tekrar geçti: 120 tablo ve 3 sequence. auth.refresh_tokens_id_seq, public.ops_events_id_seq ve public.talent_person_events_id_seq için last_value/is_called eşleşti; ardından iki geçici veritabanında nextval çağrısı aynı sonraki değeri üretti. Bu, geri yüklemenin sayaç durumunu koruduğunu kanıtlar; kaynakta önceden var olabilecek sayaç/veri tutarsızlıklarını tarayan bir denetim değildir. Sonuçlar result.json içindedir. Geçici veritabanları kaldırıldı.
