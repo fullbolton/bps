@@ -27,6 +27,7 @@ function ScopedInbox({actorId,tenantId}:InboxScope){
  const [more,setMore]=useState(false),[expanded,setExpanded]=useState(false),[checkedAt,setCheckedAt]=useState<string|null>(null);
  const [online,setOnline]=useState(true);
  const [notice,setNotice]=useState('');
+ const [query,setQuery]=useState(''),[source,setSource]=useState('all'),[unreadOnly,setUnreadOnly]=useState(false);
  const sound=useNotificationSound();
  const soundRef=useRef(sound);soundRef.current=sound;
  const alive=useRef(true),flight=useRef(false),reading=useRef(false);
@@ -97,6 +98,15 @@ function ScopedInbox({actorId,tenantId}:InboxScope){
   }catch(e){if(alive.current&&version===connectionVersion.current){clearSnapshot();setError(e instanceof Error?e.message:'Okundu bilgisi kaydedilemedi.');}}
   finally{reading.current=false;if(alive.current){setBusy(false);if(refreshPending.current&&navigator.onLine){refreshPending.current=false;void load();}}}
  }
+ // These controls narrow only fetched pages; the badge remains the server's global unread count.
+ const search=query.trim().toLocaleLowerCase('tr-TR');
+ const filtered=items.filter(item=>{
+  if(source!=='all'&&item.kind!==source)return false;
+  if(unreadOnly&&item.readAt!==null)return false;
+  const view=inboxPresentation(item);
+  return !search||`${view.title} ${view.body}`.toLocaleLowerCase('tr-TR').includes(search);
+ });
+ const filtering=Boolean(search)||source!=='all'||unreadOnly;
  const countLabel=!online?'Bağlantı yok':unread===null?(error?'Kontrol edilemedi':'Kontrol ediliyor'):`${unread} okunmamış`;
  return <div ref={container} className="relative" onKeyDown={event=>{if(event.key==='Escape'&&open){event.preventDefault();event.stopPropagation();setOpen(false);button.current?.focus();}}}>
   <button ref={button} type="button" aria-label={`Bildirimler · ${countLabel}`} aria-expanded={open} aria-controls={open?panelId:undefined}
@@ -108,13 +118,27 @@ function ScopedInbox({actorId,tenantId}:InboxScope){
   {open&&<section id={panelId} aria-label="Bana gelenler" className="fixed left-3 right-3 top-[4.5rem] z-50 max-h-[80dvh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96">
    <div className="flex items-center justify-between gap-2"><div><h2 className="font-semibold text-slate-900">Bana gelenler</h2><p className="text-xs text-slate-500">{unified?'Görevleriniz, şirket duyuruları ve talep mesajları':'Talep konuşmalarındaki etiket ve yanıtlar'}</p></div><button type="button" className="min-h-11 min-w-11 rounded-lg hover:bg-slate-100" onClick={()=>{setOpen(false);button.current?.focus();}} aria-label="Bildirimleri kapat"><X className="mx-auto" size={18}/></button></div>
    <div className="my-3 flex flex-wrap gap-2"><button type="button" className={control} disabled={busy} onClick={()=>void load()}><RefreshCw size={15}/>{expanded?'En yeniye dön':'Yenile'}</button></div><NotificationSoundControls compact />
+   <div className="my-3 space-y-2">
+    <label className="block text-xs font-medium text-slate-600">Yüklenen bildirimlerde ara
+     <input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Görev, firma veya mesaj…" className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600" />
+    </label>
+    <div className="flex flex-wrap items-center gap-2">
+     {unified&&<select aria-label="Bildirim türü" value={source} onChange={event=>setSource(event.target.value)} className={`${control} min-w-0 bg-white`}>
+      <option value="all">Tüm türler</option><option value="task_assignment">Görevler</option><option value="announcement">Duyurular</option><option value="conversation">Talep mesajları</option>
+     </select>}
+     <label className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={unreadOnly} onChange={event=>setUnreadOnly(event.target.checked)} />Yalnız okunmamış</label>
+     {filtering&&<button type="button" className={`${control} text-slate-600`} onClick={()=>{setQuery('');setSource('all');setUnreadOnly(false);}}>Filtreleri temizle</button>}
+    </div>
+    {online&&!busy&&!error&&filtering&&<p role="status" className="text-xs text-slate-600">Yüklenen {items.length} bildirimden {filtered.length} tanesi gösteriliyor.{more?' Daha eski bildirimleri aşağıdan yükleyebilirsiniz.':''}</p>}
+   </div>
    <p className="mb-3 text-xs text-slate-500">{expanded?'Önceki bildirimleri inceliyorsunuz.': 'Sayfa açıkken 30 saniyede bir kontrol edilir.'}{checkedAt?` Son kontrol: ${checkedAt}.`:''}</p>
    {!online&&<p role="status" className="mb-3 rounded-lg bg-amber-50 p-3 text-sm">İnternet bağlantısı yok. Bağlantı geldiğinde bildirimler yeniden kontrol edilecek.</p>}
    {notice&&<p role="status" className="mb-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
    {error&&<p role="alert" className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{error}</p>}
    {busy&&<p role="status" className="mb-2 text-sm text-slate-500">Kontrol ediliyor…</p>}
    {online&&!busy&&!error&&items.length===0&&<div className="py-6 text-center text-sm text-slate-600"><p className="font-medium">Henüz size gelen bir bildirim yok.</p><p className="mt-1">{unified?'Size bir görev atandığında, duyuru paylaşıldığında veya bir talepte size yazıldığında burada görünür.':'Bir talepte etiketlendiğinizde veya mesajınıza yanıt geldiğinde burada görünür.'}</p></div>}
-   <ul className="space-y-3">{(online?items:[]).map(item=>{
+   {online&&!busy&&!error&&items.length>0&&filtered.length===0&&<p className="py-4 text-sm text-slate-600">Yüklenen bildirimlerde eşleşme yok. Filtreleri değiştirin{more?' veya önceki bildirimleri yükleyin.':'.'}</p>}
+   <ul className="space-y-3">{(online?filtered:[]).map(item=>{
     const view=inboxPresentation(item);
     return <li key={inboxEventKey(item)} className={`rounded-lg border p-3 text-sm ${item.readAt?'border-slate-200':'border-blue-200 bg-blue-50/50'}`}>
      <div className="flex justify-between gap-2"><p className="font-medium text-slate-900">{view.title}</p>{!item.readAt&&<span className="text-xs font-semibold text-blue-700">Yeni</span>}</div>

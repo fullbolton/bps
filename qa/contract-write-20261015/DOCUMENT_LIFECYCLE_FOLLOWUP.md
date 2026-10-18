@@ -969,3 +969,7 @@ Gerçek yerel DB kabulüne görüntüleyicinin yalnız duyuru erişimi, gizli g�
 ## 18 Ekim — bildirim bağlantı/hata kurtarma ürün paketi (yerel)
 
 Okundu reddinde eski satır/sayaç kalması ve geçmiş sayfada offline→online yenilemenin atlanması testle üretildi ve düzeltildi. Ortak snapshot temizliği, bağlantı sürümüyle geç yanıt reddi ve devam eden isteğin ardından tek reconnect yenilemesi eklendi. Offline tıklama, çift okundu, yanlış şirket ve unmount kabulü de var. 787/787 genel uygulama, 13/13 hedefli, TypeScript ve production build geçti; statik 0 FAIL/0 WARN. Kanıt qa/inbox-recovery-20261018. Testler hook-driver üzerinden gerçek bileşeni çalıştırır; gerçek tarayıcı offline enjeksiyonu henüz yok. Yeni migration/yayın/üretim veri değişikliği yok. Sonraki somut adım bu paketin tarayıcı kabulü ve mevcut yayın kapılarıyla uygulama yayınıdır.
+
+## 18 Ekim — benchmark tabanlı bildirim filtreleri (yerel)
+
+Asana ve monday.com resmi bildirim belgeleri incelendi. Ortak kutuya yüklenenlerde Türkçe arama, tür ve okunmamış filtreleri, tek temizleme eklendi. Global sayaç değişmez; daha eski sayfa yüklenebilir; eşleşme yok açıklaması yüklenen kapsamını belirtir. 14/14 hedefli test, TypeScript, statik 0 FAIL/0 WARN ve diff kontrolü geçti. Arşiv/toplu okundu sunucu sözleşmesi olmadan eklenmedi. Kanıt qa/inbox-benchmark-20261018. Önceki bağlantı düzeltmesiyle birlikte tarayıcı kabulü/yayın bekliyor; yeni migration veya üretim veri değişikliği yok.

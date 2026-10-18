@@ -89,7 +89,7 @@ function panelHarness(){
  const scoped=shell();let tree;
  const render=()=>{tree=d.render(scoped.type,scoped.props);d.flush();return tree;};
  const button=label=>nodes(tree).find(n=>n.type==='button'&&(n.props['aria-label']?.startsWith(label)||nodes(n.props.children).length===0&&n.props.children===label||Array.isArray(n.props.children)&&n.props.children.includes(label)));
- return {calls,replies,nav,render,button,rows:()=>nodes(tree).filter(n=>n.type==='li'),alerts:()=>nodes(tree).filter(n=>n.props?.role==='alert'),get reads(){return reads;},ack:fn=>{ack=fn;},event:name=>events.get(name)?.(),poll:()=>{for(const fn of timers)fn();},dispose:()=>d.dispose()};
+ return {calls,replies,nav,render,button,elements:()=>nodes(tree),rows:()=>nodes(tree).filter(n=>n.type==='li'),alerts:()=>nodes(tree).filter(n=>n.props?.role==='alert'),get reads(){return reads;},ack:fn=>{ack=fn;},event:name=>events.get(name)?.(),poll:()=>{for(const fn of timers)fn();},dispose:()=>d.dispose()};
 }
 async function openPanel(x){x.render();await settle();x.render();x.button('Bildirimler').props.onClick();await settle();x.render();}
 
@@ -131,4 +131,16 @@ test('offline clicks send no reads or acknowledgements and late responses do not
  const x=panelHarness();await openPanel(x);const refresh=x.button('Yenile').props.onClick,ack=x.button('Okundu işaretle').props.onClick;
  const pending=deferred();x.replies.push(pending.promise);refresh();const before=x.calls.length;
  x.nav.onLine=false;x.event('offline');refresh();ack();pending.resolve(inboxPage([inboxItem(99)]));await settle();x.render();assert.equal(x.calls.length,before);assert.equal(x.reads,0);assert.equal(x.rows().length,0);x.dispose();
+});
+
+
+test('inbox filters compose over loaded pages without changing global unread or pagination',async()=>{
+ const x=panelHarness();const task={...inboxItem(11),kind:'task_assignment',payload:{taskId:id(111),title:'İZMİR şubesi'}};
+ const read={...inboxItem(12),readAt:'2026-10-18T02:00:00Z'};
+ x.replies.push(inboxPage(),inboxPage([inboxItem(10),task,read],{unread:8,nextCursor:{kind:'announcement',id:id(12)}}));await openPanel(x);
+ x.elements().find(n=>n.type==='input'&&n.props.type==='search').props.onChange({target:{value:'izmir'}});x.render();assert.equal(x.rows().length,1);assert.equal(x.rows()[0].key,'task_assignment:'+id(11));assert.match(x.button('Bildirimler').props['aria-label'],/8 okunmamış/);assert.ok(x.button('Önceki bildirimler'));
+ x.elements().find(n=>n.type==='select').props.onChange({target:{value:'announcement'}});x.render();assert.equal(x.rows().length,0);assert.ok(x.button('Önceki bildirimler'));
+ x.button('Filtreleri temizle').props.onClick();x.render();assert.equal(x.rows().length,3);
+ x.elements().find(n=>n.type==='input'&&n.props.type==='checkbox').props.onChange({target:{checked:true}});x.render();assert.equal(x.rows().length,2);
+ x.replies.push(inboxPage([inboxItem(9)],{unread:8}));x.button('Önceki bildirimler').props.onClick();await settle();x.render();assert.equal(x.rows().length,3);assert.match(x.button('Bildirimler').props['aria-label'],/8 okunmamış/);x.dispose();
 });
