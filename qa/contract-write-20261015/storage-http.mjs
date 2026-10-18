@@ -47,6 +47,7 @@ try {
  docker(['exec','-i','-e',`PGPASSWORD=${password}`,source,'psql','-w','-X','-qAt','-U','supabase_admin','-d',database,'-v','ON_ERROR_STOP=1'],schemaUsage);
  sql(policies);
  for(const name of migrations)sql(readFileSync(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'));
+ if(process.env.BPS_BROWSER_INBOX==='1')for(const name of ['task-inbox-20261018/candidate.sql','task-inbox-20261018/read-candidate.sql','announcement-inbox-20261018/candidate.sql','unified-inbox-20261018/candidate.sql'])sql(readFileSync(new URL('../'+name,import.meta.url),'utf8'));
  sql(`INSERT INTO companies(id,tenant_id,name) VALUES('${id(991)}','${id(1)}','Synthetic HTTP');INSERT INTO storage.buckets(id,name,public) VALUES('documents','documents',false) ON CONFLICT DO NOTHING;`);
  async function request(path,method='GET',body,auth=token,headers={}){
   const r=await fetch(base+path,{method,headers:{Authorization:`Bearer ${auth}`,...headers},body,signal:AbortSignal.timeout(10000)});

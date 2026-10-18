@@ -1,0 +1,27 @@
+✔ account shows database name and verified company role without manager settings for operations (74.407834ms)
+✔ failed new-account read removes prior name and offers retry (16.440084ms)
+✔ late previous account response and mismatched company are not displayed (11.123792ms)
+✔ no request before authentication and no disabled feature controls (12.23875ms)
+✔ missing or other-user profile never falls back to metadata and retry can recover (25.199291ms)
+✔ disabled flag and mismatched account/company never reach inbox RPC (58.211ms)
+✔ malformed cursor and empty read cannot be treated as successful writes (19.844042ms)
+✔ page validates response scope and exact cursor forwarding (21.430667ms)
+✔ acknowledgement requires strict true and returns verified scope; internal errors stay private (27.593458ms)
+✔ each source opens its existing destination or a complete inline announcement (0.230083ms)
+✔ unified roles do not broaden legacy conversation inbox access (0.084041ms)
+✔ all three source types are parsed without fake company fields (2.189208ms)
+✔ same UUID across source types is distinct, same kind duplicates fail (0.225916ms)
+✔ wrong scope and malformed or incomplete results are rejected (0.301625ms)
+✔ cursor must identify the last item of a full page (0.293834ms)
+✔ initial snapshot silent; new unread types qualify separately; read items silent (0.511375ms)
+✔ invalid conversation target and announcement body fail closed; unknown payload fields are not retained (0.12175ms)
+✔ typed sound keys serialize tabs, preserve burst suppression, and separate source UUID collisions (0.39675ms)
+✔ typed sound rejects malformed storage and event keys before playback (0.21025ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 531.435333

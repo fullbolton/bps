@@ -700,5 +700,9 @@
   {
     "file": "scripts/workspace-inbox.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/workspace-inbox-actions.test.mjs",
+    "suite": "application"
   }
 ]

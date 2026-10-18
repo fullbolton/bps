@@ -1226,6 +1226,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      workspace_inbox_page_v1: {
+        Args: {p_actor: string; p_tenant: string; p_before_kind?: string | null; p_before_id?: string | null};
+        Returns: Json;
+      };
+      workspace_inbox_read_v1: {
+        Args: {p_actor: string; p_tenant: string; p_kind: string; p_id: string};
+        Returns: boolean;
+      };
       document_delete_v1: {Args: {p_tenant: string; p_id: string; p_company: string; p_revision: number}; Returns: Json};
       document_edit_metadata_v1: {Args: {p_tenant: string; p_id: string; p_company: string; p_revision: number; p_kind: string; p_value: string}; Returns: Json};
       document_cancel_upload_v1: {Args: {p_tenant: string; p_id: string}; Returns: boolean};

@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { workspaceScope } from '@/lib/workspace-context';
 import { createInboxTone } from '@/lib/notifications/sound';
 import { createSoundSettings, INITIAL_SOUND, type SoundSettings } from '@/lib/notifications/sound-settings';
+import {canUseInbox} from '@/lib/notifications/inbox-presentation';
 import type { InboxScope } from '@/lib/notifications/inbox-state';
 
 type Value = SoundSettings & { enable(): Promise<void>; disable(): void; play(): boolean; fail(): void };
@@ -11,7 +12,7 @@ const Context = createContext<Value>({ ...INITIAL_SOUND, enable: async () => {},
 export function NotificationSoundProvider({ children }: { children: ReactNode }) {
   const { user, role, loading } = useAuth();
   const scope = workspaceScope(user);
-  if (process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED !== 'true' || loading || !scope || (role !== 'yonetici' && role !== 'operasyon')) return <Context.Provider value={{ ...INITIAL_SOUND, enable: async () => {}, disable() {}, play: () => false, fail() {} }}>{children}</Context.Provider>;
+  if (loading || !scope || !canUseInbox(role,process.env.NEXT_PUBLIC_BPS_WORKSPACE_INBOX_ENABLED==='true',process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED==='true')) return <Context.Provider value={{ ...INITIAL_SOUND, enable: async () => {}, disable() {}, play: () => false, fail() {} }}>{children}</Context.Provider>;
   return <ScopedSound key={`${scope.actorId}:${scope.tenantId}:${role}`} scope={scope}>{children}</ScopedSound>;
 }
 function ScopedSound({ scope, children }: { scope: InboxScope; children: ReactNode }) {

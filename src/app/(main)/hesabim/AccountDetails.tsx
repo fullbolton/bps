@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 const roles = { yonetici: "Yönetici", partner: "Partner", operasyon: "Operasyon", ik: "İK", muhasebe: "Muhasebe", goruntuleyici: "Görüntüleyici" };
 const button = "inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600";
 
-export default function AccountDetails({ multiWorkspace, conversations }: { multiWorkspace: boolean; conversations: boolean }) {
+export default function AccountDetails({ multiWorkspace, conversations, unifiedInbox=false }: { multiWorkspace: boolean; conversations: boolean; unifiedInbox?: boolean }) {
   const { user, role, loading, refreshProfile } = useAuth();
   const { workspace, loading: workspaceLoading, error: workspaceError, reload } = useWorkspace();
   const guard = useNavigationGuard();
@@ -45,6 +45,6 @@ export default function AccountDetails({ multiWorkspace, conversations }: { mult
         {role === "yonetici" && <Link className={button} href="/ayarlar" onClick={guard.handle}>Şirket ayarları</Link>}
       </div>
     </section>
-    {conversations && (role === "yonetici" || role === "operasyon") && <section aria-labelledby="account-notifications" className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><h2 id="account-notifications" className="font-semibold text-slate-900">Bildirim sesi</h2><p className="my-3 text-sm text-slate-600">Talep konuşmalarında size gelen etiket ve yanıtların sesini yönetin.</p><NotificationSoundControls /></section>}
+    {((unifiedInbox && ["yonetici", "operasyon", "ik", "muhasebe", "goruntuleyici"].includes(role ?? "")) || (conversations && (role === "yonetici" || role === "operasyon"))) && <section aria-labelledby="account-notifications" className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6"><h2 id="account-notifications" className="font-semibold text-slate-900">Bildirim sesi</h2><p className="my-3 text-sm text-slate-600">{unifiedInbox ? "Size gelen bildirimlerin sesini bu tarayıcı için yönetin." : "Talep konuşmalarında size gelen etiket ve yanıtların sesini yönetin."}</p><NotificationSoundControls /></section>}
   </div>;
 }

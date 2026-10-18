@@ -1,6 +1,6 @@
 # Bildirim devamı — H paketi uygulama sözleşmesi
 
-18 Ekim 2026. Kod incelemesi: 6cd6007; kayıt HEAD 7fd14f7. Durum: tasarım; aşağıdaki yeni RPC, tablo, bağlantı ve olaylar henüz uygulanmadı. Mevcut talep kutusu ve ses tercihi yayında. Bu incelemede üretim tekrar sorgulanmadı.
+18 Ekim 2026. Kod incelemesi: 6cd6007; kayıt HEAD 7fd14f7. Durum: yerel SQL adayları ve ortak kutu uygulaması tamamlandı; üretimde açılmadı. Son kabul: qa/unified-inbox-20261018/UI_ACCEPTANCE.md. Aşağıdaki ilk tasarım kararları ile uygulama farkları bu kayıtta açıklanır. Mevcut talep kutusu ve ses tercihi yayında. Bu incelemede üretim tekrar sorgulanmadı.
 
 ## Amaç ve sınır
 
@@ -17,10 +17,10 @@ Kullanıcı kendisine verilen işi ve yeni şirket duyurusunu tek kutudan bulabi
 | src/context/NotificationSoundContext.tsx | Conversation flag ve yönetici/operasyonla sınırlı | Ortak kutu erişimine göre yeniden bağlanmalı; talep okuma yetkisini genişletmemeli |
 | supabase/migrations/20260909001300_task_assignment_history.sql | Aynı transaction içinde revision ve atama geçmişi; baseline dahil | Yeni atama olayının güvenilir kaynağı; baseline bildirim üretmez |
 | supabase/migrations/20261005000200_task_module_gateway.sql | Task/history modül erişim kapıları | Kutunun kaynak görünürlüğü aynı kuralları uygular |
-| src/app/(main)/gorevler/page.tsx | openLinkedTask yerel selectedId ayarlar; URL hedefi yok | Tek görevi yetkili getiren bağlantı akışı; mevcut filtreye takılmamalı |
-| src/lib/services/announcements.ts | İlk üç duyuru; düzenleme yok, silip yeniden paylaşma; okunma yok | Eski duyuruyu bildirimden açmak için tek-kayıt okuyucu gerekir |
+| src/app/(main)/gorevler/page.tsx | TaskLinkOpener mevcut; ?gorev=UUID başarıyla yüklenmiş şirket listesinden detayı açar | Mevcut bağlantı kullanıldı; önceki URL hedefi yok tespiti yanlıştı |
+| src/lib/services/announcements.ts | İlk üç duyuru; düzenleme yok, silip yeniden paylaşma; okunma yok | İlk üç dışındaki duyuru tam metni yetkili ortak kutuda açılır; ayrıca detay sayfası gerekmiyor |
 | supabase/migrations/20261005003000_announcement_module_commands.sql | Yönetici create/delete; 1–500 karakter; config→profil kilidi | Yeni olay aynı DB transaction içinde oluşmalı, JS ikinci yazması olmamalı |
-| src/app/(main)/dashboard/DashboardClient.tsx | Duyuru listesi panelde tutulur | Bildirim hedefi ayrı kayıt açmalı; ilk üç içinde arama yeterli değil |
+| src/app/(main)/dashboard/DashboardClient.tsx | Duyuru listesi panelde tutulur | Bildirim kutusunda tam metin açılır; dashboard ilk üç listesine bağlı değil |
 
 ## İlk sürüm olay/alıcı matrisi
 
