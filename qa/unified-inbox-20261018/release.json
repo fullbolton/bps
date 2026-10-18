@@ -1,0 +1,27 @@
+{
+  "measuredAt": "2026-10-18T00:39:26.735577+00:00",
+  "sourceCommit": "a0230dd06382e88ee68fd2ee17ab848d8ec1f6bd",
+  "deploymentId": "dpl_GaMr7ESWyJuM6CjnxeczNd44Esih",
+  "url": "https://www.bpsys.net",
+  "state": "READY",
+  "migrations": 190,
+  "newMigrations": 4,
+  "localDatabaseTests": 45,
+  "localFanoutRecipients": 5001,
+  "productionBuild": true,
+  "liveReadOnly": {
+    "authenticatedAccount": true,
+    "unifiedInboxLoaded": true,
+    "emptyInboxConfirmed": true,
+    "sharedSoundControls": true,
+    "realPreferencesChanged": false,
+    "realBusinessWrites": false
+  },
+  "automaticEmailEnabled": false,
+  "limits": [
+    "Existing task/announcement history is not backfilled",
+    "Role matrix tested in DB, not a separate browser session for every role",
+    "Physical audio output was not counted; dedupe has automated coverage",
+    "Local latency is not a production performance guarantee"
+  ]
+}

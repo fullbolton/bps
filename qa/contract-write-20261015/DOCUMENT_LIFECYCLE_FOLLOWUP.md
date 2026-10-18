@@ -949,3 +949,8 @@ Server action + ortak panel + kaynak hedefleri + Hesabım ses erişimi tamamland
 ## 18 Ekim — bildirim kalan yerel kabulü
 
 45/45 DB testi; 5.001 alıcıya tek duyuru tekil teslimi geçti. Üç kaynak aynı yerel kutuda 33 bildirim; doğru talep mesajı hedefi, şirket B'de boş kutu, diğer sekmeden şirket geçişinde eski ekranın kapanması, sekmeler arası ses kapatma kabul edildi. Ses fiziksel çıktısı ölçülmedi; tekil çalma mantığı otomatik testte. Kanıt qa/unified-inbox-20261018/RELEASE_PREPARATION.md. Üretim kurulumu henüz yapılmadı; sıradaki taze ön kontrol, SQL ve uygulama yayını.
+
+
+## 18 Ekim — ortak bildirim kutusu ÜRETİMDE
+
+Dört migration tek transaction içinde uygulandı: ledger 190, 2 RLS tablo, 11 fonksiyon ve 2 trigger doğrulandı. a0230dd kaynaklı Vercel dpl_GaMr7ESWyJuM6CjnxeczNd44Esih www.bpsys.net üzerinde READY. Canlı kimlikli ortak kutu hatasız boş sonuç ve ortak ses kontrolleri verdi; gerçek veri/tercih değişmedi. Görev/duyuru olayları kurulum sonrası oluşur, geçmişe bildirim dağıtılmaz. Otomatik e-posta false korundu. 45 yerel DB testi; 5.001 alıcıya dağıtım; üç kaynak, talep hedefi, şirket ayrımı ve sekmeler arası ses kapatma yerel kabulü tamam. Kanıt qa/unified-inbox-20261018/release.json. Bu H görev/duyuru ortak kutu yayınını kapatır; push/e-posta veya her rolün tarayıcıda ayrı kabulü iddia edilmez.

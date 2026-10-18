@@ -53,3 +53,13 @@ Gerçek yerel Auth/PostgREST ile 31 duyuru + 1 görev + 1 talep etiketi aynı ku
 İkinci sekmeden Synthetic B'ye geçince ilk sekme açık A kutusunu kaldırıp “Şirketinizi yeniden doğrulayın” korumasına geçti. B kutusu 0 ve boş; A içeriği yok. Kanıt cross-tab-company-guard.png ve company-b-empty.png. Rol matrisi DB testleriyle doğrulandı; her rol için ayrı tarayıcı turu yapılmadı.
 
 Test sekmeleri kapatıldı; yerel harness temiz kapatıldı. Gerçek veri değiştirilmedi. Üretim kurulumu ve yayın sonucu ayrıca kaydedilecek.
+
+
+## Üretim SQL kurulumu
+
+Dört migration, ledger kilidi ve başlangıç 186 sürüm kontrolüyle tek transaction içinde uygulandı. Bu kurulumda dosyalar arası kısmi commit yok; install.sql yürütülen pakettir. Son ölçüm production-install.json: 190 sürüm, 2 RLS tablo; authenticated SELECT/INSERT/UPDATE/DELETE kapalı; 11 postgres-owned SECURITY DEFINER fonksiyon, 6 public RPC authenticated için açık, 5 yardımcı kapalı; anon/service EXECUTE kapalı; 2 etkin capture trigger. Mevcut veriler geriye dönük bildirimlere çevrilmedi. Uygulama yayını ayrı kaydedilir.
+
+
+## ÜRETİMDE — yayın sonucu
+
+Kaynak a0230dd, Vercel dpl_GaMr7ESWyJuM6CjnxeczNd44Esih www.bpsys.net alanına promote edildi; bağımsız inspect READY doğruladı. Ortak kutu flag true; otomatik e-posta false. Canlı kimlikli Hesabım ekranında ortak kutu başlığı, hatasız boş liste ve ortak ses kontrolleri doğrulandı. Gerçek kayıt veya tercih değiştirilmedi. Production build geçti; release.json ve production-install.json kanıttır. Önceki hazırlık ve “uygulanmadı” paragrafları tarihsel aşamaları gösterir; bu bölüm güncel sonucu belirtir.

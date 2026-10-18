@@ -1,5 +1,5 @@
 {
-  "status": "prepared-not-applied",
+  "status": "database-and-app-live",
   "baselineMigrationCount": 186,
   "expectedAfterCount": 190,
   "featureFlag": "NEXT_PUBLIC_BPS_WORKSPACE_INBOX_ENABLED",
