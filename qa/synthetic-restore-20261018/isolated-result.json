@@ -1,0 +1,645 @@
+{
+  "syntheticOnly": true,
+  "isolatedServer": true,
+  "rolesWithoutPasswords": true,
+  "sourceTemplate": "bps_module_chain_20261005",
+  "postBaselineMigrations": 30,
+  "migrationHashes": [
+    {
+      "name": "20261013000100_calendar_module_commands.sql",
+      "sha256": "a145ea6a2ef874ed2c20bc4a548d3cff15efafc32f8b4d910bd6b52a3031df7e"
+    },
+    {
+      "name": "20261013000200_calendar_direct_write_cutover.sql",
+      "sha256": "da0255e4c9ae79d24663d853cabe74639dc202d8dcd190329e9696df86887f97"
+    },
+    {
+      "name": "20261013000300_document_contract_module_access.sql",
+      "sha256": "b6db864e6b449ade76b287a5b8e3c77b9a1771ec6b616367ab7366d371938d4c"
+    },
+    {
+      "name": "20261015000100_contract_write_commands.sql",
+      "sha256": "4ef4afc510cd13761fceffe495af25d1dd7ce736d770acebf80267896c27be23"
+    },
+    {
+      "name": "20261015000200_contract_write_cutover.sql",
+      "sha256": "68a69bc3bc45c1e1d4a5201e4e9df6c80357457a475ed92d23ffcc65ede9df45"
+    },
+    {
+      "name": "20261015000300_contract_delete_command.sql",
+      "sha256": "a101dc7f493920b09f431f308503c7b8dfb9963a5f05c73249b3776f969630e2"
+    },
+    {
+      "name": "20261015000400_contract_delete_cutover.sql",
+      "sha256": "9984c3fe0164df25212ddcc15e6832e18df6a4c010534598ca78218c3e39bd83"
+    },
+    {
+      "name": "20261015000500_document_cleanup_queue.sql",
+      "sha256": "eaf115e88004269db626d3ff80714bb60c6f870fe5c4c4c407cae4eab96e402d"
+    },
+    {
+      "name": "20261015000600_document_cleanup_retry.sql",
+      "sha256": "dc9127bfc00890d446778a399fc2acb08a412030406d157aeda7c0783d42d1b2"
+    },
+    {
+      "name": "20261015000700_document_cleanup_module_preview.sql",
+      "sha256": "1cb4082af34313d1a744ccd2ce63994e4e5cb0153219dc55c6b900ac217c8616"
+    },
+    {
+      "name": "20261015000800_document_upload_attempts.sql",
+      "sha256": "315972930b3645c87fed23e3b0900ef2a3f1b94c0266ff20e15bfb5031a10651"
+    },
+    {
+      "name": "20261016000100_document_upload_module_preview.sql",
+      "sha256": "6b947ed9ff016968933733bf636008586d9b78f87ecb67c865563b1016302e30"
+    },
+    {
+      "name": "20261016000200_document_pending_uploads.sql",
+      "sha256": "803b641a9d787dee871e9f4c49aa6c2030b29bffd69876f842d79a79c0abe9cb"
+    },
+    {
+      "name": "20261016000300_document_finalize_upload.sql",
+      "sha256": "3d7fd0dcab30630f9bd4efd3f07a4f296f8ce52cfe965cb465b10b44d09985ea"
+    },
+    {
+      "name": "20261016000400_document_upload_recovery.sql",
+      "sha256": "d8d9bfa432621bf9b388c5c2fdcdab41eda441dc287b26bcae285c8c114ef69e"
+    },
+    {
+      "name": "20261016000500_document_upload_cancellation.sql",
+      "sha256": "cc38565f185f898355359d2b6135fc27b62b3261fe6e9ab5778c3543ca9f2929"
+    },
+    {
+      "name": "20261016000600_document_metadata_command.sql",
+      "sha256": "5474b6ad7912ae88ed76198339d903b04ac49e9745f9e697a964228223413f8d"
+    },
+    {
+      "name": "20261016000700_document_delete_command.sql",
+      "sha256": "5532a1099f88ae65cc216d53ea008e22002b971137af6d1e1926099a8ade1995"
+    },
+    {
+      "name": "20261016000800_document_insert_reservations.sql",
+      "sha256": "3faf351878a4f03515dc76074dc554d60c121f5d0a1f80595a996a04f67e0388"
+    },
+    {
+      "name": "20261016000900_document_storage_legacy_write_fences.sql",
+      "sha256": "bada44a2852934e5e58c989faaf2b6cb728ece8d2e07a0b67c154ee0fd182b93"
+    },
+    {
+      "name": "20261016001000_workspace_conflict_http.sql",
+      "sha256": "b84b99df6248359b55e57b8bcc20fac39444cd7cf12845052861180c15604557"
+    },
+    {
+      "name": "20261016001100_document_storage_module_barrier.sql",
+      "sha256": "b9dfda927c92b9269e1b813072e7c55062924aa90ddc544f06d1e0b1907d71cc"
+    },
+    {
+      "name": "20261017000100_legacy_staffing_module_barriers.sql",
+      "sha256": "1f332ebd1b5dd162b5e08d47e8802bb506e29c5954ea265a5960dc98e9054c2d"
+    },
+    {
+      "name": "20261017000200_contract_upload_module_preview.sql",
+      "sha256": "1d1cb5fbe68444405a445e7e65e19508961d5ca4f7a139705742b4d65c56c720"
+    },
+    {
+      "name": "20261018000100_workspace_module_change_command.sql",
+      "sha256": "7592ef086e388a658796d352a328e42b46f016d77ffd00bf69742cc746154978"
+    },
+    {
+      "name": "20261018000200_workspace_module_history.sql",
+      "sha256": "d2b4f0f490932f3facbaf15c1cc895cc42807efca46bc031b6d024b0cae0e407"
+    },
+    {
+      "name": "20261018000300_task_inbox_capture.sql",
+      "sha256": "ddd37244ce1132acfbdef9c8e2ce81a4b43bb7334b086856e08f04cfbe6a1b2a"
+    },
+    {
+      "name": "20261018000400_task_inbox_access.sql",
+      "sha256": "87d06ecd67b86ae5ef58e050837d0f318a1f7bfae099a920028bda5a34fa3ac5"
+    },
+    {
+      "name": "20261018000500_announcement_inbox.sql",
+      "sha256": "63d783d08b7d95cf133d8de203f9e13e730cd921c688547498c17d7e25890ad2"
+    },
+    {
+      "name": "20261018000600_workspace_inbox.sql",
+      "sha256": "7723399934520341224502180cc02b790a379423b66c1617c34de75ab639e7e8"
+    }
+  ],
+  "schemaSha256": "c236f2b5fd2bb95ef9ce31ba14b72252fb88ec97a8539173669b3ebc61ab0733",
+  "dumpBytes": 1240948,
+  "tables": [
+    {
+      "table": "auth.audit_log_entries",
+      "rows": 0
+    },
+    {
+      "table": "auth.custom_oauth_providers",
+      "rows": 0
+    },
+    {
+      "table": "auth.flow_state",
+      "rows": 0
+    },
+    {
+      "table": "auth.identities",
+      "rows": 0
+    },
+    {
+      "table": "auth.instances",
+      "rows": 0
+    },
+    {
+      "table": "auth.mfa_amr_claims",
+      "rows": 0
+    },
+    {
+      "table": "auth.mfa_challenges",
+      "rows": 0
+    },
+    {
+      "table": "auth.mfa_factors",
+      "rows": 0
+    },
+    {
+      "table": "auth.mfa_recovery_code_sets",
+      "rows": 0
+    },
+    {
+      "table": "auth.mfa_recovery_codes",
+      "rows": 0
+    },
+    {
+      "table": "auth.oauth_authorizations",
+      "rows": 0
+    },
+    {
+      "table": "auth.oauth_client_states",
+      "rows": 0
+    },
+    {
+      "table": "auth.oauth_clients",
+      "rows": 0
+    },
+    {
+      "table": "auth.oauth_consents",
+      "rows": 0
+    },
+    {
+      "table": "auth.one_time_tokens",
+      "rows": 0
+    },
+    {
+      "table": "auth.refresh_tokens",
+      "rows": 0
+    },
+    {
+      "table": "auth.saml_providers",
+      "rows": 0
+    },
+    {
+      "table": "auth.saml_relay_states",
+      "rows": 0
+    },
+    {
+      "table": "auth.schema_migrations",
+      "rows": 0
+    },
+    {
+      "table": "auth.scim_tokens",
+      "rows": 0
+    },
+    {
+      "table": "auth.scim_users",
+      "rows": 0
+    },
+    {
+      "table": "auth.sessions",
+      "rows": 0
+    },
+    {
+      "table": "auth.sso_domains",
+      "rows": 0
+    },
+    {
+      "table": "auth.sso_providers",
+      "rows": 0
+    },
+    {
+      "table": "auth.users",
+      "rows": 2
+    },
+    {
+      "table": "auth.webauthn_challenges",
+      "rows": 0
+    },
+    {
+      "table": "auth.webauthn_credentials",
+      "rows": 0
+    },
+    {
+      "table": "public.access_requests",
+      "rows": 0
+    },
+    {
+      "table": "public.announcement_inbox_events",
+      "rows": 0
+    },
+    {
+      "table": "public.announcements",
+      "rows": 0
+    },
+    {
+      "table": "public.appointment_completion_receipts",
+      "rows": 0
+    },
+    {
+      "table": "public.appointments",
+      "rows": 0
+    },
+    {
+      "table": "public.companies",
+      "rows": 1
+    },
+    {
+      "table": "public.company_document_events",
+      "rows": 0
+    },
+    {
+      "table": "public.contacts",
+      "rows": 0
+    },
+    {
+      "table": "public.contract_document_versions",
+      "rows": 0
+    },
+    {
+      "table": "public.contract_expiry_emails_sent",
+      "rows": 0
+    },
+    {
+      "table": "public.contract_pdf_upload_commands",
+      "rows": 0
+    },
+    {
+      "table": "public.contract_renewal_tasks",
+      "rows": 0
+    },
+    {
+      "table": "public.contracts",
+      "rows": 0
+    },
+    {
+      "table": "public.critical_dates",
+      "rows": 0
+    },
+    {
+      "table": "public.demo_requests",
+      "rows": 0
+    },
+    {
+      "table": "public.document_cleanup_jobs",
+      "rows": 0
+    },
+    {
+      "table": "public.document_upload_attempts",
+      "rows": 0
+    },
+    {
+      "table": "public.documents",
+      "rows": 0
+    },
+    {
+      "table": "public.financial_summaries",
+      "rows": 0
+    },
+    {
+      "table": "public.mizan_upload_rows",
+      "rows": 0
+    },
+    {
+      "table": "public.mizan_uploads",
+      "rows": 0
+    },
+    {
+      "table": "public.notes",
+      "rows": 0
+    },
+    {
+      "table": "public.notification_log",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_assignments",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_closed_comment_commands",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_commands",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_daily_requests",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_events",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_fixed_roster",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_fixed_roster_commands",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_fixed_roster_idp",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_idp_context",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_idp_periods",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_locations",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_message_notifications",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_messages",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_replacement_outreach",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_schedule_dates",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_schedules",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_start_events",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_start_plans",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_work_record_events",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_work_records",
+      "rows": 0
+    },
+    {
+      "table": "public.ops_workers",
+      "rows": 0
+    },
+    {
+      "table": "public.partner_company_assignments",
+      "rows": 0
+    },
+    {
+      "table": "public.profiles",
+      "rows": 2
+    },
+    {
+      "table": "public.reporting_actuals",
+      "rows": 0
+    },
+    {
+      "table": "public.reporting_commands",
+      "rows": 0
+    },
+    {
+      "table": "public.reporting_import_files",
+      "rows": 0
+    },
+    {
+      "table": "public.reporting_imports",
+      "rows": 1
+    },
+    {
+      "table": "public.reporting_period_events",
+      "rows": 0
+    },
+    {
+      "table": "public.reporting_periods",
+      "rows": 1
+    },
+    {
+      "table": "public.reporting_person_code_events",
+      "rows": 0
+    },
+    {
+      "table": "public.reporting_person_codes",
+      "rows": 0
+    },
+    {
+      "table": "public.reporting_project_locations",
+      "rows": 0
+    },
+    {
+      "table": "public.reporting_projects",
+      "rows": 1
+    },
+    {
+      "table": "public.sector_templates",
+      "rows": 0
+    },
+    {
+      "table": "public.staffing_demands",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_attachments",
+      "rows": 2
+    },
+    {
+      "table": "public.talent_availability",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_call_list_commands",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_call_lists",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_conversations",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_import_batches",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_import_changes",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_import_closures",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_import_rows",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_merge_commands",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_people",
+      "rows": 1
+    },
+    {
+      "table": "public.talent_person_commands",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_person_events",
+      "rows": 0
+    },
+    {
+      "table": "public.talent_pool_versions",
+      "rows": 1
+    },
+    {
+      "table": "public.talent_shared_views",
+      "rows": 0
+    },
+    {
+      "table": "public.task_assignment_history",
+      "rows": 0
+    },
+    {
+      "table": "public.task_inbox_events",
+      "rows": 0
+    },
+    {
+      "table": "public.task_transfer_receipts",
+      "rows": 0
+    },
+    {
+      "table": "public.tasks",
+      "rows": 0
+    },
+    {
+      "table": "public.tenant_memberships",
+      "rows": 2
+    },
+    {
+      "table": "public.tenant_module_changes",
+      "rows": 2
+    },
+    {
+      "table": "public.tenant_module_config",
+      "rows": 2
+    },
+    {
+      "table": "public.tenant_module_settings",
+      "rows": 20
+    },
+    {
+      "table": "public.tenants",
+      "rows": 2
+    },
+    {
+      "table": "public.workforce_summary",
+      "rows": 0
+    },
+    {
+      "table": "public.workspace_invitations",
+      "rows": 0
+    },
+    {
+      "table": "public.workspace_selections",
+      "rows": 0
+    },
+    {
+      "table": "storage.buckets",
+      "rows": 2
+    },
+    {
+      "table": "storage.buckets_analytics",
+      "rows": 0
+    },
+    {
+      "table": "storage.buckets_vectors",
+      "rows": 0
+    },
+    {
+      "table": "storage.migrations",
+      "rows": 0
+    },
+    {
+      "table": "storage.objects",
+      "rows": 2
+    },
+    {
+      "table": "storage.s3_multipart_uploads",
+      "rows": 0
+    },
+    {
+      "table": "storage.s3_multipart_uploads_parts",
+      "rows": 0
+    },
+    {
+      "table": "storage.vector_indexes",
+      "rows": 0
+    }
+  ],
+  "sequences": [
+    {
+      "name": "auth.refresh_tokens_id_seq",
+      "state": "1:false",
+      "nextValue": "1"
+    },
+    {
+      "name": "public.ops_events_id_seq",
+      "state": "101:true",
+      "nextValue": "102"
+    },
+    {
+      "name": "public.talent_person_events_id_seq",
+      "state": "202:false",
+      "nextValue": "202"
+    }
+  ],
+  "checks": [
+    "empty template0 restore",
+    "schema including owners and ACLs identical",
+    "all public/auth/storage row counts and row-content hashes identical",
+    "all public/auth/storage sequence states and next values identical",
+    "anonymous inbox execution denied",
+    "authenticated inbox execution retained"
+  ],
+  "elapsedMs": 14185,
+  "limits": [
+    "Separate empty local server using same PostgreSQL image; role definitions copied without passwords, not a full Supabase installation",
+    "No production data or backup",
+    "No external Storage objects or Auth/HTTP/browser acceptance",
+    "Historical baseline is not reconstructed from repository migrations"
+  ]
+}

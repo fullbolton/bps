@@ -1002,3 +1002,9 @@ Sentetik DB + gerçek yerel Storage file backend restore paketi 35/35 HTTP kontr
 ## 18 Ekim — restore sonrası iptal edilmiş oturum reddi
 
 Auth kabulü 10 kontrol: iki ayrı oturumdan biri snapshot öncesi gerçek local logout ile kapatıldı; refresh önce/sonra 400, diğer aktif oturum restore sonrası çalışıyor. 35 Storage/iş kontrolü de geçti. Snapshot sonrası iptallerin bu kanıtla kapsanmadığı açıklandı. Kurtarma kapsamı/sırası qa/synthetic-restore-20261018/RECOVERY_SCOPE.md içinde toplandı. Üretim ve gerçek veri değişmedi.
+
+### 18 Ekim — ayrı boş PostgreSQL kabulü
+- Ağsız, port yayımlamayan ayrı initdb konteynerinde 120 tablo, 3 sayaç, 30 migration geri yüklemesi geçti.
+- Rol parolaları aktarılmadı; sahiplik/ACL korundu. Bootstrap grantor supabase_admin gerekliliği ölçüldü.
+- Kanıt: qa/synthetic-restore-20261018/isolated-result.json. Geçici kaynak DB ve hedef konteyner kaldırıldı.
+- Gerçek veriye/üretime dokunulmadı. Aynı imajın eklentileri ve tarihsel sentetik temel kullanılıyor; birleşik yeni sunucu Auth/Storage/tarayıcı kabulü açık.

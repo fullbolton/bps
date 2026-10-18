@@ -4,7 +4,7 @@
 
 | Alan | Ölçülen sonuç | Kalan |
 |---|---|---|
-| İş veritabanı | 120 tablo içerik hash'i; şema, sahiplik ve ACL eşitliği | Baştan kurulan sunucuda rol/eklenti/temel şema kurulumu |
+| İş veritabanı | 120 tablo içerik hash'i; şema, sahiplik ve ACL eşitliği | Ayrı boş PostgreSQL sunucusu geçti; farklı platform ve tarihsel temel DDL kurulumu açık |
 | Sayaçlar | 3 sequence; başlangıç dışı called/uncalled ve nextval eşitliği | Gerçek işletim verisinin sayaç tutarlılığı |
 | Dosya deposu | Yeni boş yerel file-backend; byte + extended attribute geri yükleme | Yönetilen bulut/S3 obje sürümleri ve sağlayıcı kurtarma yolu |
 | Bekleyen işler | Dosyalı/dosyasız rezervasyon, finalize tekilliği, iptal ve temizlik | Gerçek operasyon kesintisi ve geri dönüş süresi hedefi |
@@ -20,4 +20,4 @@
 5. Önce yalıtılmış hedefte Auth ve erişim ayrımı, sonra dosya içerikleri ve pending/cleanup işleri, ardından uygulama akışı kabul edilir.
 6. Üretime yönlendirme ancak bu kanıtlar ve güncel yayın sırası doğrulandıktan sonra yapılır. Bu belgenin varlığı yayın/kurtarma tamamlandı demek değildir.
 
-Gerçek üretim yedek kapsamı, geri dönülebilir süre (RPO) ve toparlanma süresi (RTO) ölçülmedi; sayısal taahhüt verilmez. Eldeki kanıtlar sentetik, aynı yerel sunucuya ait ve README'de tekrarlanabilir komutlarla bağlıdır.
+Gerçek üretim yedek kapsamı, geri dönülebilir süre (RPO) ve toparlanma süresi (RTO) ölçülmedi; sayısal taahhüt verilmez. Eldeki kanıtlar sentetik, aynı ve ayrı boş yerel sunucularda alınmış ve README'de tekrarlanabilir komutlarla bağlıdır.

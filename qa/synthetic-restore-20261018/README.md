@@ -61,3 +61,11 @@ Resmi yerel GoTrue ile sentetik kullanıcı giriş yaptı. Auth durduruldu, Auth
 Auth kabulü 10 kontrole genişletildi. Aynı sentetik kullanıcı iki bağımsız oturum açtı; ikinci oturum resmi `/logout?scope=local` ile yedek öncesinde kapatıldı. Bu oturumun refresh token'ı hem yedek öncesinde hem restore sonrasında HTTP 400 ile reddedildi. İlk aktif oturum restore sonrasında yenilenebildi. 35 Storage/iş HTTP kontrolüyle birlikte tüm koşu exit 0 verdi. Son kanıt auth-result.json'dır; önceki 7 sayısı tarihsel kapsamdır.
 
 Sınır: bu kontrol yalnız yedek anındaki iptali korur. Snapshot SONRASI yapılan oturum iptalleri, parola/rol değişiklikleri veya hesap kapatma eski snapshot'ta yoktur. Bu nedenle eski yedeğe dönülünce güncel erişim kararlarının ayrıca uzlaştırılması gerekir. Salt JWT'nin logout sonrası süre dolmadan davranışı bu testte ölçülmedi; ölçülen, refresh token ile yeni oturum alınamamasıdır.
+
+## Ayrı boş PostgreSQL sunucusu — 18 Ekim
+
+`BPS_ISOLATED_RESTORE=1 node qa/synthetic-restore-20261018/rehearse.mjs`
+
+Ağ erişimi ve host portu olmayan, aynı `17.6.1.075` imajından yeni initdb: 120 tablo, 3 sayaç, 30 migration geçti (`isolated-result.json`). Rol tanımları parola içermeden bellekte taşındı; kaynak bootstrap grantor `supabase_admin` korundu. Şema sahipliği ve ACL karşılaştırılır; ardışık DEFAULT PRIVILEGES GRANT satırlarının yalnız sırası normalize edilir. Gerçek veri okunmaz; geçici sunucu ve kaynak DB sonunda kaldırılır.
+
+Bu, platformdan bağımsız sıfırdan Supabase kurulumu değildir: aynı imajın eklenti dosyaları ve sentetik tarihsel temel şema kullanılır. Ayrı sunucuda Auth/Storage/tarayıcı birleşik kabulü henüz yok.
