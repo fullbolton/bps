@@ -1,0 +1,31 @@
+{
+  "source": "14755c2",
+  "date": "2026-10-18",
+  "scope": "local synthetic Next server action + Auth + PostgREST + Storage via local proxy",
+  "beforeRecovery": {
+    "documents": 0,
+    "pending": 1,
+    "storageObjects": 0
+  },
+  "afterRecovery": {
+    "documents": 1,
+    "pending": 0,
+    "storageObjects": 1
+  },
+  "observations": [
+    "Storage paused before submitting real PDF through browser form",
+    "Deadline ended saving state; alert focused; form fields preserved; submit remained disabled; close enabled",
+    "After Storage unpause, the forwarded upload completed late; pending row reported file present",
+    "Original pending row completed via browser server action without reupload; success status visible"
+  ],
+  "cleanup": "test tab closed; harness SIGTERM exit 0; disposable services cleaned",
+  "limits": [
+    "No exact latency measurement",
+    "Local proxy can finish forwarding after caller abort; this demonstrates an uncertain late completion, not all network topologies",
+    "Physical device/browser-to-Next body interruption not tested"
+  ],
+  "screenshots": [
+    "initial-upload-timeout.png",
+    "initial-upload-recovered.png"
+  ]
+}
