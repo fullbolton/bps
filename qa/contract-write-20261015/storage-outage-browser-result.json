@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-18",
+  "sourceCommit": "37e9710",
+  "syntheticOnly": true,
+  "fault": "docker pause of disposable Storage container; actual Next server action via browser",
+  "outage": {
+    "message": "Dosya okunamadı. Yükleme sürüyor olabilir; daha sonra tekrar kontrol edin.",
+    "documents": 0,
+    "pending": 1,
+    "object": 1
+  },
+  "afterUnpauseAndManualRetry": {
+    "message": "Yükleme tamamlandı. Belge evrak listesine eklendi.",
+    "documents": 1,
+    "pending": 0,
+    "object": 1
+  },
+  "limits": [
+    "not physical mobile or browser offline event",
+    "no upload-body network interruption",
+    "no production outage or production data",
+    "exact latency not measured"
+  ]
+}

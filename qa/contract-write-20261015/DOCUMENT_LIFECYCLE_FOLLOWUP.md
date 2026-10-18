@@ -1048,3 +1048,9 @@ Kanıt: document-owner-http-result.json; helper document-owner-acceptance.mjs. H
 ## 18 Ekim — Evraklar beş rol ekran kabulü
 
 İK kendi pending evrakını gerçek tarayıcı server action ile tamamladı; yönetici temizlik panelini görmedi. Muhasebe geçişinde eski kapsam kapandı, güncel şirket seçimi sonrası doğrudan evrak erişimi reddedildi. Önceki yönetici/operasyon/görüntüleyici kanıtlarıyla beş rolün sınırlı evrak matrisi DOCUMENT_ROLE_BROWSER.md içinde toplandı. Tüm modüllerin rol kabulü değildir. Ürün/yayın değişmedi; sentetik test ortamı temizlendi.
+
+## 18 Ekim — Storage yanıt kesintisi / tarayıcı toparlanması
+
+Sentetik authenticated-browser düzeneğinde yalnız geçici Storage container docker pause ile duraklatıldı. Tarayıcıdan 9101 için Yüklemeyi tamamla seçildi. Gerçek server action süre sınırı sonrası Dosya okunamadı mesajı gösterdi; başarı mesajı yok, kontroller yeniden açıldı. SQL ölçümü documents=0, pending=1, storage.objects=1. Storage unpause sonrası aynı düğme ile yeniden denemede başarı; documents=1, pending=0, object=1. Dosya tekrar yüklenmedi.
+
+Kanıt: storage-outage-browser-result.json; ../synthetic-restore-20261018/storage-outage.png ve storage-reconnected.png. Test sekmesi kapatıldı, harness SIGTERM exit 0, geçici servisler temizlendi. Bu fiziksel mobil/zayıf internet veya upload body kesintisi kabulü değil; gerçek Storage yanıt vermemesi ve UI toparlanma kabulüdür. Tam gecikme ölçülmedi. Ürün kodu ve üretim değişmedi.
