@@ -26,7 +26,7 @@ P0: veri kaybı, yetkisiz erişim/tenant sızıntısı veya üretim çökmesi. P
 
 Fiziksel telefon/zayıf ağ kabulü, gerçek Excel/Luca dosyası mutabakatı, bulut/S3 felaket kurtarma, bildirim sağlayıcısı ve tüm ikincil modüllerin kapsamlı kabulü ayrı takip edilir; tamamlandı sayılmaz, fakat İK kodlamasına başlama ön koşulu değildir. İlgili özellik gerçek kullanıma açılırken kendi kabulü gerekir. Keşfedilmiş veri kaybı/güvenlik açığı varsa bu erteleme kullanılamaz. Mevcut gerçek veriyi temizleme ve tam içerik yedeği almama sınırı korunur.
 
-H0a ilerleme: `qa/hr-catalog-20261018/contract.mjs` ve `accept.mjs` ile 7 geçiş sözleşmesi grubu geçti. İzole öneridir; ürün/SQL/API bağlı değildir. Eski katalog 10 modülle korunur. H0b gerçek DB kilit/makbuz/geçmiş uyumluluğu henüz yapılmadı.
+H0a ilerleme: `qa/hr-catalog-20261018/contract.mjs` ve `accept.mjs` ile 7 geçiş sözleşmesi grubu geçti. İzole öneridir; ürün/SQL/API bağlı değildir. Eski katalog 10 modülle korunur. H0b izole PostgreSQL işlem algoritması 5 grupta geçti: gerçek lock wait/commit/rollback, değişmez makbuz ve sentetik pending engeli. Bu mevcut BPS RPC kabulü değildir. H0c yetki, gerçek ön kontrol/geçmiş ve v1/v2 API adaptasyonu açık.
 
 ### İK-1 öncesi koddan doğrulanan entegrasyon sınırları — 18 Ekim, Faz 1 sonrası
 

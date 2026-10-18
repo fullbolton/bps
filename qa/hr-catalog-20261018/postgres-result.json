@@ -1,0 +1,17 @@
+{
+  "source": "7aa4f62cdf2b61fd16804819b4d1b4d5a799c253",
+  "measuredAt": "2026-10-18T19:41:18.984Z",
+  "checks": [
+    "v1 write preserves HR; exact command replay returns receipt, payload reuse denied",
+    "Old receipt remains immutable after later v2 update; replay does not revert current state",
+    "Pending-work rejection leaves no receipt, history or revision change",
+    "Real v2/v1 transaction race observes lock wait; loser rejects stale revision without receipt",
+    "Rollback releases lock; waiting legacy writer succeeds and preserves original HR state"
+  ],
+  "limits": [
+    "Disposable algorithm prototype, not current BPS RPC/migration acceptance",
+    "No auth/RLS/module entitlement/backend readiness integration",
+    "Pending-work table is a synthetic blocker; does not validate production blocker queries",
+    "Minimal key set tests transaction semantics; full catalog validated separately"
+  ]
+}
