@@ -704,5 +704,9 @@
   {
     "file": "scripts/workspace-inbox-actions.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/supabase-server-timeout.test.mjs",
+    "suite": "application"
   }
 ]

@@ -1,0 +1,17 @@
+{
+  "source": "8c0abae + test inventory classification",
+  "date": "2026-10-18",
+  "command": "node scripts/qa-test-suite.mjs application",
+  "exitCode": 0,
+  "tests": 790,
+  "passed": 790,
+  "failed": 0,
+  "skipped": 0,
+  "todo": 0,
+  "inventory": {
+    "applicationFiles": 140,
+    "databaseFiles": 27,
+    "pendingFiles": 7
+  },
+  "scope": "application suite only; database/pending not run; not deployed"
+}
