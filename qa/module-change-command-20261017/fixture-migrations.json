@@ -28,5 +28,6 @@
   "20261018000300_task_inbox_capture.sql",
   "20261018000400_task_inbox_access.sql",
   "20261018000500_announcement_inbox.sql",
-  "20261018000600_workspace_inbox.sql"
+  "20261018000600_workspace_inbox.sql",
+  "20261019000100_module_history_catalog_versions.sql"
 ]
