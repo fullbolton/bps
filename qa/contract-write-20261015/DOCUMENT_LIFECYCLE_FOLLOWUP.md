@@ -990,3 +990,7 @@ Sentetik restore testi 3 sequence için last_value/is_called ve restore sonrası
 ## 18 Ekim — Storage dahil kurtarma ve işlem devamlılığı
 
 Sentetik DB + gerçek yerel Storage file backend restore paketi 35/35 HTTP kontrolüyle geçti. Yeni boş Storage konteynerinde yalnız DB ile dosya yok; byte arşivi + gerçek extended attributes geri yazılınca SHA-256 eşit indirme HTTP 200. Bekleyen dosya tekil finalize, iptal/temizlik ve dosyasız rezervasyon iptali restore sonrasında çalıştı; mevcut metadata, sözleşme, modül ön kontrolü, rol/tenant HTTP kabulü de geçti. Düz docker cp/tar xattr kaybı ve restart sonrası dinamik port değişimi test altyapısında giderildi. Geçici DB/konteynerlerin temizlendiği ölçüldü. Kanıt qa/synthetic-restore-20261018/storage-http-result.json. Gerçek veri/üretim değişikliği yok; cloud S3, yeni sunucu/roller, gerçek Auth ve tarayıcı kurtarma kabulü ayrı kalır. Canlı f58db6c/190 son yayın kaydıdır.
+
+## 18 Ekim — geri yüklenmiş sistemde tarayıcı kabulü
+
+35 HTTP restore kontrolünün ardından gerçek yerel GoTrue girişi, dashboard/evrak erişimi, Next server action ile tamamla, dosyalı/dosyasız iptal ve temizlik tarayıcıda geçti. Belge 3→4; ek DB sayımı tek belge/0 iptal dosyası/2 tamamlanmış temizlik doğruladı. Auth taze ayrı sentetik DB'de kuruldu; parola/oturum restore kanıtı değildir. UI kayıtları restore sonrası seed edildi, restore öncesi pending devamlılığı HTTP testindedir. Kanıt qa/synthetic-restore-20261018/BROWSER_ACCEPTANCE.md ve ekran görüntüsü. Harness çıkış 0, yerel kaynaklar temizlendi. Üretim/kod değişmedi.
