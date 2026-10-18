@@ -1,0 +1,23 @@
+{
+  "source": "c4f8c8e",
+  "date": "2026-10-18",
+  "application": {
+    "tests": 791,
+    "pass": 791,
+    "fail": 0,
+    "skip": 0,
+    "exitCode": 0
+  },
+  "static": {
+    "checks": 16,
+    "fail": 0,
+    "warn": 0,
+    "exitCode": 0
+  },
+  "build": {
+    "exitCode": 0,
+    "environment": "synthetic localhost public values; not production credentials"
+  },
+  "newMigrations": 0,
+  "deployed": false
+}

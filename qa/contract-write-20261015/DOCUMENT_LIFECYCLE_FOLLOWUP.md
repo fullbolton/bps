@@ -1096,3 +1096,7 @@ Genel evrak ve firma formuna ortak DocumentUploadReviewHelp eklendi. Yalnız rev
 Tarayıcı: gerçek yerel sentetik form + Storage pause ile timeout; yardım metni/link, korunmuş dosya/ad ve kapalı Yükle görüldü. Link yeni sekme 52'yi açtı; pending panel açık ve ilgili kayıt görünür. Eski formda alanların korunduğu gözlendi. Screenshot upload-review-help.png. Storage unpause, iki test sekmesi kapalı, harness exit 0. Oturum açık bağlantı kabulüdür; oturum süresi dolmuş giriş dönüşü ve fiziksel mobil ayrı kalır.
 
 Test: genel koşu 791 testte 789 geçti, 2 eski bileşen fixture'ı yeni bağımlılığı tanımadı. Fixture eşlemesi düzeltildi; iki etkilenen dosyada 24/24 geçti (hash navigation testi dahil). Genel koşunun son hâlde tümü tekrar geçtiği iddia edilmez. TypeScript temiz. Bu UX eklemesi henüz yayımlanmadı; canlı 3585375 süre sınırı sürümü olarak kalır.
+
+## 18 Ekim — kurtarma UX genel kabulü tamamlandı
+
+Son kaynak c4f8c8e üzerinde genel uygulama 791/791, 0 fail/skip/todo; statik 16 kontrol 0 FAIL/0 WARN; sentetik public ortam değerleriyle production build exit 0. Önceki iki fixture hatası düzeltildikten sonraki tam koşudur. Kanıt review-help-preflight.json. Üretim değişmedi, UX henüz yayında değil; canlı kaynak 3585375. Eski ana klasördeki durum belgesi tek güncel tablo ve ayrı 18 Ekim tarihçesi olarak düzenlendi; tarihsel kanıtlar silinmedi.
