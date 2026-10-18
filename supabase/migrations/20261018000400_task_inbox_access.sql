@@ -1,4 +1,3 @@
--- LOCAL CANDIDATE ONLY, applied after candidate.sql. No production rollout.
 BEGIN;
 SET LOCAL lock_timeout='15s';
 CREATE FUNCTION public.task_inbox_visible_v1(p_actor uuid,p_tenant uuid)

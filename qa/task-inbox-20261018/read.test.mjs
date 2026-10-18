@@ -8,7 +8,6 @@ test('scoped task notification reader and acknowledgement',async t=>{
  try {
  const password=execFileSync('docker',['exec',container,'printenv','POSTGRES_PASSWORD'],{encoding:'utf8'}).trim();c=new pg.Client({host:'127.0.0.1',port:54322,user:'postgres',password,database});await c.connect();
  for(const f of loadFixtureMigrations())await c.query(readFileSync(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
- for(const f of ['candidate.sql','read-candidate.sql'])await c.query(readFileSync(new URL(f,import.meta.url),'utf8'));
  await c.query("INSERT INTO tenant_memberships(user_id,tenant_id,role) VALUES($1,$2,'operasyon') ON CONFLICT(user_id,tenant_id) DO UPDATE SET role='operasyon'",[id(12),id(1)]);
  const login=async(actor)=>{await c.query('RESET ROLE');await c.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(actor),role:'authenticated'})]);
  const member=(await c.query('select version from tenant_memberships where user_id=$1 and tenant_id=$2',[id(actor),id(1)])).rows[0].version;

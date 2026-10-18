@@ -39,3 +39,6 @@ read-candidate.sql eklendi; üretim zincirinde değil. task_inbox_visible_v1 öz
 İlk test koşusu sentetik ikinci hesabın çoklu üyeliğine rağmen selection/version içermeyen JWT yüzünden WORKSPACE_SCOPE ile durdu. Test gerçek select_workspace çağrısıyla düzeltildi. Aktif işi olan üyeyi muhasebeye düşürmenin mevcut korumayla reddedilmesi korunarak rol testi transaction içinde görevler kapatıldıktan sonra yapıldı. Yarış testinin ilk kontrolü önceden okunmuş kayıt seçiyordu; açıkça okunmamış kayıt seçimine düzeltildi. Üretim korumaları gevşetilmedi.
 
 Açık: duyuru olay/alıcıları, ortak kaynak kimliği/ses dedupe, ortak UI ve hedef bağlantıları; diğer eşzamanlı üyelik/modül yarışları ve büyük veri plan ölçümü. Yeni uygulama veya üretim SQL yayını yok. Canlı son kayıt 6cd6007/186 olarak kalır.
+
+
+18 Ekim güncellemesi: SQL adayları supabase/migrations/20261018000300–20261018000600 sırasına taşındı. Tek kaynak migration dosyalarıdır; yerel testler güncel fixture manifestinden yükler. Üretime henüz uygulanmadı. Yayın hazırlığı: ../unified-inbox-20261018/RELEASE_PREPARATION.md.

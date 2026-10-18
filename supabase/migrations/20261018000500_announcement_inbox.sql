@@ -1,4 +1,3 @@
--- LOCAL CANDIDATE ONLY. No backfill, UI change or production apply.
 BEGIN;
 SET LOCAL lock_timeout='15s';
 LOCK TABLE public.announcements IN SHARE ROW EXCLUSIVE MODE;

@@ -24,5 +24,9 @@
   "20261017000100_legacy_staffing_module_barriers.sql",
   "20261017000200_contract_upload_module_preview.sql",
   "20261018000100_workspace_module_change_command.sql",
-  "20261018000200_workspace_module_history.sql"
+  "20261018000200_workspace_module_history.sql",
+  "20261018000300_task_inbox_capture.sql",
+  "20261018000400_task_inbox_access.sql",
+  "20261018000500_announcement_inbox.sql",
+  "20261018000600_workspace_inbox.sql"
 ]

@@ -24,7 +24,8 @@
     "qa:document-storage:http": "node qa/contract-write-20261015/storage-http.mjs",
     "qa:test-inventory": "node scripts/qa-test-suite.mjs inventory",
     "qa:pending": "node scripts/qa-test-suite.mjs pending",
-    "qa:release": "npm run qa:test-inventory && npm run qa:unit && npm run qa:operations && npm run qa:static && tsc --noEmit && npm run build"
+    "qa:release": "npm run qa:test-inventory && npm run qa:unit && npm run qa:operations && npm run qa:static && tsc --noEmit && npm run build",
+    "qa:inbox:local": "node --test qa/task-inbox-20261018/*.test.mjs qa/announcement-inbox-20261018/*.test.mjs qa/unified-inbox-20261018/*.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",

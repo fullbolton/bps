@@ -1,0 +1,24 @@
+{
+  "status": "prepared-not-applied",
+  "baselineMigrationCount": 186,
+  "expectedAfterCount": 190,
+  "featureFlag": "NEXT_PUBLIC_BPS_WORKSPACE_INBOX_ENABLED",
+  "files": [
+    {
+      "file": "supabase/migrations/20261018000300_task_inbox_capture.sql",
+      "sha256": "ddd37244ce1132acfbdef9c8e2ce81a4b43bb7334b086856e08f04cfbe6a1b2a"
+    },
+    {
+      "file": "supabase/migrations/20261018000400_task_inbox_access.sql",
+      "sha256": "87d06ecd67b86ae5ef58e050837d0f318a1f7bfae099a920028bda5a34fa3ac5"
+    },
+    {
+      "file": "supabase/migrations/20261018000500_announcement_inbox.sql",
+      "sha256": "63d783d08b7d95cf133d8de203f9e13e730cd921c688547498c17d7e25890ad2"
+    },
+    {
+      "file": "supabase/migrations/20261018000600_workspace_inbox.sql",
+      "sha256": "7723399934520341224502180cc02b790a379423b66c1617c34de75ab639e7e8"
+    }
+  ]
+}

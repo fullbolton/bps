@@ -34,3 +34,6 @@ Yerel aday sırası: task-inbox/candidate.sql → task-inbox/read-candidate.sql 
 4. Büyük sentetik fanout/query-plan, gerçek Auth/PostgREST tarayıcı, üyelik/kapatma yarışları; sonra güncel üretim şemasıyla kontrollü migration/uygulama yayını.
 
 Görev/duyuru ayrı page RPC'leri yerel kaynak kabulü için duruyor; ortak UI yalnız workspace uçlarını kullanacak. Üretim paketinde gereksiz public uçlar açılmayacak. Varsayılan eski konuşma yolu hâlâ çalışmalı; geri dönüşte veri silinmez. Otomatik e-posta/push veya süreye bağlı yönetici uyarısı yok.
+
+
+18 Ekim güncellemesi: SQL adayları supabase/migrations/20261018000300–20261018000600 sırasına taşındı. Tek kaynak migration dosyalarıdır; yerel testler güncel fixture manifestinden yükler. Üretime henüz uygulanmadı. Yayın hazırlığı: ../unified-inbox-20261018/RELEASE_PREPARATION.md.

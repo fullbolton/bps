@@ -8,7 +8,6 @@ test('task notification capture on full local schema',async t=>{
  try {
  const password=execFileSync('docker',['exec',container,'printenv','POSTGRES_PASSWORD'],{encoding:'utf8'}).trim();c=new pg.Client({host:'127.0.0.1',port:54322,user:'postgres',password,database});await c.connect();
  for(const f of loadFixtureMigrations())await c.query(readFileSync(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
- await c.query(readFileSync(new URL('./candidate.sql',import.meta.url),'utf8'));
  await c.query("INSERT INTO tenant_memberships(user_id,tenant_id,role) VALUES($1,$2,'operasyon') ON CONFLICT(user_id,tenant_id) DO UPDATE SET role='operasyon'",[id(12),id(1)]);
  await c.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(11),active_tenant_id:id(1),role:'authenticated'})]);
  const command=async(action,task=null,revision=null,input={})=>{await c.query('SET ROLE authenticated');try{return (await c.query('select * from task_execute_v1($1,$2,$3,$4,$5,$6)',[action,task,revision,input,id(1),id(11)])).rows[0];}finally{await c.query('RESET ROLE');}};

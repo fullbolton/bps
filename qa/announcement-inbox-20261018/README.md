@@ -28,3 +28,6 @@ Test finally içinde yalnız kendi geçici DB'sini kaldırır. Gerçek müşteri
 ## Kalan
 
 Görev+duyuru+konuşma ortak okuma ve cursor/kimlik sözleşmesi, türler arası ses dedupe, hedef detay bağlantıları, UI/tarayıcı kabulü, büyük üye sayısında fanout/query-plan ölçümü ve üyelik/modül eşzamanlılık kabulünün diğer kombinasyonları. Bu rol matrisinin kaynak RLS ile eşleşmesi üretim ön kontrolünde tekrar ölçülmeli. İki kaynak için benzer sayfalama fonksiyonları yerel kabul iskeletidir; ortak RPC bağlanınca gereksiz public uçlar production migration'a taşınmayacak.
+
+
+18 Ekim güncellemesi: SQL adayları supabase/migrations/20261018000300–20261018000600 sırasına taşındı. Tek kaynak migration dosyalarıdır; yerel testler güncel fixture manifestinden yükler. Üretime henüz uygulanmadı. Yayın hazırlığı: ../unified-inbox-20261018/RELEASE_PREPARATION.md.

@@ -1,6 +1,15 @@
--- LOCAL CANDIDATE ONLY: no reader/grant/UI rollout. No historical backfill.
 BEGIN;
 SET LOCAL lock_timeout='15s';
+DO $guard$
+DECLARE signature text; expected text;
+BEGIN
+ FOR signature,expected IN SELECT key,value FROM jsonb_each_text('{"current_workspace_modules_v1()": "3440a576578b52477fa5f04463dce712", "ops_comment_context(uuid,uuid)": "47c58200bdbae28385722839011f4edf", "ops_comment_read(uuid,uuid,uuid)": "ba0f6df9707fee3f0bcd38c9169b1cad", "announcement_execute_v1(text,uuid,uuid,text)": "bf8d4c07e3e1aaf68e13ba8afd6283c7", "workspace_require_module_write_v1(uuid,text[])": "8abbd4876d6e24ec59c8feebd2a0ac12", "task_execute_v1(text,uuid,bigint,jsonb,uuid,uuid)": "4dfa8f1df630d4d8bfdf6ad0e334f238"}'::jsonb) LOOP
+  IF to_regprocedure(signature) IS NULL OR md5(pg_get_functiondef(to_regprocedure(signature))) IS DISTINCT FROM expected THEN
+   RAISE EXCEPTION 'INBOX_DEPENDENCY_DRIFT: %',signature;
+  END IF;
+ END LOOP;
+END $guard$;
+
 LOCK TABLE public.tasks, public.task_assignment_history IN SHARE ROW EXCLUSIVE MODE;
 CREATE TABLE public.task_inbox_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
