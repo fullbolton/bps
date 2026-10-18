@@ -1163,3 +1163,9 @@ Açık ve fazı uzatmayanlar: rol bazlı düğmelerin her hesapta ayrı görsel 
 ## 18 Ekim — İK entegrasyon incelemesi tamamlandı
 
 Faz 1 tekrar açılmadı. Kaynakta kişi çekirdeğinin talent_people/ops_workers ve talent/staffing kapılarına bağlı olduğu; modül kataloğunun v1/tam 10 alan ve DB CHECK=1 kullandığı doğrulandı. Eski uygulanmış katalog migration'ı değiştirilmeden v2 geçişi gerekli. Ana planın İK-1 entegrasyon bölümüne H0 katalog uyumluluğu, H1 ortak kimlik, H2 istihdam/organizasyon, H3 ekran/aktarım, H4 özel dosya/bağımsız kabul sırası ve test matrisi işlendi. İK rolü müşteri operasyonundan bağımsız; çalışan eklemek aday/operasyon personeli/uygulama hesabı üretmeyecek. Bu tur dokümantasyon; ürün kodu/şema/veri/yayın yok. Sıradaki somut paket H0'dır.
+
+## 18 Ekim — H0a katalog geçişi yürütülebilir sözleşmesi
+
+`qa/hr-catalog-20261018/contract.mjs` üretimden izole bir v1→v2 geçiş önerisi olarak kodlandı. `node qa/hr-catalog-20261018/accept.mjs` 7 kontrol grubu geçti: eski 10 alanın tam roundtrip'i, hr=false upgrade, eksik/fazla/boolean olmayan alanların reddi, bağımsız HR durumu, hak+hazır backend şartı, eski istemci kaydında HR korunması, yeni revision sonrası eski ekranın reddi, bigint hassasiyeti ve taşma. Canlı v1 SQL/TS katalog karşılaştırması hâlâ 10 modülle geçti; uygulanmış migration değiştirilmedi. Sonuç `qa/hr-catalog-20261018/result.json`.
+
+Bu H0'ın tamamı değildir. Kod ürün tarafından import edilmez ve DB/HTTP güvenlik garantisi olarak sunulmaz. Sonraki H0b: v1 ve v2 okuma/yazma sözleşmelerinin gerçek disposable DB'de ortak config revision kilidi, değişmez komut makbuzu, açık iş ön kontrolü ve sürümlü geçmişle provası. Yeni migration/güncel şema karşılaştırması ardından; HR açma hâlâ kapalı. Bugünkü kod provası hiçbir tenant ayarını veya üretimi değiştirmedi. Faz 1 tekrar açılmadı.
