@@ -1,0 +1,9 @@
+{
+  "measuredAt": "2026-10-18T00:30:55.162Z",
+  "environment": "disposable local PostgreSQL",
+  "recipients": 5001,
+  "commandMs": 42.15979100000004,
+  "duplicateRecipients": 0,
+  "authorDeliveries": 0,
+  "limits": "Single local command, no concurrent workload or production latency claim"
+}

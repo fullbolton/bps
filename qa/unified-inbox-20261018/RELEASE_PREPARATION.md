@@ -41,3 +41,15 @@ production-preflight.json salt okunur üretim sorgusudur. Ledger 186 sürüm; ye
 - Uygulama geri dönüşünde flag kapatılıp legacy conversation kutusu kullanılır; SQL tabloları veya teslimler silinmez. Flag yalnız UI/action kapısıdır; kurulu capture trigger'ları olay üretmeye devam eder.
 
 Son kayıtlı canlı app 6cd6007; bu tur Vercel yayını yok. Otomatik e-posta ve push kapsam dışı.
+
+## 18 Ekim — kalan yerel kabul kapıları
+
+45/45 yerel DB testi geçti. 5.001 alıcıya gerçek announcement_execute_v1 komutundan tekil teslim doğrulandı; yazar dışarıda, mükerrer yok. Ayrıntılı son ölçüm fanout.json (tek bağlantı, yerel DB; üretim SLA iddiası değil).
+
+Gerçek yerel Auth/PostgREST ile 31 duyuru + 1 görev + 1 talep etiketi aynı kutuda 33 okunmamış olarak görüldü. Talep hedefi doğru firma, gün, şube ve mesajı açtı. İlk denemede harness'in BPS_DAILY_OPERATIONS_ENABLED ayarı eksikti; üretim kodu değiştirilmeden bu ayarla yeniden başlatılıp hedef kabulü tamamlandı.
+
+İki sekmede Hesabım: bir sekmede ses etkinleştirilince diğeri kullanıcı hareketi istemeye devam etti. İkinci sekmede sesi kapatınca iki sekme de kapalı oldu. Sesin fiziksel hoparlörden kaç kez çıktığı ölçülmedi; tür+UUID dedupe mantığı otomatik test kapsamındadır.
+
+İkinci sekmeden Synthetic B'ye geçince ilk sekme açık A kutusunu kaldırıp “Şirketinizi yeniden doğrulayın” korumasına geçti. B kutusu 0 ve boş; A içeriği yok. Kanıt cross-tab-company-guard.png ve company-b-empty.png. Rol matrisi DB testleriyle doğrulandı; her rol için ayrı tarayıcı turu yapılmadı.
+
+Test sekmeleri kapatıldı; yerel harness temiz kapatıldı. Gerçek veri değiştirilmedi. Üretim kurulumu ve yayın sonucu ayrıca kaydedilecek.

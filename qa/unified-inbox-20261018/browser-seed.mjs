@@ -14,8 +14,11 @@ try{
  const selected=(await c.query('select version from workspace_selections where user_id=$1',[id(12)])).rows[0]?.version??null;
  const choice=(await c.query('select select_workspace($1,$2,gen_random_uuid(),$3) v',[id(1),member,selected])).rows[0].v;
  await c.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:id(12),active_tenant_id:id(1),role:'authenticated',workspace_membership_version:choice.membershipVersion,workspace_selection_version:choice.selectionVersion})]);
+ await c.query("INSERT INTO ops_locations(id,tenant_id,company_id,name,city) VALUES($1,$2,$3,'Synthetic inbox branch','Test')",[id(80100),id(1),id(80)]);
+ await c.query("INSERT INTO ops_daily_requests(id,tenant_id,company_id,location_id,work_date,service_line,position,required_count,created_by) VALUES($1,$2,$3,$4,'2026-10-18','Test','Test',1,$5)",[id(80101),id(1),id(80),id(80100),id(12)]);
  await c.query('SET ROLE authenticated');
  for(let i=0;i<31;i++)await c.query("select * from announcement_execute_v1('create',null,$1,$2)",[id(1),`Sentetik duyuru ${i+1}: Sabah ekip toplantısı saat 09.00.\nTüm metin burada okunur; bu yalnızca yerel kabul verisidir.`]);
  await c.query("select * from task_execute_v1('create',null,null,$1,$2,$3)",[{title:'Sentetik bildirim görevini kontrol et',assigned_to_user_id:id(11)},id(1),id(12)]);
- console.log('Seeded 31 announcements and 1 assigned task through real commands');
+ await c.query('select ops_comment_send($1,$2,$3,$4,$5,null,$6)',[id(12),id(1),id(80102),id(80101),'Sentetik talep mesajı: görev başlangıcını kontrol edelim.',[id(11)]]);
+ console.log('Seeded 31 announcements, 1 assigned task and 1 mention through real commands');
 }finally{await c.end();}

@@ -945,3 +945,7 @@ Server action + ortak panel + kaynak hedefleri + Hesabım ses erişimi tamamland
 ## 18 Ekim — ortak kutu migration hazırlığı ve yarış kabulü
 
 Üretim salt okunur ölçüldü: 186 migration, yeni inbox fonksiyonları yok, yayın bariyeri yok. Dört QA SQL adayı 20261018000300–0600 migration sırasına taşındı; eski kopyalar kaldırıldı, fixture manifesti güncellendi. İlk dosya altı bağımlı fonksiyonun güncel ölçülen gövde hash'ini doğrular. 44/44 gerçek PostgreSQL test; config/profil kilidinde bekleyen görev/duyuru okundu çağrıları modül/üyelik değişimi sonrası reddediliyor. Drift halinde ilk tablo oluşmadan rollback testi geçti. 10.000 ek duyuru ile unread 10.002, sayfa 30; yerelde 16–27ms (üretim/fan-out ölçümü değil). Fixture bütünlük 5/5, TypeScript temiz; statik 0 FAIL/2 WARN (yeni yayınlanmamış migration drift + önceki unreachable). Kanıt qa/unified-inbox-20261018/RELEASE_PREPARATION.md. Üretim SQL/yayın yapılmadı. Sıradaki: yüksek alıcı sayısı ve üç kaynak/şirket değişimi/çoklu sekme UI kabulü, sonra taze ön kontrol ve yayın.
+
+## 18 Ekim — bildirim kalan yerel kabulü
+
+45/45 DB testi; 5.001 alıcıya tek duyuru tekil teslimi geçti. Üç kaynak aynı yerel kutuda 33 bildirim; doğru talep mesajı hedefi, şirket B'de boş kutu, diğer sekmeden şirket geçişinde eski ekranın kapanması, sekmeler arası ses kapatma kabul edildi. Ses fiziksel çıktısı ölçülmedi; tekil çalma mantığı otomatik testte. Kanıt qa/unified-inbox-20261018/RELEASE_PREPARATION.md. Üretim kurulumu henüz yapılmadı; sıradaki taze ön kontrol, SQL ve uygulama yayını.

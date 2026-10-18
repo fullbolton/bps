@@ -66,5 +66,16 @@ test('inbox lock barriers and bounded page at history scale',async t=>{
    const times=[];for(let i=0;i<5;i++){const a=performance.now();const result=await page();times.push(performance.now()-a);assert.equal(result.items.length,30);assert.equal(result.unread,10002);assert.ok(result.nextCursor);}
    writeFileSync(new URL('scale.json',import.meta.url),JSON.stringify({measuredAt:new Date().toISOString(),environment:'local disposable PostgreSQL; two current recipients including author; one delivery per announcement',sourceRowsAdded:10000,insertWithDeliveryTriggerMs:insertMs,pageMs:times,unread:10002,pageRows:30,limits:'Single connection, warm local DB, no production latency or high fan-out claim'},null,2)+'\n');
   });
+  await t.test('one announcement delivers exactly once to 5001 recipients through the real command',async()=>{
+   await other.query("INSERT INTO auth.users(id,email) SELECT ('10000000-0000-4000-8000-'||lpad(g::text,12,'0'))::uuid,'inbox-scale-'||g||'@example.test' FROM generate_series(1,5000) g");
+   await other.query("INSERT INTO profiles(id,email,display_name,role) SELECT ('10000000-0000-4000-8000-'||lpad(g::text,12,'0'))::uuid,'inbox-scale-'||g||'@example.test','Synthetic recipient','goruntuleyici' FROM generate_series(1,5000) g ON CONFLICT(id) DO NOTHING");
+   await other.query("INSERT INTO tenant_memberships(user_id,tenant_id,role) SELECT ('10000000-0000-4000-8000-'||lpad(g::text,12,'0'))::uuid,$1,'goruntuleyici' FROM generate_series(1,5000) g",[id(1)]);
+   await login(11);const start=performance.now();
+   await c.query("select * from announcement_execute_v1('create',null,$1,'Synthetic fanout acceptance')",[id(1)]);
+   const commandMs=performance.now()-start;
+   const result=(await other.query("SELECT count(*)::int n,count(DISTINCT e.recipient_id)::int unique_recipients,count(*) FILTER(WHERE e.recipient_id=$1)::int author FROM announcement_inbox_events e JOIN announcements a ON a.id=e.announcement_id WHERE a.body='Synthetic fanout acceptance'",[id(11)])).rows[0];
+   assert.equal(result.n,5001);assert.equal(result.unique_recipients,5001);assert.equal(result.author,0);
+   writeFileSync(new URL('fanout.json',import.meta.url),JSON.stringify({measuredAt:new Date().toISOString(),environment:'disposable local PostgreSQL',recipients:5001,commandMs,duplicateRecipients:0,authorDeliveries:0,limits:'Single local command, no concurrent workload or production latency claim'},null,2)+'\n');
+  });
  }finally{if(c)await c.end();if(other)await other.end();admin(`DROP DATABASE ${database} WITH (FORCE);`);}
 });

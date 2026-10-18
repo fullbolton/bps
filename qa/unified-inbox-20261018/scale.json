@@ -1,14 +1,14 @@
 {
-  "measuredAt": "2026-10-18T00:26:56.774Z",
+  "measuredAt": "2026-10-18T00:30:54.819Z",
   "environment": "local disposable PostgreSQL; two current recipients including author; one delivery per announcement",
   "sourceRowsAdded": 10000,
-  "insertWithDeliveryTriggerMs": 355.499959,
+  "insertWithDeliveryTriggerMs": 436.563,
   "pageMs": [
-    27.259874999999965,
-    25.297500000000014,
-    19.499207999999953,
-    16.596625000000017,
-    16.374042000000145
+    25.231874999999945,
+    35.96162499999991,
+    29.188000000000102,
+    19.533750000000055,
+    17.594749999999976
   ],
   "unread": 10002,
   "pageRows": 30,
