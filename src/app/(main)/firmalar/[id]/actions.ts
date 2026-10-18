@@ -76,7 +76,9 @@ export async function uploadCompanyDocumentAction(
   formData: FormData,
 ): Promise<UploadResult> {
   // 1. Authenticated server context.
-  const supabase = await createServerSupabaseClient();
+  // Bound each upstream request, including the Storage body transfer. A timeout
+  // is an uncertain outcome: preserve the reservation for review/recovery below.
+  const supabase = await createServerSupabaseClient(30_000);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -203,7 +205,7 @@ export async function uploadCompanyDocumentAction(
     return {ok: false, reviewRequired: true, error: `Yükleme hazırlığının sonucu doğrulanamadı. Dosya gönderilmedi. İşlem: ${documentId}`};
   }
 
-  // 8. Storage upload. If this fails, no DB row is created.
+  // 8. Storage upload. The reservation survives an uncertain transfer result.
   let upload;
   try {
     upload = await supabase.storage

@@ -50,7 +50,7 @@ function uploadAction(client) {
   '@/lib/supabase/company-commands':{},'@/lib/document-validity':{documentStatusForFile:()=> 'tam'},
   '@/lib/services/company-document-recovery':{recoverCompanyDocumentInsert:recover},
   '@/lib/services/company-document-cleanup':{},
-  '@/lib/supabase/server':{createServerSupabaseClient:async()=>client},
+  '@/lib/supabase/server':{createServerSupabaseClient:async timeout=>{assert.equal(timeout,30_000);return client;}},
   '@/lib/services/companies':{assertCompanyIsActiveForNewOperation:async()=>({ok:true})},
   '@/lib/services/contacts':{},'@/lib/services/notes':{},
  };
@@ -59,12 +59,12 @@ function uploadAction(client) {
  return exports.uploadCompanyDocumentAction;
 }
 test('upload action routes thrown upload and finalize failures to review or reconciliation',async()=>{
- for(const stage of ['upload','finalize']){
+ for(const stage of ['upload','timeout','finalize']){
   const c=client({existing:stage==='finalize'?row:null});const baseFrom=c.from;
   const rpcCalls=[];let inserts=0;
   c.auth={getUser:async()=>({data:{user:{id:attempt.userId}}})};
   c.rpc=async name=>{rpcCalls.push(name);if(name==='document_finalize_upload_v1')throw Error('lost response');return {data:name==='current_user_role'?'yonetici':name==='document_prepare_upload_v1'?attempt.storagePath:attempt.tenantId,error:null};};
-  c.storage.from=()=>({upload:async()=>{if(stage==='upload')throw Error('network');return {error:null};},remove:async()=>{throw Error('must not delete');}});
+  c.storage.from=()=>({upload:async()=>{if(stage==='upload')throw Error('network');if(stage==='timeout')throw new DOMException('Storage deadline exceeded','TimeoutError');return {error:null};},remove:async()=>{throw Error('must not delete');}});
   c.from=table=>{
    if(table==='profiles'){const q={select:()=>q,eq:()=>q,maybeSingle:async()=>{if(stage==='profile')throw Error('network');return {data:null};}};return q;}
    return {...baseFrom(table),insert:()=>{inserts++;const q={select:()=>q,single:async()=>{throw Error('lost response');}};return q;}};
