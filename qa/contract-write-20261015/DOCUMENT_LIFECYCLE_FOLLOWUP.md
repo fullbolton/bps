@@ -1044,3 +1044,7 @@ Kanıt: role-operations.png ve role-viewer.png. Bu üç rolün evrak ekranı kab
 - Reddedilen işlemlerden sonra asıl pending kayıt, dosya byte'ları ve boş temizlik kuyruğu korunur; asıl yükleyen finalize yapabilir.
 
 Kanıt: document-owner-http-result.json; helper document-owner-acceptance.mjs. Her koşu yalnız geçici DB'yi değiştirir, ek üyelik/seçim ve rol değişiklikleri finally içinde geri alınır; dış harness DB/konteynerleri kaldırır. Üretim değişmedi. Bu İK/muhasebe için tarayıcı değil HTTP kabulüdür; diğer modüllerdeki yetkiler ayrıca değerlendirilir. İlk denemedeki 403 eksik workspace selection fixture'ından geldi; düzeltme ürün yetkisini gevşetmedi.
+
+## 18 Ekim — Evraklar beş rol ekran kabulü
+
+İK kendi pending evrakını gerçek tarayıcı server action ile tamamladı; yönetici temizlik panelini görmedi. Muhasebe geçişinde eski kapsam kapandı, güncel şirket seçimi sonrası doğrudan evrak erişimi reddedildi. Önceki yönetici/operasyon/görüntüleyici kanıtlarıyla beş rolün sınırlı evrak matrisi DOCUMENT_ROLE_BROWSER.md içinde toplandı. Tüm modüllerin rol kabulü değildir. Ürün/yayın değişmedi; sentetik test ortamı temizlendi.
