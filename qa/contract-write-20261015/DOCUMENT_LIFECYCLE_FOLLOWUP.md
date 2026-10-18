@@ -1121,3 +1121,9 @@ Kapsam sınırı: kaynak testleri farklı fixture ve katmanları doğrular; tek 
 6300bee kaynak arşivi Vercel dpl_CiWugmjyyW4wtyBqj7tSR5i9t1FA olarak yayımlandı; www.bpsys.net inspect READY ve aynı kimliği doğruladı. Uzak production build geçti. Öncesinde salt okunur 190 migration birebir eşleşti, bariyer yok; SQL yok. Otomatik Git yayını kapalı. 791/791 uygulama ve 16 temiz statik kontrol aynı ürün koduna ait.
 
 Canlı kimlikli /evraklar#yarim-kalan-yuklemeler yeni sekmede açıldı: pending panel expanded, liste yüklü, boş durum doğru. Üretimde form gönderimi veya timeout enjeksiyonu yapılmadı; belirsiz yükleme formu yerel tarayıcı kabulüne dayanır. Ekran kanıtı /tmp/bps-review-help-live.png, üretim ekranı olduğu için GitHub'a alınmadı; test sekmesi kapatıldı. Kanıt review-help-release.json ve review-help-production-preflight.json. Operasyon zinciri tablosu kabul planıdır, tamamlanmış prova değildir.
+
+## 18 Ekim — birleşik operasyon SQL zinciri, ilk kabul
+
+qa/operations-chain-20261018/rehearse.mjs aynı disposable veritabanında kapsamlı gerçek fonksiyonları çalıştırır. Tarihsel sentetik template üzerine manifestteki tüm yeni migration'lar uygulanır. Firma sentetik fixture; şube, iki personel, talep ve atama ops_execute_scoped ile oluşturuldu. Talep→atama→gerçekleşme→taslak çalışma→gönder→onay zinciri 5 kontrol grubu geçti. Dokuz saat eksi 60 dakika mola = 480 dakika. Atama ve onay komutu tekrarları çift kayıt/olay üretmedi. Kapasite aşımı, eski revizyon ve gönderilmeden onay atomik reddedildi; reddedilen komutların makbuzu oluşmadı.
+
+Sonuç qa/operations-chain-20261018/result.json. Her koşu finally ile yalnız kendi geçici DB'sini sildi. Bu yönetici rolünde SQL zinciridir; ayrı şube teyidi, yedek atama kolu, eşzamanlı iki bağlantı ve tarayıcı/rol matrisi henüz bu zincire dahil değildir. Önceki tekil testleri bu eksik kabuller yerine saymıyoruz. Ürün kodu veya üretim değişmedi.
