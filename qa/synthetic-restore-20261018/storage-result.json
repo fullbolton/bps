@@ -1,0 +1,20 @@
+{
+  "syntheticOnly": true,
+  "dumpBytes": 1192837,
+  "fileArchiveBytes": 8192,
+  "extendedAttributeFiles": 3,
+  "pdfSha256": "fa03da7d82d5465249bb237dfb03a4ac120cde69693713d023d10b4d36042993",
+  "dbOnlyDownloadStatus": 500,
+  "restoredDownloadStatus": 200,
+  "checks": [
+    "database restored into template0 with existing local platform roles",
+    "fresh Storage container cannot download DB-only object",
+    "file archive and extended attributes restored into fresh Storage container; authenticated bytes match SHA-256"
+  ],
+  "limits": [
+    "same local server and existing roles/extensions",
+    "synthetic file backend; not cloud S3 or provider restore",
+    "no production data",
+    "HTTP acceptance, not Auth login or browser acceptance"
+  ]
+}

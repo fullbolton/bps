@@ -986,3 +986,7 @@ qa/synthetic-restore-20261018/rehearse.mjs geçti: mevcut sentetik baseline + 30
 ## 18 Ekim — geri yükleme sayaç kabulü
 
 Sentetik restore testi 3 sequence için last_value/is_called ve restore sonrası nextval eşitliğiyle genişletildi. 120 tablo + 3 sayaç + 30 migration tatbikatı geçti. Önceki sequence kabul sınırı kapandı; boş sunucu/harici Storage/uçtan uca kurtarma sınırları duruyor. Üretim değişmedi. Kanıt qa/synthetic-restore-20261018/result.json.
+
+## 18 Ekim — Storage dahil kurtarma ve işlem devamlılığı
+
+Sentetik DB + gerçek yerel Storage file backend restore paketi 35/35 HTTP kontrolüyle geçti. Yeni boş Storage konteynerinde yalnız DB ile dosya yok; byte arşivi + gerçek extended attributes geri yazılınca SHA-256 eşit indirme HTTP 200. Bekleyen dosya tekil finalize, iptal/temizlik ve dosyasız rezervasyon iptali restore sonrasında çalıştı; mevcut metadata, sözleşme, modül ön kontrolü, rol/tenant HTTP kabulü de geçti. Düz docker cp/tar xattr kaybı ve restart sonrası dinamik port değişimi test altyapısında giderildi. Geçici DB/konteynerlerin temizlendiği ölçüldü. Kanıt qa/synthetic-restore-20261018/storage-http-result.json. Gerçek veri/üretim değişikliği yok; cloud S3, yeni sunucu/roller, gerçek Auth ve tarayıcı kurtarma kabulü ayrı kalır. Canlı f58db6c/190 son yayın kaydıdır.

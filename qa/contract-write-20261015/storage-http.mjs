@@ -39,8 +39,9 @@ try {
  assert.equal(sql("SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace;"),functionsBefore,'Storage rebuild removed a public function');
  const run=(name,image,env,port)=>docker(['run','-d','--name',name,'--network',network,...(port?['-p',`127.0.0.1::${port===true?5000:port}`]:[]),...Object.entries(env).flatMap(([k,v])=>['-e',`${k}=${v}`]),image]);
  run(rest,'public.ecr.aws/supabase/postgrest:v14.3',{PGRST_DB_URI:uri,PGRST_DB_SCHEMAS:'public,storage',PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:secret},3000);
- run(storage,'public.ecr.aws/supabase/storage-api:v1.35.3',{ANON_KEY:anon,SERVICE_KEY:service,AUTH_JWT_SECRET:secret,POSTGREST_URL:`http://${rest}:3000`,DATABASE_URL:storageUri,DATABASE_SEARCH_PATH:'storage,public,extensions',STORAGE_BACKEND:'file',FILE_STORAGE_BACKEND_PATH:'/tmp/storage',TENANT_ID:'local-acceptance',REGION:'local',GLOBAL_S3_BUCKET:'local',FILE_SIZE_LIMIT:'10485760',ENABLE_IMAGE_TRANSFORMATION:'false'},true);
- const port=docker(['port',storage,'5000/tcp']).split(':').at(-1);const base=`http://127.0.0.1:${port}`;
+ const startStorage=()=>run(storage,'public.ecr.aws/supabase/storage-api:v1.35.3',{ANON_KEY:anon,SERVICE_KEY:service,AUTH_JWT_SECRET:secret,POSTGREST_URL:`http://${rest}:3000`,DATABASE_URL:storageUri,DATABASE_SEARCH_PATH:'storage,public,extensions',STORAGE_BACKEND:'file',FILE_STORAGE_BACKEND_PATH:'/tmp/storage',TENANT_ID:'local-acceptance',REGION:'local',GLOBAL_S3_BUCKET:'local',FILE_SIZE_LIMIT:'10485760',ENABLE_IMAGE_TRANSFORMATION:'false'},true);
+ startStorage();
+ const port=docker(['port',storage,'5000/tcp']).split(':').at(-1);let base=`http://127.0.0.1:${port}`;
  let ready=false;
  for(let i=0;i<100;i++){try{if((await fetch(base+'/status',{signal:AbortSignal.timeout(500)})).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,200));}
  if(!ready){const logs=docker(['logs','--tail','15',storage]);const errors=logs.split('\n').flatMap(line=>{try{const value=JSON.parse(line);return value.error?.message?[value.error.message]:[];}catch{return [];}});throw Error('Storage failed readiness: '+redact(errors.join('\n')||'No startup diagnostics'));}
@@ -56,7 +57,7 @@ try {
  // is ready before issuing any write. Readiness retries never replay mutations.
  docker(['restart',rest]);
  const restPort=docker(['port',rest,'3000/tcp']).split(':').at(-1);
- const restBase=`http://127.0.0.1:${restPort}`;
+ let restBase=`http://127.0.0.1:${restPort}`;
  let rpcReady=false;
  for(let i=0;i<50;i++){
   try{const r=await fetch(restBase+'/',{headers:{Authorization:`Bearer ${token}`},signal:AbortSignal.timeout(500)});if(r.ok&&(await r.text()).includes('document_finalize_upload_v1')){rpcReady=true;break;}}catch{}
@@ -91,6 +92,35 @@ try {
  assert.ok(pendingDownload.ok);assert.equal(pendingDownload.text,pdf.toString());checks.push('pending recovery target and HTTP bytes verified');
  const finish=()=>rpc('document_finalize_upload_v1',scope);
  assert.equal(await finish(),id(992));assert.equal(await finish(),id(992));checks.push('finalize and idempotent receipt');
+ if(process.env.BPS_RESTORE_REHEARSAL==='1'){
+  const {restoreStorageFixture}=await import('../synthetic-restore-20261018/storage-restore.mjs');
+  const restorePending={p_tenant:id(1),p_id:id(9501)},restoreCancelled={p_tenant:id(1),p_id:id(9502)},restoreEmpty={p_tenant:id(1),p_id:id(9503)};
+  const pendingPath=await rpc('document_prepare_upload_v1',{...preparation,p_id:restorePending.p_id});
+  const cancelledPath=await rpc('document_prepare_upload_v1',{...preparation,p_id:restoreCancelled.p_id});
+  await rpc('document_prepare_upload_v1',{...preparation,p_id:restoreEmpty.p_id});
+  for(const file of [pendingPath,cancelledPath])assert.ok((await request('/object/documents/'+file,'POST',pdf,token,{'Content-Type':'application/pdf'})).ok);
+  assert.equal(await rpc('document_cancel_upload_v1',restoreCancelled),true);
+  const restored=await restoreStorageFixture({source,database,storage,rest,startStorage,docker,sql,token,path,pdf});
+  base=restored.base;restBase=restored.restBase;checks.push(...restored.checks);
+  const pendingRows=await rpc('document_pending_uploads_v1',{p_tenant:id(1),p_offset:0});
+  assert.equal(pendingRows.find(x=>x.document_id===restorePending.p_id)?.can_resume,true);
+  assert.equal(pendingRows.find(x=>x.document_id===restoreEmpty.p_id)?.file_present,false);
+  assert.equal(pendingRows.some(x=>x.document_id===restoreCancelled.p_id),false);
+  const recovered=await rpc('document_upload_recovery_target_v1',restorePending);
+  assert.equal((await request('/object/authenticated/documents/'+recovered.storage_path)).text,pdf.toString());
+  assert.equal(await rpc('document_finalize_upload_v1',restorePending),restorePending.p_id);
+  assert.equal(await rpc('document_finalize_upload_v1',restorePending),restorePending.p_id);
+  checks.push('restored pending upload retains bytes and publishes exactly once');
+  assert.equal((await rpcResult('document_finalize_upload_v1',restoreCancelled)).ok,false);
+  const cleanup=await request('/object/documents','DELETE',JSON.stringify({prefixes:[cancelledPath]}),token,{'Content-Type':'application/json'});
+  assert.ok(cleanup.ok);assert.ok(JSON.parse(cleanup.text).some(x=>x.name===cancelledPath));
+  assert.equal(await rpc('document_ack_cleanup_v1',{p_document_id:restoreCancelled.p_id}),true);
+  assert.equal((await request('/object/documents/'+cancelledPath,'POST',pdf,token,{'Content-Type':'application/pdf'})).ok,false);
+  checks.push('restored cancellation remains retired and queued cleanup completes');
+  assert.equal(await rpc('document_cancel_upload_v1',restoreEmpty),true);
+  assert.equal(await rpc('document_ack_cleanup_v1',{p_document_id:restoreEmpty.p_id}),true);
+  checks.push('restored reservation without bytes can be cancelled safely');
+ }
  const download=await request('/object/authenticated/documents/'+path);assert.ok(download.ok,download.text);assert.equal(download.text,pdf.toString());checks.push('authenticated byte-for-byte download');
  assert.equal((await request('/object/authenticated/documents/'+path,'GET',undefined,foreign)).ok,false);checks.push('foreign tenant download denied');
  assert.equal((await request('/object/documents/'+path,'PUT',pdf,token,{'Content-Type':'application/pdf'})).ok,false);checks.push('reserved object overwrite denied');
