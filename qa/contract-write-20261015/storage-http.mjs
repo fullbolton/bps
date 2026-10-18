@@ -5,12 +5,13 @@ import {readFileSync} from 'node:fs';
 import {randomBytes,createHmac} from 'node:crypto';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-const source='supabase_db_bps-supabase-acceptance',network='supabase_network_bps-supabase-acceptance';
+const source=process.env.BPS_SYNTHETIC_DB_CONTAINER||'supabase_db_bps-supabase-acceptance',network='supabase_network_bps-supabase-acceptance';
+assert.ok(source==='supabase_db_bps-supabase-acceptance'||/^bps-combined-db-\d+$/.test(source),'Unexpected local fixture server');
 const suffix=process.pid,database=`bps_storage_http_${suffix}`,storage=`bps-storage-http-${suffix}`,rest=`bps-storage-rest-${suffix}`;
 const secrets=[];
 const redact=s=>secrets.reduce((text,secret)=>text.split(secret).join('[redacted]'),String(s));
 function docker(args,input){try{return execFileSync('docker',args,{input,encoding:'utf8',timeout:20000,stdio:['pipe','pipe','pipe']}).trim();}catch(e){throw Error(redact(e.stderr||'Docker operation failed'));}}
-function sql(query,db=database){return docker(['exec','-i',source,'psql','-X','-qAt','-U','postgres','-d',db,'-v','ON_ERROR_STOP=1'],query);}
+function sql(query,db=database){return docker(['exec','-i',source,'psql','-X','-qAt','-U',source.startsWith('bps-combined-db-')?'supabase_admin':'postgres','-d',db,'-v','ON_ERROR_STOP=1'],query);}
 function logs(){const r=spawnSync('docker',['logs','--tail','8',storage],{encoding:'utf8',timeout:5000});return (r.stdout||'')+(r.stderr||'');}
 const password=docker(['exec',source,'printenv','POSTGRES_PASSWORD']);secrets.push(password);
 const secret=randomBytes(48).toString('hex');secrets.push(secret);
@@ -53,6 +54,7 @@ try {
   const r=await fetch(base+path,{method,headers:{Authorization:`Bearer ${auth}`,...headers},body,signal:AbortSignal.timeout(10000)});
   return {status:r.status,ok:r.ok,text:await r.text()};
  }
+ if(source.startsWith('bps-combined-db-'))sql('ANALYZE;');
  // Restart only the disposable PostgREST after migrations so its schema cache
  // is ready before issuing any write. Readiness retries never replay mutations.
  docker(['restart',rest]);
@@ -60,10 +62,11 @@ try {
  let restBase=`http://127.0.0.1:${restPort}`;
  let rpcReady=false;
  for(let i=0;i<50;i++){
-  try{const r=await fetch(restBase+'/',{headers:{Authorization:`Bearer ${token}`},signal:AbortSignal.timeout(500)});if(r.ok&&(await r.text()).includes('document_finalize_upload_v1')){rpcReady=true;break;}}catch{}
+  restBase=`http://127.0.0.1:${docker(['port',rest,'3000/tcp']).split(':').at(-1)}`;
+  try{const r=await fetch(restBase+'/',{headers:{Authorization:`Bearer ${token}`},signal:AbortSignal.timeout(10000)});if(r.ok&&(await r.text()).includes('document_finalize_upload_v1')){rpcReady=true;break;}}catch{}
   await new Promise(resolve=>setTimeout(resolve,100));
  }
- assert.ok(rpcReady,'PostgREST schema cache unavailable');
+ assert.ok(rpcReady,'PostgREST schema cache unavailable: '+redact(docker(['logs','--tail','8',rest])));
  async function rpcResult(name,args,auth=token){
   let r;try{r=await fetch(restBase+'/rpc/'+name,{method:'POST',headers:{Authorization:`Bearer ${auth}`,'Content-Type':'application/json'},body:JSON.stringify(args),signal:AbortSignal.timeout(10000)});}catch(error){throw Error(name+': '+error.message+' DB waits: '+sql("SELECT json_agg(x) FROM (SELECT state,wait_event_type,wait_event,pg_blocking_pids(pid) AS blocked_by,left(query,160) AS query FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()) x;"));}
   const text=await r.text();return {ok:r.ok,status:r.status,data:text?JSON.parse(text):null};

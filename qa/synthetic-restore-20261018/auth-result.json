@@ -1,6 +1,6 @@
 {
   "syntheticOnly": true,
-  "dumpBytes": 63072,
+  "dumpBytes": 63150,
   "passed": 10,
   "checks": [
     "pre-restore real password sign-in",

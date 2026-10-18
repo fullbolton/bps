@@ -6,7 +6,7 @@ import {writeFileSync} from 'node:fs';
 // Called only by the fixed local, synthetic Storage HTTP fixture after one
 // authenticated upload and finalize. Outer harness owns cleanup on any failure.
 export async function restoreStorageFixture({source,database,storage,rest,startStorage,docker,sql,token,path,pdf}){
- assert.equal(source,'supabase_db_bps-supabase-acceptance');
+ assert.ok(source==='supabase_db_bps-supabase-acceptance'||/^bps-combined-db-\d+$/.test(source),'Unexpected synthetic server');
  assert.match(database,/^bps_storage_http_\d+$/);
  assert.match(storage,/^bps-storage-http-\d+$/);assert.match(rest,/^bps-storage-rest-\d+$/);
  const exec=(args,input)=>{
@@ -29,6 +29,7 @@ export async function restoreStorageFixture({source,database,storage,rest,startS
  sql(`CREATE DATABASE ${database} TEMPLATE template0;`,'postgres');
  exec(['exec','-i',source,'sh','-c','PGPASSWORD="$POSTGRES_PASSWORD" exec psql -w -XqAt -U supabase_admin -d "$1" -v ON_ERROR_STOP=1','restore',database],dump);
  sql(grants);
+ if(source.startsWith('bps-combined-db-'))sql('ANALYZE;');
  docker(['rm',storage]);startStorage();docker(['start',rest]);
  const restBase=`http://127.0.0.1:${docker(['port',rest,'3000/tcp']).split(':').at(-1)}`;
  const base=`http://127.0.0.1:${docker(['port',storage,'5000/tcp']).split(':').at(-1)}`;

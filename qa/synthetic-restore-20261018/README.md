@@ -73,3 +73,9 @@ Bu, platformdan bağımsız sıfırdan Supabase kurulumu değildir: aynı imajı
 ### 18 Ekim — ayrı sunucuda rol ve eklenti eşitliği
 
 Ayrı sunucu kabulüne katalog kontrolleri eklendi: rol özellikleri/ayarları, rol üyelikleri (grantor, admin/inherit/set), eklenti sürümleri/sahipleri kaynakla aynı. OID yerine isimlerle karşılaştırıldı. Hedefte parola hash’i olan rol sayısı sıfır; parola aktarılmadığı ayrıca ölçüldü. 120 tablo/3 sayaç/30 migration kabulü tekrar geçti. Birleşik yeni sunucu Auth/Storage/tarayıcı testi hâlâ açık; üretim değişmedi.
+
+### 18 Ekim — yeni sunucuda birleşik HTTP kabulü
+
+`node qa/synthetic-restore-20261018/combined-server.mjs` temiz koşusu geçti: 35 Storage/işlem kontrolü ve 10 Auth kontrolü, yeni initdb PostgreSQL sunucusunda birlikte çalıştı. Rol parolaları kopyalanmadı; rastgele yerel parola üretildi. Host DB portu açılmadı; Docker servis ağına SCRAM bağlantısı tanımlandı. Test şeması yönetici rolüyle kuruluyor, HTTP kullanıcı istekleri JWT/tenant kontrollerinden geçiyor. Geri yükleme sonrasında ANALYZE eklendi; PostgREST OpenAPI hazır olma okumasına 10 saniye sınır verildi. Bu işlem gerçek veriye veya üretime dokunmadı.
+
+Kanıtlar: `combined-result.json`, `combined-http-result.json`, `auth-result.json`, `storage-result.json`. Geçici konteynerler temizlendi. Auth ve iş şeması ayrı yerel DB'lerde; gerçek hook sentetik üyelik eşitlemesiyle çalışır. Yönetilen Supabase/S3, MFA ve birleşik tarayıcı kabulü değildir. Sonraki adım `BPS_COMBINED_BROWSER=1` ile aynı düzenin tarayıcı kabulü.

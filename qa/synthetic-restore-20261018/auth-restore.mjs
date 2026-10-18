@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
 
 export async function restoreAuthFixture({source,auth,authDatabase,authBase,sql,docker,loginPassword,userId,tenantId}){
- assert.equal(source,'supabase_db_bps-supabase-acceptance');
+ assert.ok(source==='supabase_db_bps-supabase-acceptance'||/^bps-combined-db-\d+$/.test(source),'Unexpected synthetic server');
  assert.match(auth,/^bps-browser-auth-\d+$/);assert.match(authDatabase,/^bps_browser_auth_\d+$/);
  const exec=(args,input)=>{try{return execFileSync('docker',args,{input,timeout:120000,maxBuffer:64*1024*1024,stdio:['pipe','pipe','pipe']});}catch{throw Error('Local synthetic Auth restore failed; credentials withheld');}};
  const login=async(base,password=loginPassword)=>fetch(base+'/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'document-qa@example.test',password}),signal:AbortSignal.timeout(10000)});
