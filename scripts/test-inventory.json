@@ -696,5 +696,9 @@
   {
     "file": "scripts/notification-sound-settings.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/workspace-inbox.test.mjs",
+    "suite": "application"
   }
 ]

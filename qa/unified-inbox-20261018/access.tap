@@ -1,0 +1,18 @@
+▶ unified inbox source and identity boundaries
+  ✔ three sources share one global 30+6 page and unread count (8.925583ms)
+  ✔ each kind dispatches acknowledgement only to its own source (14.333542ms)
+  ✔ type-qualified identity preserves identical UUID/timestamp across sources (10.67825ms)
+  ✔ IK sees tasks and announcements but never conversation body (7.649084ms)
+  ✔ accounting sees only announcements after open tasks transferred (8.59975ms)
+  ✔ disabled source empties list/count and rejects source cursor; bad scopes denied (9.395834ms)
+  ✔ one disabled source does not suppress other allowed sources; no partial success on a broken source (14.889542ms)
+  ✔ private helper, anonymous and service access are closed (3.230625ms)
+✔ unified inbox source and identity boundaries (481.719542ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 536.500583

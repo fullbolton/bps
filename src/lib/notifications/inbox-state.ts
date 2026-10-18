@@ -21,14 +21,14 @@ export function inboxHref(item:InboxItem):string {
 }
 type Ledger={ids:string[];lastSoundAt:number};
 const EMPTY:Ledger={ids:[],lastSoundAt:0};
-export function parseSoundLedger(raw:string|null):Ledger {
+export function parseSoundLedger(raw:string|null,validId:(id:unknown)=>boolean=isUuid):Ledger {
  if(raw===null)return {...EMPTY};
  const v:unknown=JSON.parse(raw);
- if(!v||typeof v!=='object'||!('ids' in v)||!Array.isArray(v.ids)||v.ids.length>300||v.ids.some(id=>!isUuid(id))||!('lastSoundAt' in v)||typeof v.lastSoundAt!=='number'||!Number.isFinite(v.lastSoundAt)||v.lastSoundAt<0)throw Error('SOUND_STORAGE');
+ if(!v||typeof v!=='object'||!('ids' in v)||!Array.isArray(v.ids)||v.ids.length>300||v.ids.some(id=>!validId(id))||!('lastSoundAt' in v)||typeof v.lastSoundAt!=='number'||!Number.isFinite(v.lastSoundAt)||v.lastSoundAt<0)throw Error('SOUND_STORAGE');
  return {ids:v.ids,lastSoundAt:v.lastSoundAt};
 }
-export function planSound(ledger:Ledger,ids:readonly string[],now:number) {
- if(ids.some(id=>!isUuid(id)))throw Error('SOUND_EVENT');
+export function planSound(ledger:Ledger,ids:readonly string[],now:number,validId:(id:unknown)=>boolean=isUuid) {
+ if(ids.some(id=>!validId(id)))throw Error('SOUND_EVENT');
  const fresh=ids.filter(id=>!ledger.ids.includes(id));
  // Consume bursts even when suppressed: no delayed replay after the quiet period.
  return {play:fresh.length>0&&(ledger.lastSoundAt===0||now-ledger.lastSoundAt>=60000),ledger:{ids:[...new Set([...fresh,...ledger.ids])].slice(0,300),lastSoundAt:ledger.lastSoundAt}};

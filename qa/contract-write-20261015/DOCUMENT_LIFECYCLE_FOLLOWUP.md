@@ -933,3 +933,7 @@ Açık: duyuru olay/alıcıları, ortak kaynak kimliği/ses dedupe, ortak UI ve 
 ## 18 Ekim — duyuru bildirimleri yerel kabul
 
 qa/announcement-inbox-20261018/candidate.sql: paylaşım anındaki tenant alıcıları (yazar hariç), atomik teslim, özel okundu, güncel üyelik/rol/modül kapısı ve 30 satır sayfalama eklendi. Yeni üyeye eski duyuru dağıtılmıyor; önceki alıcı yeniden katılırsa mevcut kaynağın eski teslimini görebilir. 9 alt senaryo, üst test dahil 10/10 gerçek DB testi geçti; silme kilidini bekleyen okundu çağrısı iki bağlantıda 42501 ile reddedildi. Şema/client yetkileri production'a uygulanmadı. Ortak kutu, hedef bağlantıları ve büyük alıcı sayısı ölçümü açık. Kanıt qa/announcement-inbox-20261018/README.md ve access.tap; canlı son yayın 6cd6007/186, bu tur yeniden ölçülmedi.
+
+## 18 Ekim — ortak bildirim veri katmanı yerel paket
+
+Görev+duyuru+talep konuşması tek global sayaç/sayfalama/okundu sözleşmesine bağlandı; role göre kaynaklar ayrı korunuyor. Cursor ve ses kimliği tür+UUID ile çakışmaya dayanıklı; istemci yanlış şirket/bozuk yanıt/kısmi sonucu reddeder. Gerçek DB 8 alt senaryo (üst test dahil 9/9), genel uygulama 774/774, son tarih kontrolünden sonra hedefli 8/8, TypeScript temiz, statik 0 FAIL/1 mevcut WARN. Kanıt qa/unified-inbox-20261018. Ortak UI ve hedef detay bağlantıları henüz bağlı değil; SQL yalnız QA adayı. Üretim değişmedi, son yayın kaydı 6cd6007/186. Sıradaki paket server action + kutu + görev/duyuru hedefleri + tarayıcı kabulü.

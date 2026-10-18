@@ -1,0 +1,7 @@
+
+> bps@0.1.0 qa:test-inventory
+> node scripts/qa-test-suite.mjs inventory
+
+application: 138 files
+database: 27 files
+pending: 7 files

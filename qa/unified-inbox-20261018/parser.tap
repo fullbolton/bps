@@ -1,0 +1,16 @@
+✔ all three source types are parsed without fake company fields (1.593375ms)
+✔ same UUID across source types is distinct, same kind duplicates fail (0.208083ms)
+✔ wrong scope and malformed or incomplete results are rejected (0.29375ms)
+✔ cursor must identify the last item of a full page (0.290917ms)
+✔ initial snapshot silent; new unread types qualify separately; read items silent (0.463667ms)
+✔ invalid conversation target and announcement body fail closed; unknown payload fields are not retained (0.112708ms)
+✔ typed sound keys serialize tabs, preserve burst suppression, and separate source UUID collisions (0.393416ms)
+✔ typed sound rejects malformed storage and event keys before playback (0.175334ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 338.020625
