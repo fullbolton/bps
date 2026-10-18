@@ -1,0 +1,10 @@
+{
+  "measuredAt": "2026-10-18T20:01:25.478Z",
+  "checks": [
+    "Raw HR-only history event rejected by exact v1 state parser",
+    "Stripping HR produces no-op event, correctly rejected",
+    "Dropping HR event breaks revision/entry count, correctly rejected"
+  ],
+  "decision": "A compatibility-aware client/history contract must precede HR activation; do not filter or fabricate history to satisfy old parser",
+  "productionChanged": false
+}

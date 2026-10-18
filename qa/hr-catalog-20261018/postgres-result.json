@@ -1,6 +1,6 @@
 {
-  "source": "7aa4f62cdf2b61fd16804819b4d1b4d5a799c253",
-  "measuredAt": "2026-10-18T19:41:18.984Z",
+  "source": "605aace6e1ff73cd25f3ccf598f94620bcce0560",
+  "measuredAt": "2026-10-18T20:01:27.043Z",
   "checks": [
     "v1 write preserves HR; exact command replay returns receipt, payload reuse denied",
     "Old receipt remains immutable after later v2 update; replay does not revert current state",

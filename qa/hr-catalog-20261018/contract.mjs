@@ -22,6 +22,7 @@ export function proposeChange({current,revision:currentRevision,expectedRevision
  else throw Error('CATALOG_VERSION');
  if(!before.hr&&after.hr&&(!hrEntitled||!hrReady))throw Error('CATALOG_HR_UNAVAILABLE');
  const changed=[...keys,'hr'].filter(key=>before[key]!==after[key]);
+ if(!changed.length)throw Error('MODULE_CHANGE_EMPTY');
  if(changed.length&&number===9223372036854775807n)throw Error('CATALOG_REVISION_EXHAUSTED');
  return Object.freeze({modules:after,revision:changed.length?String(number+1n):currentRevision,changed:Object.freeze(changed)});
 }

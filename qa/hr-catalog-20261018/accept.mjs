@@ -16,9 +16,9 @@ const enabled=proposeChange({...base,hrReady:true,hrEntitled:true});assert.equal
 const old=proposeChange({current:enabled.modules,revision:enabled.revision,expectedRevision:enabled.revision,clientVersion:1,desired:{...v1,tasks:false}});assert.equal(old.modules.hr,true);assert.equal(old.modules.tasks,false);
 assert.throws(()=>proposeChange({current:enabled.modules,revision:enabled.revision,expectedRevision:enabled.revision,clientVersion:1,desired:{...v1,hr:false}}));checks.push('Legacy write preserves HR and cannot smuggle new key');
 assert.throws(()=>proposeChange({...base,current:enabled.modules,revision:enabled.revision}),/CATALOG_STALE/);checks.push('Old client snapshot rejects after newer revision; this is transition logic, not a database concurrency test');
-const same=proposeChange({...base,desired:v2});assert.equal(same.revision,base.revision);assert.deepEqual(same.changed,[]);
+assert.throws(()=>proposeChange({...base,desired:v2}),/MODULE_CHANGE_EMPTY/);
 assert.throws(()=>proposeChange({...base,clientVersion:3}),/CATALOG_VERSION/);
 assert.throws(()=>proposeChange({...base,revision:'9223372036854775808',expectedRevision:'9223372036854775808'}),/CATALOG_REVISION/);
-assert.throws(()=>proposeChange({...base,revision:'9223372036854775807',expectedRevision:'9223372036854775807',hrReady:true,hrEntitled:true}),/CATALOG_REVISION_EXHAUSTED/);checks.push('No-op retains revision; unsupported version and revision overflow rejected');
+assert.throws(()=>proposeChange({...base,revision:'9223372036854775807',expectedRevision:'9223372036854775807',hrReady:true,hrEntitled:true}),/CATALOG_REVISION_EXHAUSTED/);checks.push('No-op rejected like existing BPS command; unsupported version and revision overflow rejected');
 writeFileSync(new URL('./result.json',import.meta.url),JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),measuredAt:new Date().toISOString(),checks,limits:['Executable proposal only; no production import, SQL migration or HTTP endpoint','Does not verify authentication, row locks, open-work blockers, history or command receipts']},null,2)+'\n');
 console.log(`PASS ${checks.length} catalog evolution contract groups`);

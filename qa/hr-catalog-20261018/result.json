@@ -1,6 +1,6 @@
 {
-  "source": "6fa585b74124a51bbeb68fb5fa32ea305c529fd9",
-  "measuredAt": "2026-10-18T19:21:18.143Z",
+  "source": "605aace6e1ff73cd25f3ccf598f94620bcce0560",
+  "measuredAt": "2026-10-18T20:01:25.096Z",
   "checks": [
     "v1 roundtrip remains exact; explicit upgrade adds HR disabled; legacy parser still rejects v2",
     "Missing, unknown, non-boolean and dependency-invalid states rejected without defaults",
@@ -8,7 +8,7 @@
     "HR activation requires entitlement and backend readiness; bigint revision stays exact",
     "Legacy write preserves HR and cannot smuggle new key",
     "Old client snapshot rejects after newer revision; this is transition logic, not a database concurrency test",
-    "No-op retains revision; unsupported version and revision overflow rejected"
+    "No-op rejected like existing BPS command; unsupported version and revision overflow rejected"
   ],
   "limits": [
     "Executable proposal only; no production import, SQL migration or HTTP endpoint",

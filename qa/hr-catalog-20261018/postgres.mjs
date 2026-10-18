@@ -14,6 +14,7 @@ try{
  sql(readFileSync(new URL('./prototype.sql',import.meta.url),'utf8'));
  // Minimal key set deliberately isolates transaction semantics, not full product catalog validation.
  for(const tenant of [1,2,3])sql(`INSERT INTO catalog_probe.config VALUES('${id(tenant)}',1,'{"tasks":true,"hr":true}');`);
+ reject(call(99,1,1,{tasks:true}),'MODULE_CHANGE_EMPTY');assert.equal(sql('SELECT count(*) FROM catalog_probe.commands'),'0');
  const first=sql(call(100,1,1,{tasks:false}));assert.equal(JSON.parse(first).modules.hr,true);assert.equal(sql(call(100,1,1,{tasks:false})),first);assert.equal(sql('SELECT count(*) FROM catalog_probe.history'),'1');reject(call(100,1,1,{tasks:true}),'COMMAND_REUSED');checks.push('v1 write preserves HR; exact command replay returns receipt, payload reuse denied');
  sql(call(101,2,2,{tasks:false,hr:false}));assert.equal(sql(call(100,1,1,{tasks:false})),first);assert.equal(sql(`SELECT revision FROM catalog_probe.config WHERE tenant='${id(1)}'`),'3');checks.push('Old receipt remains immutable after later v2 update; replay does not revert current state');
  sql(`INSERT INTO catalog_probe.pending VALUES('${id(2)}','hr');`);reject(call(102,1,2,{tasks:true,hr:false},2),'PENDING');assert.equal(sql(`SELECT count(*) FROM catalog_probe.commands WHERE command='${id(102)}'`),'0');assert.equal(sql(`SELECT revision FROM catalog_probe.config WHERE tenant='${id(2)}'`),'1');checks.push('Pending-work rejection leaves no receipt, history or revision change');

@@ -25,6 +25,7 @@ BEGIN
  next_state:=CASE WHEN p_version=1 THEN p_desired||jsonb_build_object('hr',c.modules->'hr') ELSE p_desired END;
  -- Activation readiness/auth/dependency validation belong to actual integration, not this locking probe.
  IF EXISTS(SELECT FROM catalog_probe.pending p WHERE p.tenant=p_tenant AND c.modules->p.module_key='true'::jsonb AND next_state->p.module_key='false'::jsonb) THEN RAISE EXCEPTION 'PENDING';END IF;
+ IF next_state=c.modules THEN RAISE EXCEPTION 'MODULE_CHANGE_EMPTY';END IF;
  IF next_state IS DISTINCT FROM c.modules THEN
   UPDATE catalog_probe.config SET modules=next_state,revision=revision+1 WHERE tenant=p_tenant;
   INSERT INTO catalog_probe.history VALUES(p_tenant,c.revision+1,p_version,c.modules,next_state);
