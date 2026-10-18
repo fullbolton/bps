@@ -1,0 +1,24 @@
+{
+  "source": "332002c418502a80fa09fd9067f54f171f375ce8",
+  "environment": "disposable local Next/Auth/PostgREST/Storage; synthetic only",
+  "browserChain": "passed",
+  "activeAssignments": 1,
+  "removedAssignments": 1,
+  "confirmEvents": 1,
+  "work": {
+    "status": "approved",
+    "netMinutes": 25,
+    "revision": 3
+  },
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "documentScrollWidth": 390
+  },
+  "tenantSwitch": "old company inaccessible in Synthetic B; approved record persisted on return to A",
+  "remaining": [
+    "Independent role sessions HTTP/UI acceptance",
+    "F1-C final closure"
+  ],
+  "productionChanged": false
+}

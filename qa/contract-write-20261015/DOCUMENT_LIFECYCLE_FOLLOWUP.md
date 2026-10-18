@@ -1143,3 +1143,9 @@ Oturumlar yalnız geçici DB kapsamında finally ile kapatılır; ana harness ke
 ## 18 Ekim — ürün yönü ve Faz 1 kapanış kararı
 
 Kullanıcı İK'nın ve diğer seçilebilir modüllerin operasyon kadar önemli olduğunu açıkça teyit etti. Ana karar CALISMA_ALANI_VE_AYARLAR_ANA_PLANI.md başına işlendi. Operasyon Faz 1 üç kapanış paketiyle sınırlandı: gerçek tarayıcı zinciri, rol/mobil viewport, engel düzeltme ve teslim. Açık P0/P1 olmadan kapanır; yeni özellikler/kozmetik işler bu fazı uzatmaz. Sonraki uygulama bloğu İK-1 personel/organizasyon ve bağımsız çalışma kabulüdür. Fiziksel cihaz, gerçek Luca ve bulut kurtarma açık kalır ama İK geliştirmesini süresiz bekletmez. Bu tur plan/kayıt değişikliği; ürün kodu veya yayın yok.
+
+## 18 Ekim — operasyon büyük kabul paketi
+
+Gerçek yerel Next/Auth/PostgREST üzerinde talep→atama→gelememe→yedek görüşmesi→ayrı değişim→personel beyanı→şube teyidi→çalışma taslağı/gönder/onay zinciri tarayıcıda tamamlandı. DB son durumu bir aktif/bir kaldırılmış atama, tek teyit, approved çalışma 25 dakika/sürüm 3. Şirket değişiminde eski firma erişimi reddedildi; dönüşte kayıt korundu. 390×844 görünümde yatay taşma yok, onay dialogu incelendi. SQL rol matrisiyle toplam 10 grup geçti; İK/muhasebe/görüntüleyici yazamaz, operasyon gönderebilir ama onaylayamaz. Kanıt qa/operations-chain-20261018/BROWSER_ACCEPTANCE.md ve browser-result.json; ekranlar tamamen sentetik.
+
+F1-A ana zincir tamam. F1-B ayrı rol oturumları HTTP/UI kabulü hâlâ açık; SQL rol testini bunun yerine saymıyoruz. F1-C kapanış sonra. Ürün/migration değişikliği ve yeni üretim yayını yok. Fiziksel telefon ve gerçek bordro doğrulaması yapılmış sayılmaz.

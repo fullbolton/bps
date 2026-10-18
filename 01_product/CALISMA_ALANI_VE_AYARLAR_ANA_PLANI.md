@@ -10,6 +10,8 @@ Kullanıcının açık kararı: **BPS yalnız operasyon yazılımı değildir. G
 
 Faz 1 hedefi kusursuz veya bütün sektörleri kapsayan ürün değil: mevcut talep→atama→teyit/yedek→gerçekleşme→çalışma onayı zincirinin çalışması ve açık risklerin dürüst kaydı. 791 uygulama testi, 9 birleşik SQL kontrol grubu ve evrak kabulü tekrar tekrar bağımsız iş paketi olarak açılmaz; yeni kod/failure gerekçesi olmadan yeniden çalıştırılmaz.
 
+18 Ekim kabul güncellemesi: ana tarayıcı zinciri, şirket değişimi ve 390×844 görünüm geçti; SQL zinciri rol matrisiyle 10 gruba çıktı. Ayrı rol oturumlarının HTTP/UI kabulü ve son F1-C kapanışı açık. Kanıt: `qa/operations-chain-20261018/BROWSER_ACCEPTANCE.md`. Ürün kodu değişmedi.
+
 **Üç kapanış paketi; yeni özellik eklenmez:**
 
 | Paket | İş | Tamamlanma kanıtı |

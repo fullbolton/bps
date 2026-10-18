@@ -72,6 +72,27 @@ try{
  mutate(8840,'request',{companyId:id(8800),locationId:id(8801),workDate:'2026-01-02',serviceLine:'Güvenlik',position:'Güvenlik',requiredCount:1});
  await capacityRace({server,db,sql,id,claims});
  checks.push('Two real transactions contend for last slot: observed lock wait, one committed assignment, loser has no receipt');
- writeFileSync(new URL('./result.json',import.meta.url),JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),measuredAt:new Date().toISOString(),checks,limits:['SQL chain, not browser acceptance','Manager synthetic actor; no role matrix','Confirmation/replacement and last-slot concurrency covered in SQL; UI remains open','Historical synthetic template plus manifest migrations; no production data']},null,2)+'\n');
+ // Exercise actual policy roles, not a client-side role mock.
+ const setRole=role=>sql(`UPDATE tenant_memberships SET role='${role}' WHERE user_id='${id(11)}' AND tenant_id='${id(1)}';UPDATE profiles SET role='${role}' WHERE id='${id(11)}';`);
+ try{
+  for(const [index,role] of ['ik','muhasebe','goruntuleyici'].entries()){
+   setRole(role);
+   const n=8900+index*10;
+   rejected(()=>mutate(n,'request',{companyId:id(8800),locationId:id(8801),workDate:day,serviceLine:'Test',position:'Test',requiredCount:1}),'OPS_FORBIDDEN',n);
+   rejected(()=>start(n+1,8825,3,'call',{occurredAt:occurred(),offset:0,outcome:'on_way'}),'START_FORBIDDEN',n+1);
+   rejected(()=>work(n+2,3,'reopen',{reason:'Sentetik düzeltme'}),'WORK_FORBIDDEN',n+2);
+  }
+  setRole('operasyon');
+  mutate(8930,'request',{companyId:id(8800),locationId:id(8801),workDate:'2026-01-03',serviceLine:'Test',position:'Test',requiredCount:1});
+  mutate(8931,'assign',{requestId:id(8930),workerId:id(8802)});
+  rejected(()=>work(8932,3,'reopen',{reason:'Sentetik düzeltme'}),'WORK_FORBIDDEN',8932);
+  const opWork=(n,rev,action,data={})=>JSON.parse(call(`SELECT ops_work_record_execute('${id(11)}','${id(1)}','${id(n)}','${id(8931)}',${rev},'${action}',${lit(data)})`));
+  call(`SELECT ops_record_attendance('${id(11)}','${id(1)}','${id(8933)}','${id(8931)}',0,'present')`);
+  assert.equal(opWork(8934,0,'save',{startTime:'08:00',endTime:'17:00',nextDay:false,breakMinutes:60,note:'Operasyon kaydı'}).status,'draft');
+  assert.equal(opWork(8935,1,'submit').status,'submitted');
+  rejected(()=>opWork(8936,2,'approve'),'WORK_FORBIDDEN',8936);
+  checks.push('HR/accounting/viewer cannot mutate staffing; operations creates/submits work but cannot approve or reopen');
+ } finally {setRole('yonetici');}
+ writeFileSync(new URL('./result.json',import.meta.url),JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),measuredAt:new Date().toISOString(),checks,limits:['SQL chain, not browser acceptance','Role matrix uses one synthetic actor with sequential membership/profile role changes; not multi-account UI','Confirmation/replacement and last-slot concurrency covered in SQL; UI remains open','Historical synthetic template plus manifest migrations; no production data']},null,2)+'\n');
  console.log(`PASS ${checks.length} integrated groups`);
 } finally {if(created)sql(`DROP DATABASE ${db} WITH(FORCE)`,'postgres');}
