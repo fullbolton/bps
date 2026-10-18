@@ -1,0 +1,29 @@
+{
+  "source": "f85ff4e52fb18f6f0accd7abdcaead4ba66a005e",
+  "date": "2026-10-18",
+  "baselineReleaseSource": "f58db6c5de12bc51d2edb284ea8f8d3fe109d261",
+  "productFilesChanged": [
+    "src/app/(main)/firmalar/[id]/actions.ts"
+  ],
+  "newMigrations": 0,
+  "static": {
+    "checks": 16,
+    "fail": 0,
+    "warn": 0,
+    "parsedSourceFiles": 487,
+    "exitCode": 0
+  },
+  "build": {
+    "exitCode": 0,
+    "configuration": "synthetic localhost public URL and non-secret dummy anon value; not deployment configuration",
+    "initialFailure": "missing NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "warning": "webpack large cache string serialization performance warning"
+  },
+  "priorApplicationEvidence": "application-regression-result.json",
+  "deployed": false,
+  "limits": [
+    "Production schema and deployment state not remeasured",
+    "Synthetic build does not validate production environment values",
+    "Physical mobile acceptance remains open"
+  ]
+}

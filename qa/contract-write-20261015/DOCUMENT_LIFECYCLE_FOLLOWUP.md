@@ -1076,3 +1076,9 @@ Kanıt initial-upload-timeout-browser.json ve iki PNG. Tam süre ölçülmedi. Y
 ## 18 Ekim — yayın test envanteri ve toplu regresyon
 
 8c0abae üzerinde yayın ön kontrolünde yeni scripts/supabase-server-timeout.test.mjs dosyasının test-inventory.json sınıflandırmasının eksik olduğu görüldü. Envanter kontrolü beklenildiği gibi FAIL verdi; application kaydı eklendi. Düzeltilmiş envanter: application 140, database 27, pending 7 dosya. Ardından node scripts/qa-test-suite.mjs application exit 0: 790/790, fail/skip/todo 0. Database ve pending paketleri bu koşuda çalıştırılmadı; toplam uygulama sonucu bunları kapsamaz. Üretime yayın yapılmadı; migration yok.
+
+## 18 Ekim — deadline düzeltmesi statik ve build ön kontrolü
+
+Kaynak f85ff4e. Kayıtlı canlı f58db6c ile ürün farkı yalnız firmalar/[id]/actions.ts: 30 saniye istemci deadline ve yorum düzeltmesi. Migration/bağımlılık/yayın ayarı farkı yok. Statik 16 kontrol, 0 FAIL/0 WARN, 487 kaynak dosyası. İlk build yerel Supabase public ortam değerleri eksik olduğu için prerender aşamasında durdu; sentetik localhost URL ve dummy anon değeriyle tekrar build exit 0 (tip kontrolü dahil). Webpack büyük cache string performans uyarısı var; hata değil.
+
+Kanıt deadline-build-preflight.json. Önceki 790/790 uygulama sonucu aynı ürün koduna aittir. Bu üretim ortamı/şema ölçümü veya yayın değildir. Üretim yayını yapılmadı; yeni gerçek şema ölçümü ve yayın durumunun doğrulanması yayın öncesinde gerekir.
