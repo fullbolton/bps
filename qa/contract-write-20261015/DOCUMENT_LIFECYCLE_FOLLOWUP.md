@@ -1082,3 +1082,9 @@ Kanıt initial-upload-timeout-browser.json ve iki PNG. Tam süre ölçülmedi. Y
 Kaynak f85ff4e. Kayıtlı canlı f58db6c ile ürün farkı yalnız firmalar/[id]/actions.ts: 30 saniye istemci deadline ve yorum düzeltmesi. Migration/bağımlılık/yayın ayarı farkı yok. Statik 16 kontrol, 0 FAIL/0 WARN, 487 kaynak dosyası. İlk build yerel Supabase public ortam değerleri eksik olduğu için prerender aşamasında durdu; sentetik localhost URL ve dummy anon değeriyle tekrar build exit 0 (tip kontrolü dahil). Webpack büyük cache string performans uyarısı var; hata değil.
 
 Kanıt deadline-build-preflight.json. Önceki 790/790 uygulama sonucu aynı ürün koduna aittir. Bu üretim ortamı/şema ölçümü veya yayın değildir. Üretim yayını yapılmadı; yeni gerçek şema ölçümü ve yayın durumunun doğrulanması yayın öncesinde gerekir.
+
+## 18 Ekim — deadline düzeltmesi üretimde
+
+3585375 kaynaklı dpl_2fidor9Mb3pyZqBPFSQcSft4faHi Vercel üretim yayını READY; www.bpsys.net inspect yeni deployment kimliğini doğruladı. Ürün farkı yalnız ilk yüklemenin upstream 30 saniye deadline'ı. Yayından hemen önce salt okunur migration defteri 190 ve önceki sürümle birebir; bariyer yok, SQL uygulanmadı. Vercel uzak build geçti. Canlı kimlikli evrak listesi/yükleme/pending/temizlik kontrolleri salt okunur görüldü; gerçek kayıt/dosya veya tercih değiştirilmedi.
+
+Kanıt deadline-production-preflight.json ve deadline-release.json. Ekran görüntüsü yalnız /tmp/bps-deadline-live.png içinde, GitHub'a alınmadı. Yerel 790 test, 16 statik kontrol ve ilk yükleme timeout/kurtarma tarayıcı kanıtları bu ürün koduna aittir. Üretimde timeout enjekte edilmedi. Otomatik Git yayını kapalı kaldı. Fiziksel mobil kabulü açık.

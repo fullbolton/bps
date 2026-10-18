@@ -1,0 +1,20 @@
+{
+  "sourceCommit": "3585375354dd00b34a78d2f95b005f6d30b317d0",
+  "deploymentId": "dpl_2fidor9Mb3pyZqBPFSQcSft4faHi",
+  "url": "https://www.bpsys.net",
+  "state": "READY",
+  "recordedAt": "2026-10-18T16:52:41.695867+00:00",
+  "migrationCount": 190,
+  "newMigrations": 0,
+  "applicationTests": 790,
+  "staticFail": 0,
+  "staticWarn": 0,
+  "vercelBuild": true,
+  "liveAuthenticatedReadOnly": true,
+  "automaticGitDeployment": false,
+  "limits": [
+    "Live document list and controls checked read-only; no production failure injection or writes",
+    "Physical mobile acceptance remains open"
+  ],
+  "previousDeploymentId": "dpl_55LYaXDQCB1L2onxtqbNUAPRr9xY"
+}
