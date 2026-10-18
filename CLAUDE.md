@@ -173,7 +173,7 @@ Full rules: `WORKFLOW_RULES.md`
 ## Component System
 
 ### Shared Primitives (reuse mandatory)
-`PageHeader`, `StatusBadge`, `RiskBadge`, `PriorityBadge`, `DataTable`, `EmptyState`, `TabNavigation`, `SearchInput`, `FilterBar`, `ModalShell`, `CommercialSummaryCard`, `CapacityRiskCard`, `DocumentsChecklistCard`, `RenewalTrackingCard`, `RightSidePanel`
+`PageHeader`, `StatusBadge`, `RiskBadge`, `PriorityBadge`, `DataTable`, `EmptyState`, `TabNavigation`, `SearchInput`, `FilterBar`, `ModalShell`, `CommercialSummaryCard`, `DocumentsChecklistCard`, `RenewalTrackingCard`, `RightSidePanel`
 
 ### Rules
 - New component creation must be justified by real reuse or readability gain

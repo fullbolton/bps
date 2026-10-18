@@ -10,8 +10,6 @@ export { default as TabNavigation } from "./TabNavigation";
 
 // Batch 2 shared components
 export { default as KPIStatCard } from "./KPIStatCard";
-export { default as ActivityFeed } from "./ActivityFeed";
-export { default as TimelineList } from "./TimelineList";
 export { default as FirmaSummaryHeader } from "./FirmaSummaryHeader";
 export { default as CommercialSummaryCard } from "./CommercialSummaryCard";
 export { default as ContractExpiryCard } from "./ContractExpiryCard";
@@ -25,7 +23,6 @@ export { default as ContractSummaryHeader } from "./ContractSummaryHeader";
 
 // Batch 4 shared components
 export { default as WorkforceRiskBadge } from "./WorkforceRiskBadge";
-export { default as CapacityRiskCard } from "./CapacityRiskCard";
 export { default as DocumentsChecklistCard } from "./DocumentsChecklistCard";
 
 // Batch 5 shared components

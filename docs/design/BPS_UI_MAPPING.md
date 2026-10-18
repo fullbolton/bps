@@ -1,3 +1,5 @@
+> 18 October 2026 maintenance note: CapacityRiskCard, TimelineList and ActivityFeed were unused and removed. References below describe the historical design, not available components.
+
 # BPS UI Component Mapping
 
 Maps each current BPS component to the design system tokens, defines its visual role, density expectations, what should change, what must not change, and what product logic it must not absorb.
@@ -317,26 +319,6 @@ Maps each current BPS component to the design system tokens, defines its visual 
 
 ---
 
-## CapacityRiskCard
-
-**Visual Role**: Workforce capacity metrics for Company Detail İş Gücü context.
-
-**Layout Behavior**: White card with `<dl>` definition list showing 5 metrics + risk badge.
-
-**Density**: Same as CommercialSummaryCard. `p-4`, `space-y-2.5`.
-
-**What Should Change**:
-- Color-coded values (amber for gap, green for inflows, red for outflows) are correct
-
-**What Must Not Change**:
-- Metrics: aktifKisi, hedefKisi, acikFark, son30GunGiris, son30GunCikis
-- WorkforceRiskBadge at bottom
-- Read-only — no editing
-
-**Must Not Absorb**: Employee detail, payroll data, HRIS depth.
-
----
-
 ## DocumentsChecklistCard
 
 **Visual Role**: Document status overview with 4 color-coded counts.
@@ -400,7 +382,7 @@ Maps each current BPS component to the design system tokens, defines its visual 
 - FirmaSummaryHeader
 - Genel Bakış 8-card grid
 - All activated tabs (Sözleşmeler, Talepler, Aktif İş Gücü, Randevular, Evraklar)
-- Zaman Çizgisi (ActivityFeed + TimelineList)
+- Zaman Çizgisi (ActivityFeed)
 
 ### Phase 4 — Controlled Rollout (Recommended Order)
 
@@ -413,7 +395,7 @@ Maps each current BPS component to the design system tokens, defines its visual 
 | 5 | Görevler | Validates PriorityBadge + TaskSourceBadge in table context |
 | 6 | Randevular | Validates appointment-specific patterns |
 | 7 | Personel Talepleri | Validates request-specific patterns |
-| 8 | Aktif İş Gücü | Validates WorkforceRiskBadge + CapacityRiskCard |
+| 8 | Aktif İş Gücü | Historical workforce context; unused capacity card removed on 18 October 2026 |
 | 9 | Evraklar | Validates DocumentsChecklistCard + billing-risk signal |
 | 10 | Shell (Sidebar + Topbar) | Last — highest risk of regression, lowest visual-refresh priority |
 

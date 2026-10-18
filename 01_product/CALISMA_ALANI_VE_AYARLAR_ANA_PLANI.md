@@ -1,5 +1,8 @@
 # BPS — Çalışma Alanı ve Ayarlar ana planı
 
+> Güncel yayın özeti — 18 Ekim 2026: Modüller aç/kapat, değişiklik geçmişi, Hesabım ve ortak ses tercihi yayında. H görev/duyuru/talep kutusu da `a0230dd` / 190 migration ile yayımlandı; kanıt `qa/unified-inbox-20261018/release.json`. Aşağıdaki uygulama sırası ve eski “sıradaki” kayıtları tarihsel ilerlemeyi gösterir. Dış e-posta/push teslimi, fiziksel mobil ve tüm rollerin tarayıcı kabulü tamamlanmış sayılmaz.
+
+
 28 Eylül 2026 · Birleştirilmiş karar sürümü 1 · Durum: planlama, uygulanmadı.
 
 Bu dosya, seçilebilir modüller ve Ayarlar çalışmasının ana giriş ve karar belgesidir. Önceki araştırmalar kanıt ve teknik ayrıntı olarak korunur. Ürün kapsamı, adlandırma ve uygulama sırası konusunda bu belge; teknik ayrıntıda atıf verilen teknik v2 geçerlidir. Plan dosyaları üretim durum raporu değildir.

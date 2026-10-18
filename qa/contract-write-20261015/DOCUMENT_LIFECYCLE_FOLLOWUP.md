@@ -954,3 +954,9 @@ Server action + ortak panel + kaynak hedefleri + Hesabım ses erişimi tamamland
 ## 18 Ekim — ortak bildirim kutusu ÜRETİMDE
 
 Dört migration tek transaction içinde uygulandı: ledger 190, 2 RLS tablo, 11 fonksiyon ve 2 trigger doğrulandı. a0230dd kaynaklı Vercel dpl_GaMr7ESWyJuM6CjnxeczNd44Esih www.bpsys.net üzerinde READY. Canlı kimlikli ortak kutu hatasız boş sonuç ve ortak ses kontrolleri verdi; gerçek veri/tercih değişmedi. Görev/duyuru olayları kurulum sonrası oluşur, geçmişe bildirim dağıtılmaz. Otomatik e-posta false korundu. 45 yerel DB testi; 5.001 alıcıya dağıtım; üç kaynak, talep hedefi, şirket ayrımı ve sekmeler arası ses kapatma yerel kabulü tamam. Kanıt qa/unified-inbox-20261018/release.json. Bu H görev/duyuru ortak kutu yayınını kapatır; push/e-posta veya her rolün tarayıcıda ayrı kabulü iddia edilmez.
+
+## 18 Ekim — yayın sonrası bakım ve durum uzlaştırma
+
+Ana durum belgesinin üst özeti hâlâ 6cd6007/186 ve görev-duyuru eksik diyordu; son yayın kanıtıyla a0230dd/190 olarak düzeltildi. Modül ana planına güncel yayın özeti eklendi; tarihsel kayıtlar korunuyor. Kod kullanım taramasında yalnız barrel export'u kalan CapacityRiskCard ve TimelineList kaldırıldı; ikinci tarama TimelineList'in tek tüketici olduğu ActivityFeed'i açığa çıkardı, o da kullanılmadığı doğrulanarak kaldırıldı. Mevcut operasyon notları veya canlı aktivite ekranları kaldırılmadı. Tasarım/agent giriş envanteri güncellendi.
+
+Statik 16/16, 0 FAIL/0 WARN; 487 TS/TSX parse edildi. TypeScript --noEmit --incremental false ve git diff --check geçti. Görünür davranış değiştirmeyen ölü kod temizliğinde yeni test yazılmadı; build/tarayıcı kabulü tekrarlanmadı. Bu bakım commit'i yayına alınmadı; canlı kaynak a0230dd, 190 migration önceki yayın kanıtıdır. Yeni SQL veya gerçek veri işlemi yok.
