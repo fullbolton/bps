@@ -1,6 +1,6 @@
 # Ortak bildirim kutusu — yerel uygulama kabulü
 
-18 Ekim 2026. Üretime uygulanmadı. Önceki SQL veri katmanı adayı üzerine arayüz ve server action paketi.
+18 Ekim 2026. Aşağıdaki ilk kabul kaydı tarihsel yerel kanıttır. Paket daha sonra a0230dd / 190 migration ile yayımlandı; güncel yayın kanıtı release.json, sonraki kabul ayrıntıları RELEASE_PREPARATION.md içindedir.
 
 ## Tamamlananlar
 
@@ -31,10 +31,22 @@ BPS_LOCAL_BROWSER=1 BPS_BROWSER_MODULES=1 BPS_BROWSER_INBOX=1 NEXT_PUBLIC_BPS_MO
 Hazır olduğunda yalnız harness'in bps_storage_http_<PID> veritabanına:
 NODE_PATH=/tmp/bps-module-release-runtime/node_modules node qa/unified-inbox-20261018/browser-seed.mjs bps_storage_http_<PID>
 
-browser-seed yalnız bu yerel ad desenini kabul eder; 32 sentetik kayıt oluşturur, tekrar çalıştırmak daha fazla kayıt üretir.
+browser-seed yalnız bu yerel ad desenini kabul eder; 33 sentetik kayıt oluşturur, tekrar çalıştırmak daha fazla kayıt üretir.
 
-## Yayından önce kalan
+## İlk kabul anında kalanlar (tarihsel)
 
 Dört QA SQL adayının tarihli migration paketine alınması; güncel üretim katalog/ledger doğrulaması ve tam sıra provası. Büyük alıcı sayısında sorgu/trigger maliyet ölçümü; üyelik/modül değişikliğiyle eşzamanlı okundu yarışlarının tamamlanması. Üç kaynaklı tarayıcı testi, rol/şirket değişimi ve yeni UI ile sekmeler arası ses kabulü ayrıca yapılmalı. Mevcut parser/DB/ses testleri bunların tümünü tarayıcıda doğruladığımız anlamına gelmez.
 
 Son üretim kaydı 6cd6007 / 186 migration; bu tur üretim yeniden sorgulanmadı. Yeni flag üretimde açılmadı. Otomatik e-posta veya push eklenmedi.
+
+
+## Yayın sonrası rol kabulü
+
+`role-matrix.tap`: 10 alt senaryo + üst test = 11/11 gerçek yerel PostgreSQL testi. Önceki yönetici/operasyon/İK/muhasebe kontrollerine ek olarak:
+
+- Görüntüleyici yalnız 12 duyuru görür; duyuruyu okundu yapabilir, gizli görev/talep bildirimini okundu yapamaz.
+- Partner rolüne geçince eski üyelik sürümlü token reddedilir; yeni seçim/üyelik sürümüyle de ortak kutu ve duyuru okundu çağrısı reddedilir.
+- Konuşma yetki reddi eski API'de P0001/COMM_FORBIDDEN; görev reddi 42501. İlk test yanlış biçimde ikisinde de 42501 bekledi, test gerçek sözleşmeye düzeltildi; ürün yetkileri değiştirilmedi.
+- `workspace-inbox-actions.test.mjs` 7/7: gerçek ConversationInbox dış bileşeni beş izinli rolü açar; partner/bilinmeyen/yükleniyor/bağlamsız durumda görünmez. Rol ve şirket değişimi alt bileşen anahtarını değiştirir, eski liste yaşam döngüsü yeniden kullanılamaz.
+
+Son madde enjekte edilmiş bağımlılıklarla bileşen kontrolüdür; DOM/tarayıcı kabulü değildir. Her rolün ayrı tarayıcı kabulü ve fiziksel ses ölçümü hâlâ yapılmış sayılmaz. Bu tur üretim verisi, SQL veya uygulama yayını değiştirilmedi.

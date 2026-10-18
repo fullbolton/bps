@@ -960,3 +960,8 @@ Dört migration tek transaction içinde uygulandı: ledger 190, 2 RLS tablo, 11 
 Ana durum belgesinin üst özeti hâlâ 6cd6007/186 ve görev-duyuru eksik diyordu; son yayın kanıtıyla a0230dd/190 olarak düzeltildi. Modül ana planına güncel yayın özeti eklendi; tarihsel kayıtlar korunuyor. Kod kullanım taramasında yalnız barrel export'u kalan CapacityRiskCard ve TimelineList kaldırıldı; ikinci tarama TimelineList'in tek tüketici olduğu ActivityFeed'i açığa çıkardı, o da kullanılmadığı doğrulanarak kaldırıldı. Mevcut operasyon notları veya canlı aktivite ekranları kaldırılmadı. Tasarım/agent giriş envanteri güncellendi.
 
 Statik 16/16, 0 FAIL/0 WARN; 487 TS/TSX parse edildi. TypeScript --noEmit --incremental false ve git diff --check geçti. Görünür davranış değiştirmeyen ölü kod temizliğinde yeni test yazılmadı; build/tarayıcı kabulü tekrarlanmadı. Bu bakım commit'i yayına alınmadı; canlı kaynak a0230dd, 190 migration önceki yayın kanıtıdır. Yeni SQL veya gerçek veri işlemi yok.
+
+
+## 18 Ekim — yayın sonrası bildirim rol matrisi
+
+Gerçek yerel DB kabulüne görüntüleyicinin yalnız duyuru erişimi, gizli görev/konuşma okundu reddi, partner rolüne geçişte eski token reddi ve yenilenmiş bağlamla da erişim reddi eklendi: 11/11. Gerçek dış UI bileşeninin beş rol, partner/bilinmeyen/yükleme/eksik bağlam ve rol+şirket değişiminde yeniden mount anahtarı kontrolü eklendi: action dosyası 7/7. İlk DB testi eski konuşma sözleşmesinin P0001/COMM_FORBIDDEN reddini 42501 beklediği için başarısızdı; ürün değil test beklentisi düzeltildi. Tarihsel UI kabul belgesinin güncel yayınla ilişkisi açıklandı. Üretim değişmedi; bu kontroller her rolün tarayıcıda testi değildir. Kanıt qa/unified-inbox-20261018/role-matrix.tap ve UI_ACCEPTANCE.md.

@@ -43,5 +43,26 @@ test('each source opens its existing destination or a complete inline announceme
 });
 test('unified roles do not broaden legacy conversation inbox access',()=>{
  for(const role of ['yonetici','operasyon','ik','muhasebe','goruntuleyici']){assert.equal(presentation.canUseInbox(role,true,false),true);assert.equal(presentation.canUseInbox(role,false,true),['yonetici','operasyon'].includes(role));assert.equal(presentation.canUseInbox(role,false,false),false);}
- assert.equal(presentation.canUseInbox(null,true,true),false);assert.equal(presentation.canUseInbox('unknown',true,true),false);
+ assert.equal(presentation.canUseInbox('partner',true,true),false);assert.equal(presentation.canUseInbox('partner',false,true),false);assert.equal(presentation.canUseInbox(null,true,true),false);assert.equal(presentation.canUseInbox('unknown',true,true),false);
+});
+
+test('actual inbox shell hides unauthorized/loading scopes and remounts on role or company changes',()=>{
+ let auth={user:{},role:'yonetici',loading:false};let currentScope={...scope};
+ const deps={
+  'next/link':{default:()=>null},'lucide-react':{Bell:()=>null,X:()=>null,RefreshCw:()=>null},
+  '@/context/AuthContext':{useAuth:()=>auth},'@/context/NavigationGuardContext':{},
+  '@/lib/workspace-context':{workspaceScope:()=>currentScope},
+  '@/app/(main)/iletisim/actions':{},'@/app/(main)/bildirimler/actions':{},
+  '@/lib/notifications/workspace-inbox':contract,'@/lib/notifications/inbox-presentation':presentation,
+  '@/lib/notifications/inbox-state':state,'@/context/NotificationSoundContext':{},
+  './NotificationSoundControls':{default:()=>null},
+ };
+ const render=compile('src/components/communication/ConversationInbox.tsx',{},deps,'default',{process:{env:{NEXT_PUBLIC_BPS_WORKSPACE_INBOX_ENABLED:'true'}}});
+ const keys=new Set();
+ for(const role of ['yonetici','operasyon','ik','muhasebe','goruntuleyici']){auth.role=role;const node=render();assert.ok(node);keys.add(node.key);assert.equal(node.props.actorId,scope.actorId);assert.equal(node.props.tenantId,scope.tenantId);}
+ assert.equal(keys.size,5,'role change must discard old source list and pending callbacks');
+ const before=render().key;currentScope={...scope,tenantId:id(9)};assert.notEqual(render().key,before);
+ for(const role of ['partner','unknown',null]){auth.role=role;assert.equal(render(),null);}
+ auth.role='yonetici';auth.loading=true;assert.equal(render(),null);
+ auth.loading=false;currentScope=null;assert.equal(render(),null);
 });

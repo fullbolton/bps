@@ -34,6 +34,18 @@ test('unified inbox source and identity boundaries',async t=>{
  });
  await t.test('IK sees tasks and announcements but never conversation body',async()=>{await c.query('RESET ROLE');await c.query("UPDATE tenant_memberships SET role='ik' WHERE user_id=$1 AND tenant_id=$2",[id(12),id(1)]);await login(12);const page=await read();assert.equal(page.items.length,24);assert.ok(page.items.every(x=>x.kind!=='conversation'));await assert.rejects(mark('conversation',first.items.find(x=>x.kind==='conversation').id));});
  await t.test('accounting sees only announcements after open tasks transferred',async()=>{await c.query('RESET ROLE');await c.query("UPDATE tasks SET assigned_to_user_id=$1 WHERE tenant_id=$2",[id(11),id(1)]);await c.query("UPDATE tenant_memberships SET role='muhasebe' WHERE user_id=$1 AND tenant_id=$2",[id(12),id(1)]);await login(12);const page=await read();assert.equal(page.items.length,12);assert.ok(page.items.every(x=>x.kind==='announcement'));});
+ await t.test('viewer reads announcements only and cannot acknowledge hidden task or conversation events',async()=>{
+ await c.query('RESET ROLE');await c.query("UPDATE tenant_memberships SET role='goruntuleyici' WHERE user_id=$1 AND tenant_id=$2",[id(12),id(1)]);await login(12);
+ const page=await read();assert.equal(page.items.length,12);assert.ok(page.items.every(x=>x.kind==='announcement'));
+ assert.equal(await mark('announcement',page.items[0].id),true);
+ for(const kind of ['task_assignment','conversation'])await assert.rejects(mark(kind,first.items.find(x=>x.kind===kind).id),e=>kind==='conversation' ? e.code==='P0001'&&e.message==='COMM_FORBIDDEN' : e.code==='42501');
+ });
+ await t.test('role change invalidates an existing token; partner cannot access the unified inbox',async()=>{
+ await c.query('RESET ROLE');await c.query("UPDATE tenant_memberships SET role='partner' WHERE user_id=$1 AND tenant_id=$2",[id(12),id(1)]);await c.query('SET ROLE authenticated');
+ await assert.rejects(read(),e=>e.code==='42501');await assert.rejects(mark('announcement',id(999)),e=>e.code==='42501');
+ await login(12);await assert.rejects(read(),e=>e.code==='42501');await assert.rejects(mark('announcement',id(999)),e=>e.code==='42501');
+ await c.query('RESET ROLE');await c.query("UPDATE tenant_memberships SET role='muhasebe' WHERE user_id=$1 AND tenant_id=$2",[id(12),id(1)]);await login(12);
+ });
  await t.test('disabled source empties list/count and rejects source cursor; bad scopes denied',async()=>{
  const cursor=(await read()).items[0];await c.query('RESET ROLE');await c.query('BEGIN');await c.query("UPDATE tenant_module_settings SET enabled=false WHERE tenant_id=$1 AND module_key='announcements'",[id(1)]);await c.query('SET LOCAL ROLE authenticated');const page=await read();assert.equal(page.items.length,0);assert.equal(page.unread,0);await assert.rejects(read({kind:cursor.kind,id:cursor.id}),e=>e.code==='42501');await c.query('ROLLBACK');await login(12);await assert.rejects(read(null,id(11)),e=>e.code==='42501');await assert.rejects(read(null,id(12),id(2)),e=>e.code==='42501');await assert.rejects(read({kind:'announcement'}),e=>e.code==='22023');
  });
