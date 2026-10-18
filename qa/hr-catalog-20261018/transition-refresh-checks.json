@@ -1,0 +1,24 @@
+{
+  "baseSource": "d48c63d",
+  "targeted": {
+    "tests": 14,
+    "pass": 14,
+    "fail": 0
+  },
+  "application": {
+    "tests": 796,
+    "pass": 796,
+    "fail": 0
+  },
+  "typecheck": "passed",
+  "build": "passed with synthetic localhost public configuration",
+  "scenarios": [
+    "open editor removed on future catalog response",
+    "stale audit entries removed on future catalog response",
+    "late previous-tenant update error discarded",
+    "full page refresh only after explicit click"
+  ],
+  "browser": "not exercised; deterministic component callback tests only",
+  "backendV2": "not implemented",
+  "deployed": false
+}

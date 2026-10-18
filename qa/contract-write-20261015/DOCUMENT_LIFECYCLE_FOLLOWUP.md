@@ -1197,3 +1197,10 @@ H0c geçmiş yönlendirmesi doğrulaması: 792/792 uygulama testi, 15 hedefli te
 `loadCurrentWorkspaceModules` doğrulanmış daha-yeni-katalog sinyalini genel ağ hatasına çevirmeden taşır. `WorkspaceModules` bu sinyalde eski modül listesi/ön kontrol/editörü açmaz; açık form uyarısıyla Sayfayı yenile düğmesi gösterir. `WorkspaceModuleBoundary` güncelleme gerektiğinde business children'ı mount etmez; ağ hatasının Tekrar dene yolu korunur. Nav okuyucusu aynı hata durumunda kapalı/eksik varsayımlar üretmeden mevcut ret yolunda kalır.
 
 33 ilgili test (service, sayfa sınırı, ayar paneli, geçmiş, navigation ve katalog) ve tsc geçti. Bu değişiklik için tam 792 test ve build yeniden çalıştırılmadı; önceki d4a1b13 kanıtı yeni kaynak için tekrar geçmiş sayılmaz. Yeni katalog API/migration ve gerçek tarayıcı sürüm geçiş testi hâlâ açık. Ürün değişikliği geliştirme dalında; üretime yayımlanmadı, HR açılmadı. Sonraki H0c adımı v2 backend okuma/geçmiş sözleşmesi ve gerçek yerel tarayıcı kabulüdür.
+
+
+## 19 Ekim — H0c sürüm geçişi regresyon paketi
+
+Başlangıç HEAD d48c63d; çalışma klasörü temizdi. Üç yeni gerçek bileşen callback testi eklendi: açık editörün yeni katalog yanıtıyla kaldırılması ve yenilemenin yalnız kullanıcı tıklamasıyla çalışması; şirket değişiminden sonra önceki şirketin geç gelen update-required hatasının yeni ayarları gizlememesi; geçmiş yenilenirken yeni sürüm yanıtının eski olayları ekranda bırakmaması. 14 hedefli test, 796/796 uygulama testi, tsc ve sentetik localhost public ortamıyla production build geçti. Kanıt `qa/hr-catalog-20261018/transition-refresh-checks.json`.
+
+Bu tur ürün davranışı değiştirilmedi; önceki iki yerel ürün commit'i de toplu doğrulandı. Bileşen sürücüsü DOM/tarayıcı kabulü değildir. V2 backend/geçmiş API bağlantısı, ileri migration ve gerçek tarayıcı sürüm geçişi açık. HR açılmadı; üretim yayını yapılmadı. Sonraki paket v2 geçmişte her olayın katalog sürümünü koruyan API/istemci sözleşmesi ve gerçek BPS şemasında geçiş provasıdır; tamamlanan evrak ve operasyon Faz 1 tekrar açılmaz.

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {compile,driver,nodes,settle} from './helpers/component-driver.mjs';
-function setup(loader, changesEnabled=false) {
+function setup(loader, changesEnabled=false, globals={}) {
  const d=driver();let auth={user:{id:'actor',app_metadata:{active_tenant:'A'}},role:'yonetici',loading:false};
  const useScopedResource=compile('src/components/ui/useScopedResource.ts',d.hooks,{},'useScopedResource');
  const panel=compile('src/app/(main)/ayarlar/WorkspaceModules.tsx',d.hooks,{
@@ -13,7 +13,7 @@ function setup(loader, changesEnabled=false) {
   '@/lib/services/module-change':{createModuleChangeCapability:()=>({prepare:()=>{},transport:async()=>{},refresh:async()=>{}})},
   '@/lib/services/workspace-modules':{loadCurrentWorkspaceModules:loader},
   '@/lib/modules/catalog':{MODULE_CATALOG:[{key:'customers',name:'Müşteriler',description:'Firma',requires:[]},{key:'documents',name:'Belgeler',description:'Evrak',requires:['customers']}]},
- });
+ },'default',globals);
  return {render(){const tree=d.render(panel,{changesEnabled});d.flush();return tree;},auth(next){auth=next;},dispose:()=>d.dispose()};
 }
 const data=name=>({name,modules:{customers:true,documents:false}});
@@ -57,4 +57,25 @@ test('new catalog clears editor and asks for full refresh instead of retrying ol
  assert.equal(nodes(tree).filter(n=>n.type==='li').length,0);
  assert.ok(nodes(tree).some(n=>n.type==='button'&&n.props.children==='Sayfayı yenile'));
  assert.equal(nodes(tree).filter(n=>typeof n.type==='function'&&n.props.context).length,0);x.dispose();
+});
+
+// These execute the actual callbacks, but do not substitute for browser acceptance.
+test('an open editor is removed when reload discovers a newer catalog; refresh is explicit',async()=>{
+ let upgraded=false,reloads=0;
+ const x=setup(async()=>{if(upgraded)throw Error('MODULE_CLIENT_UPDATE_REQUIRED');return data('A');},true,{window:{location:{reload(){reloads++;}}}});
+ x.render();await settle();let tree=x.render();
+ assert.ok(nodes(tree).some(n=>typeof n.type==='function'&&n.props.context));
+ upgraded=true;nodes(tree).find(n=>n.type==='button').props.onClick();
+ tree=x.render();assert.equal(nodes(tree).filter(n=>typeof n.type==='function'&&n.props.context).length,0);
+ await settle();tree=x.render();assert.equal(reloads,0);
+ assert.equal(nodes(tree).filter(n=>typeof n.type==='function'&&n.props.context).length,0);
+ nodes(tree).find(n=>n.type==='button'&&n.props.children==='Sayfayı yenile').props.onClick();
+ assert.equal(reloads,1);x.dispose();
+});
+test('a late update-required error from another company cannot hide current settings',async()=>{
+ let rejectA;const x=setup(async(_,scope)=>scope.tenantId==='A'?new Promise((_,reject)=>{rejectA=reject;}):data('B'),true);
+ x.render();x.auth({user:{id:'actor',app_metadata:{active_tenant:'B'}},role:'yonetici',loading:false});x.render();await settle();x.render();
+ rejectA(Error('MODULE_CLIENT_UPDATE_REQUIRED'));await settle();const tree=x.render();
+ assert.ok(nodes(tree).some(n=>n.props.children==='B'));
+ assert.equal(nodes(tree).filter(n=>n.type==='button'&&n.props.children==='Sayfayı yenile').length,0);x.dispose();
 });

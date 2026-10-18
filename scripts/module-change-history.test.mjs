@@ -37,3 +37,13 @@ test('new catalog requires explicit refresh without projecting incomplete histor
  assert.ok(nodes(tree).some(n=>n.type==='button'&&n.props.children==='Sayfayı yenile'));
  assert.equal(nodes(tree).filter(n=>n.type==='time').length,0);x.dispose();
 });
+
+test('new catalog on refresh removes previously displayed audit entries',async()=>{
+ let upgraded=false;const x=setup(async()=>{if(upgraded)throw Error('MODULE_CLIENT_UPDATE_REQUIRED');return parseModuleHistory(make(),ctx);});
+ let tree=x.render();nodes(tree).find(n=>n.type==='button').props.onClick();x.render();await settle();tree=x.render();
+ assert.equal(nodes(tree).filter(n=>n.type==='time').length,2);
+ upgraded=true;nodes(tree).find(n=>n.props.children==='Geçmişi yenile').props.onClick();
+ tree=x.render();assert.equal(nodes(tree).filter(n=>n.type==='time').length,0);
+ await settle();tree=x.render();assert.equal(nodes(tree).filter(n=>n.type==='time').length,0);
+ assert.ok(nodes(tree).some(n=>n.type==='button'&&n.props.children==='Sayfayı yenile'));x.dispose();
+});
