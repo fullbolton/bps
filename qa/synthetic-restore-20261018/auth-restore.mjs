@@ -9,6 +9,13 @@ export async function restoreAuthFixture({source,auth,authDatabase,authBase,sql,
  const login=async(base,password=loginPassword)=>fetch(base+'/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'document-qa@example.test',password}),signal:AbortSignal.timeout(10000)});
  const before=await login(authBase);assert.ok(before.ok,'Pre-restore password login failed');const original=await before.json();
  assert.equal(original.user.id,userId);
+ const closing=await login(authBase);assert.ok(closing.ok,'Second session login failed');const closed=await closing.json();
+ const sessionId=value=>JSON.parse(Buffer.from(value.access_token.split('.')[1],'base64url')).session_id;
+ assert.notEqual(sessionId(original),sessionId(closed),'Expected independent sessions');
+ const signout=await fetch(authBase+'/logout?scope=local',{method:'POST',headers:{Authorization:'Bearer '+closed.access_token},signal:AbortSignal.timeout(10000)});
+ assert.ok(signout.ok,'Pre-backup session sign-out failed');
+ const refreshSession=(base,token)=>fetch(base+'/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:token}),signal:AbortSignal.timeout(10000)});
+ const rejectedBefore=await refreshSession(authBase,closed.refresh_token);assert.equal(rejectedBefore.status,400,'Signed-out session still refreshes before backup');await rejectedBefore.arrayBuffer();
  docker(['stop',auth]);
  const dump=exec(['exec',source,'pg_dump','-U','postgres','-d',authDatabase]);
  sql(`DROP DATABASE ${authDatabase} WITH (FORCE);`,'postgres');
@@ -22,10 +29,11 @@ export async function restoreAuthFixture({source,auth,authDatabase,authBase,sql,
  const refresh=await fetch(base+'/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:original.refresh_token}),signal:AbortSignal.timeout(10000)});
  assert.ok(refresh.ok,'Restored refresh session rejected');const refreshed=await refresh.json();assert.equal(refreshed.user.id,userId);
  const claims=JSON.parse(Buffer.from(refreshed.access_token.split('.')[1],'base64url'));assert.equal(claims.active_tenant_id,tenantId);
+ const rejectedAfter=await refreshSession(base,closed.refresh_token);assert.equal(rejectedAfter.status,400,'Restore resurrected signed-out refresh session');await rejectedAfter.arrayBuffer();
  const after=await login(base);assert.ok(after.ok,'Password not preserved');assert.equal((await after.json()).user.id,userId);
  const wrong=await login(base,'Wrong-Synthetic-Password!');assert.equal(wrong.status,400,'Wrong password not rejected');
- const checks=['pre-restore real password sign-in','Auth database restored into template0','existing access token resolves same user','existing refresh token creates valid same-user session','refreshed token retains tenant hook claim','same password works after restore','wrong password rejected'];
- writeFileSync(new URL('./auth-result.json',import.meta.url),JSON.stringify({syntheticOnly:true,dumpBytes:dump.length,passed:checks.length,checks,limits:['same local platform roles and signing secret','no production account or backup','Auth fixture is separate from restored business DB','no signing-key rotation, email/MFA or cloud disaster recovery tested']},null,2)+'\n');
+ const checks=['pre-restore real password sign-in','Auth database restored into template0','existing access token resolves same user','existing refresh token creates valid same-user session','refreshed token retains tenant hook claim','same password works after restore','wrong password rejected','independent session signed out before backup','signed-out refresh token rejected before backup','signed-out refresh token still rejected after restore'];
+ writeFileSync(new URL('./auth-result.json',import.meta.url),JSON.stringify({syntheticOnly:true,dumpBytes:dump.length,passed:checks.length,checks,limits:['same local platform roles and signing secret','no production account or backup','Auth fixture is separate from restored business DB','no signing-key rotation, email/MFA or cloud disaster recovery tested','revocations after the snapshot and JWT expiry semantics are not covered']},null,2)+'\n');
  console.log('LOCAL_AUTH_RESTORE_PASS '+checks.length);
  return base;
 }

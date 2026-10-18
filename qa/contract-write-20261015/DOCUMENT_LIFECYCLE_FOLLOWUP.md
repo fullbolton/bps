@@ -998,3 +998,7 @@ Sentetik DB + gerçek yerel Storage file backend restore paketi 35/35 HTTP kontr
 ## 18 Ekim — sentetik Auth parola/oturum restore
 
 35 Storage/iş HTTP kabulünün ardından 7 Auth kontrolü geçti: resmi GoTrue parola girişi, Auth DB dump/template0 restore, eski access token /user, eski refresh token, tenant hook claim, aynı parola tekrar giriş ve yanlış parola reddi. Kanıt qa/synthetic-restore-20261018/auth-result.json. Aynı yerel roller/JWT secret kullanıldı; MFA/anahtar rotasyonu/yeni sunucu/cloud kurtarma kanıtı değildir. HTTP_ONLY koşusu temiz kapandı; gerçek hesap/yedek/üretim değişikliği yok. Önceki tarayıcı koşusu ile bu Auth restore testi ayrı kabul kanıtlarıdır.
+
+## 18 Ekim — restore sonrası iptal edilmiş oturum reddi
+
+Auth kabulü 10 kontrol: iki ayrı oturumdan biri snapshot öncesi gerçek local logout ile kapatıldı; refresh önce/sonra 400, diğer aktif oturum restore sonrası çalışıyor. 35 Storage/iş kontrolü de geçti. Snapshot sonrası iptallerin bu kanıtla kapsanmadığı açıklandı. Kurtarma kapsamı/sırası qa/synthetic-restore-20261018/RECOVERY_SCOPE.md içinde toplandı. Üretim ve gerçek veri değişmedi.

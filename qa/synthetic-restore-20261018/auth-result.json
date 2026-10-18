@@ -1,7 +1,7 @@
 {
   "syntheticOnly": true,
-  "dumpBytes": 62520,
-  "passed": 7,
+  "dumpBytes": 63072,
+  "passed": 10,
   "checks": [
     "pre-restore real password sign-in",
     "Auth database restored into template0",
@@ -9,12 +9,16 @@
     "existing refresh token creates valid same-user session",
     "refreshed token retains tenant hook claim",
     "same password works after restore",
-    "wrong password rejected"
+    "wrong password rejected",
+    "independent session signed out before backup",
+    "signed-out refresh token rejected before backup",
+    "signed-out refresh token still rejected after restore"
   ],
   "limits": [
     "same local platform roles and signing secret",
     "no production account or backup",
     "Auth fixture is separate from restored business DB",
-    "no signing-key rotation, email/MFA or cloud disaster recovery tested"
+    "no signing-key rotation, email/MFA or cloud disaster recovery tested",
+    "revocations after the snapshot and JWT expiry semantics are not covered"
   ]
 }

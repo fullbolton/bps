@@ -55,3 +55,9 @@ Bu kod yalnız test altyapısıdır; uygulama kodu/production migration değişt
 Resmi yerel GoTrue ile sentetik kullanıcı giriş yaptı. Auth durduruldu, Auth DB belleğe dump edildi, template0 hedefe aynı isimle yeniden kuruldu ve sahiplik/ACL korunarak restore edildi. Sonra eski access token /user'dan aynı kullanıcıyı döndürdü; eski refresh token yeni geçerli oturum üretti ve tenant hook claim'i korundu; aynı parola tekrar giriş yaptı; yanlış parola HTTP 400 ile reddedildi. Kanıt auth-result.json. Token, parola veya dump kanıt dosyasına yazılmadı. HTTP_ONLY modu Next/tarayıcı açmadan sonunda bütün geçici kaynakları kapatır.
 
 Önceki tarayıcı kabulünün Auth restore yapılmadı sınırı bu ayrı HTTP testiyle kısmen kapanır; birleşik restore-sonrası tarayıcı koşusu yapılmış sayılmaz. Aynı yerel sunucu rolleri ve aynı JWT imzalama anahtarı kullanıldı. Anahtar rotasyonu, MFA/e-posta, cloud servis kurtarma ve başka sunucu kurulumu kapsam dışıdır. Gerçek hesaplara veya üretime erişilmedi.
+
+## Oturum iptali korunumu
+
+Auth kabulü 10 kontrole genişletildi. Aynı sentetik kullanıcı iki bağımsız oturum açtı; ikinci oturum resmi `/logout?scope=local` ile yedek öncesinde kapatıldı. Bu oturumun refresh token'ı hem yedek öncesinde hem restore sonrasında HTTP 400 ile reddedildi. İlk aktif oturum restore sonrasında yenilenebildi. 35 Storage/iş HTTP kontrolüyle birlikte tüm koşu exit 0 verdi. Son kanıt auth-result.json'dır; önceki 7 sayısı tarihsel kapsamdır.
+
+Sınır: bu kontrol yalnız yedek anındaki iptali korur. Snapshot SONRASI yapılan oturum iptalleri, parola/rol değişiklikleri veya hesap kapatma eski snapshot'ta yoktur. Bu nedenle eski yedeğe dönülünce güncel erişim kararlarının ayrıca uzlaştırılması gerekir. Salt JWT'nin logout sonrası süre dolmadan davranışı bu testte ölçülmedi; ölçülen, refresh token ile yeni oturum alınamamasıdır.
