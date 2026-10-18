@@ -45,3 +45,13 @@ F1-A ana tarayıcı zinciri tamamlandı. F1-B mobil ve tenant geçişi tamamland
 ## Operatörün kısa kullanım yolu
 
 Günlük planda firma/gün seç → talep aç → personel ata → işe başlama takip saatini/sorumlusunu belirle → görüşmeleri kaydet. Gelemeyen personelde yedek görüşmesini kaydet ve ayrıca değişimi yap. Personelin beyanından sonra şube/saha yetkilisiyle teyit et. Çalışma bitince saat ve molayı kaydet, onaya gönder; yetkili yönetici onaylasın. Görüşme kabulü atama, Geldi kaydı çalışma/ücret onayı değildir.
+
+## 18 Ekim — bağımsız HTTP rol kabulü ve Faz 1 kapanışı
+
+Beş ayrı sentetik kullanıcı gerçek GoTrue parola oturumuyla giriş yaptı; JWT sub ve active_tenant_id doğrulandı. PostgREST RPC çağrılarında operasyon hesabı talep/atama/yoklama/çalışma kaydı/gönderme yaptı, onay ve yeniden açma reddedildi. Yönetici ayrı oturumla onayladı: 480 net dakika. İK, muhasebe ve görüntüleyici ayrı hesapları talep/işe başlama/çalışma yazamadı; reddedilen komutlar makbuz bırakmadı. 5/5 HTTP rol grubu geçti. Kanıt `qa/operations-chain-20261018/role-http-result.json`. Oturumlar aynı aktörün rolünü değiştirerek taklit edilmedi. Tokenlar kaydedilmedi. İlk fixture denemesi auth.users trigger'ının zaten profil oluşturması nedeniyle durdu; yalnız sentetik fixture profil upsert'i düzeltildi, ürün değişmedi.
+
+Tekrar komutu: `BPS_LOCAL_BROWSER=1 BPS_OPS_ROLE_HTTP=1 node qa/contract-write-20261015/storage-http.mjs`. Harness yalnız izinli yerel sunucuda geçici DB/containers açar, finally temizler; bu modda Next başlatılmaz.
+
+F1-A yönetici tarayıcı zinciri ve DB son durumları, F1-B bağımsız HTTP rol matrisi + tenant geçişi + 390×844 görünüm tamam. F1-C: bu kabul kapsamında açık P0/P1 bulunmadı, kullanım yolu BROWSER_ACCEPTANCE.md içinde; ürün/migration farkı yok, gereksiz yayın yapılmadı. **Operasyon Faz 1 kapanmıştır; sıradaki geliştirme İK-1 personel/organizasyon/istihdam çekirdeğidir.** Canlı ürün kaynağı hâlâ 6300bee; QA commit'leri yeni ürün sürümü değildir.
+
+Açık ve fazı uzatmayanlar: rol bazlı düğmelerin her hesapta ayrı görsel incelemesi (backend yetkisi kabul edildi); fiziksel telefon/zayıf ağ; gerçek Luca/Excel mutabakatı; bulut felaket kurtarma; bildirim sağlayıcısı ve ikincil modüllerin kendi kabulü. Bunlar tamamlandı sayılmaz. İK geliştirmesi operasyon kapalı tenantta bağımsız çalışacak; müşteri şubesi ile şirket içi organizasyon karıştırılmayacak. Yeni operasyon özellikleri yeni faz iş listesidir.

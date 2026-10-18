@@ -1,0 +1,16 @@
+{
+  "source": "4a38c8ea96491a1e54eccd97771a54eebd7f4e1e",
+  "measuredAt": "2026-10-18T18:42:06.671Z",
+  "checks": [
+    "Independent operations password session creates/assigns/records attendance/saves/submits; approval denied without receipt",
+    "Independent ik password session denied request/start/work writes without receipt",
+    "Independent muhasebe password session denied request/start/work writes without receipt",
+    "Independent goruntuleyici password session denied request/start/work writes without receipt",
+    "Manager independent session approves submitted work; 480 minutes, operations reopen denied"
+  ],
+  "limits": [
+    "Local synthetic GoTrue + PostgREST; not production",
+    "Role-specific visual button states not tested; manager UI chain tested separately",
+    "No tokens or personal data retained"
+  ]
+}

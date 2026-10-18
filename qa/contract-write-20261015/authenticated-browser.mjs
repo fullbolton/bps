@@ -4,6 +4,7 @@ import {spawn,spawnSync} from 'node:child_process';
 import {openSync,closeSync,existsSync,mkdirSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
 export async function serve({docker,sql,run,source,network,database,password,secret,anon,service,rest,restBase,storageBase,id,pdf}){
  const moduleRoute='src/app/qa-module-acceptance';let moduleRouteCreated=false;
+ const scopeActors=process.env.BPS_OPS_ROLE_HTTP==='1'?[11,9511,9512,9513,9514]:[11];
  const auth='bps-browser-auth-'+process.pid,authDatabase='bps_browser_auth_'+process.pid;let server,app,authCreated=false;
  try{
   // Fresh official Auth migrations; do not fabricate a ledger for a schema dump.
@@ -14,7 +15,7 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
   sql(`INSERT INTO tenant_memberships(user_id,tenant_id,role) VALUES('${id(11)}','${id(2)}','yonetici') ON CONFLICT(user_id,tenant_id) DO NOTHING;`);
   function syncAuthScope(){
    // One source statement snapshot, atomically replace only synthetic hook fixtures.
-   const inserts=sql(`SELECT coalesce((SELECT string_agg(format('INSERT INTO public.tenant_memberships VALUES(%L,%L,%L);',user_id,tenant_id,version),'') FROM tenant_memberships WHERE user_id='${id(11)}'),'') || coalesce((SELECT string_agg(format('INSERT INTO public.workspace_selections VALUES(%L,%L,%L,%L,%L);',user_id,tenant_id,version,command_id,changed_at),'') FROM workspace_selections WHERE user_id='${id(11)}'),'');`);
+   const inserts=sql(`SELECT coalesce((SELECT string_agg(format('INSERT INTO public.tenant_memberships VALUES(%L,%L,%L);',user_id,tenant_id,version),'') FROM tenant_memberships WHERE user_id IN (${scopeActors.map(n=>`'${id(n)}'`).join(',')})),'') || coalesce((SELECT string_agg(format('INSERT INTO public.workspace_selections VALUES(%L,%L,%L,%L,%L);',user_id,tenant_id,version,command_id,changed_at),'') FROM workspace_selections WHERE user_id IN (${scopeActors.map(n=>`'${id(n)}'`).join(',')})),'');`);
    sql('BEGIN;TRUNCATE public.tenant_memberships,public.workspace_selections;'+inserts+'COMMIT;',authDatabase);
   }
   syncAuthScope();
@@ -34,6 +35,11 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
   const loginPassword='Synthetic-BPS-Only-2026!';
   const update=await fetch(authBase+'/admin/users',{method:'POST',headers:{Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({id:id(11),password:loginPassword,email:'document-qa@example.test',email_confirm:true})});
   if(!update.ok)throw Error('Synthetic Auth user setup failed: '+await update.text());
+  if(process.env.BPS_OPS_ROLE_HTTP==='1'){
+   const {acceptRoles}=await import('../operations-chain-20261018/role-http.mjs');
+   await acceptRoles({sql,id,authBase,restBase,service,loginPassword,syncAuthScope});
+   return;
+  }
   if(process.env.BPS_AUTH_RESTORE_REHEARSAL==='1'){
    const {restoreAuthFixture}=await import('../synthetic-restore-20261018/auth-restore.mjs');
    authBase=await restoreAuthFixture({source,auth,authDatabase,authBase,sql,docker,loginPassword,userId:id(11),tenantId:id(1)});

@@ -10,7 +10,7 @@ Kullanıcının açık kararı: **BPS yalnız operasyon yazılımı değildir. G
 
 Faz 1 hedefi kusursuz veya bütün sektörleri kapsayan ürün değil: mevcut talep→atama→teyit/yedek→gerçekleşme→çalışma onayı zincirinin çalışması ve açık risklerin dürüst kaydı. 791 uygulama testi, 9 birleşik SQL kontrol grubu ve evrak kabulü tekrar tekrar bağımsız iş paketi olarak açılmaz; yeni kod/failure gerekçesi olmadan yeniden çalıştırılmaz.
 
-18 Ekim kabul güncellemesi: ana tarayıcı zinciri, şirket değişimi ve 390×844 görünüm geçti; SQL zinciri rol matrisiyle 10 gruba çıktı. Ayrı rol oturumlarının HTTP/UI kabulü ve son F1-C kapanışı açık. Kanıt: `qa/operations-chain-20261018/BROWSER_ACCEPTANCE.md`. Ürün kodu değişmedi.
+18 Ekim son kabul: ana tarayıcı zinciri, şirket değişimi ve 390×844 görünüm geçti; 10 SQL kontrol grubuna ek olarak beş bağımsız GoTrue oturumuyla 5 HTTP rol grubu geçti. F1-A/B/C kabul kapsamı tamam, bu kapsamda açık P0/P1 yok. **Faz 1 kapandı; sıradaki uygulama İK-1.** Kanıt: `qa/operations-chain-20261018/BROWSER_ACCEPTANCE.md`, `role-http-result.json`. Rol bazlı düğmelerin ayrı görsel incelemesi ve fiziksel cihaz testi açık; backend yetki reddi doğrulandı. Ürün kodu değişmedi, yeni yayın yapılmadı.
 
 **Üç kapanış paketi; yeni özellik eklenmez:**
 
