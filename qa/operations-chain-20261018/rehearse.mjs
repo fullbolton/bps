@@ -40,6 +40,34 @@ try{
  assert.equal(work(8808,2,'approve').revision,3);
  assert.equal(sql(`SELECT net_minutes FROM ops_work_records WHERE assignment_id='${id(8804)}'`),'480');
  assert.equal(sql(`SELECT count(*) FROM ops_work_record_events WHERE assignment_id='${id(8804)}'`),'3');checks.push('Save → submit → approve yields 480 net minutes; approval replay leaves 3 audit events');
- writeFileSync(new URL('./result.json',import.meta.url),JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),measuredAt:new Date().toISOString(),checks,limits:['SQL chain, not browser acceptance','Manager synthetic actor; no role matrix','Independent arrival confirmation and replacement branch not covered','Historical synthetic template plus manifest migrations; no production data']},null,2)+'\n');
+ // Today's second request exercises live-time confirmation without backdating records.
+ const day=sql("SELECT (clock_timestamp() AT TIME ZONE 'Europe/Istanbul')::date");
+ const occurred=()=>sql('SELECT clock_timestamp()');
+ mutate(8820,'request',{companyId:id(8800),locationId:id(8801),workDate:day,serviceLine:'Güvenlik',position:'Güvenlik',requiredCount:1});
+ mutate(8821,'assign',{requestId:id(8820),workerId:id(8802)});
+ const start=(n,assignment,rev,action,data)=>JSON.parse(call(`SELECT ops_start_execute('${id(11)}','${id(1)}','${id(n)}','${id(assignment)}',${rev},'${action}',${lit(data)})`));
+ start(8822,8821,0,'plan',{time:'08:00',responsibleId:id(11),offsets:[-30,-15]});
+ start(8823,8821,1,'call',{occurredAt:occurred(),offset:0,outcome:'cannot_attend'});
+ const outreach=()=>JSON.parse(call(`SELECT ops_record_replacement_outreach('${id(11)}','${id(1)}','${id(8824)}','${id(8821)}','${id(8810)}',0,'accepted','Sentetik görüşme')`));
+ assert.equal(outreach().outcome,'accepted');assert.equal(outreach().revision,1);
+ assert.equal(sql(`SELECT worker_id FROM ops_assignments WHERE request_id='${id(8820)}' AND removed_at IS NULL`),id(8802),'Conversation acceptance must not assign a worker');
+ checks.push('Cannot-attend call and accepted replacement conversation do not silently change assignment');
+ const replace=()=>JSON.parse(call(`SELECT ops_replace_assignment('${id(11)}','${id(1)}','${id(8825)}','${id(8821)}','${id(8810)}',0)`));
+ assert.equal(replace().id,id(8825));assert.equal(replace().id,id(8825));
+ assert.equal(sql(`SELECT count(*) FROM ops_assignments WHERE request_id='${id(8820)}' AND removed_at IS NULL`),'1');
+ assert.equal(sql(`SELECT revision FROM ops_start_plans WHERE assignment_id='${id(8825)}'`),'1');
+ rejected(()=>start(8826,8821,2,'call',{occurredAt:occurred(),offset:0,outcome:'on_way'}),'START_CLOSED',8826);
+ checks.push('Replacement replay leaves one active assignment and inherited plan; old assignment rejects calls');
+ start(8827,8825,1,'call',{occurredAt:occurred(),offset:0,outcome:'claimed_arrival'});
+ assert.equal(sql(`SELECT attendance FROM ops_assignments WHERE id='${id(8825)}'`),'unreported');
+ assert.equal(sql(`SELECT confirmed_at IS NULL FROM ops_start_plans WHERE assignment_id='${id(8825)}'`),'t');
+ rejected(()=>start(8828,8825,2,'confirm',{occurredAt:occurred(),source:'worker',witness:'Sentetik kişi'}),'START_WITNESS',8828);
+ const confirmation={occurredAt:occurred(),source:'branch',witness:'Sentetik şube yetkilisi'};
+ start(8829,8825,2,'confirm',confirmation);start(8829,8825,2,'confirm',confirmation);
+ assert.equal(sql(`SELECT attendance FROM ops_assignments WHERE id='${id(8825)}'`),'present');
+ assert.equal(sql(`SELECT count(*) FROM ops_start_events WHERE assignment_id='${id(8825)}' AND kind='confirm'`),'1');
+ assert.equal(sql(`SELECT count(*) FROM ops_work_records WHERE assignment_id='${id(8825)}'`),'0','Arrival confirmation must not approve working hours');
+ checks.push('Claimed arrival stays unverified; branch confirmation marks present exactly once without work approval');
+ writeFileSync(new URL('./result.json',import.meta.url),JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),measuredAt:new Date().toISOString(),checks,limits:['SQL chain, not browser acceptance','Manager synthetic actor; no role matrix','Confirmation/replacement covered in SQL; concurrent connections and UI remain open','Historical synthetic template plus manifest migrations; no production data']},null,2)+'\n');
  console.log(`PASS ${checks.length} integrated groups`);
 } finally {if(created)sql(`DROP DATABASE ${db} WITH(FORCE)`,'postgres');}
