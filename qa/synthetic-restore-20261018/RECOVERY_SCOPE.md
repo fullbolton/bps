@@ -9,7 +9,7 @@
 | Dosya deposu | Yeni boş yerel file-backend; byte + extended attribute geri yükleme | Yönetilen bulut/S3 obje sürümleri ve sağlayıcı kurtarma yolu |
 | Bekleyen işler | Dosyalı/dosyasız rezervasyon, finalize tekilliği, iptal ve temizlik | Gerçek operasyon kesintisi ve geri dönüş süresi hedefi |
 | Auth | Parola, aktif access/refresh, hook; yedek öncesi kapatılmış refresh oturumu reddi | Snapshot sonrası erişim değişiklikleri, anahtar rotasyonu, MFA/e-posta |
-| Uygulama | Ayrı tarayıcı koşusunda gerçek giriş ve evrak server action akışları | Yeni sunucu DB/Auth/Storage HTTP koşusu geçti; birleşik tarayıcı koşusu açık |
+| Uygulama | Ayrı tarayıcı koşusunda gerçek giriş ve evrak server action akışları | Yeni sunucuda DB/Auth/Storage ve tarayıcı kabulü geçti; fiziksel mobil/bulut kapsam dışı |
 
 ## Gerçek kurtarma öncesinde doğrulanacak sıra
 

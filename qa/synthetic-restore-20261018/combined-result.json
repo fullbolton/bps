@@ -4,12 +4,13 @@
   "postgresImage": "17.6.1.075",
   "rolePasswords": "fresh random local password; none copied",
   "httpAcceptancePassed": true,
-  "browserRequested": false,
-  "browserVerified": false,
+  "browserRequested": true,
+  "browserVerified": true,
   "limits": [
     "historical synthetic baseline and same platform image",
     "Auth and business schemas use separate databases with fixture hook sync",
     "local file backend, not cloud S3",
     "browser acceptance must be recorded separately"
-  ]
+  ],
+  "browserEvidence": "combined-browser-result.json"
 }

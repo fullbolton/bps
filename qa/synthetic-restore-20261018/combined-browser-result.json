@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-18",
+  "sourceCommit": "bcca042",
+  "syntheticOnly": true,
+  "separateServer": true,
+  "browserVerified": true,
+  "checks": [
+    "restored Auth password login opens Synthetic A dashboard",
+    "recover upload adds document and count changes 3 to 4",
+    "cancel uploaded and empty reservations",
+    "both cleanup actions succeed and leave queue"
+  ],
+  "sql": {
+    "published": 1,
+    "cancelledObjectRows": 0,
+    "completedCleanup": 2
+  },
+  "screenshot": "combined-browser.png",
+  "limits": [
+    "browser records seeded after restore; pre-restore pending continuity checked in HTTP phase",
+    "Auth hook membership sync uses separate synthetic auth DB",
+    "other fixture queue records intentionally remain",
+    "not cloud S3, physical mobile, MFA or production restore"
+  ]
+}
