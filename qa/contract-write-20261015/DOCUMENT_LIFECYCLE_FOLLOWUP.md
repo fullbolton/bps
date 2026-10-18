@@ -1183,3 +1183,11 @@ Mevcut `change_workspace_modules_v1` ve `parseModuleHistory` kaynaklarıyla adap
 Karar: yalnız v1 state projeksiyonu yeterli değil. HR açılmadan önce sürümlü olayları anlayan uyumluluk istemcisi ve geçmiş API'si gerekir. HR olayını gizleme, sahte değişiklik üretme veya global revision'ı yeniden numaralama yok. Eski açık istemcinin güncelleme gereksinimi açık hata/yenileme yönlendirmesiyle ele alınmalı; eski yazmanın HR değerini koruması ayrı garanti olarak sürer. Eski v1 geçmişinin kesintisiz çalışacağı iddiası bu kanıtla geri çekildi.
 
 Ek düzeltme: H0a/b prototiplerinin değişikliksiz yeni komutu başarılı sayması gerçek BPS komutunun MODULE_CHANGE_EMPTY davranışıyla eşitlendi. Aynı komutun mevcut makbuzla tekrarı hâlâ başarılı. Güncellenen 7 sözleşme + 5 PostgreSQL grubu ve 3 gerçek parser karakterizasyonu geçti. H0c uygulama/migration/API bağlantısı tamamlanmadı. Ürün kodu, canlı şema ve veri değişmedi.
+
+## 18 Ekim — H0c açık geçmiş ekranına güncelleme yönlendirmesi
+
+Ürün kodunda ilk uyumluluk parçası eklendi: `parseWorkspaceModuleContext` geçerli aktör/tenant/üyelik kapsamından gelen daha yeni katalog sürümünü MODULE_CLIENT_UPDATE_REQUIRED olarak ayırır; sürüm dışındaki hatalar normal ret kalır. `ModuleChangeHistory` bu durumda eski/eksik olay listesi göstermez, sürüm değişti mesajı ve Sayfayı yenile düğmesi gösterir; önce açık formları kaydetme uyarısı vardır. Genel ağ/bozuk veri hataları önceki tekrar-deneme davranışını korur.
+
+Bu yalnız zaten açık olan geçmiş panelinin yeni yanıtla karşılaşma akışıdır. Yeni katalog API'si, v2 geçmiş modeli, başlangıç sayfasının v2 okuması veya HR açılması uygulanmış değildir. Gerçek tarayıcıda yeni sunucu yanıtı testi henüz yok; bileşen testi yeni sürüm, yanlış tenant ve boş olay göstermeme davranışını sınar. İlk hedefli 15 test geçti. Toplu test/derleme sonucu aşağıdaki kanıt dosyasına yazılacak: `qa/hr-catalog-20261018/history-refresh-checks.json`. Yeni migration veya yayın yok; bu değişiklik yereldir.
+
+H0c geçmiş yönlendirmesi doğrulaması: 792/792 uygulama testi, 15 hedefli test, tsc ve sentetik localhost açık değerleriyle production build geçti. İlk build ortam değerleri yokken /davet prerender aşamasında durdu; ortam düzeltilerek tekrar geçti. Kanıt history-refresh-checks.json. Gerçek tarayıcı yeni-sürüm kabulü ve v2 backend bağlantısı açık; üretime yayımlanmadı.

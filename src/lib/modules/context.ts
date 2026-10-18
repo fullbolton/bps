@@ -28,9 +28,13 @@ export function parseWorkspaceModuleContext(value: unknown, expected: ModuleCont
   if (!(expected.selectionVersion === null || isUuid(expected.selectionVersion)) || !isUuid(expected.membershipVersion)
     || data.selectionVersion !== expected.selectionVersion || data.membershipVersion !== expected.membershipVersion
     || !workspaceRoles.includes(data.role as WorkspaceRole)
-    || data.schemaVersion !== 1 || data.catalogVersion !== MODULE_CATALOG_VERSION || !isRevision(data.configRevision)) {
+    || !isRevision(data.configRevision)) {
     throw Error('MODULE_CONTEXT_RESPONSE');
   }
+  // A known newer envelope needs a client update, never partial state projection.
+  if (Number.isSafeInteger(data.catalogVersion) && (data.catalogVersion as number) > MODULE_CATALOG_VERSION
+    && data.schemaVersion === 1) throw Error('MODULE_CLIENT_UPDATE_REQUIRED');
+  if (data.schemaVersion !== 1 || data.catalogVersion !== MODULE_CATALOG_VERSION) throw Error('MODULE_CONTEXT_RESPONSE');
   return Object.freeze({
     actorId: identity.actorId, tenantId: identity.tenantId, name: identity.name,
     selectionVersion: expected.selectionVersion, membershipVersion: expected.membershipVersion,

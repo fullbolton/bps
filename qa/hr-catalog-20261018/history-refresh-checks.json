@@ -1,0 +1,19 @@
+{
+  "baseSource": "6efb3cd",
+  "application": {
+    "tests": 792,
+    "pass": 792,
+    "fail": 0,
+    "skip": 0
+  },
+  "targetedTests": 15,
+  "typecheck": "passed",
+  "build": {
+    "exitCode": 0,
+    "environment": "synthetic localhost public values; no production credentials",
+    "firstAttempt": "failed: missing public Supabase env at /davet prerender; fixed test environment"
+  },
+  "browserAcceptance": "not run for future catalog response",
+  "newMigrations": 0,
+  "deployed": false
+}

@@ -26,3 +26,14 @@ test('late previous-company history is discarded',async()=>{
  let resolve;const x=setup(async(_,c)=>c.tenantId===ctx.tenantId?new Promise(r=>resolve=r):[]);let tree=x.render();nodes(tree).find(n=>n.type==='button').props.onClick();x.render();
  const next={...ctx,tenantId:id(8)};x.render(next);await settle();resolve(parseModuleHistory(make(),ctx));await settle();tree=x.render(next);assert.equal(nodes(tree).filter(n=>n.type==='time').length,0);x.dispose();
 });
+
+test('new catalog requires explicit refresh without projecting incomplete history',async()=>{
+ const future={...ctx,catalogVersion:2,modules:{...ctx.modules,hr:true}};
+ assert.throws(()=>parseModuleHistory({context:future,entries:[]},ctx),/MODULE_CLIENT_UPDATE_REQUIRED/);
+ assert.throws(()=>parseModuleHistory({context:{...future,tenantId:id(9)},entries:[]},ctx),error=>!String(error).includes('MODULE_CLIENT_UPDATE_REQUIRED'));
+ const x=setup(async()=>{throw Error('MODULE_CLIENT_UPDATE_REQUIRED');});let tree=x.render();
+ nodes(tree).find(n=>n.type==='button').props.onClick();x.render();await settle();tree=x.render();
+ assert.ok(nodes(tree).some(n=>n.props.role==='alert'));
+ assert.ok(nodes(tree).some(n=>n.type==='button'&&n.props.children==='Sayfayı yenile'));
+ assert.equal(nodes(tree).filter(n=>n.type==='time').length,0);x.dispose();
+});

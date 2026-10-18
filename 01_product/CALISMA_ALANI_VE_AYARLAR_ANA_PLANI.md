@@ -43,6 +43,8 @@ Bu bölüm ürün uygulaması değildir; mevcut kaynakla doğrulanmış uygulama
 | `src/lib/talent/merge-review.ts`, `src/lib/talent/people.ts` ve merge migration'ları | Birleşen kişinin eski kimliği yönlendirilir; operasyon geçmişi bağlantılı | İK istihdamı eklenince birleştirme, personel kodu ve dönem çakışmasını da atomik kontrol etmeli. |
 | `src/lib/modules/change-preview.ts` | Kapatma engelleri somut açık işlere bağlı | İK'da çalışan bulunması tek başına sonsuz kapatma engeli olmamalı; bekleyen aktarım/yazma/dosya işlemleri engel, geçmiş veri korunur. |
 
+H0c uygulama parçası: açık geçmiş paneline yeni katalog sürümünde açık güncelleme mesajı ve sayfa yenileme düğmesi eklendi (yerel). Tam v2 geçmiş/API ve ilk sayfa yüklemesi henüz bağlı değil; HR açılmaz.
+
 **H0c uyumluluk bulgusu:** gerçek `parseModuleHistory` HR-only olayı üç biçimde de (ham, HR alanı çıkarılmış, olay atlanmış) reddediyor. `qa/hr-catalog-20261018/legacy-history-result.json` bunu çalıştırarak doğrular. Eski istemcinin yalnız state projeksiyonuyla bütün geçmişi okuyacağı varsayımı geçersizdir. Önce sürümlü geçmişi anlayan uyumluluk istemcisi/API, sonra HR aktivasyonu; eski açık istemciye gerektiğinde açık güncelleme yönlendirmesi. Olayları gizleyerek ya da revision numaralarını değiştirerek uyumluluk taklidi yapılmaz. Bu engel yeni HR yayını içindir; mevcut canlı v1 çalışmasını bozmaz.
 
 **Uygulama sırası ve her adımın çıkışı:**
