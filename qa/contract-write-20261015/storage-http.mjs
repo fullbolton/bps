@@ -222,6 +222,10 @@ try {
  sql(`UPDATE profiles SET is_platform_admin=false WHERE id='${id(11)}';`);
  assert.equal(sql(`SELECT role FROM tenant_memberships WHERE user_id='${id(11)}' AND tenant_id='${id(1)}';`),'yonetici');
  checks.push('membership HTTP conflicts do not change role; admin gate preserved');
+ if(process.env.BPS_DOCUMENT_OWNER_ACCEPTANCE==='1'){
+  const {acceptDocumentOwners}=await import('./document-owner-acceptance.mjs');
+  checks.push(...await acceptDocumentOwners({sql,id,jwt,rpcResult,request,pdf,preparation}));
+ }
  const version=sql(`SELECT version FROM tenant_memberships WHERE user_id='${id(11)}' AND tenant_id='${id(1)}';`);
  const selectArgs={p_tenant_id:id(1),p_membership_version:version,p_command_id:id(9001),p_expected_version:null};
  await conflict('select_workspace',{...selectArgs,p_membership_version:id(9000)},'WORKSPACE_MEMBERSHIP_CHANGED');
