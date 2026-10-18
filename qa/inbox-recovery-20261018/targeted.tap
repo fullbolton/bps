@@ -1,0 +1,21 @@
+✔ disabled flag and mismatched account/company never reach inbox RPC (48.40275ms)
+✔ malformed cursor and empty read cannot be treated as successful writes (20.1925ms)
+✔ page validates response scope and exact cursor forwarding (21.781875ms)
+✔ acknowledgement requires strict true and returns verified scope; internal errors stay private (27.883375ms)
+✔ each source opens its existing destination or a complete inline announcement (0.194833ms)
+✔ unified roles do not broaden legacy conversation inbox access (0.097542ms)
+✔ actual inbox shell hides unauthorized/loading scopes and remounts on role or company changes (17.094875ms)
+✔ panel drops stale rows and unread count after refresh or read failures (43.395041ms)
+✔ panel suppresses double acknowledgement and refreshes only after confirmed success (11.479917ms)
+✔ expanded history pauses polling, but reconnect discards cached rows until fresh verification (11.160708ms)
+✔ wrong-company response clears the panel; response after unmount is ignored (10.463875ms)
+✔ reconnect during a pending request ignores its old result and schedules one fresh read (23.379292ms)
+✔ offline clicks send no reads or acknowledgements and late responses do not repopulate cache (9.879916ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 583.432833

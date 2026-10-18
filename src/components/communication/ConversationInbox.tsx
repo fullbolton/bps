@@ -31,21 +31,27 @@ function ScopedInbox({actorId,tenantId}:InboxScope){
  const soundRef=useRef(sound);soundRef.current=sound;
  const alive=useRef(true),flight=useRef(false),reading=useRef(false);
  const cursor=useRef<InboxCursor|null>(null);
+ const connectionVersion=useRef(0),refreshPending=useRef(false);
  const seen=useRef<string[]|null>(null);
  const openRef=useRef(open),expandedRef=useRef(expanded);
  openRef.current=open;expandedRef.current=expanded;
  const container=useRef<HTMLDivElement>(null),button=useRef<HTMLButtonElement>(null),panelId=useId();
  const navigationGuard=useNavigationGuard();
 
+ const clearSnapshot=useCallback(()=>{
+  cursor.current=null;expandedRef.current=false;
+  setItems([]);setUnread(null);setMore(false);setExpanded(false);setCheckedAt(null);setNotice('');
+ },[]);
  const load=useCallback(async(mode:'latest'|'older'='latest',afterRead=false)=>{
-  if(!alive.current||flight.current||(reading.current&&!afterRead))return;
+  if(!alive.current||!navigator.onLine||flight.current||(reading.current&&!afterRead))return;
+  const version=connectionVersion.current;
   flight.current=true;setBusy(true);setError('');
   try {
    const before=mode==='older'?cursor.current:null;
    const raw=unified?await workspaceInbox({actorId,tenantId},before):await conversationInbox(before?.id??null);
    if(!raw.ok)throw Error(raw.message);
    const result='nextCursor' in raw?raw:{...raw,items:raw.items.map(item=>({kind:'conversation' as const,id:item.message_id,createdAt:item.created_at,readAt:item.read_at,payload:{requestId:item.request_id,companyId:item.company_id,companyName:item.company_name,workDate:item.work_date,body:item.body}})),nextCursor:raw.items.length===30?{kind:'conversation' as const,id:raw.items[29].message_id}:null};
-   if(!alive.current)return;
+   if(!alive.current||version!==connectionVersion.current||!navigator.onLine)return;
    assertInboxScope(result,{actorId,tenantId});
    if(mode==='older'){
     setItems(old=>[...old,...result.items.filter(item=>!old.some(row=>inboxEventKey(row)===inboxEventKey(item)))]);setExpanded(true);
@@ -55,39 +61,41 @@ function ScopedInbox({actorId,tenantId}:InboxScope){
     if(soundRef.current.active&&observation.fresh.length){
      try {
       await (unified?playWorkspaceInboxSoundOnce:playInboxSoundOnce)({actorId,tenantId},unified?observation.fresh:observation.fresh.map(key=>key.split(':')[1]),localStorage,navigator.locks,()=>{
-       return alive.current && soundRef.current.play();
+       return alive.current && version===connectionVersion.current && navigator.onLine && soundRef.current.play();
       });
      }catch{if(alive.current)soundRef.current.fail();}
     }
    }
-   if(!alive.current)return;
+   if(!alive.current||version!==connectionVersion.current||!navigator.onLine)return;
    setUnread(result.unread);cursor.current=result.nextCursor;setMore(result.nextCursor!==null);
    setCheckedAt(new Intl.DateTimeFormat('tr-TR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Istanbul'}).format(new Date()));
-  }catch(e){if(alive.current){cursor.current=null;setItems([]);setUnread(null);setMore(false);setExpanded(false);setError(e instanceof Error?e.message:'Bildirimler yüklenemedi.');}}
-  finally{flight.current=false;if(alive.current)setBusy(false);}
- },[actorId,tenantId]);
+  }catch(e){if(alive.current&&version===connectionVersion.current){clearSnapshot();setError(e instanceof Error?e.message:'Bildirimler yüklenemedi.');}}
+  finally{flight.current=false;if(alive.current){setBusy(false);if(refreshPending.current&&!reading.current&&navigator.onLine){refreshPending.current=false;void load();}}}
+ },[actorId,tenantId,clearSnapshot]);
 
  useEffect(()=>{
   alive.current=true;
-  const offline=()=>setOnline(false);
+  const offline=()=>{connectionVersion.current++;setOnline(false);clearSnapshot();};
+  const reconnect=()=>{setOnline(navigator.onLine);if(!navigator.onLine)return;if(flight.current||reading.current)refreshPending.current=true;else void load();};
   const refresh=()=>{setOnline(navigator.onLine);if(document.visibilityState==='visible'&&navigator.onLine&&!(openRef.current&&expandedRef.current))void load();};
   refresh();const timer=window.setInterval(refresh,30000);
-  document.addEventListener('visibilitychange',refresh);window.addEventListener('online',refresh);window.addEventListener('offline',offline);
-  return ()=>{alive.current=false;clearInterval(timer);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('online',refresh);window.removeEventListener('offline',offline);};
- },[load]);
+  document.addEventListener('visibilitychange',refresh);window.addEventListener('online',reconnect);window.addEventListener('offline',offline);
+  return ()=>{alive.current=false;clearInterval(timer);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('online',reconnect);window.removeEventListener('offline',offline);};
+ },[load,clearSnapshot]);
  useEffect(()=>{
   const outside=(event:PointerEvent)=>{if(!container.current?.contains(event.target as Node))setOpen(false);};
   document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside);
  },[]);
  async function markRead(item:WorkspaceInboxItem){
-  if(flight.current||reading.current)return;
+  if(!navigator.onLine||flight.current||reading.current)return;
+  const version=connectionVersion.current;
   reading.current=true;setBusy(true);setError('');setNotice('');
   try{
-   const result=unified?await workspaceInboxRead({actorId,tenantId},{kind:item.kind,id:item.id}):await conversationRead(item.id);if(!alive.current)return;if(!result.ok)throw Error(result.message);
+   const result=unified?await workspaceInboxRead({actorId,tenantId},{kind:item.kind,id:item.id}):await conversationRead(item.id);if(!alive.current||version!==connectionVersion.current||!navigator.onLine)return;if(!result.ok)throw Error(result.message);
    if('actorId' in result)assertInboxScope(result,{actorId,tenantId});
    setNotice('Okundu olarak kaydedildi.');await load('latest',true);
-  }catch(e){if(alive.current)setError(e instanceof Error?e.message:'Okundu bilgisi kaydedilemedi.');}
-  finally{reading.current=false;if(alive.current)setBusy(false);}
+  }catch(e){if(alive.current&&version===connectionVersion.current){clearSnapshot();setError(e instanceof Error?e.message:'Okundu bilgisi kaydedilemedi.');}}
+  finally{reading.current=false;if(alive.current){setBusy(false);if(refreshPending.current&&navigator.onLine){refreshPending.current=false;void load();}}}
  }
  const countLabel=!online?'Bağlantı yok':unread===null?(error?'Kontrol edilemedi':'Kontrol ediliyor'):`${unread} okunmamış`;
  return <div ref={container} className="relative" onKeyDown={event=>{if(event.key==='Escape'&&open){event.preventDefault();event.stopPropagation();setOpen(false);button.current?.focus();}}}>
