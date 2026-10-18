@@ -1088,3 +1088,11 @@ Kanıt deadline-build-preflight.json. Önceki 790/790 uygulama sonucu aynı ür�
 3585375 kaynaklı dpl_2fidor9Mb3pyZqBPFSQcSft4faHi Vercel üretim yayını READY; www.bpsys.net inspect yeni deployment kimliğini doğruladı. Ürün farkı yalnız ilk yüklemenin upstream 30 saniye deadline'ı. Yayından hemen önce salt okunur migration defteri 190 ve önceki sürümle birebir; bariyer yok, SQL uygulanmadı. Vercel uzak build geçti. Canlı kimlikli evrak listesi/yükleme/pending/temizlik kontrolleri salt okunur görüldü; gerçek kayıt/dosya veya tercih değiştirilmedi.
 
 Kanıt deadline-production-preflight.json ve deadline-release.json. Ekran görüntüsü yalnız /tmp/bps-deadline-live.png içinde, GitHub'a alınmadı. Yerel 790 test, 16 statik kontrol ve ilk yükleme timeout/kurtarma tarayıcı kanıtları bu ürün koduna aittir. Üretimde timeout enjekte edilmedi. Otomatik Git yayını kapalı kaldı. Fiziksel mobil kabulü açık.
+
+## 18 Ekim — yükleme belirsizliğinde yönlendirme UX'i (yerel)
+
+Genel evrak ve firma formuna ortak DocumentUploadReviewHelp eklendi. Yalnız reviewRequired sonucunda aynı dosyayı tekrar göndermeden kontrol etme açıklaması ve /evraklar#yarim-kalan-yuklemeler bağlantısı görünür. target=_blank, noopener noreferrer; eski form/dosya korunur. Pending panel hash hedefinde açılır, otomatik mutation yapmaz; listener unmount sırasında kaldırılır.
+
+Tarayıcı: gerçek yerel sentetik form + Storage pause ile timeout; yardım metni/link, korunmuş dosya/ad ve kapalı Yükle görüldü. Link yeni sekme 52'yi açtı; pending panel açık ve ilgili kayıt görünür. Eski formda alanların korunduğu gözlendi. Screenshot upload-review-help.png. Storage unpause, iki test sekmesi kapalı, harness exit 0. Oturum açık bağlantı kabulüdür; oturum süresi dolmuş giriş dönüşü ve fiziksel mobil ayrı kalır.
+
+Test: genel koşu 791 testte 789 geçti, 2 eski bileşen fixture'ı yeni bağımlılığı tanımadı. Fixture eşlemesi düzeltildi; iki etkilenen dosyada 24/24 geçti (hash navigation testi dahil). Genel koşunun son hâlde tümü tekrar geçtiği iddia edilmez. TypeScript temiz. Bu UX eklemesi henüz yayımlanmadı; canlı 3585375 süre sınırı sürümü olarak kalır.

@@ -7,6 +7,15 @@ import {listPendingDocumentUploads} from "@/lib/services/document-pending-upload
 
 export default function PendingDocumentUploads({tenantId, onRecovered}: {tenantId: string; onRecovered?: () => void}) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const followLink = () => {
+      if (window.location.hash === "#yarim-kalan-yuklemeler") setOpen(true);
+    };
+    followLink();
+    window.addEventListener("hashchange", followLink);
+    return () => window.removeEventListener("hashchange", followLink);
+  }, []);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
@@ -33,7 +42,7 @@ export default function PendingDocumentUploads({tenantId, onRecovered}: {tenantI
     } catch {if (alive.current) setMessage("Sonuç doğrulanamadı. Listeyi yenileyerek kontrol edin.");}
     finally {flight.current = false; if (alive.current) setBusy(null);}
   }
-  return <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+  return <section id="yarim-kalan-yuklemeler" className="mb-4 scroll-mt-4 rounded-xl border border-slate-200 bg-white p-4">
     <button type="button" aria-expanded={open} onClick={() => setOpen(v => !v)} className="min-h-11 text-sm font-medium text-slate-700">Yarım kalan yüklemeler {open ? "▴" : "▾"}</button>
     {open && <div className="space-y-3">
       <p className="text-sm text-slate-600">Bu işlemlerin belge kaydı henüz tamamlanmamış. Aynı dosyayı yeniden yüklemeden önce buradan kontrol edin. Yönetici şirketin tüm bekleyen yüklemelerini, diğer kullanıcılar kendi yüklemelerini görür.</p>

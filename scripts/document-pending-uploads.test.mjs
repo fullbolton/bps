@@ -166,3 +166,20 @@ test('completing or cancelling the last row on a later page returns to the previ
   assert.ok(nodes(tree).some(n=>n.props?.children===(cancel?'Cancelled':'Completed')));d.dispose();
  }
 });
+
+test('recovery deep link opens pending panel without a write and removes its listener on unmount',()=>{
+ const d=driver(), listeners=new Map();let key;
+ const window={location:{hash:'#yarim-kalan-yuklemeler'},addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name,fn)=>{assert.equal(listeners.get(name),fn);listeners.delete(name);}};
+ const Panel=compile('src/components/documents/PendingDocumentUploads.tsx',d.hooks,{
+  '@/app/(main)/evraklar/upload-actions':{recoverDocumentUpload:()=>assert.fail('No automatic write'),cancelDocumentUpload:()=>assert.fail('No automatic cancellation')},
+  '@/lib/supabase/client':{createClient:()=>({})},
+  '@/components/ui/useScopedResource':{useScopedResource:k=>{key=k;return {data:{rows:[]},loading:false,reload:async()=>{}};}},
+  '@/lib/services/document-pending-uploads':{listPendingDocumentUploads:async()=>({rows:[]})},
+ },'default',{window});
+ let tree=d.render(Panel,{tenantId:'tenant'});assert.equal(key,null);d.flush();
+ tree=d.render(Panel,{tenantId:'tenant'});assert.equal(key,'tenant:0');assert.equal(tree.props.id,'yarim-kalan-yuklemeler');
+ const toggle=nodes(tree).find(n=>n.props?.['aria-expanded']===true);assert.ok(toggle);toggle.props.onClick();d.render(Panel,{tenantId:'tenant'});assert.equal(key,null);
+ window.location.hash='#unrelated';listeners.get('hashchange')();d.render(Panel,{tenantId:'tenant'});assert.equal(key,null);
+ window.location.hash='#yarim-kalan-yuklemeler';listeners.get('hashchange')();d.render(Panel,{tenantId:'tenant'});assert.equal(key,'tenant:0');
+ d.dispose();assert.equal(listeners.size,0);
+});

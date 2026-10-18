@@ -5,6 +5,7 @@ import {ModalShell} from '@/components/ui';
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog';
 import {DOCUMENT_CATEGORY_LABELS, type DocumentCategory} from '@/lib/document-categories';
 import {uploadCompanyDocumentAction} from './actions';
+import DocumentUploadReviewHelp from '@/components/documents/DocumentUploadReviewHelp';
 
 // ---------------------------------------------------------------------------
 // EvrakUploadModal — page-local upload form.
@@ -141,6 +142,7 @@ export default function EvrakUploadModal({companyId, companyName, contracts, con
         </fieldset>
         {submitting && <p role="status" className="mt-4 text-sm text-blue-700">Belge yükleniyor, lütfen bekleyin…</p>}
         {submitError && <p ref={errorRef} tabIndex={-1} role="alert" className="mt-4 break-words text-sm text-red-600">{submitError}</p>}
+        {reviewRequired && <DocumentUploadReviewHelp />}
       </form>
     </ModalShell>
     {discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler" recordName="Belge yükleme taslağı" description="Seçilen dosya ve form bilgileri bırakılacak." confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)} onConfirm={async () => { if (!saving.current) onClose(); }} />}

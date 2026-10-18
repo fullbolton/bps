@@ -115,6 +115,7 @@ test('company document screen passes closed-contract predicate and offers standa
 test('extracted upload form hides disabled contract selector and preserves standalone file payload',async()=>{
  const d=driver();let submitted;
  const Component=compile('src/app/(main)/firmalar/[id]/EvrakUploadModal.tsx',d.hooks,{
+  '@/components/documents/DocumentUploadReviewHelp':{default:'DocumentUploadReviewHelp'},
   '@/components/ui':{ModalShell:'ModalShell'},'@/components/ui/ConfirmActionDialog':{default:'ConfirmActionDialog'},
   '@/lib/document-categories':{DOCUMENT_CATEGORY_LABELS:{diger:'Diğer'}},'./actions':{uploadCompanyDocumentAction:async value=>{submitted=value;return {ok:true};}},
  });
@@ -135,6 +136,7 @@ test('late financial response after company unmount cannot populate the old view
 });
 test('upload keeps its file but requires explicit clearing of a contract that becomes disabled',async()=>{
  const d=driver();const Component=compile('src/app/(main)/firmalar/[id]/EvrakUploadModal.tsx',d.hooks,{
+  '@/components/documents/DocumentUploadReviewHelp':{default:'DocumentUploadReviewHelp'},
   '@/components/ui':{ModalShell:'ModalShell'},'@/components/ui/ConfirmActionDialog':{default:'ConfirmActionDialog'},
   '@/lib/document-categories':{DOCUMENT_CATEGORY_LABELS:{diger:'Diğer'}},'./actions':{uploadCompanyDocumentAction:async()=>{throw Error('not submitted');}},
  });

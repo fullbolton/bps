@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useId } from "react";
 import { DocumentUploadReviewRequiredError } from "@/lib/company-document-upload";
+import DocumentUploadReviewHelp from "@/components/documents/DocumentUploadReviewHelp";
 import ConfirmActionDialog from "@/components/ui/ConfirmActionDialog";
 import { ModalShell } from "@/components/ui";
 import {DOCUMENT_FOLDERS} from "@/lib/document-folders";
@@ -161,6 +162,7 @@ function UploadDocumentDraft({ onClose, firmalar, onSubmit, companiesState, onRe
         </div>
       </fieldset>
       {saving && <p role="status" className="mt-4 text-sm text-blue-700">Evrak yükleniyor, lütfen bekleyin…</p>}
+      {reviewRequired && <DocumentUploadReviewHelp />}
       </form>
     </ModalShell>
     {discardOpen && <ConfirmActionDialog title="Kaydedilmemiş değişiklikler" recordName="Evrak yükleme taslağı" description="Seçilen dosya ve form bilgileri bırakılacak." confirmLabel="Değişiklikleri bırak" destructive onClose={() => setDiscardOpen(false)} onConfirm={async () => { if (!submitting.current) onClose(); }} />}
