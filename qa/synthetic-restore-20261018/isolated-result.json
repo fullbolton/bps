@@ -610,6 +610,23 @@
       "rows": 0
     }
   ],
+  "catalogChecks": [
+    {
+      "name": "roles",
+      "count": 31,
+      "sha256": "9018eae1b33e59b9c58011417247d847568a856f46eb1bbe3121b5bd0fd9e231"
+    },
+    {
+      "name": "memberships",
+      "count": 23,
+      "sha256": "c5df619ef71f2d106c006314e60ee2a89565d1678c32a4ee6c5a35f4194ff1cd"
+    },
+    {
+      "name": "extensions",
+      "count": 4,
+      "sha256": "482fb4538c91ea7bfbc0f320909513fe9507bfc269c1bf8b5bec179dbc169a31"
+    }
+  ],
   "sequences": [
     {
       "name": "auth.refresh_tokens_id_seq",
@@ -635,7 +652,7 @@
     "anonymous inbox execution denied",
     "authenticated inbox execution retained"
   ],
-  "elapsedMs": 14185,
+  "elapsedMs": 14834,
   "limits": [
     "Separate empty local server using same PostgreSQL image; role definitions copied without passwords, not a full Supabase installation",
     "No production data or backup",

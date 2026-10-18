@@ -1008,3 +1008,7 @@ Auth kabulü 10 kontrol: iki ayrı oturumdan biri snapshot öncesi gerçek local
 - Rol parolaları aktarılmadı; sahiplik/ACL korundu. Bootstrap grantor supabase_admin gerekliliği ölçüldü.
 - Kanıt: qa/synthetic-restore-20261018/isolated-result.json. Geçici kaynak DB ve hedef konteyner kaldırıldı.
 - Gerçek veriye/üretime dokunulmadı. Aynı imajın eklentileri ve tarihsel sentetik temel kullanılıyor; birleşik yeni sunucu Auth/Storage/tarayıcı kabulü açık.
+
+### 18 Ekim — ayrı sunucuda rol ve eklenti eşitliği
+
+Ayrı sunucu kabulüne katalog kontrolleri eklendi: rol özellikleri/ayarları, rol üyelikleri (grantor, admin/inherit/set), eklenti sürümleri/sahipleri kaynakla aynı. OID yerine isimlerle karşılaştırıldı. Hedefte parola hash’i olan rol sayısı sıfır; parola aktarılmadığı ayrıca ölçüldü. 120 tablo/3 sayaç/30 migration kabulü tekrar geçti. Birleşik yeni sunucu Auth/Storage/tarayıcı testi hâlâ açık; üretim değişmedi.

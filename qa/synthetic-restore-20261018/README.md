@@ -69,3 +69,7 @@ Sınır: bu kontrol yalnız yedek anındaki iptali korur. Snapshot SONRASI yapı
 Ağ erişimi ve host portu olmayan, aynı `17.6.1.075` imajından yeni initdb: 120 tablo, 3 sayaç, 30 migration geçti (`isolated-result.json`). Rol tanımları parola içermeden bellekte taşındı; kaynak bootstrap grantor `supabase_admin` korundu. Şema sahipliği ve ACL karşılaştırılır; ardışık DEFAULT PRIVILEGES GRANT satırlarının yalnız sırası normalize edilir. Gerçek veri okunmaz; geçici sunucu ve kaynak DB sonunda kaldırılır.
 
 Bu, platformdan bağımsız sıfırdan Supabase kurulumu değildir: aynı imajın eklenti dosyaları ve sentetik tarihsel temel şema kullanılır. Ayrı sunucuda Auth/Storage/tarayıcı birleşik kabulü henüz yok.
+
+### 18 Ekim — ayrı sunucuda rol ve eklenti eşitliği
+
+Ayrı sunucu kabulüne katalog kontrolleri eklendi: rol özellikleri/ayarları, rol üyelikleri (grantor, admin/inherit/set), eklenti sürümleri/sahipleri kaynakla aynı. OID yerine isimlerle karşılaştırıldı. Hedefte parola hash’i olan rol sayısı sıfır; parola aktarılmadığı ayrıca ölçüldü. 120 tablo/3 sayaç/30 migration kabulü tekrar geçti. Birleşik yeni sunucu Auth/Storage/tarayıcı testi hâlâ açık; üretim değişmedi.

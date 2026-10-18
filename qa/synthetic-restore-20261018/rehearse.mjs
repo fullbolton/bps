@@ -44,6 +44,19 @@ try {
  sql('postgres',`CREATE DATABASE ${target} TEMPLATE template0;`);made.push(target);
  run(['sh','-c','PGPASSWORD="$POSTGRES_PASSWORD" exec psql -w -XqAt -U supabase_admin -d "$1" -v ON_ERROR_STOP=1','restore',target],archive);
  }
+ // Compare catalog semantics by role names, never server-specific OIDs or passwords.
+ const catalogQueries={
+  roles: `select coalesce(json_agg(r order by rolname),'[]') from (select rolname,rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,rolreplication,rolconnlimit,rolvaliduntil,rolbypassrls,rolconfig from pg_roles) r`,
+  memberships: `select coalesce(json_agg(r order by role_name,member_name,grantor_name),'[]') from (select a.rolname role_name,b.rolname member_name,c.rolname grantor_name,m.admin_option,m.inherit_option,m.set_option from pg_auth_members m join pg_roles a on a.oid=m.roleid join pg_roles b on b.oid=m.member join pg_roles c on c.oid=m.grantor) r`,
+  extensions: `select coalesce(json_agg(r order by extname),'[]') from (select e.extname,e.extversion,n.nspname schema_name,p.rolname owner_name from pg_extension e join pg_namespace n on n.oid=e.extnamespace join pg_roles p on p.oid=e.extowner) r`
+ };
+ const catalogChecks=[];
+ for(const [name,query] of Object.entries(catalogQueries)){
+  const before=JSON.parse(sql(source,query)),after=JSON.parse(sql(target,query));
+  assert.deepEqual(after,before,`Restored ${name} catalog differs`);
+  catalogChecks.push({name,count:before.length,sha256:hash(JSON.stringify(before))});
+ }
+ if(isolated)assert.equal(sql(target,'select count(*) from pg_authid where rolpassword is not null'),'0','Unexpected role password in isolated restore');
  const sourceSchema=normalize(dump(source,['--schema-only']));
  const restoredSchema=normalize(dump(target,['--schema-only']));
  assert.equal(hash(restoredSchema),hash(sourceSchema),'Restored schema/ACL definitions differ');
@@ -68,7 +81,7 @@ try {
  }
  assert.equal(sql(target,"set role anon; select has_function_privilege(current_user,'public.workspace_inbox_page_v1(uuid,uuid,text,uuid)','EXECUTE')"),'f');
  assert.equal(sql(target,"set role authenticated; select has_function_privilege(current_user,'public.workspace_inbox_page_v1(uuid,uuid,text,uuid)','EXECUTE')"),'t');
- const report={syntheticOnly:true,isolatedServer:isolated,rolesWithoutPasswords:isolated,sourceTemplate:'bps_module_chain_20261005',postBaselineMigrations:migrations.length,migrationHashes:migrations.map(name=>({name,sha256:hash(readFileSync(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'))})),schemaSha256:hash(sourceSchema),dumpBytes:Buffer.byteLength(archive),tables:counts,sequences:sequenceChecks,checks:['empty template0 restore','schema including owners and ACLs identical','all public/auth/storage row counts and row-content hashes identical','all public/auth/storage sequence states and next values identical','anonymous inbox execution denied','authenticated inbox execution retained'],elapsedMs:Date.now()-started,limits:[isolated?'Separate empty local server using same PostgreSQL image; role definitions copied without passwords, not a full Supabase installation':'Same local PostgreSQL server roles and extensions; not a fresh Supabase installation','No production data or backup','No external Storage objects or Auth/HTTP/browser acceptance','Historical baseline is not reconstructed from repository migrations']};
+ const report={syntheticOnly:true,isolatedServer:isolated,rolesWithoutPasswords:isolated,sourceTemplate:'bps_module_chain_20261005',postBaselineMigrations:migrations.length,migrationHashes:migrations.map(name=>({name,sha256:hash(readFileSync(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'))})),schemaSha256:hash(sourceSchema),dumpBytes:Buffer.byteLength(archive),tables:counts,catalogChecks,sequences:sequenceChecks,checks:['empty template0 restore','schema including owners and ACLs identical','all public/auth/storage row counts and row-content hashes identical','all public/auth/storage sequence states and next values identical','anonymous inbox execution denied','authenticated inbox execution retained'],elapsedMs:Date.now()-started,limits:[isolated?'Separate empty local server using same PostgreSQL image; role definitions copied without passwords, not a full Supabase installation':'Same local PostgreSQL server roles and extensions; not a fresh Supabase installation','No production data or backup','No external Storage objects or Auth/HTTP/browser acceptance','Historical baseline is not reconstructed from repository migrations']};
  writeFileSync(new URL(isolated?'./isolated-result.json':'./result.json',import.meta.url),JSON.stringify(report,null,2)+'\n');
  console.log(`PASS: ${counts.length} tables, ${sequenceChecks.length} sequences, ${migrations.length} migrations; schema, data and RPC ACLs preserved`);
 } finally {if(isolatedStarted)docker(['rm','-f','-v',isolatedContainer]);for(const db of made.reverse())sql('postgres',`DROP DATABASE ${db} WITH (FORCE);`);}
