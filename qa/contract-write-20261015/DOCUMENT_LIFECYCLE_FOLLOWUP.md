@@ -1024,3 +1024,11 @@ Kanıtlar: `combined-result.json`, `combined-http-result.json`, `auth-result.jso
 Kaynak bcca042; komut `BPS_COMBINED_BROWSER=1 node qa/synthetic-restore-20261018/combined-server.mjs`. Önce aynı yeni PostgreSQL sunucusunda 35 Storage/iş ve 10 Auth restore kontrolü; ardından gerçek Next.js giriş ve server action UI kabulü geçti. Synthetic A açıldı; Tarayıcı kurtarma tamamlandı (3→4 belge); dosyalı 9103 ve dosyasız 9102 iptal edildi, temizlikleri tamamlandı. Salt okunur SQL: 9101 documents=1, 9103 storage.objects=0, 9102/9103 completed cleanup=2.
 
 Kanıt `combined-browser-result.json`, `combined-browser.png`. Test sekmesi kapatıldı; SIGTERM sonrası harness exit 0; yeni DB, Auth, Storage ve PostgREST konteynerleri kaldırıldı. Üretim ve gerçek veri değişmedi. Tarayıcı fixture kayıtları restore sonrasında eklenmiştir; restore öncesi pending devamlılığı HTTP aşamasındadır. Ayrı Auth DB/hook fixture eşitlemesi, yerel file-backend ve aynı platform imajı sınırları sürer. Bulut/S3, fiziksel mobil, MFA ve snapshot sonrası erişim değişiklikleri bu kabulün kapsamı değildir.
+
+## 18 Ekim — evrak rol tarayıcı kabulü
+
+Yalnız yerel sentetik storage-http/authenticated-browser düzeneğinde yönetici, operasyon ve görüntüleyici ekranları kontrol edildi. Yönetici yükleme/pending/temizlik eylemlerini görüyor. Operasyon yükleme ve pending görürken temizlik panelini görmedi; sözleşme geçerlilik eylemi disabled; kendi 9101 bekleyen yüklemesini gerçek server action ile tamamladı (başarı mesajı). Görüntüleyiciye rol değişiminde eski kapsam reddedildi; şirket seçiminde Synthetic A Görüntüleyici seçilip /evraklar açılınca Erişim kısıtlı görüldü.
+
+Test düzeneğinde Next geliştirme yönlendirmesinin localhost kullanması nedeniyle yalnız 127.0.0.1'e izin veren CORS ayarı girişte başarısızlık oluşturdu. Proxy artık yalnız iki açık yerel origin'e (localhost:3060 ve 127.0.0.1:3060) cevap verir, Vary: Origin ekler. Üretim kodu/izinleri değiştirilmedi. İkinci temiz harness koşusu ve tarayıcı adımları başarılı; SIGTERM exit 0.
+
+Kanıt: role-operations.png ve role-viewer.png. Bu üç rolün evrak ekranı kabulüdür; tüm roller/modüller, başka kullanıcının pending kaydı, fiziksel mobil veya üretimde rol değişimi değildir. Kullanıcı üretim sekmesi değiştirilmedi; geçici sekmeler/konteynerler temizlendi.

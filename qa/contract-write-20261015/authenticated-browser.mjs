@@ -43,7 +43,10 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    if(req.method==='POST' && req.url.startsWith('/auth/v1/token')){
     try{syncAuthScope();}catch{res.writeHead(503);res.end('Synthetic Auth scope sync failed');return;}
    }
-   res.setHeader('Access-Control-Allow-Origin','http://127.0.0.1:3060');res.setHeader('Access-Control-Allow-Headers','*');res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE,OPTIONS');
+   // Next development redirects may canonicalize loopback to localhost.
+   const allowedOrigins=['http://127.0.0.1:3060','http://localhost:3060'];
+   if(allowedOrigins.includes(req.headers.origin))res.setHeader('Access-Control-Allow-Origin',req.headers.origin);
+   res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Headers','*');res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE,OPTIONS');
    if(req.method==='OPTIONS'){res.writeHead(204);res.end();return;}
    const mapping=[['/auth/v1',authBase],['/rest/v1',restBase],['/storage/v1',storageBase]].find(([prefix])=>req.url.startsWith(prefix));
    if(!mapping){res.writeHead(404);res.end();return;}
