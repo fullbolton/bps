@@ -1,0 +1,20 @@
+{
+  "syntheticOnly": true,
+  "dumpBytes": 62520,
+  "passed": 7,
+  "checks": [
+    "pre-restore real password sign-in",
+    "Auth database restored into template0",
+    "existing access token resolves same user",
+    "existing refresh token creates valid same-user session",
+    "refreshed token retains tenant hook claim",
+    "same password works after restore",
+    "wrong password rejected"
+  ],
+  "limits": [
+    "same local platform roles and signing secret",
+    "no production account or backup",
+    "Auth fixture is separate from restored business DB",
+    "no signing-key rotation, email/MFA or cloud disaster recovery tested"
+  ]
+}

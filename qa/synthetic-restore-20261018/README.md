@@ -47,3 +47,11 @@ Güncel kabul: `BPS_RESTORE_REHEARSAL=1 node qa/contract-write-20261015/storage-
 - Veritabanı seviyesindeki Storage CONNECT/CREATE önkoşulu ayrıca kuruldu. Bu tek veritabanı dump'ının sunucu rollerini/kurulum ayarlarını kapsamadığını gösterir.
 
 Bu kod yalnız test altyapısıdır; uygulama kodu/production migration değiştirilmedi. Gerçek şirket verisi veya dosyası okunmadı/yedeklenmedi. JWT'ler sentetik imzalıdır: gerçek Auth login, Next server action ve tarayıcı kabulü bu koşuda yapılmadı. Yerel file backend kabulü Supabase yönetilen S3 felaket kurtarma kanıtı değildir. Fiziksel telefon, gerçek Excel/Luca mutabakatı ve yeni sunucuda temel kurulum açık kalır.
+
+## Auth parola ve oturum geri yükleme kabulü
+
+`BPS_RESTORE_REHEARSAL=1 BPS_LOCAL_BROWSER=1 BPS_AUTH_RESTORE_REHEARSAL=1 BPS_AUTH_RESTORE_HTTP_ONLY=1 node qa/contract-write-20261015/storage-http.mjs` geçti. Önce 35 iş/Storage HTTP kontrolü, ardından 7 Auth kontrolü çalıştı; bunlar uygulama birim-test sayısına eklenmez.
+
+Resmi yerel GoTrue ile sentetik kullanıcı giriş yaptı. Auth durduruldu, Auth DB belleğe dump edildi, template0 hedefe aynı isimle yeniden kuruldu ve sahiplik/ACL korunarak restore edildi. Sonra eski access token /user'dan aynı kullanıcıyı döndürdü; eski refresh token yeni geçerli oturum üretti ve tenant hook claim'i korundu; aynı parola tekrar giriş yaptı; yanlış parola HTTP 400 ile reddedildi. Kanıt auth-result.json. Token, parola veya dump kanıt dosyasına yazılmadı. HTTP_ONLY modu Next/tarayıcı açmadan sonunda bütün geçici kaynakları kapatır.
+
+Önceki tarayıcı kabulünün Auth restore yapılmadı sınırı bu ayrı HTTP testiyle kısmen kapanır; birleşik restore-sonrası tarayıcı koşusu yapılmış sayılmaz. Aynı yerel sunucu rolleri ve aynı JWT imzalama anahtarı kullanıldı. Anahtar rotasyonu, MFA/e-posta, cloud servis kurtarma ve başka sunucu kurulumu kapsam dışıdır. Gerçek hesaplara veya üretime erişilmedi.

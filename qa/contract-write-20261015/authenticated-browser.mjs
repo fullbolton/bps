@@ -28,12 +28,17 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED:'true',GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI:'pg-functions://postgres/public/custom_access_token_hook'
   },9999);
   let authPort;try{authPort=docker(['port',auth,'9999/tcp']).split(':').at(-1);}catch{const l=spawnSync('docker',['logs','--tail','4',auth],{encoding:'utf8'});throw Error('Auth startup: '+l.stdout+l.stderr);}
-  const authBase='http://127.0.0.1:'+authPort;
+  let authBase='http://127.0.0.1:'+authPort;
   let ready=false;for(let i=0;i<60;i++){try{if((await fetch(authBase+'/health',{signal:AbortSignal.timeout(1000)})).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,250));}
   if(!ready){const log=spawnSync('docker',['logs','--tail','4',auth],{encoding:'utf8'});throw Error('Local Auth readiness failed: '+log.stdout+log.stderr);}
   const loginPassword='Synthetic-BPS-Only-2026!';
   const update=await fetch(authBase+'/admin/users',{method:'POST',headers:{Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({id:id(11),password:loginPassword,email:'document-qa@example.test',email_confirm:true})});
   if(!update.ok)throw Error('Synthetic Auth user setup failed: '+await update.text());
+  if(process.env.BPS_AUTH_RESTORE_REHEARSAL==='1'){
+   const {restoreAuthFixture}=await import('../synthetic-restore-20261018/auth-restore.mjs');
+   authBase=await restoreAuthFixture({source,auth,authDatabase,authBase,sql,docker,loginPassword,userId:id(11),tenantId:id(1)});
+   if(process.env.BPS_AUTH_RESTORE_HTTP_ONLY==='1')return;
+  }
   server=http.createServer((req,res)=>{
    if(req.method==='POST' && req.url.startsWith('/auth/v1/token')){
     try{syncAuthScope();}catch{res.writeHead(503);res.end('Synthetic Auth scope sync failed');return;}
