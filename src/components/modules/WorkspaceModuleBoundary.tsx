@@ -34,16 +34,17 @@ export default function WorkspaceModuleBoundary(props: Props) {
 function VerifiedPage({ actorId, tenantId, role, requiredModule, children }: Props & {actorId:string;tenantId:string;role:string}) {
   const client = useMemo(() => createClient(), []);
   const [context, setContext] = useState<WorkspaceModuleContext | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"load"|"update"|null>(null);
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
-    setContext(null); setError(false);
+    setContext(null); setError(null);
     void loadCurrentWorkspaceModules(client, {actorId, tenantId, role})
       .then(value => { if (active) setContext(value); })
-      .catch(() => { if (active) setError(true); });
+      .catch(error => { if (active) setError(error instanceof Error&&error.message==="MODULE_CLIENT_UPDATE_REQUIRED"?"update":"load"); });
     return () => { active = false; };
   }, [client, actorId, tenantId, role, retry]);
+  if (error==="update") return <EmptyState title="Uygulama güncellendi" description="Bu sayfanın yeni sürümü gerekiyor. Önce açık formlarınızdaki değişiklikleri kaydedin, ardından sayfayı yenileyin." size="page" action={{label:'Sayfayı yenile',onClick:()=>window.location.reload()}} />;
   if (error) return <EmptyState title="Çalışma alanı yüklenemedi" description="Modül ayarları doğrulanamadı. Tekrar deneyin." size="page" action={{label:'Tekrar dene',onClick:() => setRetry(value => value + 1)}} />;
   if (!context) return <EmptyState title="Yükleniyor…" description="Çalışma alanı kontrol ediliyor." size="page" />;
   if (requiredModule && !context.modules[requiredModule]) return <EmptyState title="Bu modül kapalı" description="Bu bölüm çalışma alanınızda etkin değil. Kayıtlarınız korunuyor." size="page" />;

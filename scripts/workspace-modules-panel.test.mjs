@@ -50,3 +50,11 @@ test('module editor receives a commit capability only with explicit release opt-
   assert.ok(preview);assert.equal(!!preview.props.commit,enabled);x.dispose();
  }
 });
+
+test('new catalog clears editor and asks for full refresh instead of retrying old client',async()=>{
+ const x=setup(async()=>{throw Error('MODULE_CLIENT_UPDATE_REQUIRED');},true);
+ x.render();await settle();const tree=x.render();
+ assert.equal(nodes(tree).filter(n=>n.type==='li').length,0);
+ assert.ok(nodes(tree).some(n=>n.type==='button'&&n.props.children==='Sayfayı yenile'));
+ assert.equal(nodes(tree).filter(n=>typeof n.type==='function'&&n.props.context).length,0);x.dispose();
+});

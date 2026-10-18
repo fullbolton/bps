@@ -1,0 +1,13 @@
+{
+  "baseSource": "d4a1b13",
+  "targeted": {
+    "tests": 33,
+    "pass": 33,
+    "fail": 0
+  },
+  "typecheck": "passed",
+  "fullSuite": "not rerun for this change",
+  "build": "not rerun for this change",
+  "browser": "future catalog response not yet exercised",
+  "deployed": false
+}

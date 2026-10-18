@@ -18,9 +18,14 @@ export default function WorkspaceModules({changesEnabled = false}: {changesEnabl
   const allowed = !loading && role === "yonetici" && !!actorId && !!tenantId;
   const read = useCallback(async () => {
     if (!actorId || !tenantId || role !== "yonetici") throw Error("MODULE_SCOPE");
-    return loadCurrentWorkspaceModules(createClient(), {actorId, tenantId, role});
+    try {return {context:await loadCurrentWorkspaceModules(createClient(), {actorId, tenantId, role}),updateRequired:false};}
+    catch(error){
+      if(error instanceof Error&&error.message==="MODULE_CLIENT_UPDATE_REQUIRED")return {context:null,updateRequired:true};
+      throw error;
+    }
   }, [actorId, tenantId, role]);
   const resource = useScopedResource(allowed ? `${actorId}:${tenantId}:${role}` : null, read);
+  const data=resource.data?.context;
   const commit = useMemo(() => changesEnabled ? createModuleChangeCapability(createClient(), async () => {
     // Recreate auth/module providers and navigation together after a verified commit.
     // A partial panel reload would leave other mounted module snapshots stale.
@@ -37,18 +42,22 @@ export default function WorkspaceModules({changesEnabled = false}: {changesEnabl
     <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{changesEnabled ? "Değişiklikleri inceleyip onayladıktan sonra şirket ayarları güncellenir. Kapatılan modülün verileri silinmez." : "Bu ekranda mevcut durum gösterilir. Modül açma ve kapatma henüz kullanıma açık değildir."}</p>
     {resource.loading && <p role="status">Modül bilgileri yükleniyor…</p>}
     {resource.error && <p role="alert" className="text-sm text-red-700">Modül bilgileri alınamadı. Durumu yenileyerek tekrar deneyin.</p>}
-    {resource.data && <>
-      <p className="text-sm font-medium text-slate-800">{resource.data.name}</p>
+    {resource.data?.updateRequired&&<div role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+      <p>Modül ayarlarının sürümü değişti. Güncel ayarları görmek için sayfayı yenileyin. Önce açık formlarınızdaki değişiklikleri kaydedin.</p>
+      <button type="button" onClick={()=>window.location.reload()} className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3 font-medium">Sayfayı yenile</button>
+    </div>}
+    {data && <>
+      <p className="text-sm font-medium text-slate-800">{data.name}</p>
       <ul className="grid gap-3 sm:grid-cols-2">
         {MODULE_CATALOG.map(module => <li key={module.key} className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-start justify-between gap-3"><h3 className="font-semibold text-slate-900">{module.name}</h3>
-            <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${resource.data!.modules[module.key] ? "bg-green-50 text-green-800" : "bg-slate-100 text-slate-600"}`}>{resource.data!.modules[module.key] ? "Açık" : "Kapalı"}</span></div>
+            <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${data!.modules[module.key] ? "bg-green-50 text-green-800" : "bg-slate-100 text-slate-600"}`}>{data!.modules[module.key] ? "Açık" : "Kapalı"}</span></div>
           <p className="mt-2 text-sm text-slate-600">{module.description}</p>
           {module.requires.length > 0 && <p className="mt-3 text-xs text-slate-500">Gerekli modüller: {module.requires.map(key => MODULE_CATALOG.find(item => item.key === key)!.name).join(", ")}</p>}
         </li>)}
       </ul>
-      <ModuleChangeHistory key={`history:${resource.data.actorId}:${resource.data.tenantId}:${resource.data.membershipVersion}:${resource.data.selectionVersion}`} context={resource.data} />
-      <ModuleChangePreview key={`${resource.data.actorId}:${resource.data.tenantId}:${resource.data.membershipVersion}:${resource.data.selectionVersion}:${resource.data.configRevision}`} context={resource.data} commit={commit} />
+      <ModuleChangeHistory key={`history:${data.actorId}:${data.tenantId}:${data.membershipVersion}:${data.selectionVersion}`} context={data} />
+      <ModuleChangePreview key={`${data.actorId}:${data.tenantId}:${data.membershipVersion}:${data.selectionVersion}:${data.configRevision}`} context={data} commit={commit} />
     </>}
   </section>;
 }

@@ -20,7 +20,8 @@ export async function loadCurrentWorkspaceModules(client: SupabaseClient<Databas
       selectionVersion: data.selectionVersion as string | null, membershipVersion: data.membershipVersion as string});
     if (context.role !== expected.role) throw Error('Çalışma alanı yetkileriniz değişti. Sayfayı yenileyin.');
     return context;
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "MODULE_CLIENT_UPDATE_REQUIRED") throw error;
     throw Error("Çalışma alanı ayarları doğrulanamadı. Sayfayı yenileyin.");
   }
 }

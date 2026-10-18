@@ -1191,3 +1191,9 @@ Ek düzeltme: H0a/b prototiplerinin değişikliksiz yeni komutu başarılı saym
 Bu yalnız zaten açık olan geçmiş panelinin yeni yanıtla karşılaşma akışıdır. Yeni katalog API'si, v2 geçmiş modeli, başlangıç sayfasının v2 okuması veya HR açılması uygulanmış değildir. Gerçek tarayıcıda yeni sunucu yanıtı testi henüz yok; bileşen testi yeni sürüm, yanlış tenant ve boş olay göstermeme davranışını sınar. İlk hedefli 15 test geçti. Toplu test/derleme sonucu aşağıdaki kanıt dosyasına yazılacak: `qa/hr-catalog-20261018/history-refresh-checks.json`. Yeni migration veya yayın yok; bu değişiklik yereldir.
 
 H0c geçmiş yönlendirmesi doğrulaması: 792/792 uygulama testi, 15 hedefli test, tsc ve sentetik localhost açık değerleriyle production build geçti. İlk build ortam değerleri yokken /davet prerender aşamasında durdu; ortam düzeltilerek tekrar geçti. Kanıt history-refresh-checks.json. Gerçek tarayıcı yeni-sürüm kabulü ve v2 backend bağlantısı açık; üretime yayımlanmadı.
+
+## 18 Ekim — H0c ilk yükleme sürüm yönlendirmesi
+
+`loadCurrentWorkspaceModules` doğrulanmış daha-yeni-katalog sinyalini genel ağ hatasına çevirmeden taşır. `WorkspaceModules` bu sinyalde eski modül listesi/ön kontrol/editörü açmaz; açık form uyarısıyla Sayfayı yenile düğmesi gösterir. `WorkspaceModuleBoundary` güncelleme gerektiğinde business children'ı mount etmez; ağ hatasının Tekrar dene yolu korunur. Nav okuyucusu aynı hata durumunda kapalı/eksik varsayımlar üretmeden mevcut ret yolunda kalır.
+
+33 ilgili test (service, sayfa sınırı, ayar paneli, geçmiş, navigation ve katalog) ve tsc geçti. Bu değişiklik için tam 792 test ve build yeniden çalıştırılmadı; önceki d4a1b13 kanıtı yeni kaynak için tekrar geçmiş sayılmaz. Yeni katalog API/migration ve gerçek tarayıcı sürüm geçiş testi hâlâ açık. Ürün değişikliği geliştirme dalında; üretime yayımlanmadı, HR açılmadı. Sonraki H0c adımı v2 backend okuma/geçmiş sözleşmesi ve gerçek yerel tarayıcı kabulüdür.

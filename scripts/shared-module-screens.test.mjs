@@ -30,6 +30,7 @@ test('all valid module combinations intersect dashboard roles, without enabling 
 test('shared loader rejects malformed/foreign snapshots and transport errors',async()=>{
  const client=value=>({rpc:()=>({abortSignal:async()=>({data:value,error:null})})});
  assert.equal((await loadCurrentWorkspaceModules(client(workspace),identity)).tenantId,identity.tenantId);
+ await assert.rejects(loadCurrentWorkspaceModules(client({...workspace,catalogVersion:2}),identity),/MODULE_CLIENT_UPDATE_REQUIRED/);
  for(const delta of [{actorId:id(12)},{tenantId:id(2)},{role:'ik'},{modules:{}},{membershipVersion:null},{configRevision:1}])await assert.rejects(loadCurrentWorkspaceModules(client({...workspace,...delta}),identity));
  await assert.rejects(loadCurrentWorkspaceModules({rpc:()=>({abortSignal:async()=>{throw Error('offline');}})},identity),/Çalışma alanı ayarları doğrulanamadı/);
 });
@@ -44,7 +45,7 @@ function boundary(load,{loading=false,user={id:identity.actorId,app_metadata:{ac
 }
 test('page boundary never mounts business readers before validation; off, error and role denial remain distinct',async()=>{
  let reads=0;const child=()=>{reads++;return 'business';};
- for(const [load,expected] of [[async()=>({...workspace,modules:{...all,tasks:false}}),'Bu modül kapalı'],[async()=>{throw Error('offline');},'Çalışma alanı yüklenemedi'],[async()=>workspace,'business']]){
+ for(const [load,expected] of [[async()=>({...workspace,modules:{...all,tasks:false}}),'Bu modül kapalı'],[async()=>{throw Error('offline');},'Çalışma alanı yüklenemedi'],[async()=>{throw Error('MODULE_CLIENT_UPDATE_REQUIRED');},'Uygulama güncellendi'],[async()=>workspace,'business']]){
   const {d,Component}=boundary(load);const outer=d.render(Component,{requiredModule:'tasks',children:child});
   const before=reads;assert.equal(d.render(outer.type,outer.props).props.title,'Yükleniyor…');assert.equal(reads,before);
   d.flush();await settle();const result=d.render(outer.type,outer.props);
