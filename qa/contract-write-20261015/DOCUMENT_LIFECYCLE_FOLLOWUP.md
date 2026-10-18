@@ -978,3 +978,7 @@ Asana ve monday.com resmi bildirim belgeleri incelendi. Ortak kutuya yüklenenle
 ## 18 Ekim — bildirim filtreleri ve kurtarma ÜRETİMDE
 
 Kaynak f58db6c, Vercel dpl_55LYaXDQCB1L2onxtqbNUAPRr9xY www.bpsys.net üzerinde READY olarak bağımsız inspect ile doğrulandı. Yeni SQL yok; salt okunur ledger 190 ve önceki kurulumla birebir. 788/788 genel test, production build, yerel filtre/okundu/sayfalama/servis kesintisi-toparlanma ve 390px mobil kabulü geçti. Gerçek browser offline/online event enjeksiyonu yapılmadı; bileşen testi kanıtı ayrıdır. Canlı kimlikli kutu yeni kontrollerle hatasız boş yüklendi, gerçek veri/tercih değiştirilmedi. E-posta false. Kanıt qa/inbox-benchmark-20261018/release.json. Önceki yerel/bekliyor notları bu paket için tarihseldir.
+
+## 18 Ekim — sentetik geri yükleme tatbikatı
+
+qa/synthetic-restore-20261018/rehearse.mjs geçti: mevcut sentetik baseline + 30 migration, bellekte dump, template0 hedefe restore. 120 tablonun satır sayısı/içerik hash'i ve sahiplik/ACL dahil şema birebir; inbox anon/authenticated EXECUTE sınırı korundu. Normal postgres restore sahipliği yetmedi; yerel supabase_admin bağlantısı ile sahiplik/ACL atlanmadan doğrulandı. Geçici iki DB kaldırıldı, gerçek veri/yedek veya üretim değişikliği yok. Bu aynı yerel sunucuda DB restore kabulüdür; eksik tarihsel baseline, yeni sunucu rolleri/eklenti kurulumu, harici Storage byte'ları, sequence değerleri ve uçtan uca kurtarma hâlâ ayrı kabul. Canlı son yayın f58db6c / 190 değişmedi.
