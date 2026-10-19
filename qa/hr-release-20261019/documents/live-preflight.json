@@ -1,7 +1,5 @@
 {
-  "measuredAt": "2026-10-19T19:01:20.391Z",
-  "project": "dffdzbmnmnokbftbujsy",
-  "readOnly": true,
+  "measuredAt": "2026-10-19T19:14:14.320Z",
   "rows": [
     {
       "preflight": {
@@ -216,7 +214,7 @@
         ],
         "hr_bucket": null,
         "hr_enabled": 0,
-        "measured_at": "2026-10-19T19:01:12.270026+00:00",
+        "measured_at": "2026-10-19T19:14:14.017241+00:00",
         "target_sizes": [
           {
             "bytes": 49152,

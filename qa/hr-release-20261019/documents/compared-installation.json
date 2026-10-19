@@ -1,6 +1,6 @@
 {
-  "measuredAt": "2026-10-19T19:01:42.428Z",
-  "productionMeasuredAt": "2026-10-19T19:01:12.270026+00:00",
+  "measuredAt": "2026-10-19T19:14:21.516Z",
+  "productionMeasuredAt": "2026-10-19T19:14:14.017241+00:00",
   "syntheticOnly": true,
   "baselineReconciliations": [
     "Known authenticated EXECUTE grant on change_workspace_modules_v1",

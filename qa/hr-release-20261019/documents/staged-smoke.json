@@ -1,0 +1,32 @@
+{
+  "measuredAt": "2026-10-19T19:17:01.977Z",
+  "sourceCommit": "7363719903b1f9fe80fc594d19715231709621c8",
+  "deploymentId": "dpl_71PNEthK8K91vYJ8baoorTMr7X6X",
+  "productionEnvironment": true,
+  "domainPromoted": false,
+  "hrPreview": false,
+  "protectionAccess": "Vercel CLI authenticated protection bypass",
+  "checks": [
+    {
+      "path": "/login",
+      "method": "GET",
+      "status": 200,
+      "noRedirect": true,
+      "html": true
+    },
+    {
+      "path": "/api/hr/documents/upload",
+      "method": "POST",
+      "status": 404,
+      "noRedirect": true,
+      "noStore": true,
+      "json": {
+        "ok": false
+      }
+    }
+  ],
+  "limitations": [
+    "No authenticated business flow tested on this deployment",
+    "SQL 018–026 not applied to production"
+  ]
+}

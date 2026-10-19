@@ -1,0 +1,40 @@
+{
+  "measuredAt": "2026-10-19T19:17:31.460Z",
+  "sourceCommit": "7363719903b1f9fe80fc594d19715231709621c8",
+  "id": "dpl_71PNEthK8K91vYJ8baoorTMr7X6X",
+  "url": "https://bps-jbov2ykz1-furkanyahsi-1537s-projects.vercel.app",
+  "inspectorUrl": "https://vercel.com/furkanyahsi-1537s-projects/bps/71PNEthK8K91vYJ8baoorTMr7X6X",
+  "readyState": "READY",
+  "target": "production",
+  "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_71PNEthK8K91vYJ8baoorTMr7X6X",
+  "domainPromoted": false,
+  "hrPreviewEnabled": false,
+  "hrActivated": false,
+  "productionMigrationsApplied": [],
+  "productionMigrationCount": 207,
+  "liveDeploymentId": "dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU",
+  "sourceArchive": {
+    "fileCount": 543,
+    "totalSize": 3254435,
+    "roots": [
+      "src",
+      "package-lock.json",
+      "package.json",
+      "public",
+      "next.config.ts",
+      "tsconfig.json",
+      "vercel.json",
+      "postcss.config.mjs",
+      ".vercelignore"
+    ],
+    "environmentFilesCopied": false,
+    "syntheticBuildUsed": false
+  },
+  "rollbackDeploymentId": "dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU",
+  "next": [
+    "Fresh preflight at SQL execution time",
+    "Apply guarded 018–026 in manifest order and verify ledger after each",
+    "Promote this ready deployment only after SQL succeeds",
+    "Authenticated read-only production smoke with HR still closed"
+  ]
+}

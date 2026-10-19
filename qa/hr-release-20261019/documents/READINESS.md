@@ -41,3 +41,10 @@ f02edb0 gerçek kaynaklarıyla 026 şemasında 10 PostgreSQL/istemci grubu ve ye
 ## Aday build ve ortam kontrolü
 
 850 uygulama testi, statik 0 hata/uyarı, TypeScript ve production build geçti. Derlenmiş runtime'da oturumsuz upload login yönlendirmesi kusuru düzeltildi; preview kapalı iki origin için JSON 404 kabulü geçti. Vercel env isimleri mevcut, HR preview tanımsız; değerler okunmadı. Güncel kanıt release-check-result.json ve environment-metadata.json. Yayın yapılmadı; yayın anı ön kontrolü, SQL+deploy ve canlı smoke kalır.
+
+
+## 19 Ekim — Vercel üretim ortamında kapalı İK adayı hazır
+
+7363719 kaynakları sabit git archive ile yalnız uygulama ve build yapılandırmaları olarak çıkarıldı; 543 dosya/3.25 MB dry-run kontrolü geçti. Env, QA ve SQL dosyaları dağıtıma taşınmadı. Vercel üretim ortamı ayarlarıyla --prod --skip-domain kullanıldı; yalnız adaya özel build/runtime BPS_HR_PREVIEW_ENABLED=false verildi. dpl_71PNEthK8K91vYJ8baoorTMr7X6X READY oldu. Koruma kaldırılmadan Vercel CLI yetkili erişimiyle login HTML 200 ve HR upload POST no-store JSON 404/no-redirect kabulü geçti. Oturumlu iş akışı bu adayda henüz test edilmedi.
+
+Aynı tur güncel üretim metadata karşılaştırması yenilendi: ledger 207; İK aktivasyonu kapalı, çözülmemiş katalog farkı sıfır. Eşlenen sentetik tabana 018–026 kurulumu tekrar geçti. Canlı www.bpsys.net hâlâ dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU sürümüne bağlı. Üretim SQL yazımı ve alan adı geçişi yapılmadı. Aday build hazır olması yayın tamamlandı anlamına gelmez. Kanıt staged-deployment.json, staged-smoke.json ve yenilenen baseline-comparison.json. Sıradaki adım yayın anı ön kontrolü, dokuz korumalı SQL kurulumu, hazır adayı promote ve oturumlu salt okunur smoke.
