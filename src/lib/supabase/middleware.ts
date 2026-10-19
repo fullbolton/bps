@@ -70,6 +70,16 @@ export async function updateSession(request: NextRequest) {
 
   // If no user and not on a public route, redirect to login with return URL
   if (!user && !isPublicRoute) {
+    // A fetch upload must not follow a login redirect and turn into an HTML/405
+    // response. The handler still checks the user, tenant and file independently.
+    if (pathname === "/api/hr/documents/upload") {
+      const response = NextResponse.json({ ok: false }, {
+        status: process.env.BPS_HR_PREVIEW_ENABLED === "true" ? 401 : 404,
+        headers: { "Cache-Control": "no-store" },
+      });
+      supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie));
+      return response;
+    }
     const url = request.nextUrl.clone();
     const returnTo = url.pathname + url.search;
     url.pathname = "/login";

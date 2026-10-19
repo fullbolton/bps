@@ -37,3 +37,7 @@ API yöntemi: [Supabase salt okunur sorgu](https://supabase.com/docs/reference/a
 ## Geri dönüş kabulü — 19 Ekim
 
 f02edb0 gerçek kaynaklarıyla 026 şemasında 10 PostgreSQL/istemci grubu ve yerel tarayıcı smoke geçti: giriş, dashboard, modül hakları/geçmişi, kapalı İK 404, açık günlük operasyon okuması. package-lock eşitliği doğrulandı. Kanıt rollback-contracts-result.json ve rollback-browser-result.json. Bu kapsam eski uygulamanın tüm özelliklerini veya production runtime'ını kapsamaz. Aday production build/env ve yayın anında güncel ön kontrol hâlâ zorunlu.
+
+## Aday build ve ortam kontrolü
+
+850 uygulama testi, statik 0 hata/uyarı, TypeScript ve production build geçti. Derlenmiş runtime'da oturumsuz upload login yönlendirmesi kusuru düzeltildi; preview kapalı iki origin için JSON 404 kabulü geçti. Vercel env isimleri mevcut, HR preview tanımsız; değerler okunmadı. Güncel kanıt release-check-result.json ve environment-metadata.json. Yayın yapılmadı; yayın anı ön kontrolü, SQL+deploy ve canlı smoke kalır.

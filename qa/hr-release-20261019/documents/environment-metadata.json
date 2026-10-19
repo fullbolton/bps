@@ -1,0 +1,21 @@
+{
+  "measuredAt": "2026-10-19T19:10:42.475373+00:00",
+  "readOnly": true,
+  "projectId": "prj_1tTXVGFHaivskY3U1GuzXPkPDRau",
+  "nodeVersion": "24.x",
+  "domain": "www.bpsys.net",
+  "deploymentId": "dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU",
+  "deploymentReady": true,
+  "productionVariableNamesPresent": [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "BPS_DAILY_OPERATIONS_ENABLED"
+  ],
+  "hrPreviewVariablePresent": false,
+  "valuesRead": false,
+  "limits": [
+    "Metadata existence does not validate secret value or service key permissions",
+    "No environment changes or deployment"
+  ]
+}

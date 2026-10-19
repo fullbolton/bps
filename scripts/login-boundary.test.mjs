@@ -61,3 +61,25 @@ test('redirect retains refreshed session cookie options',async()=>{
     assert.match(response.headers.get('set-cookie'),/Secure/);
   } finally {delete globalThis[stubKey];}
 });
+
+test('HR upload returns JSON for expired sessions, preserves cookies and exact route boundary',async()=>{
+ const previous=process.env.BPS_HR_PREVIEW_ENABLED;
+ globalThis[stubKey]=(_url,_key,{cookies})=>({auth:{getUser:async()=>{
+  cookies.setAll([{name:'test-session',value:'',options:{maxAge:0,path:'/'}}]);
+  return {data:{user:null}};
+ }}});
+ try{
+  for(const [flag,status] of [['false',404],['true',401]]){
+   process.env.BPS_HR_PREVIEW_ENABLED=flag;
+   const response=await updateSession(new NextRequest('https://bps.invalid/api/hr/documents/upload',{method:'POST'}));
+   assert.equal(response.status,status);assert.equal(response.headers.get('location'),null);
+   assert.equal(response.headers.get('cache-control'),'no-store');assert.deepEqual(await response.json(),{ok:false});
+   assert.match(response.headers.get('set-cookie'),/Max-Age=0/);
+  }
+  const adjacent=await updateSession(new NextRequest('https://bps.invalid/api/hr/documents/upload-extra',{method:'POST'}));
+  assert.equal(adjacent.status,307);
+  globalThis[stubKey]=()=>({auth:{getUser:async()=>({data:{user:{id:'test-user'}}})}});
+  const authenticated=await updateSession(new NextRequest('https://bps.invalid/api/hr/documents/upload',{method:'POST'}));
+  assert.equal(authenticated.headers.get('x-middleware-next'),'1');
+ }finally{delete globalThis[stubKey];if(previous===undefined)delete process.env.BPS_HR_PREVIEW_ENABLED;else process.env.BPS_HR_PREVIEW_ENABLED=previous;}
+});

@@ -1792,3 +1792,14 @@ Yerel tarayıcı harness'ine BPS_BROWSER_RELEASED_SOURCE=1 seçeneği eklendi. Y
 Eski uygulama gerçek yerel Auth/PostgREST ve 026 şemasıyla giriş, genel bakış, ekip/modül hakları, katalog güncelleme geçmişi ve İK preview kapalı 404 kontrolünü geçti. İlk koşuda günlük operasyon flag'i kapalı olduğu için kapalı durum doğrulandı; ikinci koşuda açık flag ile firma/gün seçimi, server action yanıtları, özet ve boş günlük plan yüklendi. İş kaydı yazılmadı. Test sekmesi ve iki geçici ortam temizlendi. TypeScript/diff kontrolü geçti. Kanıt rollback-browser-result.json, rollback-modules.png, rollback-operations.png.
 
 Bu kabul belirli geri dönüş akışlarını kapsar; tüm eski uygulama regresyonu veya production build testi değildir. Canlıya dönülecek hedef bu paket için f02edb0 olarak değerlendirilir; eski 6300bee hedefine kör dönüş yapılmaz. Üretim yayını/İK aktivasyonu yok. Sonraki kapı: aday production build/env doğrulaması, yayın anında ledger/katalog ölçümünü tazeleme, korumalı kurulum ve canlı smoke.
+
+
+## 19 Ekim — Production build, ortam ve oturumsuz yükleme düzeltmesi
+
+Vercel salt okunur kontrolünde www.bpsys.net aynı dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU READY dağıtımına çözüldü. Proje Node 24.x. Üretim ortamında Supabase URL/anon/service-role ve günlük operasyon değişkenleri mevcut; İK preview değişkeni yok, kapalı davranışı sürer. Yalnız değişken isim/tür/hedef metadata'sı incelendi; değer geçerliliği veya service-role yetkisi ölçülmüş sayılmaz. Üretim env değişmedi.
+
+Derlenmiş Next start HTTP kabulü bir kusuru yakaladı: oturumsuz HR upload POST, middleware tarafından login'e yönleniyor ve yönlendirme takip edildiğinde 405 oluşuyordu. Yalnız tam /api/hr/documents/upload yolu için kapalı preview=404/açık preview ve oturumsuz=401 JSON no-store cevabı eklendi; oturum çerezleri yanıta taşınır. Kimliği doğrulanmış kullanıcı yine route'un kendi auth/tenant/dosya kontrollerinden geçer; bitişik yollar açılmadı. Gerçek middleware+NextRequest/Response testi beş grupta bu sınırı ve çerezleri doğruladı.
+
+Düzeltme sonrası tam qa:release geçti: 850/850 uygulama testi, statik 0 hata/0 uyarı, TypeScript ve production build. Sentetik env ile gerçek production runtime'da aynı-origin ve farklı-origin oturumsuz POST ayrı ayrı yönlendirmesiz no-store JSON 404 döndü. Test sunucusu kapatıldı. Kanıt release-check-result.json, build-runtime-result.json, environment-metadata.json. İlk 405 denemesi başarılı kabul edilmedi; düzeltme sonrası derleme ve kabul yeniden yapıldı.
+
+Paket yayımlanmadı. Kalan: yayın anında üretim ledger/katalog tazeleme, 018–026 korumalı SQL kurulumu, HR preview kapalı aday deploy ve canlı smoke. İK aktivasyonu bu paketin kapsamı değil.

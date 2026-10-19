@@ -1,0 +1,17 @@
+{
+  "measuredAt": "2026-10-19T19:11:44.971167+00:00",
+  "command": "npm run qa:release",
+  "exitCode": 0,
+  "applicationTests": 850,
+  "applicationPassed": 850,
+  "applicationFailed": 0,
+  "staticFailures": 0,
+  "staticWarnings": 0,
+  "typescriptPassed": true,
+  "productionBuildPassed": true,
+  "syntheticBuildEnv": true,
+  "hrPreview": false,
+  "middlewareSha256": "1b8e1df58becafd4d7e7de7624cb8a6ba2a6af765a4aaf7bdba180662d987630",
+  "logSha256": "749f9db04f7d636756aaa60c35fd9f7ec2dcb005d97ac57bc5b2e5ad0ab8d52b",
+  "productionDeployed": false
+}

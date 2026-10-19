@@ -1,0 +1,21 @@
+{
+  "measuredAt": "2026-10-19T19:11:18.360Z",
+  "sourceCommit": "edaba7f1941c9cbd731cadec797951a834ae4915",
+  "sourceHasUncommittedChanges": true,
+  "localProductionRuntime": true,
+  "syntheticEnv": true,
+  "hrPreview": false,
+  "uploadDisabled": [
+    {
+      "origin": "http://127.0.0.1:3070",
+      "status": 404,
+      "noRedirect": true
+    },
+    {
+      "origin": "https://untrusted.example",
+      "status": 404,
+      "noRedirect": true
+    }
+  ],
+  "productionDeployed": false
+}
