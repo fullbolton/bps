@@ -1,0 +1,21 @@
+{
+  "realNextRoutes": true,
+  "realPasswordSession": true,
+  "realAuth": true,
+  "realStorage": true,
+  "realDatabase": true,
+  "realClamav": true,
+  "browserFormInteraction": false,
+  "productionReady": false,
+  "syntheticOnly": true,
+  "checks": [
+    "real password session cookies; anonymous and cross-origin rejected",
+    "multipart route queued upload",
+    "scan route status",
+    "scan route status",
+    "scan route finalize",
+    "multipart route queued upload",
+    "scan route status",
+    "scan route status"
+  ]
+}

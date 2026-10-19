@@ -336,9 +336,9 @@ try {
   const {writeFileSync}=await import('node:fs');writeFileSync(new URL('../release-chain-20261016/barrier/http-result.json',import.meta.url),JSON.stringify(evidence,null,2)+'\n');
   checks.push('release barrier rejects HTTP RPC/upload/delete; bytes survive; reopening works');
  }
- if(process.env.BPS_HR_MALWARE_HTTP==='1')checks.push(...await (await import('../hr-clamav-20261020/storage-accept.mjs')).accept({sql,rpcResult,request,id,jwt,service,docker,storage,rest,network}));
+ if(process.env.BPS_HR_MALWARE_HTTP==='1'&&process.env.BPS_HR_SCAN_ROUTE!=='1')checks.push(...await (await import('../hr-clamav-20261020/storage-accept.mjs')).accept({sql,rpcResult,request,id,jwt,service,docker,storage,rest,network}));
  if(process.env.BPS_HR_STORAGE_ACCEPTANCE==='1')checks.push(...await (await import('../hr-catalog-20261018/hr-storage-http.mjs')).acceptHrStorage({sql,rpcResult,request,id,pdf,jwt,service,foreign,anon}));
- if(process.env.BPS_LOCAL_BROWSER==='1')await (await import('./authenticated-browser.mjs')).serve({docker,sql,run,source,network,database,password,secret,anon,service,rest,restBase,storageBase:base,id,pdf});
+ if(process.env.BPS_LOCAL_BROWSER==='1')await (await import('./authenticated-browser.mjs')).serve({docker,sql,run,source,network,database,password,secret,anon,service,rest,restBase,storageBase:base,id,pdf,hrContext:{sql,rpcResult,request,id,jwt,service,docker,storage,rest,network}});
  console.log(JSON.stringify({passed:checks.length,checks,scope:'isolated local Storage HTTP and cloned synthetic DB'},null,2));
 } catch(e){console.error(redact(e.message));try{console.error(redact(logs()).slice(-6500));}catch{}process.exitCode=1;}
 finally {

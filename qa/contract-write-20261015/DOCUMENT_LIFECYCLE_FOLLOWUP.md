@@ -2227,3 +2227,14 @@ Temiz PDF tarama öncesi okunamadı/finalize edilmedi; temiz sonuçtan sonra bir
 Kapsam: realDatabase/realStorageHttp/realPostgrest/realApplicationService/realCoordinatorCycle=true. Transport yerel HTTP; daemon Mac/Rosetta; worker main sürekli servis ve gerçek oturumlu Next route/form bu testte yok. nextRouteTested=false, productionMainEntry=false, productionReady=false. Test DB/container/volume temizlendi; gerçek şirket verisine dokunulmadı. Ürün kodu değişmediğinden 941 uygulama testi yeniden çalıştırılmadı; yeni kabul, sözdizimi ve diff kontrolleri geçti.
 
 Kalan iki ana kabul: gerçek Next oturumuyla form/API zinciri ve native Linux host launcher/main uçtan uca çalışması. Sonrasında üretim şema/yayın sırası kontrolü gerekir. Canlıya yayın veya İK aktivasyonu yapılmadı.
+
+
+## 20 Ekim — gerçek Next route ve parola oturumu birleşik kabulü
+
+BPS_HR_SCAN_ROUTE=1 yolu mevcut yerel Auth/Next harness'ine eklendi. Üretim ortam dosyası veya hesabı yerine geçici GoTrue Auth DB'sinde sentetik hesapla parola girişi yapıldı; gerçek custom access token hook kapsamı üretildi. @supabase/ssr ile gerçek oturum çerezleri oluşturuldu; Next createServerSupabaseClient/getUser kontrolü atlanmadı. Preview/malware bayrakları yalnız test alt sürecinde açıldı.
+
+Gerçek POST /api/hr/documents/upload multipart isteği 202/pending verdi. Tarama öncesi finalize reddedildi. Gerçek PostgreSQL + PostgREST + Storage + strict UID izolasyonlu ClamAV işçisi sonrası POST /api/hr/documents/scan status ready oldu ve finalize published döndü. Temiz dosya tek kez yayımlandı. Şifreli dosya blocked kaldı; finalize ve Storage read reddedildi, modül kapatmayı engelledi. Oturumsuz scan 401, yabancı origin 403, forged actor 409 verdi; yanıtlar no-store. next-route-result.json ve next-route-storage-result.json kanıtları kaydedildi.
+
+Komut: BPS_RELEASE_BARRIER=1 BPS_HR_MALWARE_HTTP=1 BPS_HR_STRICT_ISOLATION=1 BPS_LOCAL_BROWSER=1 BPS_HR_SCAN_ROUTE=1 BPS_HR_PREVIEW_ENABLED=true BPS_HR_MALWARE_ENABLED=true node qa/contract-write-20261015/storage-http.mjs. 30 genel Storage/tenant/yayın bariyeri kabul grubu ve ek Next upload/scan zinciri başarılı. Geçici Next/Auth/Storage/ClamAV süreçleri ve sentetik DB'ler temizlendi. Ürün kodu değişmedi; genel uygulama testleri gereksiz tekrar edilmedi.
+
+Kapsam: realNextRoutes/realPasswordSession/realAuth/realStorage/realDatabase/realClamav=true. Bu HTTP kabulü gerçek form bileşeninde tıklama değildir (browserFormInteraction=false). Mac/Rosetta daemon, yerel HTTP ve worker coordinator kullanılır; native Linux production main kabulünün yerini almaz. Kalan: form etkileşiminin aynı gerçek altyapıyla tarayıcı kabulü, native Linux host servis kabulü ve üretim şema/yayın sırası. Üretim yayını veya gerçek şirket aktivasyonu yok.
