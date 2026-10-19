@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T19:14:14.320Z",
+  "measuredAt": "2026-10-19T19:17:58.992Z",
   "rows": [
     {
       "preflight": {
@@ -214,7 +214,7 @@
         ],
         "hr_bucket": null,
         "hr_enabled": 0,
-        "measured_at": "2026-10-19T19:14:14.017241+00:00",
+        "measured_at": "2026-10-19T19:17:58.621421+00:00",
         "target_sizes": [
           {
             "bytes": 49152,

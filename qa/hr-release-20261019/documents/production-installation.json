@@ -1,0 +1,74 @@
+{
+  "startedAt": "2026-10-19T19:18:49.581Z",
+  "sourceCommit": "7363719903b1f9fe80fc594d19715231709621c8",
+  "baseline": 207,
+  "steps": [
+    {
+      "version": "20261019001800",
+      "verifiedAt": "2026-10-19T19:18:53.972Z",
+      "migrationCount": 208,
+      "elapsedMs": 4383,
+      "installSha256": "658888e0af5b49fcf920eca5ac025bfb8490e5726641846751f713d3e509a9d0"
+    },
+    {
+      "version": "20261019001900",
+      "verifiedAt": "2026-10-19T19:18:57.989Z",
+      "migrationCount": 209,
+      "elapsedMs": 4016,
+      "installSha256": "769b279f52555cf429d8686d56370347b9c971a3085be779bfadfd232492b9fe"
+    },
+    {
+      "version": "20261019002000",
+      "verifiedAt": "2026-10-19T19:19:02.123Z",
+      "migrationCount": 210,
+      "elapsedMs": 4133,
+      "installSha256": "0d7f647f2603eff97430dc65b361ef68b2a6f1d08be9b5a6810b8051fae5c42a"
+    },
+    {
+      "version": "20261019002100",
+      "verifiedAt": "2026-10-19T19:19:06.052Z",
+      "migrationCount": 211,
+      "elapsedMs": 3928,
+      "installSha256": "0e364a646405278005ee38ae559a5fb97c5bbe6a81a2eb1751710335e09f7c25"
+    },
+    {
+      "version": "20261019002200",
+      "verifiedAt": "2026-10-19T19:19:09.703Z",
+      "migrationCount": 212,
+      "elapsedMs": 3650,
+      "installSha256": "ff783a80496d3fded1ea02bebf78b092b0a698cccc93660b2912b898c8789f2b"
+    },
+    {
+      "version": "20261019002300",
+      "verifiedAt": "2026-10-19T19:19:13.835Z",
+      "migrationCount": 213,
+      "elapsedMs": 4129,
+      "installSha256": "0badd0ab6042866a3e26cbf736d2484f4cccebfd2f5692669622a681f299c2a2"
+    },
+    {
+      "version": "20261019002400",
+      "verifiedAt": "2026-10-19T19:19:17.868Z",
+      "migrationCount": 214,
+      "elapsedMs": 4031,
+      "installSha256": "4ab3842a4845cef3d88305c24915cbadbc180b3dc2ff753d2363475daf3e8639"
+    },
+    {
+      "version": "20261019002500",
+      "verifiedAt": "2026-10-19T19:19:22.026Z",
+      "migrationCount": 215,
+      "elapsedMs": 4157,
+      "installSha256": "c25f9a8e8cc5a75d374b83a3480d5da850e91fd313123a11004f9386b7132a71"
+    },
+    {
+      "version": "20261019002600",
+      "verifiedAt": "2026-10-19T19:19:25.832Z",
+      "migrationCount": 216,
+      "elapsedMs": 3805,
+      "installSha256": "1041ed3fcc1f8145af6345dff65a3a5c77ed5347cc123afee51159ec76038bf8"
+    }
+  ],
+  "completed": true,
+  "finishedAt": "2026-10-19T19:19:29.710Z",
+  "finalCount": 216,
+  "hrActivated": false
+}

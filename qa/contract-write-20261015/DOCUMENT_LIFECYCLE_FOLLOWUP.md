@@ -1810,3 +1810,14 @@ Paket yayımlanmadı. Kalan: yayın anında üretim ledger/katalog tazeleme, 018
 7363719 kaynakları sabit git archive ile yalnız uygulama ve build yapılandırmaları olarak çıkarıldı; 543 dosya/3.25 MB dry-run kontrolü geçti. Env, QA ve SQL dosyaları dağıtıma taşınmadı. Vercel üretim ortamı ayarlarıyla --prod --skip-domain kullanıldı; yalnız adaya özel build/runtime BPS_HR_PREVIEW_ENABLED=false verildi. dpl_71PNEthK8K91vYJ8baoorTMr7X6X READY oldu. Koruma kaldırılmadan Vercel CLI yetkili erişimiyle login HTML 200 ve HR upload POST no-store JSON 404/no-redirect kabulü geçti. Oturumlu iş akışı bu adayda henüz test edilmedi.
 
 Aynı tur güncel üretim metadata karşılaştırması yenilendi: ledger 207; İK aktivasyonu kapalı, çözülmemiş katalog farkı sıfır. Eşlenen sentetik tabana 018–026 kurulumu tekrar geçti. Canlı www.bpsys.net hâlâ dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU sürümüne bağlı. Üretim SQL yazımı ve alan adı geçişi yapılmadı. Aday build hazır olması yayın tamamlandı anlamına gelmez. Kanıt staged-deployment.json, staged-smoke.json ve yenilenen baseline-comparison.json. Sıradaki adım yayın anı ön kontrolü, dokuz korumalı SQL kurulumu, hazır adayı promote ve oturumlu salt okunur smoke.
+
+
+## 19 Ekim — İK 018–026 altyapısı canlıya alındı
+
+Güncel üretim salt okunur ön kontrolü ve eşlenmiş yerel kurulum geçti. Dokuz hash doğrulamalı SQL transaction sırayla uygulandı; her adım sonrası ledger tam listeyle karşılaştırıldı. Üretim 207→216 migration; son sürüm 20261019002600. PostgREST şeması yenilendi. hr-private özel bucket, İK enabled/onaylı aktivasyon/scoped şirket toplamları sıfır. Gerçek iş verisi temizlenmedi, içerik yedeği alınmadı.
+
+7363719 kaynaklı dpl_71PNEthK8K91vYJ8baoorTMr7X6X hazır dağıtımı promote edildi. Bağımsız Vercel inspect www.bpsys.net eşleşmesini doğruladı. Oturumlu genel bakış, günlük operasyon firma/gün/özet, şirket modülleri ve değişiklik geçmişi açıldı; İK sayfası 404 ve oturumsuz upload JSON no-store 404. Üretimde çalışan/evrak yazma testi yapılmadı; İK hâlâ kullanıma kapalıdır.
+
+İlk açılışta şirket doğrulaması uzun süre bekledi; mevcut oturum yenilendikten sonra şirket adı ve sayfalar yüklendi. Kalıcı başarısızlık görülmedi, fakat sebep/gecikme ölçümü yapılmadığı için ayrı takip maddesi bırakıldı. Bunu düzeltilmiş performans sorunu olarak sunmuyoruz. Kanıt documents/production-installation.json, production-postflight.json, live-http-smoke.json ve release.json. Önceki aday/hazırlık kayıtları tarihseldir; güncel canlı yayın kaydı release.json.
+
+Sıradaki işler: şirket doğrulama beklemesini ölçmek ve sınırlamak; İK kontrollü aktivasyon kabul planı; ardından onaylanmış izin ve satın alma yönetici onay akışları. Otomatik dal yayını kapalı kalır.

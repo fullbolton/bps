@@ -1,0 +1,39 @@
+{
+  "releasedAt": "2026-10-19T19:22:33.709Z",
+  "sourceCommit": "7363719903b1f9fe80fc594d19715231709621c8",
+  "deploymentId": "dpl_71PNEthK8K91vYJ8baoorTMr7X6X",
+  "url": "https://bps-jbov2ykz1-furkanyahsi-1537s-projects.vercel.app",
+  "domain": "https://www.bpsys.net",
+  "readyState": "READY",
+  "domainVerified": true,
+  "migrationCount": 216,
+  "appliedVersions": [
+    "20261019001800",
+    "20261019001900",
+    "20261019002000",
+    "20261019002100",
+    "20261019002200",
+    "20261019002300",
+    "20261019002400",
+    "20261019002500",
+    "20261019002600"
+  ],
+  "hrPreviewEnabled": false,
+  "hrActivated": false,
+  "rollbackDeployment": "dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU",
+  "browserSmoke": {
+    "dashboard": true,
+    "dailyOperations": true,
+    "companyModules": true,
+    "moduleChangeHistory": true,
+    "disabledHrPage404": true,
+    "disabledUploadJson404": true,
+    "realBusinessWrites": false,
+    "observation": "Initial company verification showed a prolonged loading state; after reload/revalidation dashboard and daily plan loaded. Cause and latency not measured; follow-up required."
+  },
+  "limitations": [
+    "HR remains closed; no real employee/upload mutation acceptance in production",
+    "Initial company verification latency requires investigation",
+    "Leave and purchasing approval workflows are separate unfinished work"
+  ]
+}
