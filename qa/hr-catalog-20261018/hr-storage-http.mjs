@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {writeFileSync} from 'node:fs';
+export async function acceptHrStorage({sql,rpcResult,request,id,pdf,jwt,service,foreign,anon}){
+ const actor=id(11),tenant=id(1),sha=createHash('sha256').update(pdf).digest('hex');
+ sql(`UPDATE profiles SET role='yonetici' WHERE id='${actor}';UPDATE tenant_memberships SET role='yonetici' WHERE user_id='${actor}' AND tenant_id='${tenant}';ALTER TABLE tenant_module_settings DISABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${tenant}' AND module_key='hr';ALTER TABLE tenant_module_settings ENABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_entitlements SET granted=true WHERE tenant_id='${tenant}' AND module_key='hr'`);
+ const token=jwt('authenticated',11,1,{workspace_selection_version:sql(`SELECT version FROM workspace_selections WHERE user_id='${actor}'`),workspace_membership_version:sql(`SELECT version FROM tenant_memberships WHERE user_id='${actor}' AND tenant_id='${tenant}'`)});
+ const rpc=async(n,a,who=token)=>{const r=await rpcResult(n,a,who);assert.ok(r.ok,n+': '+JSON.stringify(r.data));return r.data;};
+ const employee=(await rpc('hr_create_record_v1',{p_actor:actor,p_tenant:tenant,p_command:id(9700),p_payload:{kind:'employee',name:'Synthetic HTTP HR',code:'HR-HTTP',startsOn:'2026-01-01'}})).id;
+ const employment=sql(`SELECT id FROM hr_employment_periods WHERE employee_id='${employee}'`);
+ const prepare=n=>rpc('hr_document_prepare_v1',{p_actor:actor,p_tenant:tenant,p_id:id(n),p_employee:employee,p_employment:employment,p_title:'Synthetic PDF',p_size:pdf.length,p_sha256:sha});
+ const path=n=>`${tenant}/${id(n)}.pdf`,scope=n=>({p_actor:actor,p_tenant:tenant,p_upload:id(n)});
+ const upload=n=>request('/object/hr-private/'+path(n),'POST',pdf,token,{'Content-Type':'application/pdf','x-upsert':'false'});
+ const checks=[];
+ assert.equal((await upload(9701)).ok,false);await prepare(9701);assert.ok((await upload(9701)).ok);
+ const content=await request('/object/authenticated/hr-private/'+path(9701),'GET',undefined,token);assert.ok(content.ok);assert.equal(createHash('sha256').update(content.text).digest('hex'),sha);
+ checks.push('Unreserved upload denied; reserved upload and exact byte readback pass');
+ for(const who of [foreign,anon])assert.equal((await request('/object/authenticated/hr-private/'+path(9701),'GET',undefined,who)).ok,false);
+ assert.equal((await request('/object/hr-private/'+path(9701),'PUT',pdf,token,{'Content-Type':'application/pdf'})).ok,false);
+ assert.equal((await rpcResult('hr_document_finish_v1',scope(9701),token)).ok,false);
+ checks.push('Foreign/anon read, overwrite and unverified finalize denied');
+ const attest=async n=>{const c=await rpc('hr_document_verification_context_v1',scope(n));return rpc('hr_document_attest_v1',{p_tenant:tenant,p_actor:actor,p_upload:id(n),p_object:c.objectId,p_version:c.objectVersion,p_size:pdf.length,p_sha256:sha},service);};
+ await attest(9701);assert.equal((await rpc('hr_document_finish_v1',scope(9701))).state,'published');await rpc('hr_document_finish_v1',scope(9701));
+ assert.equal(sql(`SELECT count(*) FROM hr_private_documents WHERE id='${id(9701)}'`),'1');
+ assert.equal((await rpcResult('hr_document_cancel_request_v1',scope(9701),token)).ok,false);
+ checks.push('Trusted byte attestation publishes once; published cancellation denied');
+ await prepare(9702);assert.ok((await upload(9702)).ok);await attest(9702);
+ await rpc('hr_document_cancel_request_v1',scope(9702));
+ assert.equal((await rpcResult('hr_document_finish_v1',scope(9702),token)).ok,false);
+ assert.equal((await rpc('hr_document_shutdown_preflight_v1',{p_actor:actor,p_tenant:tenant})).blocking,true);
+ const removed=await request('/object/hr-private','DELETE',JSON.stringify({prefixes:[path(9702)]}),token,{'Content-Type':'application/json'});assert.ok(removed.ok,removed.text);
+ assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='hr-private' AND name='${path(9702)}'`),'0');
+ await rpc('hr_document_cancel_empty_v1',{p_actor:actor,p_tenant:tenant,p_id:id(9702)});
+ assert.equal((await upload(9702)).ok,false);
+ assert.equal((await rpc('hr_document_shutdown_preflight_v1',{p_actor:actor,p_tenant:tenant})).blocking,false);
+ checks.push('Verified pending cancellation blocks finalize/closure until HTTP deletion; retired path cannot return');
+ writeFileSync(new URL('./hr-storage-http-result.json',import.meta.url),JSON.stringify({passed:checks.length,checks,syntheticOnly:true,actualStorageHttp:true},null,2)+'\n');return checks;
+}

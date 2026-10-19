@@ -24,7 +24,7 @@ try{
  prepare();fails(finish,'HR_UPLOAD_NOT_VERIFIED');
  fails(()=>auth(`hr_document_attest_v1('${id(1)}','${id(11)}','${id(9810)}','${id(9820)}','synthetic-v1',10,'${'a'.repeat(64)}')`),'permission denied');
  checks.push('Browser cannot attest; finalize requires trusted verification');
- sql(`INSERT INTO storage.buckets(id,name,public) VALUES('hr-private','hr-private',false);INSERT INTO storage.objects(id,bucket_id,name,owner_id,version,metadata) VALUES('${id(9820)}','hr-private','${id(1)}/${id(9810)}.pdf','${id(11)}','synthetic-v1','{"size":10,"mimetype":"application/pdf"}')`);
+ sql(`INSERT INTO storage.objects(id,bucket_id,name,owner_id,version,metadata) VALUES('${id(9820)}','hr-private','${id(1)}/${id(9810)}.pdf','${id(11)}','synthetic-v1','{"size":10,"mimetype":"application/pdf"}')`);
  fails(()=>attest(9),'HR_UPLOAD_CONTENT');fails(()=>attest(10,'b'.repeat(64)),'HR_UPLOAD_CONTENT');fails(()=>attest(10,'a'.repeat(64),'other-version'),'HR_UPLOAD_OBJECT');
  sql(`UPDATE storage.objects SET owner_id='${id(12)}' WHERE id='${id(9820)}'`);fails(()=>attest(),'HR_UPLOAD_OBJECT');sql(`UPDATE storage.objects SET owner_id='${id(11)}' WHERE id='${id(9820)}'`);
  checks.push('Attestation binds exact reserved digest, size, storage version and owner');

@@ -203,7 +203,8 @@ const FAIL = "FAIL";
 // demo-request / access-request). The env-var read is the client-
 // construction signal; the lowercase `service_role` word also appears in
 // comments + healthz role assertions, so we key on
-// SUPABASE_SERVICE_ROLE_KEY, not the word. access-request follows the
+// SUPABASE_SERVICE_ROLE_KEY, not the word. The exact HR upload route is
+// additionally allowed only to attest bytes after user-scoped Storage readback. access-request follows the
 // demo-request precedent: a public unauthenticated form write moved
 // server-side so the anon insert path can be revoked.
 (() => {
@@ -219,11 +220,11 @@ const FAIL = "FAIL";
     const src = read(f);
     if (src && src.includes("SUPABASE_SERVICE_ROLE_KEY")) {
       const norm = f.split("\\").join("/");
-      if (!ALLOW.some((a) => norm.includes(a))) offenders.push(norm);
+      if (!ALLOW.some((a) => norm.includes(a)) && norm !== "src/app/api/hr/documents/upload/route.ts") offenders.push(norm);
     }
   }
   if (offenders.length === 0) {
-    record(FAIL, "service_role-confined", PASS, "service_role only in cron/healthz/demo-request/access-request");
+    record(FAIL, "service_role-confined", PASS, "service_role confined to sanctioned routes and exact HR verifier route");
   } else {
     record(FAIL, "service_role-confined", FAIL, `unexpected service_role: ${offenders.join(", ")}`);
   }

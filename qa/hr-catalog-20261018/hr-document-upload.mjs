@@ -21,9 +21,9 @@ try{
  const r=prepare();assert.equal(r.state,'pending');assert.deepEqual(prepare(),r);assert.equal(pending().uploads.length,1);fails(()=>prepare(9810,'Changed'),'HR_COMMAND_REUSED');checks.push('Reservation is idempotent; payload change rejected; owner can list pending');
  assert.equal(cancel().state,'cancelled');assert.equal(cancel().state,'cancelled');assert.equal(prepare().state,'cancelled');assert.equal(pending().uploads.length,0);checks.push('Empty cancel is idempotent and cannot resurrect upload');
  fails(()=>prepare(9811,'12345678901'),'HR_INPUT');fails(()=>auth(`hr_document_prepare_v1('${id(11)}','${id(1)}','${id(9811)}','${employee}','${id(9999)}','Title',10,'${'a'.repeat(64)}')`),'HR_FORBIDDEN');checks.push('Title validation and exact employment binding');
- assert.equal(sql("SELECT count(*) FROM storage.buckets WHERE id='hr-private'"),'0');
+ assert.equal(sql("SELECT public FROM storage.buckets WHERE id='hr-private'"),'f');
  prepare(9813);
- sql(`INSERT INTO storage.buckets(id,name,public) VALUES('hr-private','hr-private',false);INSERT INTO storage.objects(bucket_id,name) VALUES('hr-private','${id(1)}/${id(9813)}.pdf')`);
+ sql(`INSERT INTO storage.objects(bucket_id,name) VALUES('hr-private','${id(1)}/${id(9813)}.pdf')`);
  fails(()=>auth(`hr_document_cancel_empty_v1('${id(11)}','${id(1)}','${id(9813)}')`),'HR_UPLOAD_CLEANUP_REQUIRED');
  assert.equal(sql(`SELECT state FROM hr_document_uploads WHERE id='${id(9813)}'`),'pending');
  checks.push('Existing synthetic object prevents cancellation and retains pending receipt');
@@ -45,6 +45,6 @@ try{
  sql(`UPDATE hr_document_uploads SET state='cancelled' WHERE tenant_id='${id(1)}'`);
  assert.equal(preflight().blocking,false);
  sql(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='hr'`);fails(()=>prepare(),'HR_MODULE_CLOSED');checks.push('Read-only HR role and closed module cannot prepare/list/replay');
- assert.equal(sql("SELECT has_table_privilege('authenticated','hr_document_uploads','SELECT')"),'f');checks.push('Ledger private; Storage remains disabled');
+ assert.equal(sql("SELECT has_table_privilege('authenticated','hr_document_uploads','SELECT')"),'f');checks.push('Ledger and HR Storage bucket remain private');
  writeFileSync(new URL('./hr-document-upload-result.json',import.meta.url),JSON.stringify({passed:checks.length,checks,syntheticOnly:true},null,2)+'\n');console.log('PASS',checks.length,'HR upload ledger groups');
 }finally{if(created)sql(`DROP DATABASE ${db} WITH (FORCE)`,'postgres');}

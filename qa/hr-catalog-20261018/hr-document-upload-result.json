@@ -8,7 +8,7 @@
     "100 pending limit with exact replay and lossless two-page listing",
     "Shutdown preflight counts pending; disabling module or entitlement is rejected",
     "Read-only HR role and closed module cannot prepare/list/replay",
-    "Ledger private; Storage remains disabled"
+    "Ledger and HR Storage bucket remain private"
   ],
   "syntheticOnly": true
 }

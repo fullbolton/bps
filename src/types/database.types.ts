@@ -1400,6 +1400,7 @@ export interface Database {
       hr_document_verification_context_v1: {Args: {p_actor: string; p_tenant: string; p_upload: string}; Returns: Json;};
       hr_document_finish_v1: {Args: {p_actor: string; p_tenant: string; p_upload: string}; Returns: Json;};
       hr_document_attest_v1: {Args: {p_tenant: string; p_actor: string; p_upload: string; p_object: string; p_version: string; p_size: number; p_sha256: string}; Returns: undefined;};
+      hr_document_cancel_request_v1: {Args: {p_actor: string; p_tenant: string; p_upload: string}; Returns: Json;};
       hr_document_prepare_v1: {Args: {p_actor: string; p_tenant: string; p_id: string; p_employee: string; p_employment: string; p_title: string; p_size: number; p_sha256: string; p_validity?: string}; Returns: Json;};
       hr_document_pending_v1: {Args: {p_actor: string; p_tenant: string; p_employee: string; p_after?: string}; Returns: Json;};
       hr_document_cancel_empty_v1: {Args: {p_actor: string; p_tenant: string; p_id: string}; Returns: Json;};

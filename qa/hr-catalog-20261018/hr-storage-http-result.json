@@ -1,0 +1,11 @@
+{
+  "passed": 4,
+  "checks": [
+    "Unreserved upload denied; reserved upload and exact byte readback pass",
+    "Foreign/anon read, overwrite and unverified finalize denied",
+    "Trusted byte attestation publishes once; published cancellation denied",
+    "Verified pending cancellation blocks finalize/closure until HTTP deletion; retired path cannot return"
+  ],
+  "syntheticOnly": true,
+  "actualStorageHttp": true
+}

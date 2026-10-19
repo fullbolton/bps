@@ -1,5 +1,5 @@
 {
-  "passed": 5,
+  "passed": 6,
   "actualSource": true,
   "actualBytes": true,
   "realStorageHttp": false,
@@ -8,6 +8,7 @@
     "Size digest and PDF header mismatch fail before attestation",
     "Scope path and object-version binding before download",
     "Attestation failure prevents finalize",
-    "Lost finalize response never reported successful"
+    "Lost finalize response never reported successful",
+    "Cancellation fences upload before removal and reconciles lost delete response"
   ]
 }

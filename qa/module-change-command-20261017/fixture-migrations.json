@@ -53,5 +53,6 @@
   "20261019002200_hr_private_document_boundary.sql",
   "20261019002300_hr_document_upload_ledger.sql",
   "20261019002400_hr_upload_shutdown_guard.sql",
-  "20261019002500_hr_document_verified_finalize.sql"
+  "20261019002500_hr_document_verified_finalize.sql",
+  "20261019002600_hr_document_storage_lifecycle.sql"
 ]
