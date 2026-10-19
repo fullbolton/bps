@@ -1,5 +1,6 @@
 import { MODULE_CATALOG, parseModuleStates, type ModuleKey } from './catalog';
 import { isRevision, parseWorkspaceModuleContext, type WorkspaceModuleContext } from './context';
+import { compareCatalogSnapshots, parseCatalogSnapshot } from './catalog-snapshot';
 export type ModuleHistoryEntry = {
   revision: string; createdAt: string; actorName: string | null; kind: 'bootstrap' | 'settings';
   changes: { key: ModuleKey; enabled: boolean }[];
@@ -19,7 +20,8 @@ export function parseModuleHistory(raw: unknown, expected: WorkspaceModuleContex
       || typeof row.createdAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(row.createdAt) || !Number.isFinite(Date.parse(row.createdAt))) throw Error('MODULE_HISTORY_ENTRY');
     const bootstrap = row.revision === '1';
     if (row.kind !== (bootstrap ? 'bootstrap' : 'settings') || (bootstrap ? row.actorName !== null : typeof row.actorName !== 'string' || !row.actorName.trim())) throw Error('MODULE_HISTORY_ENTRY');
-    const after = parseModuleStates(row.after);
+    const afterSnapshot = parseCatalogSnapshot(1, row.after);
+    const after = afterSnapshot.modules;
     if (MODULE_CATALOG.some(m=>after[m.key]!==expectedState[m.key])) throw Error('MODULE_HISTORY_CHAIN');
     let changes: ModuleHistoryEntry['changes'];
     if (bootstrap) {
@@ -28,7 +30,7 @@ export function parseModuleHistory(raw: unknown, expected: WorkspaceModuleContex
     } else {
       const before = parseModuleStates(row.before);
       expectedState = before;
-      changes = MODULE_CATALOG.filter(m=>before[m.key]!==after[m.key]).map(m=>({key:m.key,enabled:after[m.key]}));
+      changes = compareCatalogSnapshots({ version: 1, modules: before }, afterSnapshot).changes.map(change => ({ key: change.key as ModuleKey, enabled: change.enabled }));
       if (!changes.length) throw Error('MODULE_HISTORY_ENTRY');
     }
     return { revision:row.revision,createdAt:row.createdAt,actorName:row.actorName as string|null,kind:row.kind as ModuleHistoryEntry['kind'],changes };

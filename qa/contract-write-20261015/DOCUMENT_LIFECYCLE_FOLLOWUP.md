@@ -1250,3 +1250,12 @@ Sentetik yerel Next/GoTrue/PostgREST üzerinde giriş→Ayarlar→Modüller→De
 Tarayıcıda bulunan UX hatası düzeltildi: Sayfayı yenile eylemi şirket ekibine dönüyordu; geçmiş ve modül panelindeki eylemler artık /ayarlar?bolum=moduller adresine tam yenilemeyle döner. Gerçek tarayıcıda aynı sekme ve bir geçmiş satırı doğrulandı. 16 hedefli test ve tsc geçti. İki callback değişimi için tam suite/build tekrarlanmadı. Kanıt browser-result.json, browser-refresh.png, browser-restored.png; tekrar için browser-response.mjs yalnız allowlist geçici DB adını kabul eder. Test sekmesi kapandı; harness SIGTERM sonrası exit 0 ile kendi kaynaklarını temizledi.
 
 Bu kabul geçmiş bağlantısı ve açık panel yenileme yolunu kapatır. Katalog v2 geçişi, v2 yazma/ön kontrol, ilk sayfa gelecek sürüm tarayıcı kabulü ve yayın ön kontrolü hâlâ açık. Üretim değişmedi, HR açılmadı.
+
+
+## 19 Ekim — H0 sürümlü katalog veri sözleşmesi
+
+Uygulama kaynağına catalog-snapshot.ts eklendi: sürümü açık v1/v2 snapshot doğrulama, yalnız açık geçişte hr=false ekleme, eski istemci isteğinde mevcut HR değerini koruyan merge ve ayrı katalog geçişi/değişiklik karşılaştırması. Geçiş sırasında mevcut ayarlar değiştirilemez, HR açılamaz veya katalog düşürülemez. HR-only olay gerçek değişiklik olarak korunur. Mevcut v1 geçmiş okuyucusu aynı karşılaştırmayı kullanır; görünür katalog ve API context hâlâ v1'dir. Yeni yardımcılar tek başına yetki, abonelik hakkı veya veritabanına yazma izni vermez.
+
+6 yeni test grubu tüm 1024 eski bool kombinasyonundan geçerli bağımlılıklı durumları, geçersiz alanları, eski istemci korumasını, yalnız HR değişikliğini ve migration ayrımını sınar. 14 hedefli, 804/804 uygulama testi, tsc ve sentetik localhost public değerleriyle production build geçti. Önceki QA prototipinin snapshot/merge kopyası kaldırıldı; 7 kabul grubu gerçek uygulama yardımcılarıyla geçti. Bu tur yeni SQL migration veya gerçek DB/HTTP kabulü yapılmadı.
+
+Kalan H0: gerçek SQL katalog v2 geçişi, kilitli/rol ve hak kontrollü yazarlar, sürümlü ön kontrol, karma geçmiş olaylarının uçtan uca sunulması ve gerçek yerel DB/tarayıcı kabulü. Tam katalog geçişi tamamlandı sayılmaz. İK kullanıcı ekranı açılmadı; üretime yayın yapılmadı. Operasyon Faz 1 yeniden açılmadı.

@@ -1,6 +1,6 @@
 {
-  "source": "605aace6e1ff73cd25f3ccf598f94620bcce0560",
-  "measuredAt": "2026-10-18T20:01:25.096Z",
+  "source": "77b5f116f313aa4df94ee9511b99fda14b86b92d",
+  "measuredAt": "2026-10-19T10:34:34.777Z",
   "checks": [
     "v1 roundtrip remains exact; explicit upgrade adds HR disabled; legacy parser still rejects v2",
     "Missing, unknown, non-boolean and dependency-invalid states rejected without defaults",
@@ -11,7 +11,7 @@
     "No-op rejected like existing BPS command; unsupported version and revision overflow rejected"
   ],
   "limits": [
-    "Executable proposal only; no production import, SQL migration or HTTP endpoint",
+    "Snapshot parser/merge run actual application source; transition authorization remains a proposal, without SQL migration or HTTP endpoint",
     "Does not verify authentication, row locks, open-work blockers, history or command receipts"
   ]
 }

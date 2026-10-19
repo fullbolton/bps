@@ -1,0 +1,14 @@
+{
+  "measuredAt": "2026-10-19T10:34:54.477891+00:00",
+  "applicationTests": 804,
+  "targetedTests": 14,
+  "contractGroups": 7,
+  "typecheck": "passed",
+  "build": "passed with synthetic localhost public values",
+  "productionChanged": false,
+  "limits": [
+    "No SQL catalog v2 migration",
+    "No entitlement enforcement or writer connection",
+    "No new browser/real DB acceptance"
+  ]
+}

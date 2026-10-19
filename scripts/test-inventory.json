@@ -708,5 +708,9 @@
   {
     "file": "scripts/supabase-server-timeout.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/module-catalog-snapshot.test.mjs",
+    "suite": "application"
   }
 ]
