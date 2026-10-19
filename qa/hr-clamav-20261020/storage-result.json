@@ -4,6 +4,8 @@
   "realDatabase": true,
   "realClamav": true,
   "realWorkerAdapters": true,
+  "realApplicationService": true,
+  "nextRouteTested": false,
   "leasedExecution": true,
   "userJwtPassedToWorker": false,
   "syntheticOnly": true,

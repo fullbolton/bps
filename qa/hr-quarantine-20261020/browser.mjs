@@ -1,0 +1,17 @@
+// UI acceptance with actual components/parsers and a synthetic RPC boundary.
+import {mkdtempSync,cpSync,rmSync,mkdirSync,writeFileSync,symlinkSync,readFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';import {join} from 'node:path';import {spawn} from 'node:child_process';
+const root=process.cwd(),dir=mkdtempSync(join(tmpdir(),'bps-hr-readiness-'));
+cpSync(join(root,'src'),join(dir,'src'),{recursive:true});
+const component=readFileSync(join(root,'src/app/(main)/insan-kaynaklari/HrDocumentUpload.tsx'));
+rmSync(join(dir,'src/app'),{recursive:true});rmSync(join(dir,'src/middleware.ts'),{force:true});mkdirSync(join(dir,'src/app'),{recursive:true});
+for(const f of ['package.json','tsconfig.json','postcss.config.mjs'])cpSync(join(root,f),join(dir,f));symlinkSync(join(root,'node_modules'),join(dir,'node_modules'),'dir');
+cpSync(join(root,'src/app/globals.css'),join(dir,'src/app/globals.css'));
+writeFileSync(join(dir,'src/app/HrDocumentUpload.tsx'),component);
+writeFileSync(join(dir,'src/app/layout.tsx'),`import './globals.css';export default function Layout({children}:{children:React.ReactNode}){return <html lang="tr"><body>{children}</body></html>}`);
+writeFileSync(join(dir,'src/app/page.tsx'),`'use client';import {useEffect,useState} from 'react';import HrDocumentUpload from './HrDocumentUpload';import {NavigationGuardProvider} from '@/context/NavigationGuardContext';
+const id=(n:number)=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
+const command={id:id(4),employmentId:id(5),title:'Sentetik PDF',size:10,sha256:'a'.repeat(64),validityDate:null};
+export default function Page(){const [ready,setReady]=useState(false),[saved,setSaved]=useState(0);useEffect(()=>{const original=window.fetch;let step=0;window.fetch=async(input,init)=>{if(String(input)!=='/api/hr/documents/scan')throw Error('Unexpected fixture request');const body=JSON.parse(String(init?.body));const scenario=new URLSearchParams(location.search).get('case');if(body.action==='finalize')return Response.json({ok:true,receipt:{...command,state:'published'}});if(body.action==='rescan'){step=0;return Response.json({ok:true,scan:{status:'queued',label:'Tarama bekliyor',attempts:2,canFinalize:false,canRescan:false,terminal:false}});}const status=scenario==='blocked'?'blocked':scenario==='expired'?'expired':++step===1?'scanning':'ready';return Response.json({ok:true,scan:{status,label:status==='ready'?'Tarama tamamlandı, kayıt bekliyor':status==='blocked'?'Dosya güvenlik kontrolünden geçemedi':status==='expired'?'Tarama sonucu güncelliğini kaybetti':'Güvenlik taraması sürüyor',attempts:1,canFinalize:status==='ready',canRescan:status==='expired',terminal:status==='blocked'}});};setReady(true);return()=>{window.fetch=original;};},[]);return <NavigationGuardProvider><main className="max-w-2xl p-4"><h1>Sentetik karantina form kabulü</h1>{ready&&<HrDocumentUpload actor={id(1)} tenant={id(2)} employee={id(3)} recovery={command} onClose={()=>{}} onSaved={async()=>{setSaved(n=>n+1)}}/>}<p>Kaydedilen evrak: {saved}</p></main></NavigationGuardProvider>}`);
+const app=spawn(process.execPath,[join(root,'node_modules/next/dist/bin/next'),'dev','--hostname','127.0.0.1','--port','3075'],{cwd:dir,env:{...process.env,NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:1',NEXT_PUBLIC_SUPABASE_ANON_KEY:'synthetic'},stdio:'inherit'});
+for(const sig of ['SIGINT','SIGTERM'])process.on(sig,()=>app.kill('SIGTERM'));app.on('exit',()=>{rmSync(dir,{recursive:true,force:true});process.exit(0)});

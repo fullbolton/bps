@@ -242,3 +242,12 @@ Yeni /api/hr/documents/scan POST uç noktası preview+malware bayrakları, aynı
 Kanıt: 897/897 uygulama testi ve TypeScript geçti. Beş yeni servis testi gerçek TypeScript yürütür: karantina indirmeme/attest/finish çağırmama, kayıp Storage cevabı, context/queue hataları, yanlış hash, yayımlanmış tekrar, hazır olmadan finalize reddi, son RPC stale reddi ve farklı çalışan kapsamını mutasyondan önce reddetme. Bu tur tarayıcı üzerinden form kabulü ve gerçek worker/Storage/HTTP birleşik kabul çalıştırılmadı; UI bağlantısı bu doğrulamalar bitmeden kabul edilmiş sayılmaz.
 
 Yayın engeli: candidate.sql → worker-report.sql → queue.sql üretim ön kontrolü/migration sırası, kalıcı worker kurulumu, güncel imza/config ölçümü, yeni route+form+gerçek worker uçtan uca kabul ve ardından kontrollü bayrak aktivasyonu. Bayrak tek başına güvenlik kurulumu değildir; SQL koruması olmadan açılmamalı. Sonraki paket bu yeni asenkron akışın tarayıcı ve gerçek HTTP kabulüdür. Üretim değişmedi.
+
+
+## 20 Ekim — asenkron form ve gerçek uygulama servisi kabulü
+
+Gerçek HrDocumentUpload bileşeni ayrı yerel Next uygulamasında CUA tarayıcı ile denendi. Sentetik API sınırında taranıyor → hazır → kaydet akışında kaydedilen sayı 0'dan 1'e çıktı. Engellenmiş sonuçta kaydet/yeniden tara yoktu. Süresi geçmiş sonuçta yeniden tara çıktı; işlemden sonra “Tarama bekliyor” ve kaydedilen sayı 0 görüldü. Kanıt: qa/hr-quarantine-20261020/browser-result.json ve browser-rescan.png. Form testi gerçek kullanıcı/üretim/API oturumuna bağlı değildir.
+
+storage-accept.mjs artık gerçek enqueueHrDocumentUpload ve actOnHrDocumentScan TypeScript servislerini kullanıyor. Gerçek yerel Storage HTTP + PostgREST + geçici PostgreSQL + ölçülmüş ClamAV + lease işçisiyle 31 kabul grubu geçti. Yükleme pending, sorgu queued, tarama sonrası temiz ready/diğer blocked, sonlandırma temiz published doğrulandı. Şifreli ve limit dosyaları okunamaz/yayımlanamaz kaldı. storage-result.json realApplicationService=true, nextRouteTested=false olarak kapsamı ayırır.
+
+Kalan somut kabul: Next upload/scan route seviyesinde oturum/origin/gövde limiti ve bayrak testleri; dosya seçimiyle tam form→gerçek route→worker birleşimi; kalıcı worker işletimi ve üretim ön kontrolü. Bu tur ürün kodu değişmedi, önceki 897 uygulama testi tekrar çalıştırılmadı. Geçici tarayıcı sekmeleri, uygulama ve test servisleri kapatıldı; gerçek veri kullanılmadı. Üretim yayını ve bayrak aktivasyonu yok.

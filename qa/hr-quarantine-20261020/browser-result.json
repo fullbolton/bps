@@ -1,0 +1,14 @@
+{
+  "syntheticOnly": true,
+  "actualComponent": true,
+  "realBrowser": true,
+  "apiBoundary": "synthetic fetch responses",
+  "productionReady": false,
+  "checks": [
+    "scanning: no finalize button, saved count 0",
+    "ready: finalize button appears, click yields saved count 1",
+    "blocked: no finalize or rescan button, saved count 0",
+    "expired: rescan button appears; click yields queued and no finalize button"
+  ],
+  "screenshot": "browser-rescan.png"
+}
