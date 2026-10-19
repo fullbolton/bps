@@ -1,0 +1,32 @@
+{
+  "realStorageHttp": true,
+  "realPostgrest": true,
+  "realDatabase": true,
+  "realClamav": true,
+  "realWorkerAdapters": true,
+  "syntheticOnly": true,
+  "productionReady": false,
+  "checks": [
+    {
+      "file": "clean.pdf",
+      "verdict": "clean",
+      "quarantineBeforeScan": true,
+      "published": true,
+      "readableAfterScan": true
+    },
+    {
+      "file": "encrypted.pdf",
+      "verdict": "infected",
+      "quarantineBeforeScan": true,
+      "published": false,
+      "readableAfterScan": false
+    },
+    {
+      "file": "limit.pdf",
+      "verdict": "infected",
+      "quarantineBeforeScan": true,
+      "published": false,
+      "readableAfterScan": false
+    }
+  ]
+}

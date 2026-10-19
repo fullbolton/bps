@@ -2004,3 +2004,14 @@ Linux ölçüm adaptörü paylaşılan PID namespace içinde clamd komut satır�
 config-job-accept.mjs / config-job-result.json: gerçek ClamAV + gerçek config/süreç/soket ölçümü + runHrScan çekirdeğiyle üç iş geçti. Temiz PDF complete=true; şifreli ve limitli PDF complete=false/infected. İçerik özeti ve boyut gerçek sentetik dosyalardan hesaplandı. Storage read/persist bu testte sentetik adaptördür; tam veritabanı/Storage entegrasyonu değildir. 886 uygulama testi geçti; üretim config kabulü ek doğrulaması sonrasında üç config testi ayrıca geçti.
 
 Geçici daemon ve socket volume kaldırıldı; üretime dokunulmadı. Kalan kapanış: gerçek yerel Storage ve guarded SQL raporlama ile birleşik tarama/finalize kabulü, upload route'un yeni akışa bağlanması, güncel şema/yayın sırası kontrolü. Antivirüs henüz canlıda aktif değil.
+
+
+## 20 Ekim — gerçek Storage / ClamAV / SQL birleşik kabulü
+
+BPS_RELEASE_BARRIER=1 BPS_HR_MALWARE_HTTP=1 node qa/contract-write-20261015/storage-http.mjs ile 31 HTTP kabul grubu geçti. Yeni hook aday karantina SQL'lerini yalnız geçici sentetik veritabanına uygular. storage-accept.mjs gerçek Storage'a PDF yükler; ayrı Linux işçisi ölçülen ClamAV config/sürümüyle Storage adaptöründen dosyayı okur, runHrScan ile tarar ve hr_malware_report_v1 RPC'sine kaydeder. storage-runner.mjs içinde yerel proxy yalnız testteki Storage'ın /storage/v1 yolunu eşler; gerçek Storage/PostgREST istekleri taklit edilmez.
+
+storage-result.json: temiz PDF tarama öncesi indirilemez/finalize edilemez; başarılı taramadan sonra yayımlanır ve indirilebilir; finalize tekrarı tek metadata kaydı bırakır. Şifreli ve 1 MiB tarama limitini aşan PDF'ler infected/complete=false raporuyla pending kalır; kullanıcı okuyamaz ve finalize reddedilir. Bekleyen yüklemeler modül kapatmayı engeller. Motor, Storage HTTP, PostgREST, guarded SQL ve işçi adaptörleri bu kez birlikte gerçektir; yalnız veriler ve JWT'ler sentetiktir.
+
+Test geçici veritabanını, Storage/PostgREST/ClamAV/işçi konteynerlerini ve socket volume'ünü kaldırdı. İmza volume'ü sonraki ölçüm için korundu. Üretim hesabı/verisi kullanılmadı. Bu tur yalnız kabul araçları ve kanıtları değişti; genel uygulama testleri tekrar edilmedi.
+
+Karar: ClamAV ayrı yönetilen servis olarak kalır; Vercel upload route içinde Unix soketi veya kalıcı daemon varmış gibi entegrasyon yapılmayacak. Yükleme ekranına bağlamadan önce tarama işinin güvenilir teslimi/yeniden denemesi ve bekleyen durumun kullanıcıya gösterilmesi tamamlanmalı. Aday SQL hâlâ production migration zincirinde değil. Kalan: uygulama/ayrı işçi servis bağlantısı ve kullanıcı akışı; ardından güncel canlı şema ve yayın sırası kontrolü. Bu kabul productionReady anlamına gelmez, canlı antivirüs hâlâ aktif değil.

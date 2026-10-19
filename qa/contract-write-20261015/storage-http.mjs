@@ -52,6 +52,7 @@ try {
  docker(['exec','-i','-e',`PGPASSWORD=${password}`,source,'psql','-w','-X','-qAt','-U','supabase_admin','-d',database,'-v','ON_ERROR_STOP=1'],schemaUsage);
  sql(policies);
  for(const name of migrations)sql(readFileSync(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'));
+ if(process.env.BPS_HR_MALWARE_HTTP==='1')for(const f of ['candidate.sql','worker-report.sql'])sql(readFileSync(new URL('../hr-quarantine-20261020/'+f,import.meta.url),'utf8'));
  sql(`INSERT INTO companies(id,tenant_id,name) VALUES('${id(991)}','${id(1)}','Synthetic HTTP');INSERT INTO storage.buckets(id,name,public) VALUES('documents','documents',false) ON CONFLICT DO NOTHING;`);
  async function request(path,method='GET',body,auth=token,headers={}){
   const r=await fetch(base+path,{method,headers:{Authorization:`Bearer ${auth}`,...headers},body,signal:AbortSignal.timeout(10000)});
@@ -335,6 +336,7 @@ try {
   const {writeFileSync}=await import('node:fs');writeFileSync(new URL('../release-chain-20261016/barrier/http-result.json',import.meta.url),JSON.stringify(evidence,null,2)+'\n');
   checks.push('release barrier rejects HTTP RPC/upload/delete; bytes survive; reopening works');
  }
+ if(process.env.BPS_HR_MALWARE_HTTP==='1')checks.push(...await (await import('../hr-clamav-20261020/storage-accept.mjs')).accept({sql,rpcResult,request,id,jwt,service,docker,storage,rest,network}));
  if(process.env.BPS_HR_STORAGE_ACCEPTANCE==='1')checks.push(...await (await import('../hr-catalog-20261018/hr-storage-http.mjs')).acceptHrStorage({sql,rpcResult,request,id,pdf,jwt,service,foreign,anon}));
  if(process.env.BPS_LOCAL_BROWSER==='1')await (await import('./authenticated-browser.mjs')).serve({docker,sql,run,source,network,database,password,secret,anon,service,rest,restBase,storageBase:base,id,pdf});
  console.log(JSON.stringify({passed:checks.length,checks,scope:'isolated local Storage HTTP and cloned synthetic DB'},null,2));
