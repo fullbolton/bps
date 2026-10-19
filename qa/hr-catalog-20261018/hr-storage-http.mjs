@@ -34,5 +34,23 @@ export async function acceptHrStorage({sql,rpcResult,request,id,pdf,jwt,service,
  assert.equal((await upload(9702)).ok,false);
  assert.equal((await rpc('hr_document_shutdown_preflight_v1',{p_actor:actor,p_tenant:tenant})).blocking,false);
  checks.push('Verified pending cancellation blocks finalize/closure until HTTP deletion; retired path cannot return');
+ // Published bytes must enforce scoped HR permissions on every authenticated read.
+ sql(`UPDATE profiles SET role='ik' WHERE id='${actor}';UPDATE tenant_memberships SET role='ik' WHERE user_id='${actor}' AND tenant_id='${tenant}';INSERT INTO company_hr_access_modes(tenant_id,mode) VALUES('${tenant}','scoped');INSERT INTO company_access_state VALUES('${tenant}',1);INSERT INTO company_access_roles(id,tenant_id,name,rules) VALUES('${id(9750)}','${tenant}','Synthetic byte reader','[]');INSERT INTO company_access_assignments SELECT tenant_id,user_id,id,'${id(9750)}' FROM tenant_memberships WHERE tenant_id='${tenant}' AND user_id='${actor}'`);
+ const scopedToken=jwt('authenticated',11,1,{workspace_selection_version:sql(`SELECT version FROM workspace_selections WHERE user_id='${actor}'`),workspace_membership_version:sql(`SELECT version FROM tenant_memberships WHERE user_id='${actor}' AND tenant_id='${tenant}'`)});
+ const rules=values=>sql(`UPDATE company_access_roles SET rules='${JSON.stringify(values)}' WHERE id='${id(9750)}';UPDATE company_access_state SET revision=revision+1 WHERE tenant_id='${tenant}'`);
+ const allow=capability=>({capability,effect:'allow',scope:{kind:'company'}});
+ const bytes=()=>request('/object/authenticated/hr-private/'+path(9701),'GET',undefined,scopedToken);
+ rules([allow('hr.employees.read')]);assert.equal((await bytes()).ok,false);
+ rules([allow('hr.documents.download')]);assert.equal((await bytes()).ok,false);
+ checks.push('Published Storage bytes deny employee-read-only and download-only scoped roles');
+ rules([allow('hr.employees.read'),allow('hr.documents.download')]);
+ const granted=await bytes();assert.ok(granted.ok);assert.equal(createHash('sha256').update(granted.text).digest('hex'),sha);
+ rules([allow('hr.employees.read'),allow('hr.documents.download'),{...allow('hr.documents.download'),effect:'deny'}]);assert.equal((await bytes()).ok,false);
+ rules([]);assert.equal((await bytes()).ok,false);
+ checks.push('Matching scoped permissions read exact published bytes; explicit deny and role removal revoke new reads on same token');
+ rules([allow('hr.employees.read'),allow('hr.documents.download')]);
+ sql(`UPDATE tenant_module_entitlements SET granted=false WHERE tenant_id='${tenant}' AND module_key='hr'`);assert.equal((await bytes()).ok,false);
+ assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='hr-private' AND name='${path(9701)}'`),'1');
+ checks.push('Entitlement removal denies new binary reads without deleting the published object');
  writeFileSync(new URL('./hr-storage-http-result.json',import.meta.url),JSON.stringify({passed:checks.length,checks,syntheticOnly:true,actualStorageHttp:true},null,2)+'\n');return checks;
 }

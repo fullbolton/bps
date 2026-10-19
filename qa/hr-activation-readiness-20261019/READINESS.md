@@ -63,3 +63,5 @@ transfer-http-result.json: gerçek yerel GoTrue parola oturumu + PostgREST ile d
 Tekrar kurulumu: BPS_LOCAL_BROWSER=1 BPS_HR_ACTIVATION_BROWSER=1 BPS_ACCESS_PREVIEW_ENABLED=true BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Hazırlık bayrakları yalnız yerel test için kullanılır.
 
 20 Ekim kapsam kabulü: scope-http-result.json gerçek yerel Auth/API ile departman filtresi, çalışan/belge ayrı yetkileri, açık ret ve aynı oturumda rol iptalini doğrular. Özel belge metadata erişimi test edildi; gerçek dosya indirme ve pilot hesap seçimi ayrı kalır.
+
+20 Ekim dosya baytı kabulü: ../hr-catalog-20261018/hr-storage-http-result.json yedi gerçek Storage HTTP grubu geçti. Çalışan+belge izinleri, açık ret, aynı tokenda kural iptali ve kullanım hakkı kaldırılması yeni dosya indirme isteklerinde doğrulandı. Sentetik JWT kullanıldı; GoTrue+tarayıcı dosya indirme birleşik kabulü değildir. Mevcut UI doğrudan authenticated download kullanır, imzalı URL üretmez.

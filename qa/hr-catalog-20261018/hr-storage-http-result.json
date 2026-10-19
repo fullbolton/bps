@@ -1,10 +1,13 @@
 {
-  "passed": 4,
+  "passed": 7,
   "checks": [
     "Unreserved upload denied; reserved upload and exact byte readback pass",
     "Foreign/anon read, overwrite and unverified finalize denied",
     "Trusted byte attestation publishes once; published cancellation denied",
-    "Verified pending cancellation blocks finalize/closure until HTTP deletion; retired path cannot return"
+    "Verified pending cancellation blocks finalize/closure until HTTP deletion; retired path cannot return",
+    "Published Storage bytes deny employee-read-only and download-only scoped roles",
+    "Matching scoped permissions read exact published bytes; explicit deny and role removal revoke new reads on same token",
+    "Entitlement removal denies new binary reads without deleting the published object"
   ],
   "syntheticOnly": true,
   "actualStorageHttp": true

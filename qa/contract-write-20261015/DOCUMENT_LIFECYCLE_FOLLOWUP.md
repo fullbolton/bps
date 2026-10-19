@@ -1894,3 +1894,10 @@ Production build sentetik ortam değerleriyle geçti; geçici yerel test ortamı
 Yerel GoTrue parola oturumu ve public PostgREST RPC'leriyle dört grup geçti: seçili departman dışında kayıt/sayfa bilgisi sızmaması; çalışan okuma yetkisinin tek başına özel evrak metadata erişimi vermemesi; çalışan ve belge kapsamlarının birlikte gerekmesi ve storage yolunun dönmemesi; belge açık ret kuralı ile çalışan okumanın bağımsız kalması; çalışan açık reddi ve rol kaldırılmasının aynı token üzerinde etkili olması.
 
 Kanıt: qa/hr-activation-readiness-20261019/scope-http-result.json. Tekrar: BPS_LOCAL_BROWSER=1 BPS_HR_SCOPE_HTTP=1 BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Test sentetik fixture ve özel evrak metadata RPC'si içindir; dosya baytlarının indirilmesi, imzalı URL süresi veya gerçek pilot hesapları kabul edilmiş sayılmaz. Koşu başarılı ve geçici ortam temizlendi. Ürün kodu/migration değişmedi; üretim yayını yapılmadı.
+
+
+## 20 Ekim — özel İK evrakı gerçek Storage bayt erişimi
+
+HR Storage HTTP kabulü 4 gruptan 7 gruba genişletildi ve tamamı geçti. Yayımlanmış PDF'nin yeni indirme istekleri için çalışan okuma ve belge indirme izinlerinin birlikte gerektiği; yalnız birinin yetersiz olduğu; açık belge reddi ve rol kurallarının kaldırılmasının aynı token üzerinde sonraki indirmeyi engellediği; modül kullanım hakkı kaldırılınca dosya silinmeden erişimin kesildiği doğrulandı. İzinli yanıtta gerçek içerik SHA-256 eşleşmesi kontrol edildi.
+
+Kanıt: qa/hr-catalog-20261018/hr-storage-http-result.json. Koşu: BPS_HR_STORAGE_ACCEPTANCE=1 BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Gerçek yerel Storage/PostgREST ve sentetik JWT kullanıldı; bu koşu GoTrue parola girişi veya tarayıcı indirme testi değildir. EmployeeDocuments mevcut kodu kullanıcı oturumuyla doğrudan download kullanır; imzalı URL üretmez. Önceden cihaza indirilmiş dosyanın geri alınması bu korumanın kapsamında değildir. Üretim yazımı/yayını veya yeni migration yok.
