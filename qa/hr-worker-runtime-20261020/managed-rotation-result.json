@@ -1,0 +1,17 @@
+{
+  "managedRotation": true,
+  "qaDockerAdapters": true,
+  "syntheticOnly": true,
+  "realFreshclam": true,
+  "realDaemonReplacement": true,
+  "realWorkerRecreation": true,
+  "strictIsolation": true,
+  "newEngineIdentity": true,
+  "pausePreserved": true,
+  "noClaimBeforeMeasurement": true,
+  "resumedClaim": true,
+  "realDatabase": false,
+  "emulatedDaemon": true,
+  "productionMainEntry": false,
+  "productionReady": false
+}

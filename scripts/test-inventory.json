@@ -836,5 +836,9 @@
   {
     "file": "scripts/hr-signature-stage.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-managed-rotation.test.mjs",
+    "suite": "application"
   }
 ]
