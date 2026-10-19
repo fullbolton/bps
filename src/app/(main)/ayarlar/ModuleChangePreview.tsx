@@ -19,7 +19,7 @@ type CommitCapability = {
 const moduleName = (key: string) => MODULE_CATALOG.find(module => module.key === key)!.name;
 
 /** Mounted only with a verified snapshot; the parent unmounts it on refresh/scope change. */
-export default function ModuleChangePreview({ context, commit }: { context: WorkspaceModuleContext; commit?: CommitCapability }) {
+export default function ModuleChangePreview({ context, commit, canEnable }: { context: WorkspaceModuleContext; commit?: CommitCapability; canEnable?: ModuleStates }) {
   const [attempt, setAttempt] = useState<ReturnType<typeof createModuleChangeAttempt> | null>(null);
   const locked = useRef(false);
   const [prepareError, setPrepareError] = useState(false);
@@ -52,13 +52,13 @@ export default function ModuleChangePreview({ context, commit }: { context: Work
     <fieldset disabled={!!attempt} className="grid gap-2 sm:grid-cols-2">
       <legend className="sr-only">Önizleme için modül seçimi</legend>
       {MODULE_CATALOG.map(module => <label key={module.key} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2">
-        <input type="checkbox" checked={draft[module.key]} onChange={event => {
-          if (locked.current) return;
+        <input type="checkbox" checked={draft[module.key]} disabled={!context.modules[module.key] && canEnable?.[module.key] === false} onChange={event => {
+          if (locked.current || (event.target.checked && canEnable?.[module.key] === false)) return;
           setPrepareError(false);
           setDraft(current => ({ ...current, [module.key]: event.target.checked }));
           setRequested(null);
         }} className="h-4 w-4 accent-blue-600" />
-        <span className="text-sm">{module.name}</span>
+        <span className="text-sm">{module.name}{!context.modules[module.key] && canEnable?.[module.key] === false && <span className="block text-xs text-slate-500">Şu anda etkinleştirilemiyor</span>}</span>
       </label>)}
     </fieldset>
     {changed.length > 0 ? <ul aria-label="Planlanan değişiklikler" className="text-sm text-slate-700">

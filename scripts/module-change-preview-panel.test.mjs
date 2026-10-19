@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {compile,driver,nodes,settle} from './helpers/component-driver.mjs';
 const catalog=[{key:'customers',name:'Müşteriler'},{key:'documents',name:'Belgeler'}];
 const context={actorId:'actor',tenantId:'A',configRevision:'7',modules:{customers:true,documents:true}};
-function setup(preview,commit) {
+function setup(preview,commit,canEnable,customContext=context) {
  const d=driver();
  const useScopedResource=compile('src/components/ui/useScopedResource.ts',d.hooks,{},'useScopedResource');
  const panel=compile('src/app/(main)/ayarlar/ModuleChangePreview.tsx',d.hooks,{
@@ -13,7 +13,7 @@ function setup(preview,commit) {
   '@/lib/services/workspace-modules':{previewWorkspaceModules:preview},
   '@/lib/supabase/client':{createClient:()=>({})},
  });
- const x={render(){const t=d.render(panel,{context,commit});d.flush();return t;},dispose:()=>d.dispose()};
+ const x={render(){const t=d.render(panel,{context:customContext,commit,canEnable});d.flush();return t;},dispose:()=>d.dispose()};
  x.change=(key,value)=>nodes(x.render()).filter(n=>n.type==='input')[catalog.findIndex(m=>m.key===key)].props.onChange({target:{checked:value}});
  x.click=name=>nodes(x.render()).find(n=>n.type==='button'&&n.props.children===name).props.onClick();
  return x;
@@ -72,4 +72,10 @@ test('blockers, dependencies and failed previews cannot prepare a save',async()=
   x.render();x.change('documents',false);x.click('Etkisini kontrol et');x.render();await settle();
   assert.ok(!nodes(x.render()).some(n=>n.props?.children==='Kaydetmeden önce onayla'));x.dispose();
  }
+});
+
+test('unallocated activation stays blocked even when its checkbox callback is invoked',()=>{
+ const x=setup(async()=>{},undefined,{customers:true,documents:false},{...context,modules:{customers:true,documents:false}});
+ let tree=x.render();assert.equal(nodes(tree).filter(n=>n.type==='input')[1].props.disabled,true);
+ x.change('documents',true);tree=x.render();assert.equal(nodes(tree).filter(n=>n.type==='input')[1].props.checked,false);x.dispose();
 });

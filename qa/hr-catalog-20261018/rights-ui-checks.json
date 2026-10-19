@@ -1,0 +1,17 @@
+{
+  "measuredAt": "2026-10-19T10:51:10.677440+00:00",
+  "applicationTests": 816,
+  "typecheck": "passed",
+  "build": "passed",
+  "browser": [
+    "Verified rights shown",
+    "HR remains preparing",
+    "Finance allocation revoked in disposable fixture; refresh shows missing right and disabled checkbox"
+  ],
+  "productionChanged": false,
+  "remaining": [
+    "Platform allocation UI",
+    "V2 full editor and preview",
+    "HR activation and HR1"
+  ]
+}
