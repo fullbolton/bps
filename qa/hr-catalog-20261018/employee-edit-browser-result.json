@@ -1,0 +1,23 @@
+{
+  "measuredAt": "2026-10-19T17:51:24.253890+00:00",
+  "syntheticOnly": true,
+  "checks": [
+    "Authenticated employee edit form loaded",
+    "Committed response dropped; exact retry succeeded with one receipt and revision 2",
+    "Concurrent revision change rejected stale draft",
+    "Refresh preserved MY-DRAFT and displayed OTHER-CHANGE",
+    "390x844 mobile save succeeded without horizontal overflow"
+  ],
+  "final": {
+    "revision": 4,
+    "code": "MY-DRAFT",
+    "receipts": 2
+  },
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390
+  },
+  "cleanup": "Fixture SIGTERM completed; disposable databases and servers cleaned; viewport reset; test tab closed",
+  "productionChanged": false
+}

@@ -46,7 +46,7 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    if(process.env.BPS_AUTH_RESTORE_HTTP_ONLY==='1')return;
   }
   const droppedHrResponses=new Set();
-  const hrFaultRoutes=new Set(['/rest/v1/rpc/hr_scoped_employee_create_v1','/rest/v1/rpc/hr_scoped_location_transfer_v1','/rest/v1/rpc/hr_access_activate_v1']);
+  const hrFaultRoutes=new Set(['/rest/v1/rpc/hr_employee_edit_v1','/rest/v1/rpc/hr_scoped_employee_create_v1','/rest/v1/rpc/hr_scoped_location_transfer_v1','/rest/v1/rpc/hr_access_activate_v1']);
   server=http.createServer((req,res)=>{
    if(req.method==='POST' && req.url.startsWith('/auth/v1/token')){
     try{syncAuthScope();}catch{res.writeHead(503);res.end('Synthetic Auth scope sync failed');return;}

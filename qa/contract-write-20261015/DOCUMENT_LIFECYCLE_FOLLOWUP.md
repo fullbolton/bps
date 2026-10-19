@@ -1626,3 +1626,10 @@ Sıradaki ürün paketi: İK-1 çalışan düzenleme/istihdam yaşam döngüsü,
 UI yazılanları kesin ret sonrası korur ve güncel kayıtla karşılaştırır; belirsiz sonuçta aynı komutu tekrarlar. Bu paket işe giriş/çıkış tarihi, departman değişikliği veya yeniden işe alma düzenlemesi değildir. Yeni ekran gerçek yerel tarayıcıda henüz kabul edilmedi; yayına hazır tamamlanmış ürün olarak değerlendirilmez.
 
 Doğrulama: 6 PostgreSQL kabul grubu (idempotency/eski sürüm/mükerrer kod/audit rollback/scoped yetki/bağlı ad/kapalı modül kontrolleri), 4 gerçek kaynak istemci sözleşmesi grubu; 849 mevcut uygulama testi, TypeScript, statik kontrol (0 hata, commit öncesi migration uyarısı) ve sentetik ortam production build geçti. Kanıt qa/hr-catalog-20261018/employee-edit-*-result.json. Canlı hâlâ 207 migration; 018 uygulanmadı, İK kapalı. Sonraki adım: tarayıcıda form kaydetme/ret/yenileme ve mobil kabul, ardından istihdam yaşam döngüsü paketi.
+
+
+## 19 Ekim — Çalışan düzenleme tarayıcı ve mobil kabulü tamamlandı
+
+Gerçek yerel Next + resmi Auth/PostgREST/Storage fixture'ında sentetik çalışan düzenlendi. İlk başarılı DB yanıtı proxy tarafından kaybedildi; UI alanları kilitledi ve aynı işlemi tekrar etti. SQL yalnız bir edit makbuzu ve revision=2 doğruladı. Sonra başka değişiklik simüle edildi; eski form HR_EDIT_STALE ile reddedildi. MY-DRAFT taslağı korundu, yenileme OTHER-CHANGE güncel kodunu gösterdi. Mobil 390x844 görünümde taslak yeniden kaydedildi; scrollWidth=390, taşma yok. Son SQL revision=4, iki edit makbuzu; aradaki bir revizyon sentetik eşzamanlı değişikliktir.
+
+Test proxy'sinin yanıt kaybı listesine hr_employee_edit_v1 eklendi. Fixture 29 HTTP kontrolünü geçti, SIGTERM ile geçici DB/Auth/Storage/Next kapandı. Tarayıcı boyutu sıfırlandı ve test sekmesi kapandı. Kanıt employee-edit-browser-result.json ve employee-edit-mobile.png. Üretim değişmedi: 207 migration; çalışan düzenleme 018 hâlâ yerel/GitHub. Sonraki paket istihdam dönemini kapatma/yeniden işe alma ve bağlı görevlendirmeleri koruma akışıdır.
