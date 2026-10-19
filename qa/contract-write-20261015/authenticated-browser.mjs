@@ -101,7 +101,7 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    writeFileSync(moduleRoute+'/page.tsx',readFileSync(new URL('../module-change-command-20261017/browser-panel.tsx',import.meta.url)));
   }
   const out=openSync('/tmp/bps-authenticated-next.log','w',0o600);
-  app=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--hostname','127.0.0.1','--port','3060'],{cwd:process.cwd(),env:{...process.env,NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3061',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon},stdio:['ignore',out,out]});closeSync(out);
+  app=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--hostname','127.0.0.1','--port','3060'],{cwd:process.cwd(),env:{...process.env,...(process.env.BPS_HR_PREVIEW_ENABLED==='true'?{SUPABASE_SERVICE_ROLE_KEY:service}:{}),NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3061',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon},stdio:['ignore',out,out]});closeSync(out);
   console.log('LOCAL_BROWSER_READY http://127.0.0.1:3060/login — synthetic document-qa@example.test');
   await new Promise(resolve=>{process.once('SIGTERM',resolve);process.once('SIGINT',resolve);app.once('exit',resolve);});
  }finally{if(moduleRouteCreated)rmSync(moduleRoute,{recursive:true});if(app){app.kill('SIGTERM');await new Promise(r=>app.exitCode!==null?r():app.once('exit',r));}if(server)await new Promise(r=>server.close(r));try{docker(['rm','-f',auth]);}catch{}if(authCreated)sql(`DROP DATABASE ${authDatabase} WITH (FORCE);`,'postgres');}

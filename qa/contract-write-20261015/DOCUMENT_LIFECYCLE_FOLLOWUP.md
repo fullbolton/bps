@@ -1739,3 +1739,18 @@ Dosyalı iptal önce kalıcı cleanup_requested işareti koyar; upload/attest/fi
 Gerçek geçici resmi Storage/PostgREST üzerinde 33 HTTP kontrolü geçti (29 mevcut + 4 İK grubu). Sentetik PDF upload/download bayt eşleşmesi, unreserved/foreign/anon/overwrite/unverified retleri, service attest sonrası tek publish, verified pending cancel→HTTP delete→cancelled→yeniden yükleme reddi ve kapatma engelinin yalnız temizlik sonrası kalkması doğrulandı. Geçici servis/DB temizlendi. Kanıt hr-storage-http-result.json. 8 upload SQL grubu, 6 finalize SQL grubu, 6 gerçek kaynak hizmet grubu, 849 mevcut uygulama testi, TypeScript ve production build geçti. Statik 0 hata/1 yeni migration uyarısı; diff temiz.
 
 Kalan: yükleme formu (dosya/başlık/dönem), aynı dosyayla kurtarma, yetkili indirme bağlantısı ve yeni route dahil gerçek tarayıcı/mobil kabul. Mevcut HTTP test route yerine doğrudan Storage/RPC katmanlarını test etti; bu ayrım korunur. Üretim yayını yok, son doğrulanmış canlı 207 migration/İK kapalı; 018–026 geliştirme dalında bekliyor.
+
+
+## 19 Ekim — İK PDF yükleme, kurtarma ve indirme tarayıcı kabulü
+
+Çalışanın özel evrak paneline PDF yükle formu eklendi: başlık, isteğe bağlı geçerlilik ve 10 MB sınırı; boyut dosyayı belleğe almadan kontrol edilir. Yeni belge mevcut son istihdam dönemine bağlanır, dönem tarihleri gösterilir. Kurtarmada ilk kaydın dönem/başlık/hash/boyutu korunur; başka dosya istemcide reddedilir. Belirsiz yanıtta aynı işlem kimliği kullanılır, form/kapatma kilitlenir. İptal niyeti için sunucunun kesin HR_UPLOAD_CANCELLED cevabında form kapatılabilir; bu son mesaj dalı ayrıca tarayıcıda denenmedi.
+
+PDF indir eylemi kullanıcı kapsamlı Storage download üzerinden çalışır; kalıcı veya paylaşılabilir signed URL üretilmez. Geçici blob adresi serbest bırakılır. Sentetik test harness'i İK açık yerel testte yalnız geçici service credential'ını Next doğrulayıcısına sağlar; üretim anahtarı kullanılmaz.
+
+Gerçek dosya seçici→multipart API→Storage→attest→finalize kabulü sırasında iki bağlantı kusuru bulundu ve düzeltildi: Next'in normalize ettiği hostname yerine request Host/protokol ile aynı-origin karşılaştırması; başarılı response'a eksik actor/tenant/employee envelope eklenmesi. İlk başarılı DB kaydı UI tarafından doğrulanamayınca form aynı komutla tekrarlandı; SQL tek belge doğruladı. İndirme gerçek browser download olayıyla tamamlandı ve baytları kaynak sentetik PDF ile aynı çıktı. İndirilen test dosyası kaldırıldı.
+
+Ayrı sentetik pending rezervasyonda farklı PDF reddedildi; doğru PDF ile mobil kurtarma tamamlandı. SQL yeni belge=1, kurtarılan belge=1, pending=0. 390x844 mobilde scrollWidth=390. Test sekmesi/viewport ve geçici servis/DB temizlendi. Kanıt hr-upload-browser-result.json ve hr-upload-mobile.png; fixtures/hr-upload.pdf ve hr-wrong.pdf tamamen sentetik. 849 uygulama testi, TypeScript, statik 0 hata/0 uyarı ve diff kontrolü geçti. DB migration değişmedi; yerel HTTP fixture önceki 33 kontrolü de geçti.
+
+Bu paket temel yeni yükleme, aynı dosyayla kurtarma ve yetkili indirmeyi uçtan uca bağlar. Üretim yayını yapılmadı; 018–026 migration zinciri ve sunucu env/yayın sırası üretim ön kontrolü gerektiriyor. Geçmiş istihdam dönemi seçimi, malware taraması, daha ayrıntılı belge türü politikaları ve yeni iptal mesaj dalının tarayıcı kabulü bu kanıtın kapsamı değildir. İK modülü üretimde açılmadı.
+
+Son kaynakla sentetik ortam production build de başarıyla tamamlandı.

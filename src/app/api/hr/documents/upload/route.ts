@@ -10,7 +10,10 @@ export const runtime='nodejs';
 export async function POST(request:Request){
  const headers={'Cache-Control':'no-store'};
  if(process.env.BPS_HR_PREVIEW_ENABLED!=='true')return NextResponse.json({ok:false},{status:404,headers});
- if(request.headers.get('origin')!==new URL(request.url).origin)return NextResponse.json({ok:false},{status:403,headers});
+ const origin=request.headers.get('origin');
+ let sameOrigin=false;
+ try{const source=new URL(origin??'');sameOrigin=source.host===request.headers.get('host')&&source.protocol===new URL(request.url).protocol;}catch{/* Invalid or missing origin is rejected. */}
+ if(!sameOrigin)return NextResponse.json({ok:false},{status:403,headers});
  try{
   const user=await createServerSupabaseClient(18000),auth=await user.auth.getUser();
   if(auth.error||!auth.data.user)return NextResponse.json({ok:false},{status:401,headers});
@@ -26,8 +29,9 @@ export async function POST(request:Request){
   // Never used for Storage, employee reads, or the final metadata write.
   const verifier=createClient<Database>(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:(input,init)=>fetch(input,{...init,signal:AbortSignal.timeout(18000)})}});
   const receipt=await executeHrDocumentUpload(user,verifier,{actor:auth.data.user.id,tenant:tenant.data,employee},input,await file.arrayBuffer());
-  return NextResponse.json({ok:true,receipt},{headers});
- }catch{
+  return NextResponse.json({ok:true,receipt:{schemaVersion:1,actorId:auth.data.user.id,tenantId:tenant.data,employeeId:employee,...receipt}},{headers});
+ }catch(error){
+  if((error as {message?:string})?.message==='HR_UPLOAD_CANCELLED')return NextResponse.json({ok:false,uncertain:false,code:'HR_UPLOAD_CANCELLED'},{status:409,headers});
   return NextResponse.json({ok:false,uncertain:true,error:'Yükleme sonucu doğrulanamadı. Aynı dosyayla yeniden deneyin veya bekleyen yüklemeyi iptal edin.'},{status:400,headers});
  }
 }

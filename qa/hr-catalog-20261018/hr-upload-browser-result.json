@@ -1,0 +1,22 @@
+{
+  "syntheticOnly": true,
+  "route": "/api/hr/documents/upload",
+  "newUpload": "PDF filechooser -> multipart route -> verification -> published",
+  "responseContractFix": "Initial 200 receipt lacked scope envelope; corrected then same intent replay produced one document",
+  "originFix": "Use request Host and protocol instead of normalized internal hostname",
+  "download": "Browser download bytes exactly equal synthetic fixture; downloaded temp removed",
+  "recovery": "Wrong PDF rejected before submission; correct PDF published reserved id on mobile",
+  "finalDatabase": {
+    "newDocuments": 1,
+    "recoveredDocuments": 1,
+    "pending": 0
+  },
+  "mobile": {
+    "width": 390,
+    "scrollWidth": 390
+  },
+  "cleanup": "test tab/viewport and disposable services/database cleaned",
+  "notExercisedInBrowser": [
+    "new cancelled-intent message branch"
+  ]
+}
