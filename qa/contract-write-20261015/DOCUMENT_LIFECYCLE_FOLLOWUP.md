@@ -1408,3 +1408,14 @@ Gerçek yerel GoTrue/PostgREST/Next tarayıcı kabulü: sentetik rol oluşturma;
 Sınır: bu bir HAZIRLIK ekranıdır ve bunu açıkça yazar. Mevcut İK/finans veri erişimine yeni kurallar henüz bağlanmadı; özel rol atama gerçek erişimi değiştirmez. Süreli istisna ve çalışan karar önizleme API'leri mevcut, fakat bu ekranda henüz formu yok. Geçmiş görünümü yalnız revizyon/zaman özetidir, önce/sonra ayrıntı okuyucuda durur; ayrıntı ve sayfalama UI'sı açık iştir. İK erişiminin uçtan uca geçişi ve HR hazır olma tamamlanmadı. Yeni migration/deploy üretime uygulanmadı.
 
 Son kontrol: sentetik localhost public değerleriyle production build geçti; önizleme bayrağı varsayılan kapalı bırakıldı.
+
+
+## 19 Ekim — kapsamlı İK okuyucusu ve sayfalama kabulü (yerel aday)
+
+20261019001000_hr_scoped_directory.sql: hr_scoped_directory_v1 özel rol politikasını/aktif istisnaları bir kez okur; şirket/kendisi/departman+iş yeri filtresini 51 kayıtlık sayfa sondasından ÖNCE uygular. Çıktı en çok 50 satır, hasMore yalnız izinli satırlardan. Açık ret izinleri bastırır. Hesap ilişkisi, güncel üyelik kimliği, tarihli departman ve iş yeri sunucudan bulunur; istemci scope/hesap/saat veremez. HR modülü ve kullanım hakkı zorunlu; özel rol yoksa eski yönetici/İK rolüne fallback yoktur. Maaş/belge alanları dönmez, kapsam dışı organizasyon seçicisi sızmaması için departments boş döner. Yazma için ayrıca yetkili seçenek sözleşmesi gerekecek.
+
+Gerçek geçici PostgreSQL'de 105 sentetik kayıt testi: ilk 50 kayıt kapsam dışı; kalan 55 kayıt eksiksiz 50+5 sayfada döner. Eksik konum, açık ret, aynı kişi bağlantısı ve bağlantıyı kesme, aktif istisna ve iptal, hak geri alma kontrol edildi. Gerçek yanıt uygulama HrDirectory parser'ından geçti. 4 yeni kontrol grubu + mevcut dizin 6 + erişim yönetimi 7 grup geçti (17 toplam). Kanıt scoped-directory-schema.mjs / scoped-directory-schema-result.json. Geçici DB'ler kaldırıldı; git diff --check temiz. Bu SQL-only paket için yeni tarayıcı/build veya genel frontend test sonucu iddia edilmez; önceki 838 testi yeniden çalıştırmış sayılmaz.
+
+Önemli geçiş sınırı: bu fonksiyonun authenticated/service_role EXECUTE izni BİLİNÇLİ KAPALI. Eski hr_directory_v1 ve yazarlar değiştirilmedi; yeni okuyucuyu alternatif açık endpoint olarak sunmak özel rol kısıtını güvenceye almaz. Mevcut hazırlık ekranının “gerçek erişim değişmez” ifadesi doğru kalır. Yeni fonksiyon sadece privileged disposable kabulünde gerçek JWT/tenant doğrulamasıyla çağrıldı; gerçek kullanıcıya özel rol/erişim verilmedi.
+
+Sıradaki bağlayıcı paket: eski okuyucuya erişimi kapatacak koordineli geçiş; oluşturma ve iş yeri yazıcılarında yeni kapsamın aynı transaction içinde denetimi; kapsamlı kullanıcı için departman seçenekleri; İK ekranı eylem görünürlüğü ve şirket erişim modu. Bunlar birlikte kabul edilmeden özel rol enforcement ve HR aktivasyonu açılmayacak. Süreli istisna UI'sı da hâlâ açık iştir. Üretime migration/deploy yok.

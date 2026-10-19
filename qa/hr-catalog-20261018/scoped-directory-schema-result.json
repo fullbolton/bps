@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-19T11:43:43.061Z",
+  "checks": [
+    "105 records: 50 excluded before pagination; authorized 55 returned as 50+5 without scope/count/department leakage",
+    "Explicit deny overrides company grants and missing location never matches selected scope",
+    "Self scope derives account link server-side; unlink immediately removes visibility",
+    "Active exception/revocation and entitlement removal immediately affect reads; no legacy fallback"
+  ],
+  "deployed": false,
+  "clientExecuteGranted": false
+}
