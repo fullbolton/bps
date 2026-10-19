@@ -1671,3 +1671,12 @@ Kalan: Excel ön kontrol tarayıcı/mobil kabulü; açık satır kararı + reviz
 UI belirsiz sonuçta kaynak/sütun/karar değişimini ve form kapatmayı engeller, aynı komutu tekrarlar. Kesin ret sonrası yeniden karşılaştırma ve seçim gerekir. Tamamlanınca listeyi yenileme yönlendirmesi görünür. Scoped İK rolüne yeni toplu yetki verilmedi; yönetici kontrolü sürer.
 
 5 geçici PostgreSQL commit kabul grubu, 2 commit istemci grubu ve önceki 5 import istemci grubu geçti; 849 mevcut uygulama testi geçti. TypeScript, statik (0 hata; yeni migration uyarısı) ve sentetik build kontrolü yapıldı. Ekran uçtan uca gerçek dosya/tarayıcı kabulü HENÜZ yapılmadı; bu paket tamamlanmış üretim özelliği sayılmaz. Sonraki: dosya yükleme→eşleme→ön kontrol→seçim→kayıt, stale/yanıt kaybı ve mobil kabul; ardından özel İK evrakları. Üretim değişmedi, son doğrulanmış 207 migration; 018–021 bekliyor. İK kapalı.
+
+
+## 19 Ekim — İK Excel aktarımı gerçek yerel tarayıcı kabulü
+
+Resmi Auth/PostgREST/Storage ve yerel Next üzerinde sentetik CSV dosyası dosya seçiciden okundu; sütunlar, yeni çalışan, ad değişikliği ve eksik kayıt ayrımı doğrulandı. Ön kontrolden sonra sentetik ad değişikliği yapıldı; eski token bütün aktarımı reddetti. Yeniden karşılaştırmada güncel ad gösterildi ve seçimler sıfırlandı. İlk başarılı commit cevabı proxy'de kaybettirildi; UI kaynak/sütun/seçim/kapatmayı kilitledi. Aynı komut tekrarında sonuç doğrulandı: 1 aktarım makbuzu, 2 çalışan, 2 istihdam; eksik satır oluşturulmadı.
+
+Aynı veriler XLSX olarak 390x844 mobil görünümde tekrar seçildi: iki satır Değişiklik yok, üçüncü Eksik bilgi; tüm seçimler ve kaydetme kapalı. scrollWidth=390. Satır metninde iki UX kusuru düzeltildi ve ekranda doğrulandı: değişmeyen ad iki kez/okla gösterilmiyor; eksik yeni ad için yanlış Ad korunacak yerine Ad soyad eksik deniyor. TypeScript, 5 import ve 2 commit istemci grubu geçti. SQL değişmedi; önceki 5 commit DB grubu ve 849 uygulama testi geçerlidir, bu tur yeniden çalıştırılmadı.
+
+Kanıt hr-import-browser-result.json, hr-import-mobile.png ve sentetik fixtures/employees.csv/.xlsx. Test sekmesi/viewport ve geçici servisler/DB temizlendi; üretim değişmedi. 018–021 hâlâ yayın ön kontrolünü bekler. Sıradaki ana İK-1 işi özel evrak erişimi/yükleme yaşam döngüsüdür; scoped İK toplu aktarımı, aday bağlantısı ve daha geniş dosya akışları ayrıca açıktır.

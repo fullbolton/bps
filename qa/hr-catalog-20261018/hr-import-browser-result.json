@@ -1,0 +1,39 @@
+{
+  "syntheticOnly": true,
+  "csvUpload": "passed",
+  "xlsxUpload": "passed",
+  "staleReview": "batch rejected after synthetic concurrent person rename; selections reset after comparison",
+  "lostResponse": "first successful commit response dropped; source/decisions/close locked; exact retry succeeded",
+  "finalDatabase": {
+    "importReceipts": 1,
+    "employees": 2,
+    "employmentPeriods": 2,
+    "createdCode": "QA-NEW",
+    "updatedCode": "QA-OLD",
+    "incompleteCodeNotCreated": "QA-MISSING"
+  },
+  "repeatXlsx": {
+    "statuses": [
+      "same",
+      "same",
+      "incomplete"
+    ],
+    "saveDisabled": true
+  },
+  "mobile": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390
+  },
+  "copyFixes": [
+    "Unchanged names no longer repeated with arrow",
+    "Missing new name labelled Ad soyad eksik"
+  ],
+  "validation": {
+    "typescript": "passed",
+    "importClientGroups": 5,
+    "commitClientGroups": 2
+  },
+  "fixtureCleaned": true,
+  "productionChanged": false
+}
