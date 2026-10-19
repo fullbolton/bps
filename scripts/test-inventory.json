@@ -736,5 +736,9 @@
   {
     "file": "scripts/hr-workplace.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/access-management.test.mjs",
+    "suite": "application"
   }
 ]

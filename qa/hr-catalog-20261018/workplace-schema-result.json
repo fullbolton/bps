@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T11:26:31.988Z",
+  "measuredAt": "2026-10-19T11:33:24.018Z",
   "checks": [
     "Private tables, disabled module and spoofed actor deny writes",
     "Location and assignment replay; duplicate names, overlapping dates and out-of-employment assignments rejected",

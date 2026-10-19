@@ -50,7 +50,7 @@ function validScope(x: unknown): boolean {
 function validRule(x: unknown, exception: boolean): boolean {
   if (!object(x) || !exact(x, ['capability', 'effect', 'scope', ...(exception ? ['startsAt', 'expiresAt', 'reason'] : [])])) return false;
   if (typeof x.capability !== 'string' || !Object.hasOwn(ACCESS_CAPABILITIES, x.capability)
-    || !['allow', 'deny'].includes(String(x.effect)) || !validScope(x.scope)) return false;
+    || typeof x.effect !== 'string' || !['allow', 'deny'].includes(x.effect) || !validScope(x.scope)) return false;
   return !exception || (instant(x.startsAt) && instant(x.expiresAt) && x.startsAt < x.expiresAt
     && typeof x.reason === 'string' && x.reason.trim().length > 0 && x.reason.length <= 500);
 }

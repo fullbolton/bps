@@ -1,0 +1,13 @@
+{
+  "measuredAt": "2026-10-19T11:33:05.157Z",
+  "checks": [
+    "All access tables private; spoofed actor and non-manager writes rejected",
+    "Revision, immutable replay and invalid rule/scope rollback verified",
+    "Single main role assigned; own/admin account and in-use role archive protected",
+    "Real SQL policy parses in TS; SQL and TS agree on closed modules, base grants, explicit deny, exact expiry and revocation",
+    "Selected scope intersection, missing location, same-record export prerequisite and self semantics agree",
+    "Recreated memberships do not inherit grants; preview loads server-owned record and hides contents; concurrent writers reject stale revision",
+    "Unassign/archive preserve contiguous audit and internal evaluator is inaccessible directly"
+  ],
+  "deployed": false
+}
