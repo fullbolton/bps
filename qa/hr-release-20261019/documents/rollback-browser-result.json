@@ -1,0 +1,22 @@
+{
+  "measuredAt": "2026-10-19T19:07:38.692774+00:00",
+  "sourceCommit": "f02edb04433daa85ccb69b64b740c1c1ccc7bce6",
+  "schemaThrough": "20261019002600",
+  "syntheticOnly": true,
+  "dependencyLockExactMatch": true,
+  "checks": [
+    "Login and dashboard with actual local Auth/PostgREST",
+    "Company team and module rights render",
+    "Catalog upgrade history parsed and displayed",
+    "HR preview=false displays 404",
+    "Daily operations disabled gate renders",
+    "Daily operations enabled: firm/day options, summary and empty plan load through server actions"
+  ],
+  "limits": [
+    "Next development runtime; not production build/deployment",
+    "No real employee data; no business writes in browser",
+    "Not exhaustive old-application regression"
+  ],
+  "cleanup": "Both disposable runs, source archives and browser tab removed",
+  "productionChanged": false
+}

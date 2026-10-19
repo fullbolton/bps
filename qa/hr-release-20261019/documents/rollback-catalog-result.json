@@ -1,0 +1,18 @@
+{
+  "measuredAt": "2026-10-19T19:03:13.712Z",
+  "checks": [
+    "All existing states and immutable audit receipts preserved; HR added disabled with separate upgrade event",
+    "Old receipt replays exactly; stale writes, new-key smuggling and premature HR activation rejected",
+    "Legacy command updates only known fields, records full catalog-2 history, and replays its ten-key response",
+    "Actual SQL mixed v1/v2 history accepted by real application parser without removing or renumbering events",
+    "Internal cross-company snapshot remains inaccessible; authenticated history remains scoped",
+    "New-company initialization starts directly on catalog 2 with HR disabled"
+  ],
+  "deployed": false,
+  "limits": [
+    "Released TypeScript parser with real local PostgreSQL and synthetic data",
+    "Not browser, deployment or production activation acceptance"
+  ],
+  "sourceCommit": "f02edb04433daa85ccb69b64b740c1c1ccc7bce6",
+  "schemaThrough": "20261019002600"
+}

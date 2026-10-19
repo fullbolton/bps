@@ -1,0 +1,17 @@
+{
+  "measuredAt": "2026-10-19T19:03:18.494Z",
+  "checks": [
+    "105 records: 50 excluded before pagination; authorized 55 returned as 50+5 without scope/count/department leakage",
+    "Explicit deny overrides company grants and missing location never matches selected scope",
+    "Self scope derives account link server-side; unlink immediately removes visibility",
+    "Active exception/revocation and entitlement removal immediately affect reads; no legacy fallback"
+  ],
+  "deployed": false,
+  "clientExecuteGranted": false,
+  "sourceCommit": "f02edb04433daa85ccb69b64b740c1c1ccc7bce6",
+  "schemaThrough": "20261019002600",
+  "limits": [
+    "Released TypeScript parser with real local PostgreSQL and synthetic data",
+    "Not browser, deployment or production activation acceptance"
+  ]
+}

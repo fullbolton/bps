@@ -1,0 +1,17 @@
+{
+  "measuredAt": "2026-10-19T19:03:18.575Z",
+  "sourceCommit": "f02edb04433daa85ccb69b64b740c1c1ccc7bce6",
+  "schemaThrough": "20261019002600",
+  "syntheticOnly": true,
+  "results": [
+    {
+      "kind": "catalog",
+      "checks": 6
+    },
+    {
+      "kind": "scoped-directory",
+      "checks": 4
+    }
+  ],
+  "browserVerified": false
+}

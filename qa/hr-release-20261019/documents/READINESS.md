@@ -33,3 +33,7 @@ Bu komutlar üretime bağlanmaz. Üretilen SQL dosyaları tek başına yayın ye
 Üretim 207 migration, İK kapalı, hr-private bucket yok; ölçümde bekleyen kilit/diğer aktif transaction yok. Public ve Storage katalog karşılaştırmasında çözülmemiş fark sıfır. Bilinen fixture yetkisi yerelde eşlendi, sekiz kesin CHECK parantez farkı önceki inceleme listesiyle doğrulandı. compare-baseline.mjs eşlenen tabana dokuz migration kurdu; 216 kayda ulaşıldı. Mevcut canlı fonksiyon tanımları ve ACL'leri değişmedi. Eski uygulamanın davranışsal geri dönüş kabulü henüz yapılmadı. Üretim dosya/çalışan içeriği alınmadı; yayın yok.
 
 API yöntemi: [Supabase salt okunur sorgu](https://supabase.com/docs/reference/api/v1-read-only-query). Canlı ölçüm bir anlık kanıttır; yayın anında tazelenmelidir.
+
+## Geri dönüş kabulü — 19 Ekim
+
+f02edb0 gerçek kaynaklarıyla 026 şemasında 10 PostgreSQL/istemci grubu ve yerel tarayıcı smoke geçti: giriş, dashboard, modül hakları/geçmişi, kapalı İK 404, açık günlük operasyon okuması. package-lock eşitliği doğrulandı. Kanıt rollback-contracts-result.json ve rollback-browser-result.json. Bu kapsam eski uygulamanın tüm özelliklerini veya production runtime'ını kapsamaz. Aday production build/env ve yayın anında güncel ön kontrol hâlâ zorunlu.

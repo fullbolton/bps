@@ -1781,3 +1781,14 @@ Public fonksiyon/hash/ACL, tablo/kolon/indeks/kısıt/tetikleyici/policy ve Stor
 Bu karşılaştırılmış tabana dokuz hash-doğrulamalı kurulum uygulandı: sentetik ledger 216; aktivasyon kapalı. Mevcut üretim fonksiyonlarının hiçbirinin imzası/gövde hash'i/ACL/owner bilgisi değişmedi. Bu yapısal uyumluluk kanıtıdır; eski uygulamanın davranışsal rollback testi sayılmaz. Geçici DB kaldırıldı. Kanıtlar documents/live-preflight.json, live-catalog.json, baseline-comparison.json ve compared-installation.json.
 
 Ön kontrol sorgusundaki istihdam tablo adı hr_employment_periods olarak düzeltildi ve hr_assignments boyut ölçümüne eklendi; güncel sorgu üretimde tekrar salt okunur çalıştırıldı. Kalan yayın kapısı: aday build/env ve eski uygulama davranışsal uyumluluğu, yayın anında ölçüm tazeleme, kontrollü SQL+uygulama ve canlı smoke. Üretime yazım/yayın yapılmadı.
+
+
+## 19 Ekim — Canlı sürümün yeni şemayla geri dönüş kabulü
+
+Yayımlanmış f02edb0 kaynakları git archive ile geçici klasöre çıkarıldı; güncel kaynak eski kodmuş gibi test edilmedi. Eski TypeScript geçmiş ve İK liste parser'ları yeni 026 dahil tam sentetik PostgreSQL şemasıyla çalıştırıldı. Modül yazımı/tekrar/idempotency, katalog geçmişi, kapsam ve ret kontrollerini içeren 6+4=10 grup geçti. Kanıt rollback-contracts-result.json ve iki ayrıntılı sonuç dosyası.
+
+Yerel tarayıcı harness'ine BPS_BROWSER_RELEASED_SOURCE=1 seçeneği eklendi. Yalnız yayın kaydındaki commit'in kaynak/config dosyalarını çıkarır; package-lock birebir eşleşmeden ortak bağımlılıkları kullanmaz; üretim env dosyalarını kopyalamaz. Preview açık veya enjekte modül test rotasıyla birlikte kullanımı reddeder. Test bitince kaynak klasörü ve servisler temizlenir.
+
+Eski uygulama gerçek yerel Auth/PostgREST ve 026 şemasıyla giriş, genel bakış, ekip/modül hakları, katalog güncelleme geçmişi ve İK preview kapalı 404 kontrolünü geçti. İlk koşuda günlük operasyon flag'i kapalı olduğu için kapalı durum doğrulandı; ikinci koşuda açık flag ile firma/gün seçimi, server action yanıtları, özet ve boş günlük plan yüklendi. İş kaydı yazılmadı. Test sekmesi ve iki geçici ortam temizlendi. TypeScript/diff kontrolü geçti. Kanıt rollback-browser-result.json, rollback-modules.png, rollback-operations.png.
+
+Bu kabul belirli geri dönüş akışlarını kapsar; tüm eski uygulama regresyonu veya production build testi değildir. Canlıya dönülecek hedef bu paket için f02edb0 olarak değerlendirilir; eski 6300bee hedefine kör dönüş yapılmaz. Üretim yayını/İK aktivasyonu yok. Sonraki kapı: aday production build/env doğrulaması, yayın anında ledger/katalog ölçümünü tazeleme, korumalı kurulum ve canlı smoke.
