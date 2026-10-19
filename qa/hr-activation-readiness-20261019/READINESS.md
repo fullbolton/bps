@@ -52,3 +52,10 @@ Bu iki akışın ortak onay altyapısı tasarlanabilir; izin bakiyesi ile satın
 transfer-http-result.json: gerçek yerel GoTrue parola oturumu + PostgREST ile dört transfer kabul grubu geçti (stale ret, güncel revizyon, idempotent tekrar, mevcut oturumda rol iptali). Bu, sentetik tarayıcı kabulünü tamamlayıcı ayrı API kanıtıdır; birleşik tarayıcı uçtan uca kabulü değildir. Üretimde pilot açılmadı.
 
 20 Ekim sonraki kabul: transfer-browser-result.json ile transferin gerçek uygulama + GoTrue + PostgREST birleşik tarayıcı kabulü tamamlandı. Kesin ret, yenileme ve başarı DB tarih kontrolüyle doğrulandı. Bu sonuç yalnız transfer içindir; aktivasyon/pilot kapsamı halen açıktır.
+
+20 Ekim aktivasyon ek kabulü: activation-http-result.json ile gerçek yerel Auth + PostgREST dört grup geçti. Eksik şart, stale token, eşzamanlı tekrar ve ikinci geçiş reddi doğrulandı. Üretimde teknik kabul kapısı açılmadı.
+
+### Kalan pilot sınırı (güncel)
+- Teknik: aktivasyon ekranının gerçek Auth/API ile birleşik tarayıcı kabulü; pilotta kapsam dışı görünürlük ve belge/dışa aktarma yetkilerinin hesap bazında kontrolü.
+- Ürün kararı: pilot şirket/hesaplar ve departman/iş yeri kapsamları; özel PDF politikası. Gerçek hesaplara tahmini kapsam atanmaz.
+- Sonraki geliştirme: izin ve satın alma yönetici onayları; bu paketlerin tamamlandığı veya canlıda olduğu varsayılmaz.

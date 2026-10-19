@@ -1,0 +1,13 @@
+{
+  "measuredAt": "2026-10-19T22:06:29.141Z",
+  "checks": [
+    "Real manager password session sees missing role and closed release gate; blocked activation writes no receipt",
+    "Changed gate and policy revision invalidate reviewed token over actual HTTP; mode remains legacy",
+    "Concurrent HTTP activation and exact retry return one receipt and one scoped transition",
+    "Activated preflight disables repeat transition; new command and changed payload reuse rejected"
+  ],
+  "actualGoTrue": true,
+  "actualPostgrest": true,
+  "syntheticOnly": true,
+  "productionActivation": false
+}

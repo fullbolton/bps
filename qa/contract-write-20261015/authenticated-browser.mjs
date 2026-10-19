@@ -50,6 +50,11 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
   const loginPassword='Synthetic-BPS-Only-2026!';
   const update=await fetch(authBase+'/admin/users',{method:'POST',headers:{Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify({id:id(11),password:loginPassword,email:'document-qa@example.test',email_confirm:true})});
   if(!update.ok)throw Error('Synthetic Auth user setup failed: '+await update.text());
+  if(process.env.BPS_HR_ACTIVATION_HTTP==='1'){
+   const {acceptActivation}=await import('../hr-activation-readiness-20261019/activation-http.mjs');
+   await acceptActivation({sql,id,authBase,restBase,loginPassword,syncAuthScope});
+   return;
+  }
   if(process.env.BPS_HR_TRANSFER_HTTP==='1'){
    const {acceptTransfer}=await import('../hr-activation-readiness-20261019/transfer-http.mjs');
    await acceptTransfer({sql,id,authBase,restBase,loginPassword,syncAuthScope});

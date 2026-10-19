@@ -1871,3 +1871,10 @@ Tekrar komutu: BPS_LOCAL_BROWSER=1 BPS_HR_TRANSFER_HTTP=1 BPS_RELEASE_BARRIER=1 
 Gerçek uygulama + yerel GoTrue parola girişi + PostgREST + PostgreSQL birlikte tarayıcıdan doğrulandı. Sentetik İK hesabı çalışan dizinini ve transfer seçeneklerini açtı. Onay formu açıkken fixture yetki revizyonu artırıldı: kayıt reddedildi. Yenileme eski komutu ve mesajı temizledi; hedef tekrar seçilip onaylandıktan sonra başarı mesajı görüldü ve panel kapandı. DB kontrolü iki atama, yalnız bir aktif kayıt ve kesintisiz tarih aralığını doğruladı.
 
 Kanıt: qa/hr-activation-readiness-20261019/transfer-browser-result.json. Yeniden kurulum: BPS_LOCAL_BROWSER=1 BPS_HR_TRANSFER_BROWSER=1 BPS_HR_PREVIEW_ENABLED=true BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Test tarayıcısı ve geçici ortam kapatıldı. Bu kabul transfer akışına aittir; tüm İK modülü veya üretim pilot kabulü değildir. Pilot hesap/kapsam seçimi, özel PDF politikası ve aktivasyonun gerçek pilot kabulü açık kalır. Üretimde değişiklik/yayın yok.
+
+
+## 20 Ekim — gerçek Auth oturumuyla aktivasyon kabulü
+
+Gerçek yerel GoTrue yönetici parola oturumu ve PostgREST üzerinden dört grup geçti: eksik İK rolü/kapalı teknik kabulde geçişin ve işlem kaydının engellenmesi; teknik kabul veya politika revizyonu değişince eski token reddi ve legacy modunun korunması; iki eşzamanlı HTTP isteği ve aynı komut tekrarında tek scoped geçiş/tek makbuz; devreye alınmış durumda yeni geçişin ve değiştirilmiş komut tekrarının reddi. Gerçek TypeScript ön kontrol/makbuz ayrıştırıcıları kullanıldı.
+
+Kanıt: qa/hr-activation-readiness-20261019/activation-http-result.json. Tekrar komutu: BPS_LOCAL_BROWSER=1 BPS_HR_ACTIVATION_HTTP=1 BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Koşu ve fixture temizliği başarılı. Bu yerel API kabulüdür; gerçek üretim aktivasyonu veya aktivasyon ekranının birleşik tarayıcı kabulü değildir. Mevcut sentetik tarayıcı checklist kabulü ayrı kanıttır. Üretim kodu/migration değişmedi ve yayın yapılmadı.
