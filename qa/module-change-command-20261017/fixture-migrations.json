@@ -33,5 +33,6 @@
   "20261019000200_module_catalog_v2_storage.sql",
   "20261019000300_module_entitlements.sql",
   "20261019000400_platform_module_rights_reader.sql",
-  "20261019000500_hr_organization_foundation.sql"
+  "20261019000500_hr_organization_foundation.sql",
+  "20261019000600_hr_directory_commands.sql"
 ]

@@ -1,0 +1,12 @@
+{
+  "measuredAt": "2026-10-19T11:11:42.564Z",
+  "checks": [
+    "Closed module, actor spoof and foreign company are denied",
+    "Operations/accounting/viewer denied; HR role can create within company",
+    "Atomic employee/person/period/assignment; exact replay and conflict protection; actual SQL response passes client parser",
+    "Invalid department/date/extra payload rollback completely without orphan identity",
+    "Keyset pagination returns all 52 rows across bounded non-overlapping pages",
+    "Revoked entitlement blocks reads and retries; command payloads remain private"
+  ],
+  "deployed": false
+}

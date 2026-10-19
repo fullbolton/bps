@@ -1331,3 +1331,20 @@ Gerçek geçici PostgreSQL şemasında 7 kontrol grubu geçti: özel erişim/no-
 Bu paket yalnız veri çekirdeğidir. Revizyon/idempotent makbuzlu yetkili HR yazar/okuyucular, HR-aware merge, özel isim düzenleme, çalışan/organizasyon ekranları, Excel ve özel belgeler henüz tamamlanmadı. HR aktivasyonu kapalı kalır. Yeni arayüz olmadığı için bu pakette tarayıcı kabulü yapılmadı. Üretim şeması ölçülmedi ve yayın yapılmadı. Sıradaki paket: bu tablolara rol+modül denetimli komutlar ve çalışan/departman ekranları; ardından yönetici onayı/izin akışı.
 
 Genel uygulama regresyonu: 821/821 geçti. Uygulama kaynak kodu değişmediği için yeni frontend build/tarayıcı sonucu iddia edilmez.
+
+
+## 19 Ekim — İK çalışan/departman kayıt API'leri ve ilk ekran
+
+20261019000600_hr_directory_commands.sql: hr_assert_access HR modülü+hak+doğrulanmış tenant+İK/yönetici rolünü kontrol eder. Kayıt komutu config→profile→tenant kilidinden sonra erişimi tekrar doğrular; kişi, personel, ilk istihdam dönemi ve isteğe bağlı departman/pozisyon tek transaction içinde kaydedilir. Departman oluşturma aynı komut defterini kullanır. Aynı actor/tenant/command ve aynı payload aynı makbuzu döndürür; farklı payload reddedilir. Komut payload/makbuzları RLS ve kapalı doğrudan izinlerle korunur. Yeni çalışan bu ilk sürümde HR-only kişidir; mevcut adayı işe alma/merge henüz bu ekranda yoktur.
+
+hr_directory_v1 50 satırlık UUID keyset sayfalama ve açık departman listesini döndürür; 1000'den fazla departmanda eksik liste sunmak yerine durur. Tarihler ve aktif organizasyon günü Europe/Istanbul üzerinden hesaplanır. İstemci scope/alan/tarih/tekillik/sayfa sözleşmesini ve yazma makbuzunu doğrular. Yanlış/eksik yanıt başarı sayılmaz.
+
+/insan-kaynaklari ilk ekranı: çalışan listesi, yeni çalışan, yeni departman, personel kodu/başlangıç ve isteğe bağlı departman/pozisyon; ilk/sonraki sayfa; yenileme ve boş/hata halleri. Form açıkken uygulama içi gezinme ve sekme kapanışı korunur. Belirsiz yazmada alanlar kilitlenir, aynı komutla tekrar denenir. Sayfa BPS_HR_PREVIEW_ENABLED=true sunucu bayrağı gerektirir; varsayılan erişim 404. Bu bayrak tek başına veri erişimi vermez: SQL HR etkinliği/hakkı/rolü ayrıca gerekir. Üretim HR key guard ve hazır değil durumu aynen korunur; menüye genel İK bağlantısı eklenmedi.
+
+824/824 uygulama testi, gerçek geçici PostgreSQL'de 6 grup geçti: kapalı modül/yanlış actor/tenant; operasyon/muhasebe/görüntüleyici reddi ve İK yazma; atomik kayıt/idempotency; geçersiz tarih/departmanda orphan bırakmayan rollback; 52 kaydın iki sayfada eksiksiz gelmesi; hak geri alınca okuma ve tekrar yazmanın reddi. Gerçek SQL yanıtı actual TS parser ile doğrulandı.
+
+Gerçek yerel GoTrue/PostgREST/Next tarayıcısında önce kapalı modülün listeyi vermediği görüldü. Yalnız disposable fixture DB'sinde HR guard kısa süre devre dışı bırakılıp HR=true yazıldı ve guard tekrar açıldı; kaynak/üretim koruması değiştirilmedi. Sentetik departman ve QA-HR-001 çalışanı formdan kaydedildi, yenilemede ad/kod/tarih/departman/pozisyon korundu. Browser date fill React state'i güncellemediği için yerel tarih alanı giriş API'si kullanıldı; gerçek kayıt başarılı. Kanıt hr-directory-browser.png ve directory-schema-result.json. Test sunucusu ve DB temizlendi.
+
+Kalan: çalışan detayı/düzenleme, tarihli yönetici atama ve yeniden işe giriş/ayrılış komutları, adaydan ortak kimliğe geçiş/HR-aware merge, filtre/arama, Excel ve özel belgeler; v2 modül açma ve HR hazır olma teslimi. İK-1 bütünü tamamlanmadı. Üretime yayın, gerçek kişi oluşturma veya gerçek HR aktivasyonu yapılmadı.
+
+Son kontrol: TypeScript ve sentetik localhost public değerlerle production build geçti.

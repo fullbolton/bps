@@ -1392,6 +1392,14 @@ export interface Database {
         Args: {p_actor: string; p_tenant: string};
         Returns: Json;
       };
+      hr_directory_v1: {
+        Args: {p_actor: string; p_tenant: string; p_after?: string};
+        Returns: Json;
+      };
+      hr_create_record_v1: {
+        Args: {p_actor: string; p_tenant: string; p_command: string; p_payload: Json};
+        Returns: Json;
+      };
       platform_module_rights_v1: {
         Args: {p_actor: string; p_tenant: string};
         Returns: Json;

@@ -724,5 +724,9 @@
   {
     "file": "scripts/single-company.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-directory.test.mjs",
+    "suite": "application"
   }
 ]
