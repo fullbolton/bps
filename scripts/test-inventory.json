@@ -744,5 +744,9 @@
   {
     "file": "scripts/access-settings.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-scoped-create.test.mjs",
+    "suite": "application"
   }
 ]

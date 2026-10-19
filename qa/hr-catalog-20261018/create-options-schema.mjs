@@ -1,0 +1,46 @@
+import {execFileSync} from 'node:child_process';
+import {readFileSync,writeFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-migrations.mjs';
+import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
+const {parseHrCreateOptions,mergeHrCreateOptions}=await importActualTypeScript(new URL('../../src/lib/services/hr-scoped-create.ts',import.meta.url));
+const server='supabase_db_bps-supabase-acceptance',db=`bps_hr_options_${process.pid}`;
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const sql=(q,d=db)=>execFileSync('docker',['exec','-i',server,'psql','-X','-qAt','-U','postgres','-d',d,'-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();
+const rule=(scope,effect='allow')=>({capability:'hr.employees.read',effect,scope});
+const setRules=rules=>sql(`UPDATE company_access_roles SET rules='${JSON.stringify(rules)}' WHERE id='${id(9990)}'`);
+let created=false;const checks=[];
+const call=(payload,command=9900,revision=1)=>JSON.parse(sql(`BEGIN;SET LOCAL request.jwt.claims='{"sub":"${id(11)}","active_tenant_id":"${id(1)}"}';SELECT hr_scoped_employee_create_v1('${id(11)}','${id(1)}','${id(command)}',${revision},'${JSON.stringify(payload)}');COMMIT;`).split('\n').at(-1));
+const base={name:'Synthetic employee',code:'SC1',startsOn:'2026-01-01',departmentId:id(9992),position:'Synthetic',locationId:id(9993)};
+const selected={kind:'selected',departmentIds:[id(9992)],locationIds:[id(9993)]};
+const grants=scope=>[rule(scope),{...rule(scope),capability:'hr.employees.create'}];
+const fails=(fn,message)=>assert.throws(fn,e=>String(e.stderr).includes(message));
+try {
+ sql(`CREATE DATABASE ${db} TEMPLATE bps_module_chain_20261005`,'postgres');created=true;
+ for(const f of loadFixtureMigrations())sql(readFileSync(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
+ assert.equal(sql("SELECT has_function_privilege('authenticated','hr_scoped_employee_create_v1(uuid,uuid,uuid,bigint,jsonb)','EXECUTE')"),'f');
+ fails(()=>call(base),'HR_FORBIDDEN');
+ sql(`ALTER TABLE tenant_module_settings DISABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='hr';ALTER TABLE tenant_module_settings ENABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_entitlements SET granted=true WHERE tenant_id='${id(1)}' AND module_key='hr';INSERT INTO company_access_state VALUES('${id(1)}',1);INSERT INTO company_access_roles(id,tenant_id,name,rules) VALUES('${id(9990)}','${id(1)}','Synthetic scoped writer','[]');INSERT INTO company_access_assignments SELECT tenant_id,user_id,id,'${id(9990)}' FROM tenant_memberships WHERE tenant_id='${id(1)}' AND user_id='${id(11)}';INSERT INTO hr_departments(id,tenant_id,name) VALUES('${id(9992)}','${id(1)}','Synthetic Dept');INSERT INTO hr_work_locations(id,tenant_id,name) VALUES('${id(9993)}','${id(1)}','Synthetic Office')`);
+
+ const options=(after=null)=>JSON.parse(sql(`BEGIN;SET LOCAL request.jwt.claims='{"sub":"${id(11)}","active_tenant_id":"${id(1)}"}';SELECT hr_scoped_create_options_v1('${id(11)}','${id(1)}',${after?`'${after}'`:'NULL'});COMMIT;`).split('\n').at(-1));
+ assert.equal(sql("SELECT has_function_privilege('authenticated','hr_scoped_create_options_v1(uuid,uuid,text)','EXECUTE')"),'f');
+ setRules(grants(selected));const page=parseHrCreateOptions(options(),id(11),id(1));assert.equal(page.options.length,1);assert.equal(page.options[0].departmentId,id(9992));assert.equal(page.options[0].locationId,id(9993));assert.equal(page.canCreateFuture,false);
+ call(base);checks.push('Only exact authorized department/location pair returned and accepted by actual writer');
+ setRules([rule(selected)]);assert.equal(options().options.length,0);
+ setRules(grants({kind:'self'}));assert.equal(options().options.length,0);
+ setRules([...grants(selected),rule(selected,'deny')]);assert.equal(options().options.length,0);
+ checks.push('Read-only, self-only and explicit deny never expose creation choices');
+ let batch='';for(let n=1;n<=55;n++)batch+=`INSERT INTO hr_work_locations(id,tenant_id,name) VALUES('${id(11000+n)}','${id(1)}','Synthetic office ${n}');`;sql(batch);
+ const locations=[id(9993),...Array.from({length:55},(_,i)=>id(11001+i))];
+ setRules(grants({kind:'selected',departmentIds:[id(9992)],locationIds:locations}));
+ const first=parseHrCreateOptions(options(),id(11),id(1));assert.equal(first.options.length,50);assert.equal(first.hasMore,true);
+ const second=parseHrCreateOptions(options(first.options.at(-1).key),id(11),id(1));assert.equal(second.options.length,6);assert.equal(second.hasMore,false);assert.equal(mergeHrCreateOptions(first,second).options.length,56);
+ assert.ok([...first.options,...second.options].every(x=>x.departmentId===id(9992)&&x.locationId!==null));
+ checks.push('56 authorized pairs paginate 50+6 with no null or duplicate options');
+ setRules([...grants({kind:'company'}),rule({kind:'selected',departmentIds:[],locationIds:[id(9993)]},'deny')]);
+ const company=options();assert.equal(company.canCreateFuture,true);assert.ok(company.options.every(x=>x.locationId!==id(9993)));assert.equal(company.options[0].departmentId,null);assert.equal(company.options[0].locationId,null);
+ fails(()=>options('bad'),'HR_CURSOR');
+ sql(`UPDATE tenant_module_entitlements SET granted=false WHERE tenant_id='${id(1)}' AND module_key='hr'`);fails(()=>options(),'HR_MODULE_CLOSED');
+ checks.push('Company null choices and future read flag are explicit; deny, invalid cursor and module revocation enforced');
+ writeFileSync(new URL('./create-options-schema-result.json',import.meta.url),JSON.stringify({measuredAt:new Date().toISOString(),checks,deployed:false,clientExecuteGranted:false},null,2)+'\n');console.log(`PASS ${checks.length} create options groups`);
+} finally {if(created)sql(`DROP DATABASE ${db} WITH(FORCE)`,'postgres');}

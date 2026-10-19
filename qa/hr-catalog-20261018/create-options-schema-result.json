@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-19T11:51:58.837Z",
+  "checks": [
+    "Only exact authorized department/location pair returned and accepted by actual writer",
+    "Read-only, self-only and explicit deny never expose creation choices",
+    "56 authorized pairs paginate 50+6 with no null or duplicate options",
+    "Company null choices and future read flag are explicit; deny, invalid cursor and module revocation enforced"
+  ],
+  "deployed": false,
+  "clientExecuteGranted": false
+}

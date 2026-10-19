@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T11:48:41.081Z",
+  "measuredAt": "2026-10-19T11:52:20.074Z",
   "checks": [
     "Department and location intersection authorizes atomic person/employment/assignments; retry creates exactly one visible employee",
     "Explicit deny, missing read prerequisite, self-only and revoked access reject writes and receipt replay",
