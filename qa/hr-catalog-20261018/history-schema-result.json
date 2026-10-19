@@ -1,6 +1,6 @@
 {
-  "baseSource": "f6664311561b44f7805b9f043d4c9fab838663a7",
-  "measuredAt": "2026-10-19T10:00:17.279Z",
+  "baseSource": "88b0e2c0b37170c5f1947c4de05605e0deae9fc3",
+  "measuredAt": "2026-10-19T10:41:06.753Z",
   "migration": "20261019000100_module_history_catalog_versions.sql",
   "checks": [
     "Existing v1 response, states, revisions, command receipts and hashes unchanged",
@@ -12,14 +12,7 @@
   "limits": [
     "Synthetic local PostgreSQL clone, not production preflight",
     "Catalog remains v1; no HR activation or v2 write command",
-    "UI service connected to v2 reader; actual SQL response validated by application parser, HTTP/browser acceptance pending"
+    "New reader not yet connected to UI; no HTTP/browser acceptance"
   ],
-  "deployed": false,
-  "applicationTests": {
-    "tests": 798,
-    "pass": 798,
-    "fail": 0
-  },
-  "typecheck": "passed",
-  "build": "passed with synthetic localhost public configuration"
+  "deployed": false
 }

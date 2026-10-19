@@ -1388,6 +1388,10 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      current_workspace_modules_v2: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
       current_workspace_context: {
         Args: Record<string, never>;
         Returns: Json;

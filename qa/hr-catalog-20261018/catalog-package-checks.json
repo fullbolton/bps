@@ -1,0 +1,17 @@
+{
+  "measuredAt": "2026-10-19T10:41:36.395343+00:00",
+  "applicationTests": 808,
+  "actualSchemaGroups": 11,
+  "tsc": "passed",
+  "build": "passed after stopping concurrent local dev server",
+  "browser": [
+    "Actual catalog upgrade plus bootstrap shown",
+    "Finance disable preview succeeded without saving"
+  ],
+  "productionChanged": false,
+  "remaining": [
+    "Entitlement-aware HR activation",
+    "V2 full edit and preview",
+    "Single-company UX and HR1"
+  ]
+}

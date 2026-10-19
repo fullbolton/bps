@@ -13,7 +13,7 @@ const call=(version,actor=11,tenant=1)=>JSON.parse(sql(`BEGIN;SET LOCAL request.
 const checks=[];let created=false;
 try {
  sql(`CREATE DATABASE ${db} TEMPLATE bps_module_chain_20261005`,'postgres');created=true;
- for(const f of loadFixtureMigrations().filter(f=>f!==migration))sql(readFileSync(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
+ for(const f of loadFixtureMigrations().filter(f=>f<migration))sql(readFileSync(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
  const initial=call(1).context;
  sql('GRANT EXECUTE ON FUNCTION public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb) TO authenticated');
  const desired={...initial.modules,finance:!initial.modules.finance};

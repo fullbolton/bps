@@ -28,9 +28,10 @@ export default function ModuleChangeHistory({context}:{context:WorkspaceModuleCo
     <button type="button" onClick={()=>window.location.replace("/ayarlar?bolum=moduller")} className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3 font-medium">Sayfayı yenile</button>
    </div>}
    {resource.data&&!resource.data.updateRequired&&<ol className="divide-y divide-slate-100">{resource.data.entries.map(entry=><li key={entry.revision} className="py-3">
-    <p className="text-sm font-medium text-slate-900">{entry.kind==='bootstrap'?'Çalışma alanı oluşturuldu':entry.actorName}</p>
+    <p className="text-sm font-medium text-slate-900">{entry.kind==='bootstrap'?'Şirket modülleri oluşturuldu':entry.kind==='catalog_upgrade'?'Modül altyapısı güncellendi':entry.actorName}</p>
     <time dateTime={entry.createdAt} className="text-xs text-slate-500">{new Intl.DateTimeFormat('tr-TR',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Istanbul'}).format(new Date(entry.createdAt))}</time>
-    {entry.kind==='settings'&&<ul className="mt-2 space-y-1 text-sm text-slate-700">{entry.changes.map(change=><li key={change.key}>{MODULE_CATALOG.find(m=>m.key===change.key)!.name}: {change.enabled?'Açıldı':'Kapatıldı'}</li>)}</ul>}
+    {entry.kind==='catalog_upgrade'&&<p className="mt-2 text-sm text-slate-600">İnsan Kaynakları seçeneği eklendi. Henüz etkinleştirilmedi.</p>}
+    {entry.kind==='settings'&&<ul className="mt-2 space-y-1 text-sm text-slate-700">{entry.changes.map(change=><li key={change.key}>{change.key==='hr'?'İnsan Kaynakları':MODULE_CATALOG.find(m=>m.key===change.key)!.name}: {change.enabled?'Açıldı':'Kapatıldı'}</li>)}</ul>}
    </li>)}</ol>}
   </div>}
  </section>;
