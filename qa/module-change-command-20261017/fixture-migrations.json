@@ -38,5 +38,6 @@
   "20261019000700_hr_work_locations_and_accounts.sql",
   "20261019000800_custom_access_roles.sql",
   "20261019000900_access_editor_options.sql",
-  "20261019001000_hr_scoped_directory.sql"
+  "20261019001000_hr_scoped_directory.sql",
+  "20261019001100_hr_scoped_employee_create.sql"
 ]

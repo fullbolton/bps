@@ -1419,3 +1419,16 @@ Gerçek geçici PostgreSQL'de 105 sentetik kayıt testi: ilk 50 kayıt kapsam d�
 Önemli geçiş sınırı: bu fonksiyonun authenticated/service_role EXECUTE izni BİLİNÇLİ KAPALI. Eski hr_directory_v1 ve yazarlar değiştirilmedi; yeni okuyucuyu alternatif açık endpoint olarak sunmak özel rol kısıtını güvenceye almaz. Mevcut hazırlık ekranının “gerçek erişim değişmez” ifadesi doğru kalır. Yeni fonksiyon sadece privileged disposable kabulünde gerçek JWT/tenant doğrulamasıyla çağrıldı; gerçek kullanıcıya özel rol/erişim verilmedi.
 
 Sıradaki bağlayıcı paket: eski okuyucuya erişimi kapatacak koordineli geçiş; oluşturma ve iş yeri yazıcılarında yeni kapsamın aynı transaction içinde denetimi; kapsamlı kullanıcı için departman seçenekleri; İK ekranı eylem görünürlüğü ve şirket erişim modu. Bunlar birlikte kabul edilmeden özel rol enforcement ve HR aktivasyonu açılmayacak. Süreli istisna UI'sı da hâlâ açık iştir. Üretime migration/deploy yok.
+
+
+## 19 Ekim — kapsamlı çalışan oluşturma ve atomik iş yeri ataması (yerel aday)
+
+20261019001100_hr_scoped_employee_create.sql: yeni özel rol yazıcısı, kişinin adı/kodu/istihdam başlangıcı ile departman ve şirketin kendi iş yerini tek transaction içinde oluşturur. Doğrulanmış actor/tenant, config→profile→tenant→üyelik kilidi, read committed ve 5 saniye kilit sınırı; şirket erişim revizyonu; işlem türüne bağlı idempotent komut makbuzu. Client accountId gönderemez, yeni çalışan kendisi kapsamına otomatik bağlanmaz. hr.employees.create ve aynı kayda read şartı, açık ret ve modül hakkı her çağrıda (tekrar dahil) denetlenir. Eski rol fallback yoktur.
+
+Gelecek başlangıç tarihli çalışan, bugün departman/iş yeri ataması aktif olmadığından, mevcut boş kapsamı da okuyabilen kullanıcı tarafından oluşturulabilir. Böylece kapsamlı oluşturucunun kaydettiği kişinin listeden kaybolması engellenir. Kapsam dışı/eksik iş yeri reddedilir; varlık doğrulaması yetkiden sonra yapılır. Geçersiz tarih, bulunmayan organizasyon, mükerrer kod veya eski revizyon hiçbir yarım kişi/dönem/atama/komut bırakmaz. Bölüm/iş yeri oluşturma veya hesap bağlama yetkisi bu API'ye eklenmedi.
+
+Gerçek disposable PostgreSQL: yeni 5 grup + scoped directory 4 + access 7 = 16 grup geçti. İki eşzamanlı bağlantı aynı komutta tek çalışan ve aynı makbuzu aldı. Yazılan kayıt gerçek kapsamlı okuyucudan ve TS parser'dan geçti. Güncel JSON kanıtları qa/hr-catalog-20261018 altında. Geçici DB'ler temizlendi. UI değişmedi; bu tur tarayıcı, build veya genel uygulama suite çalıştırılmış sayılmaz.
+
+SINIR: yeni yazıcının PUBLIC/anon/authenticated/service_role EXECUTE izni yoktur; koordineli geçiş için adaydır. Eski okuyucu/yazıcılar henüz değiştirilmedi. Hazırlık ekranı gerçek erişimin değişmediğini doğru biçimde göstermeye devam eder. Tam enforcement/HR-1 tamamlanmadı, HR aktivasyonu açılmadı, üretime migration/deploy yapılmadı.
+
+Kalan bağlayıcı paket: açık şirket erişim modu ve yönetici modeli, kapsamlı yazma seçenekleri, mevcut iş yeri değiştirme yetkisi, bütün eski HR uçlarının aynı anda kapatılması/yönlendirilmesi, UI eylem görünürlüğü ve uçtan uca kabul. Departman/iş yeri yönetim yeteneği ayrıca tanımlanmadan employee create yetkisine organizasyon yönetimi eklenmeyecek.

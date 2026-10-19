@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T11:44:11.867Z",
+  "measuredAt": "2026-10-19T11:48:34.085Z",
   "checks": [
     "All access tables private; spoofed actor and non-manager writes rejected",
     "Revision, immutable replay and invalid rule/scope rollback verified",
