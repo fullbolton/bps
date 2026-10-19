@@ -1651,3 +1651,14 @@ Bu paket henüz yönetici ekranına bağlanmadı; tarayıcı kabulü yapılmadı
 Yerel resmi Auth/PostgREST/Storage + Next üzerinde sentetik kabul: ilk başarılı ayrılış cevabı kaybettirildi, aynı işlem tekrarında SQL yalnız 1 makbuz doğruladı. Yeniden işe alma ön kontrolünden sonra tarih başka işlemle değiştirildi; eski token reddedildi, 2026-07-01 taslağı korundu ve onay sıfırlandı. Mobil yeniden işe alma başarılı: 2 dönem, 2 komut makbuzu; 390x844 ekran, scrollWidth=390. İki doğrudan sentetik tarih güncellemesi yalnız eşzamanlılık testi içindir. Test sekmesi, viewport ve geçici servis/DB temizlendi. Kanıt employment-browser-result.json ve employment-mobile-result.png.
 
 5 gerçek kaynak istemci test grubu, 849 uygulama testi, TypeScript, statik kontrol (0 hata/0 uyarı), diff ve sentetik ortam production build geçti. Önceki 019 veritabanı kabulü 6 gruptur; bu tur SQL değişmedi. GitHub yedeği otomatik yayın kapalı geliştirme dalında tutulur. 018/019 ve yeni ekranlar henüz üretime yayımlanmadı; son doğrulanmış canlı 207 migration ve İK kapalı. Sonraki onaylı ürün işleri: İK özel evrak ve Excel kabulü; gerçek şirket aktivasyonu/yayın ayrı kontrol kapısında kalır.
+
+
+## 19 Ekim — İK Excel ön kontrolü (yerel; toplu kayıt henüz yok)
+
+İK planındaki H3 için mevcut sınırlı XLSX/CSV worker yeniden kullanıldı. Yönetici çalışan ekranında dosya/sayfa ve personel kodu-ad-işe giriş sütunlarını seçebilir. İlk dolu satır başlık; 10 MB dosya ve 200 veri satırı ön kontrol sınırı. Formül/hata hücreleri, kimlik benzeri numara, tekrarlanan kod, belirsiz/geçersiz tarih ve gizli sayfa reddedilir. Boş hücre mevcut bilgiyi silmez. Yalnız açık Türkçe veya ISO tarihler normalize edilir.
+
+20261019002000 hr_import_preview_v1 salt okunur, şirket ve yönetici yetkili, en fazla 200 satırlık kod karşılaştırmasıdır. Yeni/değişmeyen/adı değişen/eksik/elle inceleme ayrımı yapar. Ayrılmış çalışan, farklı işe giriş tarihi veya bağlı havuz ad değişikliği otomatik güncellenmez. Komut/çalışan/istihdam yazmaz. Yetki tanımı genişletilmedi; scoped İK import ve gerçek toplu yazma ayrıca tasarlanacak. UI açıkça ön kontrol olduğunu belirtir; aktarım tamamlandı mesajı veya sahte kaydet düğmesi yok.
+
+Doğrulama: geçici PostgreSQL'de 4 kabul grubu, gerçek TypeScript kaynakta 5 istemci grubu, TypeScript ve sentetik production build geçti. Statik 0 hata/1 yeni migration uyarısı; diff temiz. Bu turun ekranı tarayıcıda henüz test edilmedi. Kanıt hr-import-schema-result.json ve hr-import-client-result.json. Üretim değişmedi; son doğrulanmış 207 migration, İK kapalı; 018–020 bekliyor.
+
+Kalan: Excel ön kontrol tarayıcı/mobil kabulü; açık satır kararı + revizyonlu/idempotent toplu kayıt ve kaynak satır kimliği; ayrı İK özel belge erişimi ve upload yaşam döngüsü. Özel evrak bu tur uygulanmadı. Önceki ürün hedefi tamamlanmış sayılmaz.

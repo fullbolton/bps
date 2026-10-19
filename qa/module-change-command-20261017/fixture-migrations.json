@@ -47,5 +47,6 @@
   "20261019001600_hr_transfer_options.sql",
   "20261019001700_hr_access_activation.sql",
   "20261019001800_hr_employee_edit.sql",
-  "20261019001900_hr_employment_lifecycle.sql"
+  "20261019001900_hr_employment_lifecycle.sql",
+  "20261019002000_hr_import_preview.sql"
 ]

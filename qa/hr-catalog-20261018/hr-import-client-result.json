@@ -1,0 +1,11 @@
+{
+  "passed": 5,
+  "actualSource": true,
+  "checks": [
+    "Leading zero codes and explicit Turkish/ISO date normalization",
+    "Blank cells remain blank; duplicates block full comparison",
+    "Formula/error/identity-like data and ambiguous dates rejected",
+    "Hidden sheet/duplicate mapping/row limits/empty selection rejected",
+    "Response company and ordered row identity binding"
+  ]
+}

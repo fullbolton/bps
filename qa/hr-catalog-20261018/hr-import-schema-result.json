@@ -1,0 +1,10 @@
+{
+  "passed": 4,
+  "checks": [
+    "New/same/incomplete/changed/date-review classifications; blank cells preserve existing values",
+    "Duplicate codes/row identity, sensitive number, invalid date and oversized batch rejected",
+    "Former employee is review-only; preview creates no command or new employment period",
+    "Cross-tenant, non-manager and anonymous access denied"
+  ],
+  "syntheticOnly": true
+}
