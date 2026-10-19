@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T12:38:43.104Z",
+  "measuredAt": "2026-10-19T19:30:56.669Z",
   "checks": [
     "Default release gate denies activation; nonmanagers cannot inspect or activate; audit and approval tables private",
     "Policy revision, membership role, release approval and module entitlement changes invalidate reviewed token",

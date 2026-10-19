@@ -1839,3 +1839,12 @@ c2fbbf0 kaynaklı zaman aşımı düzeltmesinin production build ve sentetik tar
 Vercel dpl_GjVfhqPRW6i7bTitncejtbfQkSRz READY sonrası promote edildi; www.bpsys.net eşleşmesi bağımsız inspect ile doğrulandı. Oturumlu canlı genel bakış ve şirket adı yüklendi; bekleme/zaman aşımı mesajı kalmadı. HR upload POST 404. Üretim salt okunur ön kontrolünde 216 migration/son 026 ve İK kapalı; bu pakette SQL yazımı ve HR aktivasyonu yok. 855 uygulama testi, TypeScript, statik ve build kanıtları acceptance.json; güncel yayın release.json.
 
 Bu koruma ilk gecikmenin nedenini çözdüğümüz anlamına gelmez. Sıradaki ürün işi kontrollü İK aktivasyonunun kabul şartlarını tamamlamak ve izin/satın alma onay akışlarına geçmektir.
+
+
+## 19 Ekim — İK pilot hazırlığı ve anlaşılır aktivasyon engelleri
+
+HrActivation ekranındaki dağınık engel cümleleri üç maddelik hazırlık listesinde toplandı: teknik kabul, modül/kullanım hakkı, İK kullanıcılarının kalıcı rol kuralları. Her madde Hazır/Tamamlanmalı ve yapılacak işlemi gösterir. Geçiş devredeyse tekrar onay düğmesi gösterilmez. Karar yine sunucunun canActivate/token sözleşmesindedir; checklist yetki vermiyor, katalog/preview/gate açmıyor.
+
+Gerçek geçici PostgreSQL'de güncel 026 dahil şema ile dört aktivasyon grubu yeniden geçti. Üç uygulama sözleşme testi dahil toplam 856 uygulama testi ve TypeScript geçti. Bu tur yeni listenin tarayıcı/klavye kabulü veya production build yapılmadı; önceki ekran testleri yeni checklist için kanıt sayılmıyor.
+
+Pilot açılış sınırı qa/hr-activation-readiness-20261019/READINESS.md içinde birleştirildi: rota/readiness/hak/teknik kabul/özel yetki geçişi ayrı kapılardır. Eksik transfer kesin ret tarayıcı kabulü, pilot hesap-kapsam seçimi ve özel PDF politika sınırı açıkça kayıtlı. İzin/satın alma yönetici onayı ayrı sonraki ürün paketleridir. Bu tur üretim yazımı/yayın/İK aktivasyonu yok; canlı c2fbbf0 ve 216 migration değişmedi.

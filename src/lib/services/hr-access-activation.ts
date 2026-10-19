@@ -21,3 +21,12 @@ export function parseHrActivationReceipt(raw:unknown,intent:ReturnType<typeof pr
 }
 export async function loadHrActivation(client:SupabaseClient<Database>,actor:string,tenant:string){const {data,error}=await client.rpc('hr_access_activation_preflight_v1',{p_actor:actor,p_tenant:tenant}).abortSignal(AbortSignal.timeout(12000));if(error)throw error;return parseHrActivation(data,actor,tenant);}
 export async function saveHrActivation(client:SupabaseClient<Database>,intent:ReturnType<typeof prepareHrActivation>){const {data,error}=await client.rpc('hr_access_activate_v1',intent).abortSignal(AbortSignal.timeout(15000));if(error)throw error;return parseHrActivationReceipt(data,intent);}
+
+/** Presentation of validated server gates; never grants activation independently. */
+export function hrActivationChecklist(data: ReturnType<typeof parseHrActivation>) {
+ return [
+  {key:'release',label:'Teknik kabul',ready:data.releaseApproved,detail:data.releaseApproved?'Bu şirket için kabul tamamlandı.':'Teknik ekip bu şirketin kabul kontrollerini tamamlamalı.'},
+  {key:'module',label:'İK modülü ve kullanım hakkı',ready:data.moduleOpen,detail:data.moduleOpen?'Modül açık ve kullanım hakkı tanımlı.':'İK modülü açılmalı ve kullanım hakkı tanımlanmalı.'},
+  {key:'roles',label:'İK kullanıcılarının rolleri',ready:data.missingHrPolicies===0,detail:data.missingHrPolicies===0?'Eksik kalıcı çalışan görme kuralı bulunmuyor.':`${data.missingHrPolicies} İK kullanıcısı için Kişiler bölümünde özel rol ve kalıcı çalışan görme kuralı tamamlanmalı.`},
+ ];
+}

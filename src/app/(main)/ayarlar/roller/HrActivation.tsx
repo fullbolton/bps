@@ -3,7 +3,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {createClient} from '@/lib/supabase/client';
 import {useScopedResource} from '@/components/ui/useScopedResource';
 import {useNavigationGuard} from '@/context/NavigationGuardContext';
-import {loadHrActivation,prepareHrActivation,saveHrActivation} from '@/lib/services/hr-access-activation';
+import {loadHrActivation,prepareHrActivation,saveHrActivation,hrActivationChecklist} from '@/lib/services/hr-access-activation';
 const button='min-h-11 rounded-lg border px-4 py-2 disabled:opacity-50';
 export default function HrActivation({actor,tenant,onPending,onSaved}:{actor:string;tenant:string;onPending:(value:boolean)=>void;onSaved:()=>Promise<void>}){
  const load=useCallback(()=>loadHrActivation(createClient(),actor,tenant),[actor,tenant]);
@@ -20,10 +20,10 @@ export default function HrActivation({actor,tenant,onPending,onSaved}:{actor:str
  <button className={button} disabled={!!intent||busy} onClick={()=>void resource.reload()}>Ön kontrolü yenile</button>
  {message&&<p role="status">{message}</p>}{resource.loading&&<p role="status">Üyelikler ve rol atamaları kontrol ediliyor…</p>}{resource.error&&<p role="alert">Ön kontrol alınamadı. Geçiş yapılamaz; yeniden deneyin.</p>}
  {data&&<><p>{data.mode==='scoped'?'Özel İK yetkileri devrede.':'Mevcut rol sistemi kullanılıyor.'}</p>
- {!data.releaseApproved&&<p>Bu şirket için teknik kabul henüz tamamlanmadı. Geçiş kapalı.</p>}{!data.moduleOpen&&<p>İnsan Kaynakları modülü açık ve kullanım hakkı tanımlı olmalı.</p>}{data.missingHrPolicies>0&&<p role="alert">{data.missingHrPolicies} İK kullanıcısının geçerli özel rolü veya kalıcı çalışan görme kuralı eksik. Kişiler bölümünde tamamlayın.</p>}
+ <section aria-label="İK geçiş hazırlığı" className="space-y-2"><h3 className="font-semibold">Geçiş için gerekenler</h3><ul className="space-y-2">{hrActivationChecklist(data).map(item=><li key={item.key} className="rounded-lg border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{item.label}</strong><span className={item.ready?'text-green-700':'text-amber-800'}>{item.ready?'Hazır':'Tamamlanmalı'}</span></div><p className="mt-1 text-sm">{item.detail}</p></li>)}</ul><p role="status">{data.mode==='scoped'?'Geçiş tamamlandı. Özel roller çalışan erişiminde uygulanıyor.':data.canActivate?'Hazırlık tamam. Hesapların erişim durumunu inceleyip geçişi onaylayabilirsiniz.':'Geçiş kapalı. Yukarıdaki eksikleri tamamladıktan sonra ön kontrolü yenileyin.'}</p></section>
  <p className="text-sm text-slate-600">Bu liste rol ataması kontrolüdür. Görülebilen çalışanlar departman, iş yeri, ret kuralları ve süreli istisnalara göre değişir; bir görme kuralı tüm çalışanları görebileceği anlamına gelmez.</p>
  <ul className="space-y-2">{data.members.map(m=><li key={m.accountId} className="rounded-lg border p-3"><strong>{m.name}</strong> · {m.role==='yonetici'?'Yönetim erişimi korunur':!m.policyAssigned?'Özel rol atanmamış; geçişten sonra çalışan erişimi yok':m.permanentReadRule?'Özel rol atanmış; kayıt kapsamı kurallara göre belirlenir':'Özel rol var; kalıcı çalışan görme kuralı yok'}</li>)}</ul>
- {!intent&&<button className={button} disabled={!data.canActivate||resource.loading||!!resource.error} onClick={()=>{setMessage('');setIntent(prepareHrActivation(actor,tenant,crypto.randomUUID(),data));}}>Geçişi gözden geçir</button>}
+ {!intent&&data.mode!=='scoped'&&<button className={button} disabled={!data.canActivate||resource.loading||!!resource.error} onClick={()=>{setMessage('');setIntent(prepareHrActivation(actor,tenant,crypto.randomUUID(),data));}}>Geçişi gözden geçir</button>}
  {intent&&<div className="space-y-3 rounded-xl border-2 border-blue-300 p-4"><h3 className="font-semibold">Şirketin İK erişim kuralları değişecek</h3><p>Yukarıdaki {data.members.length} hesabın erişimi bu modele göre uygulanacak. Veriler silinmez. Ön kontrolden sonra üyelikler veya kurallar değişirse işlem durdurulur.</p><button className={button} disabled={busy} onClick={()=>void save()}>{busy?'Kaydediliyor…':uncertain?'Aynı işlemi yeniden dene':'Özel İK yetkilerini devreye al'}</button><button className={button} disabled={busy} onClick={()=>{setIntent(null);setUncertain(false);void resource.reload();}}>Onayı kapat ve yenile</button></div>}</>}
  </section>;
 }
