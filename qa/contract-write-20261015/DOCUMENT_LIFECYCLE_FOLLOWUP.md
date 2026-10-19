@@ -1969,3 +1969,16 @@ Karar: karantina pending okumaları kullanıcı RLS'sinde kapalı kalırken hizm
 Kanıt: 8 adaptör testi ve toplam 881 uygulama testi geçti. Gerçek yerel HTTP sunucusunda yönlendirme hedefi sıfır istek aldı; takılan indirme gövdesi zaman aşımıyla durdu. Diğer testler sentetik RPC/Response kullanır; gerçek Supabase Storage uçtan uca kabulü değildir. Son sıkı objectId tipi kontrolünden sonra 8 adaptör testi ayrıca geçti.
 
 Kalan entegrasyon: çalışan motorun imza/ayar ölçümü, gerçek ClamAV kurulumu ve EICAR/temiz/limit/şifreli kabulü, bu adaptörlerle işçi çekirdeğinin sunucuya bağlanması, gerçek yerel Storage + karantina SQL uçtan uca testi. Üretime migration veya uygulama yayını yapılmadı; antivirüs hâlâ aktif değil.
+
+
+## 20 Ekim — gerçek ClamAV ve Unix soket kabulü
+
+qa/hr-clamav-20261020 altında gerçek motor kanıtı eklendi. Resmî ClamAV imajı digest ile sabitlendi; ARM manifesti bulunmadığı için linux/amd64 emülasyonu kullanıldı. Ölçülen sürüm: ClamAV 1.5.4, imza 28157 (18 Ekim 06:24 UTC). İmaj imzaları 24 saat politikasını karşılamıyor; bu çalışma yalnız motor/protokol kabulüdür, üretim hazırlığı veya güncel koruma değildir.
+
+Yazdığımız workers/hr-malware/clamd.mjs gerçek clamd Unix soketine bağlandı: temiz PDF clean; EICAR Eicar-Test-Signature; şifreli PDF Heuristics.Encrypted.PDF; 1 MiB test sınırını aşan PDF Heuristics.Limits.Exceeded.MaxFileSize olarak FOUND verdi. Son üçü taşımada infected şeklinde kapalı tutulur; şifreli/limit dosyalarının gerçekten zararlı olduğu iddia edilmez. Dört kontrol geçti, aynı set ölçülen motor bilgisiyle tekrar da geçti.
+
+Karar: testte MaxFileSize=1M bilerek düşük, StreamMaxLength=10M; bu clamd.conf üretim ayarı değildir. SocketMode=666 yalnız iki geçici konteynerin izole paylaşılan volume'ü içindir; üretimde grup bazlı 660 gerekir. Her iki konteyner network=none; dışarıya dosya/port açılmadı. Motor konteyneri ve socket volume testten sonra kaldırıldı. İndirilen imaj ve geçici sentetik fixture/venv yeniden test için yerelde durur. Gerçek şirket dosyası kullanılmadı.
+
+Tekrar araçları: fixtures.py pypdf==6.21.1 ile geçici dizinde PDF/EICAR üretir. clamd.conf salt okunur bağlanarak sabitlenmiş imajda clamd başlatılır; /run/bps-clam paylaşılan Docker volume'dür. accept.mjs, engine.json ölçümüyle, /worker=workers/hr-malware (salt okunur), /fixtures=sentetik dizin (salt okunur), /evidence=bu QA dizini bağlanmış Node konteynerinde çalışır. Node imajı digest'i engine.json içindedir. Standart EICAR test verisi dışında zararlı yazılım örneği kullanılmaz.
+
+Kaynaklar: https://docs.clamav.net/manual/Installing/Docker.html ve https://raw.githubusercontent.com/Cisco-Talos/clamav/main/etc/clamd.conf.sample. Sonraki işler: güncel imza temini ve çalışan motor/config ölçüm adaptörü, işçi/Storage/SQL birlikte yerel uçtan uca kabulü; sonra yayın ön kontrolü. Bu tur ürün kodu değişmedi, genel uygulama testleri tekrarlanmadı. Üretime yayın yok.
