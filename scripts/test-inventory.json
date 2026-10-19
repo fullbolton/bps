@@ -796,5 +796,9 @@
   {
     "file": "scripts/hr-leased-storage.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-scan-status.test.mjs",
+    "suite": "application"
   }
 ]

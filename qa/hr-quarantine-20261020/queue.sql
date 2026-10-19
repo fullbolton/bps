@@ -99,4 +99,30 @@ REVOKE ALL ON FUNCTION public.hr_malware_complete_v1(uuid,uuid,uuid,uuid,jsonb) 
 GRANT EXECUTE ON FUNCTION public.hr_malware_claim_v1(uuid,uuid),public.hr_malware_complete_v1(uuid,uuid,uuid,uuid,jsonb) TO service_role;
 -- Once queued execution is used, a service caller must not bypass its lease.
 REVOKE EXECUTE ON FUNCTION public.hr_malware_report_v1(uuid,uuid,uuid,jsonb) FROM service_role;
+-- User-visible state contains no lease, worker identity or raw scanner detail.
+CREATE FUNCTION public.hr_malware_status_v1(p_actor uuid,p_tenant uuid,p_upload uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
+DECLARE attempt public.hr_document_uploads;job public.hr_malware_jobs;scan public.hr_malware_scans;status text;stamp timestamptz:=statement_timestamp();
+BEGIN
+ PERFORM public.hr_access_mode_v1(p_actor,p_tenant);
+ SELECT * INTO attempt FROM public.hr_document_uploads WHERE id=p_upload AND tenant_id=p_tenant AND actor_id=p_actor;
+ IF NOT FOUND THEN RAISE EXCEPTION 'HR_FORBIDDEN';END IF;
+ PERFORM public.hr_private_document_access_v1(p_actor,p_tenant,attempt.employee_id,true);
+ SELECT * INTO job FROM public.hr_malware_jobs WHERE upload_id=p_upload;
+ SELECT * INTO scan FROM public.hr_malware_scans WHERE upload_id=p_upload;
+ IF attempt.state IN('published','cancelled') THEN status:=attempt.state;
+ ELSIF attempt.cleanup_requested THEN status:='cancelling';
+ ELSIF job.upload_id IS NULL THEN status:='not_queued';
+ ELSIF job.state='complete' THEN
+  IF scan.verdict='clean' AND scan.complete AND NOT scan.encrypted AND NOT scan.limit_exceeded
+  AND scan.scanned_at BETWEEN stamp-interval '5 minutes' AND stamp+interval '30 seconds'
+  AND scan.signatures_updated_at BETWEEN stamp-interval '24 hours' AND scan.scanned_at+interval '30 seconds' THEN status:='ready';ELSE status:='expired';END IF;
+ ELSIF job.state='running' THEN
+  IF job.lease_until>stamp THEN status:='scanning';ELSIF job.attempts>=3 THEN status:='failed';ELSE status:='queued';END IF;
+ ELSE status:=job.state;
+ END IF;
+ RETURN jsonb_build_object('schemaVersion',1,'actorId',p_actor,'tenantId',p_tenant,'employeeId',attempt.employee_id,'uploadId',p_upload,'status',status,'attempts',coalesce(job.attempts,0));
+END $$;
+REVOKE ALL ON FUNCTION public.hr_malware_status_v1(uuid,uuid,uuid) FROM PUBLIC,anon,service_role;
+GRANT EXECUTE ON FUNCTION public.hr_malware_status_v1(uuid,uuid,uuid) TO authenticated;
 COMMIT;

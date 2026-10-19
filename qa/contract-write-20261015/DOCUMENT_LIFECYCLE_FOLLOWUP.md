@@ -2039,3 +2039,12 @@ Kanıt: 889 uygulama testi, 7 geçici PostgreSQL kuyruk grubu, 31 gerçek HTTP k
 Test düzeltmeleri: ilk denemede workspace_selections kaydı olmayan eski tek şirket hesabı gereksiz reddediliyordu; mevcut current_user_active_tenant kuralındaki tek üyelik fallback'i uygulandı. Başka bir denemede kullanım hakkı kapatma test hazırlığı mevcut HR_UPLOADS_PENDING korumasına takıldı; koruma atlanmadı, beklenen ret olarak teste işlendi.
 
 Sınır: bu, yerel worker runner entegrasyonudur; kalıcı işçi dağıtımı ve upload route/UI hâlâ bağlı değildir. Sonraki paket kullanıcıya bekleyen/taranıyor/engellendi durumları ve idempotent enqueue/finalize akışıdır. Production migration/yayın yapılmadı; canlı antivirüs aktif değil.
+
+
+## 20 Ekim — kullanıcıya güvenli tarama durumu
+
+hr_malware_status_v1 aday RPC'si yalnız mevcut yetkili yükleme sahibine durum döndürür; şirket/kişi/yükleme kimliği doğrulanır. Yanıtta worker, lease, ham rapor veya dosya içeriği bulunmaz. Kuyruğa alınmamış, bekleyen, taranan, hazır, engellenen, başarısız, süresi geçmiş, yayımlanmış ve iptal durumları ayrılır. Temiz raporun 5 dakika / imza 24 saat güncelliği korunur. İstemci ayrıştırıcısı kapsam uyuşmazlığını ve bilinmeyen durumları reddeder; yalnız ready sonlandırma adayıdır, nihai yetki ve içerik denetimi veritabanında kalır.
+
+Kanıt: 891/891 uygulama testi, 8 gerçek geçici PostgreSQL kuyruk test grubu ve TypeScript denetimi geçti. Rol geri alma, yanlış yükleme, süre aşımı ve lease bilgilerinin dışarı çıkmaması doğrulandı. Gerçek ClamAV/Storage birleşik testi bu değişiklikte tekrar çalıştırılmadı; önceki kanıt ayrı tutuldu.
+
+Karar: süresi geçmiş temiz sonucu otomatik yeniden kuyruğa almıyoruz; yeniden tarama için açık, sınırlı ve idempotent işlem tasarlanmalı. Failed/blocked sonuç sıradan enqueue ile temizlenmez veya deneme bütçesi sıfırlanmaz. Sonraki paket yeniden tarama sözleşmesi ve ardından asenkron upload API/UI bağlantısıdır. Kalıcı işçi dağıtımı, production migration ve canlı antivirüs aktivasyonu yapılmadı.
