@@ -1,0 +1,19 @@
+{
+  "realFreshclam": true,
+  "isolatedStaging": true,
+  "seedReadOnly": true,
+  "newDaemonWithStagedSignatures": true,
+  "checks": [
+    {
+      "file": "clean.pdf",
+      "verdict": "clean"
+    },
+    {
+      "file": "encrypted.pdf",
+      "verdict": "infected"
+    }
+  ],
+  "emulatedDaemon": true,
+  "productionReady": false,
+  "liveDaemonRestart": false
+}

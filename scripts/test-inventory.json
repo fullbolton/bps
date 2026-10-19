@@ -832,5 +832,9 @@
   {
     "file": "scripts/hr-worker-host-control.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-signature-stage.test.mjs",
+    "suite": "application"
   }
 ]

@@ -346,3 +346,14 @@ Bakım işareti artık JSON requestId UUID taşır; worker aynı kimliği mainte
 Kanıt: genel uygulama kontrolü 928/928 geçti. Son kilit-release düzeltmesi sonrası odaklı host testleri 4/4 geçti. Gerçek ClamAV + HTTPS runtime kabulü yeniden geçti; worker sağlık kaydındaki bakım kimliği istekle birebir eşleşti, mevcut tek iş tamamlandı ve claims=1 kaldı. API/DB cevapları sentetik, daemon Mac/Rosetta; native Linux üretim kabulü değildir.
 
 Entegrasyon sınırı: createHostControl.waitDrained yalnız işçinin durakladığını doğrular; rotateSignatures için host adaptörü bunun ardından eski motor baseline ölçümünü döndürmelidir. Güncel olmayan imza baseline'ı bakım sebebi olabileceğinden ayrı ölçülür. Bu tur gerçek imza indirme, signature volume değişimi veya daemon yeniden başlatma adaptörleri eklenmedi. Üretim/İK bayrakları değişmedi. Sıradaki iş bu adaptörler ve native Linux launcher kabulüdür.
+
+
+## 20 Ekim — gerçek FreshClam ile ayrı imza hazırlama
+
+signature-stage.mjs her çalışmada UUID ile yeni Docker volume oluşturur; canlı imza alanını yazılabilir bağlamaz. İsteğe bağlı önceki imza volume'u salt okunur kaynak olarak yalnız main/daily/bytecode CVD/CLD normal dosyalarını sağlar. Sabit digest'li ClamAV image, UID/GID 10001, cap-drop ALL, no-new-privileges, read-only root, sınırlı tmpfs ve bellek ile FreshClam çalışır. Güncelleyici uygulama dosyası, Storage içeriği veya servis anahtarı almaz. freshclam.conf yalnız resmi database.clamav.net kaynağını ve TestDatabases yes kullanır. Referans: https://docs.clamav.net/manual/Usage/Configuration.html ve https://github.com/Cisco-Talos/clamav/blob/main/etc/freshclam.conf.sample.
+
+Başarılı staging dahi activationReady=false döndürür; adayın ayrı daemon ile yüklenip ölçülmesi ve kontrollü geçiş hâlâ gerekir. Hatalı staging volume'u tanı için korunur; çalışan güncelleyici container'ı finally ile kaldırılır. Komutlar shell olmadan execFile ile süre/çıktı sınırları altında çalışır. Bu hazırlayıcı henüz otomatik işletim servisine bağlanmadı.
+
+Kanıt: genel testler 932/932. signature-stage-accept.mjs gerçek FreshClam çalıştırdı, yeni staging volume'uyla ayrı ClamAV başlattı; temiz PDF clean, şifreli PDF infected/engelli çıktı. İlk rapor okuma denemesi test çıktısı JSON olmadığı için hata verdi; çıktı JSON'a düzeltildi ve kabul yeniden başarıyla geçti. signature-stage-result.json kaydedildi. Geçici staging volume/container temizlendi, önceki imza volume'u korundu. İmza sürümünün arttığı iddia edilmez: güncelleyici mevcut sürümün güncelliğini de doğrulayabilir.
+
+Kalan: staged daemon ölçümünü rotateSignatures akışına bağlama, çalışan daemon/worker PID namespace'inin kontrollü değiştirilmesi, native Linux main kabulü, gerçek oturumlu Next entegrasyonu ve üretim ön kontrolü. Bu test Mac/Rosetta üzerinde, Storage/persist sentetik; liveDaemonRestart=false, productionReady=false. Üretime yayın veya İK aktivasyonu yok.
