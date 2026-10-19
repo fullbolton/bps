@@ -1918,3 +1918,12 @@ Git durumu temiz ve son kaynak c17c05b olarak doğrulandı. READINESS.md içinde
 ## 20 Ekim — antivirüs kararı ve ilk sözleşme
 
 Kullanıcı kararları gerekçeleriyle kaydedip öneriye göre ilerlemeyi onayladı. READINESS.md içinde ClamAV, özel işçi, gerçek karantina sınırı, dosya sürümüne bağlı rapor, hata halinde kapalı kalma ve pilot rol şablonları kaydedildi. Temiz rapor doğrulayıcı ve üç test grubu eklendi. Henüz tarama servisi kurulu/aktif değil; SQL/Storage/finalize entegrasyonu sonraki pakettir. Üretime dokunulmadı.
+
+
+## 20 Ekim — karantina SQL aday paketi
+
+qa/hr-quarantine-20261020/candidate.sql: RLS korumalı tarama kayıt tablosu, özel evrak INSERT öncesi zorunlu temiz tarama kontrolü, pending nesnelerin normal kullanıcı Storage okumasını engelleyen ek restrictive policy. Dosya/tenant/sürüm/boyut/özet eşleşmesi, 5 dakika sonuç ve 24 saat imza yaşı; şifreli/eksik/limit aşımı reddi. Mevcut sahiplik ve içerik doğrulaması korunur. Yayımlanmış işlemin makbuz tekrarı eski rapor yüzünden yeni yayın sayılmaz.
+
+Aday gerçek geçici PostgreSQL'de yedi kabul grubundan geçti. Eksik, infected, stale, yanlış sürüm/tenant, kısmi, şifreli ve eski imza raporları yayını durdurdu. Pending nesne authenticated SELECT'te sıfır; temiz yayın sonrası bir. Tarama tablosuna anon/authenticated/service_role doğrudan erişemiyor. Test nesneleri sentetik SQL metadata; gerçek motor ve Storage HTTP testi henüz yok.
+
+Karar: worker ve server doğrulama yolu hazır olmadan supabase/migrations içine alınmaz. Mevcut kullanıcı oturumuyla pending readback bu taslakta bilerek kapanır; bu nedenle tek başına yayına uygun değildir. Sonraki paket: dar yetkili işçi okuma/raporlama protokolü ve gerçek ClamAV kabulü. Henüz tarama servisi, worker RPC veya production migration yok; üretim değişmedi.

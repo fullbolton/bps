@@ -1,0 +1,16 @@
+{
+  "passed": 7,
+  "checks": [
+    "Browser cannot attest; finalize requires trusted verification",
+    "Attestation binds exact reserved digest, size, storage version and owner",
+    "Attestation replay is singular and verified object cannot be replaced",
+    "Missing/infected/stale/wrong-object/wrong-tenant/partial/encrypted/outdated-signature scans block publication; pending bytes hidden; scanner table private",
+    "Metadata insertion failure leaves pending reservation unchanged",
+    "Atomic publication and exact retry produce one document; published cancel refused",
+    "Published replay rechecks current authorization"
+  ],
+  "syntheticOnly": true,
+  "actualStorageBytesVerified": false,
+  "candidateOnly": true,
+  "productionMigration": false
+}
