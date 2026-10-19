@@ -1572,3 +1572,10 @@ Canlı 6300bee kaynak arşivinden ayrı geçici aday oluşturuldu; yalnız beş 
 Adayın kendi TypeScript koduyla gerçek yerel PostgreSQL: SQL 001 sonrası 5, SQL 002 sonrası 6 grup geçti. İzole TypeScript kontrolü geçti. Ön koşul SQL 001; v2 yokken v1'e sessiz fallback yok. Aday tarayıcı kabulü ve üretim yayını yapılmadı. Yeni SQL 002+ öncesi bu uyumluluk hedefi yayımlanıp doğrulanmalı; gerçek İK aktivasyonu ayrı kalır.
 
 Uyumluluk adayının sentetik localhost public ayarlarıyla production build kontrolü de geçti. Kaynak patch temiz 6300bee arşivine git apply --check ile doğrulandı.
+
+
+## 19 Ekim — Uyumluluk adayının gerçek tarayıcı kabulü
+
+İzole canlı-kaynak aday, resmi yerel Auth/PostgREST/Storage ve Next ile çalıştırıldı. SQL 001 sonrası katalog 1 kurulum kaydı görüldü; aynı disposable DB'ye SQL 002 uygulanıp durum yenilenince catalog_upgrade ve kurulum kayıtları birlikte görüntülendi. Geçmiş yenileme Enter ile çalıştı. Testte prepare.py başlık değiştirmesinin eski metne uymadığı bulundu; düzeltildi ve tam eşleşme assertion eklendi. Aday patch/hashler güncellendi.
+
+Fixture'ın 29 Storage/Auth HTTP kontrolü geçti. Test sekmesi, sunucular ve disposable DB kapatıldı. Kanıt qa/hr-release-20261019/bridge/browser-result.json ve browser-catalog2.png. Dev sunucuda tarayıcı kabulüdür; production build ayrıca sınanır. Yerelde modül yazma özelliği kapalı olduğundan write-enabled canlı benzeri tarayıcı akışı, üretim kilit ölçümü ve yayın hâlâ açık. Üretim SQL/yayın/şirket aktivasyonu yapılmadı.

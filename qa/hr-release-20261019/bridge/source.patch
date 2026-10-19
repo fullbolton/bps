@@ -165,9 +165,12 @@
          Returns: Json;
 --- a/src/app/(main)/ayarlar/ModuleChangeHistory.tsx
 +++ b/src/app/(main)/ayarlar/ModuleChangeHistory.tsx
-@@ -20,7 +20,8 @@
+@@ -18,9 +18,10 @@
+    {resource.loading&&<p role="status">Değişiklikler yükleniyor…</p>}
+    {resource.error&&<p role="alert" className="text-sm text-red-700">Geçmiş doğrulanamadı. Tekrar deneyin; şirket ayarları değiştiyse üstteki Durumu yenile düğmesini kullanın.</p>}
     {resource.data&&<ol className="divide-y divide-slate-100">{resource.data.map(entry=><li key={entry.revision} className="py-3">
-     <p className="text-sm font-medium text-slate-900">{entry.kind==='bootstrap'?'Çalışma alanı oluşturuldu':entry.actorName}</p>
+-    <p className="text-sm font-medium text-slate-900">{entry.kind==='bootstrap'?'Çalışma alanı oluşturuldu':entry.actorName}</p>
++    <p className="text-sm font-medium text-slate-900">{entry.kind==='bootstrap'?'Şirket modülleri oluşturuldu':entry.kind==='catalog_upgrade'?'Modül altyapısı güncellendi':entry.actorName}</p>
      <time dateTime={entry.createdAt} className="text-xs text-slate-500">{new Intl.DateTimeFormat('tr-TR',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Istanbul'}).format(new Date(entry.createdAt))}</time>
 -    {entry.kind==='settings'&&<ul className="mt-2 space-y-1 text-sm text-slate-700">{entry.changes.map(change=><li key={change.key}>{MODULE_CATALOG.find(m=>m.key===change.key)!.name}: {change.enabled?'Açıldı':'Kapatıldı'}</li>)}</ul>}
 +    {entry.kind==='catalog_upgrade'&&<p className="mt-2 text-sm text-slate-600">İnsan Kaynakları seçeneği bu kayıtta kapalı olarak eklendi.</p>}

@@ -14,7 +14,7 @@ Aktif repo kökünde `python3 qa/hr-release-20261019/bridge/prepare.py` çalış
 2. SQL 001 sonrası katalog hâlâ 1 iken 5 grup geçti: mevcut yanıt/makbuz korunması, sürümlü geçmiş okuması, tenant/rol sınırları ve bootstrap dahil.
 3. SQL 002 sonrası 6 grup geçti: tüm geçmiş revizyonlarının korunması, catalog_upgrade olayının okunması, eski yazma komutu ve makbuz tekrarı dahil.
 4. İzole aday TypeScript kontrolü geçti. Üretim derleme sonucu build-result.json içindedir.
-5. Gerçek tarayıcıda adayın ayarlar/geçmiş ekranı henüz sınanmadı. Bu sonuç yayın onayı veya canlı smoke değildir.
+5. Gerçek yerel Auth/PostgREST/Next tarayıcı kabulünde 001 öncesi değil, 001 sonrası katalog 1 ve 002 sonrası katalog 2 geçmişleri görüldü; durum/geçmiş yenileme geçti. Kanıt browser-result.json ve browser-catalog2.png. Üretim yayını veya canlı smoke değildir.
 
 ## Geri dönüş
 

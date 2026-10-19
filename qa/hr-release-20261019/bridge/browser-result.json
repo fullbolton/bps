@@ -1,0 +1,46 @@
+{
+  "measuredAt": "2026-10-19T17:20:06.236409+00:00",
+  "candidateFiles": [
+    {
+      "path": "src/lib/modules/change-history.ts",
+      "sha256": "00b59b029bbd69366b01e431a5b8ca22ad50019e644795fb20c2b3c4185ed4ff"
+    },
+    {
+      "path": "src/lib/modules/catalog-snapshot.ts",
+      "sha256": "2ae0a0ae026ad31774cab2ec8ca93d42aa56e9836526013513b52e51ddf24151"
+    },
+    {
+      "path": "src/lib/services/workspace-modules.ts",
+      "sha256": "5780effd2c794bb11a6ab9b8df254090dd53d1b2c3001ae8441c28812b52c03e"
+    },
+    {
+      "path": "src/types/database.types.ts",
+      "sha256": "9118d2393d4a90c820eb145a819b6b1c467a88728dc7ebb0d25e64d36e494ed1"
+    },
+    {
+      "path": "src/app/(main)/ayarlar/ModuleChangeHistory.tsx",
+      "sha256": "a0d4f067a973e5f2f8e10b2b0706be8cdf1b223606868d67b7e35c6fb81f7243"
+    }
+  ],
+  "syntheticOnly": true,
+  "stages": [
+    "20261019000100",
+    "20261019000200"
+  ],
+  "checks": [
+    "Real local Auth login and candidate settings page",
+    "Catalog 1 bootstrap history visible before upgrade",
+    "Same browser session after local SQL 002 and status refresh shows upgrade and bootstrap",
+    "Upgrade has heading and explicit historically disabled HR message",
+    "History refresh via Enter returns both entries",
+    "29 local Storage/Auth HTTP checks passed in fixture startup/shutdown"
+  ],
+  "fix": "Generator baseline heading replacement was a no-op; corrected and asserted exact original heading",
+  "limits": [
+    "Next dev browser acceptance; production build checked separately",
+    "No production deploy or real company activation",
+    "No complete keyboard/accessibility or physical-device acceptance",
+    "Module writes disabled by local environment; production write-enabled browser flow not accepted"
+  ],
+  "deployed": false
+}

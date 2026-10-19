@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T17:16:47.746Z",
+  "measuredAt": "2026-10-19T17:19:51.497Z",
   "checks": [
     "All existing states and immutable audit receipts preserved; HR added disabled with separate upgrade event",
     "Old receipt replays exactly; stale writes, new-key smuggling and premature HR activation rejected",

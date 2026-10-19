@@ -20,7 +20,7 @@
     },
     {
       "path": "src/app/(main)/ayarlar/ModuleChangeHistory.tsx",
-      "sha256": "7889924e0ea6c48944aa73dd3d2b0ceedf5380bd04f2e906ac33e170df33bd9d"
+      "sha256": "a0d4f067a973e5f2f8e10b2b0706be8cdf1b223606868d67b7e35c6fb81f7243"
     }
   ],
   "requiresMigration": "20261019000100_module_history_catalog_versions.sql",

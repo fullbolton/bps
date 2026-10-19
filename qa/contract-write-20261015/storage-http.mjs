@@ -22,7 +22,10 @@ const uri=`postgres://${process.env.BPS_RELEASE_BARRIER==='1'?'authenticator':'p
 const storageUri=`postgres://supabase_storage_admin:${encodeURIComponent(password)}@${source}:5432/${database}`;secrets.push(storageUri);
 let created=false;
 const checks=[];
-const migrations=loadFixtureMigrations();
+const allMigrations=loadFixtureMigrations();
+const bridgeStage=process.env.BPS_HISTORY_BRIDGE_STAGE;
+assert.ok(!bridgeStage||['20261019000100','20261019000200'].includes(bridgeStage),'Unknown bridge acceptance stage');
+const migrations=bridgeStage?allMigrations.filter(name=>name.slice(0,14)<=bridgeStage):allMigrations;
 const claim=`SELECT set_config('request.jwt.claims','${JSON.stringify({sub:id(11),active_tenant_id:id(1)})}',true);SET LOCAL ROLE authenticated;`;
 const pdf=Buffer.from('%PDF-1.4\nSynthetic local acceptance file\n%%EOF\n');
 try {

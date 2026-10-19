@@ -1,6 +1,6 @@
 {
-  "baseSource": "749b1088a6a27e26a6c15ee5c4d45ac2c487d7ce",
-  "measuredAt": "2026-10-19T17:16:44.661Z",
+  "baseSource": "15a0449868e1da9a6aa7678ba7114a7b2b31dd93",
+  "measuredAt": "2026-10-19T17:19:48.526Z",
   "migration": "20261019000100_module_history_catalog_versions.sql",
   "checks": [
     "Existing v1 response, states, revisions, command receipts and hashes unchanged",
