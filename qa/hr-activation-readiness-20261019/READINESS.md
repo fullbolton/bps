@@ -50,3 +50,5 @@ Bu iki akışın ortak onay altyapısı tasarlanabilir; izin bakiyesi ile satın
 ## 20 Ekim ek kabulü
 
 transfer-http-result.json: gerçek yerel GoTrue parola oturumu + PostgREST ile dört transfer kabul grubu geçti (stale ret, güncel revizyon, idempotent tekrar, mevcut oturumda rol iptali). Bu, sentetik tarayıcı kabulünü tamamlayıcı ayrı API kanıtıdır; birleşik tarayıcı uçtan uca kabulü değildir. Üretimde pilot açılmadı.
+
+20 Ekim sonraki kabul: transfer-browser-result.json ile transferin gerçek uygulama + GoTrue + PostgREST birleşik tarayıcı kabulü tamamlandı. Kesin ret, yenileme ve başarı DB tarih kontrolüyle doğrulandı. Bu sonuç yalnız transfer içindir; aktivasyon/pilot kapsamı halen açıktır.

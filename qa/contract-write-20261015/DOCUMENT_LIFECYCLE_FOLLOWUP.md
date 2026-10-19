@@ -1864,3 +1864,10 @@ Bu paketin production build kontrolü de sentetik ortam değerleri ve İK önizl
 Yerel, tek kullanımlık GoTrue ve PostgREST ortamında sentetik İK hesabı parola ile giriş yaptı. Gerçek API üzerinden çalışan oluşturma/hedef okuma, ACCESS_STALE reddinde mevcut atamanın korunması, güncel sürümle transfer ve aynı komut tekrarında tek sonuç, rol kuralları kaldırılınca mevcut token ile erişimin reddi olmak üzere dört kabul grubu geçti. Kanıt: qa/hr-activation-readiness-20261019/transfer-http-result.json.
 
 Tekrar komutu: BPS_LOCAL_BROWSER=1 BPS_HR_TRANSFER_HTTP=1 BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Bu koşu mevcut Storage HTTP kabulünü de başarıyla tamamladı; fixture temizliği çalıştı. Gerçek üretim verisi veya üretim oturumu kullanılmadı. Tarayıcı + gerçek Auth + API birleşik uçtan uca test yapılmış sayılmaz; önceki tarayıcı kanıtı sentetik RPC sınırındadır. Pilot hesap/kapsam ve özel PDF politikası kararları halen açık. Uygulama veya migration değiştirilmedi; yayın yapılmadı.
+
+
+## 20 Ekim — İK transfer birleşik uçtan uca kabulü
+
+Gerçek uygulama + yerel GoTrue parola girişi + PostgREST + PostgreSQL birlikte tarayıcıdan doğrulandı. Sentetik İK hesabı çalışan dizinini ve transfer seçeneklerini açtı. Onay formu açıkken fixture yetki revizyonu artırıldı: kayıt reddedildi. Yenileme eski komutu ve mesajı temizledi; hedef tekrar seçilip onaylandıktan sonra başarı mesajı görüldü ve panel kapandı. DB kontrolü iki atama, yalnız bir aktif kayıt ve kesintisiz tarih aralığını doğruladı.
+
+Kanıt: qa/hr-activation-readiness-20261019/transfer-browser-result.json. Yeniden kurulum: BPS_LOCAL_BROWSER=1 BPS_HR_TRANSFER_BROWSER=1 BPS_HR_PREVIEW_ENABLED=true BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Test tarayıcısı ve geçici ortam kapatıldı. Bu kabul transfer akışına aittir; tüm İK modülü veya üretim pilot kabulü değildir. Pilot hesap/kapsam seçimi, özel PDF politikası ve aktivasyonun gerçek pilot kabulü açık kalır. Üretimde değişiklik/yayın yok.

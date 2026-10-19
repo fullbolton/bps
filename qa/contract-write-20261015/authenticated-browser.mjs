@@ -120,6 +120,10 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    mkdirSync(moduleRoute);moduleRouteCreated=true;
    writeFileSync(moduleRoute+'/page.tsx',readFileSync(new URL('../module-change-command-20261017/browser-panel.tsx',import.meta.url)));
   }
+  if(process.env.BPS_HR_TRANSFER_BROWSER==='1'){
+   const {acceptTransfer}=await import('../hr-activation-readiness-20261019/transfer-http.mjs');
+   await acceptTransfer({sql,id,authBase,restBase,loginPassword,syncAuthScope,browserSeed:true});
+  }
   const out=openSync('/tmp/bps-authenticated-next.log','w',0o600);
   app=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--hostname','127.0.0.1','--port','3060'],{cwd:appRoot,env:{...process.env,...(process.env.BPS_HR_PREVIEW_ENABLED==='true'?{SUPABASE_SERVICE_ROLE_KEY:service}:{}),NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3061',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon},stdio:['ignore',out,out]});closeSync(out);
   console.log('LOCAL_BROWSER_READY http://127.0.0.1:3060/login — synthetic document-qa@example.test');

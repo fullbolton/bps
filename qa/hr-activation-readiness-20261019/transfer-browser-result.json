@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-20",
+  "actualApplication": true,
+  "actualGoTrue": true,
+  "actualPostgrest": true,
+  "syntheticLocalOnly": true,
+  "checks": [
+    "Password login through actual login page",
+    "Scoped employee list and transfer options loaded",
+    "Policy revision changed while confirmation open: definitive rejection",
+    "Refresh clears intent and old error; target must be reselected",
+    "New confirmation saves and shows success, closes panel",
+    "Database: two assignment rows, one active, contiguous date history"
+  ],
+  "productionChanged": false
+}

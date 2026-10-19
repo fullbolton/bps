@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {writeFileSync} from 'node:fs';
 import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
-export async function acceptTransfer({sql,id,authBase,restBase,loginPassword,syncAuthScope}){
+export async function acceptTransfer({sql,id,authBase,restBase,loginPassword,syncAuthScope,browserSeed=false}){
  for(const url of [authBase,restBase])assert.match(url,/^http:\/\/127\.0\.0\.1:\d+$/);
  const {parseHrTransferOptions,prepareHrLocationTransfer,parseHrLocationTransferReceipt}=await importActualTypeScript(new URL('../../src/lib/services/hr-scoped-transfer.ts',import.meta.url));
  const actor=id(11),tenant=id(1),checks=[];
@@ -14,6 +14,7 @@ export async function acceptTransfer({sql,id,authBase,restBase,loginPassword,syn
  const created=await call('hr_scoped_employee_create_v1',{p_actor:actor,p_tenant:tenant,p_command:id(18004),p_revision:1,p_payload:{name:'Synthetic transfer HTTP',code:'HTTP-TRANSFER',startsOn:'2026-01-01',locationId:id(18002)}});
  const options=async()=>parseHrTransferOptions(await call('hr_location_transfer_options_v1',{p_actor:actor,p_tenant:tenant,p_employee:created.id,p_after:null}),actor,tenant,created.id);
  const before=await options();assert.ok(before.locations.some(x=>x.id===id(18003)));
+ if(browserSeed){console.log('LOCAL_HR_TRANSFER_SEED_READY');return;}
  checks.push('Real password session creates employee and parses authorized transfer options over PostgREST');
  const intent=prepareHrLocationTransfer(actor,tenant,id(18005),before.policyRevision,{assignmentId:before.assignmentId,expectedRevision:before.assignmentRevision,locationId:id(18003)});
  sql(`UPDATE company_access_state SET revision=revision+1 WHERE tenant_id='${tenant}'`);
