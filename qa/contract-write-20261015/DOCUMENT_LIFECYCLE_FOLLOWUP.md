@@ -1222,3 +1222,17 @@ Yeni ileri migration `20261019000100_module_history_catalog_versions.sql` eklend
 8 hedefli ve 798/798 uygulama testi, tsc, sentetik localhost public değerleriyle production build geçti. Gerçek BPS şeması kopyasında 5 grup yeniden geçti; yeni SQL yanıtı bu kez gerçek uygulama parser'ından da geçirildi. İlk DB girişimi Docker kapalı olduğu için başlamadı; Docker başlatıldı, tekrar başarılı oldu ve geçici DB temizlendi. Kanıt history-schema-result.json. HTTP/tarayıcı kabulü hâlâ yapılmadı.
 
 Yayın bağımlılığı: 20261019000100 migration uygulamadan ÖNCE çıkmalı; API olmadan yeni arayüz yayımlanmamalı. Üretim yayını/şema değişimi yapılmadı. Sonraki kalan: katalog v2, versiyonlu değişim/ön kontrol ve eski komutlarla birlikte çalışma; gerçek tarayıcı kabulü. Faz 1 tekrar açılmaz.
+
+
+## Güncel karar — hesap başına tek şirket — 19 Ekim 2026
+
+Kullanıcının son kararı önceki MEK/Partner ayrımı planını geçersiz kılar: **Her hesap tek bir şirketi yönetecek.** Yeni ürün akışında Partner–MEK ayrımı, şirket seçimi ve şirketler arası geçiş tasarlanmayacak. Şirketin departmanları, şubeleri ve yöneticileri bu tek şirketin altında yer alır; izin ve satın alma onayları ilgili şirket içi yöneticiye yönlenir. Modül aç/kapa bu şirket hesabına göre çalışmaya devam eder.
+
+Teknik tenant sınırı farklı müşteri şirketlerinin verisini ayırmak için korunur; bu karar tüm müşterilerin tek tenantta birleşmesi değildir. Mevcut çoklu üyelik/şirket seçimi kodunun sadeleştirilmesi ayrıca envanter ve geçiş gerektirir. Mevcut gerçek kayıtları birleştirme/silme veya üyelik taşıma bu karar kapsamında yapılmadı. Bu kayıt ürün yönünü değiştirir; canlı davranış henüz değişmedi. Aşağıdaki eski şirket geçişi testleri tarihsel kanıttır, yeni ürün gereksinimi değildir.
+
+
+## 19 Ekim — tek şirket ve ticari modül alanı uzlaştırması
+
+Son insan kararları ana plana işlendi: hesap başına tek şirket; Partner/MEK ayrımı yeni UX kapsamından çıktı. “Modüller ve abonelik” alanı kullanım hakkı, etkinlik, rol ve ödeme olarak ayrıldı. Mevcut H0 → platformdan hak tahsisi → şirket modül ekranı → ticari koşullar sonrası self servis ödeme sırası kaydedildi. Fiyat/deneme/sağlayıcı/iptal politikaları henüz seçilmedi. İzin ve satın alma yönetici onayları abonelik satın almayla karıştırılmayacak.
+
+Bu tur yalnız plan/ilerleme kayıtları; kaynak kodu, migration, müşteri verisi ve canlı yayın değişmedi. Önceki 798 test bu belge değişikliği için yeniden çalıştırılmadı. Operasyon Faz 1 ve evrak kabulü yeniden açılmadı. Aktif uygulama görevi hâlâ H0 katalog geçişi ve gerçek tarayıcı kabulüdür.

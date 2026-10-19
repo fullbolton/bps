@@ -1,10 +1,43 @@
 # BPS — Çalışma Alanı ve Ayarlar ana planı
 
+## Güncel karar — hesap başına tek şirket — 19 Ekim 2026
+
+Kullanıcının son kararı önceki MEK/Partner ayrımı planını geçersiz kılar: **Her hesap tek bir şirketi yönetecek.** Yeni ürün akışında Partner–MEK ayrımı, şirket seçimi ve şirketler arası geçiş tasarlanmayacak. Şirketin departmanları, şubeleri ve yöneticileri bu tek şirketin altında yer alır; izin ve satın alma onayları ilgili şirket içi yöneticiye yönlenir. Modül aç/kapa bu şirket hesabına göre çalışmaya devam eder.
+
+Teknik tenant sınırı farklı müşteri şirketlerinin verisini ayırmak için korunur; bu karar tüm müşterilerin tek tenantta birleşmesi değildir. Mevcut çoklu üyelik/şirket seçimi kodunun sadeleştirilmesi ayrıca envanter ve geçiş gerektirir. Mevcut gerçek kayıtları birleştirme/silme veya üyelik taşıma bu karar kapsamında yapılmadı. Bu kayıt ürün yönünü değiştirir; canlı davranış henüz değişmedi. Aşağıdaki eski şirket geçişi testleri tarihsel kanıttır, yeni ürün gereksinimi değildir.
+
+## Modüller ve abonelik — kapsam ve teslim sırası — 19 Ekim 2026
+
+Kullanıcı Zeops benzeri modül aç/kapa ve ücretli satın alma alanını sordu. Ürün yönü: şirket ayarlarında tek bir “Modüller ve abonelik” alanı. Aşağıdaki ticari akış uygulama önerisidir; fiyat, ücretlendirme birimi, deneme, sağlayıcı ve iptal/iade koşulları kararlaştırılmış değildir. Bu ekran veya ödeme sistemi henüz yapılmış sayılmaz.
+
+### Ayrı tutulacak durumlar
+
+| Boyut | Anlamı | Yetkili kaynak |
+|---|---|---|
+| Ürün kataloğu | Modül adı, özellikleri ve bağımlılıkları | Sürümlü sunucu kataloğu |
+| Kullanım hakkı | Şirket hangi modülü hangi tarihlerde kullanabilir? | Sunucudaki hak kaydı; ilk etap platform yöneticisinin kayıtlı tahsisi |
+| Etkinlik | Hakkı bulunan modül bu şirkette açık mı? | Mevcut revision/ön kontrol/komut makbuzlu ayar akışı |
+| Kullanıcı yetkisi | Kullanıcı modül içindeki hangi işlemi yapabilir? | Şirket üyeliği ve rol; modül hakkı rol yetkisi vermez |
+| Ticari durum | Ödeme, yenileme ve iptal ne durumda? | Seçilecek sağlayıcının doğrulanmış olayları ve sunucu kayıtları |
+
+Modülü kapatmak aboneliği iptal etmez. Abonelik satın almak otomatik yönetici rolü vermez veya modülü sessizce açmaz. Bağımlı modül için ek ücret gerekiyorsa toplam taahhüt satın alma öncesinde görünür; gizli paket eklenmez. Şirket kullanıcıları kendi kullanım haklarını DB/API üzerinden oluşturamaz.
+
+### Teslim blokları
+
+1. **Mevcut H0'ı kapat:** katalog geçişi, eski/yeni komut uyumu, geçmiş, gerçek tarayıcı kabulü. Ödeme sistemi bu işi uzatmaz.
+2. **Hak tahsisi:** platform yöneticisi şirket için modül hakkı tanımlar/geri alır; sebep, aktör, tarih ve revizyon kaydı. Mevcut müşteri erişimleri geçişte yanlışlıkla kapanmaz; geçmiş konfigürasyondan ücret/abonelik uydurulmaz. Hak sona ererken devam eden iş ve veri erişimi politikası ayrıca kararlaştırılmadan otomatik kapatma yok.
+3. **Şirket ekranı:** mevcut haklar, açık/kapalı modüller, bağımlılıklar ve aç/kapa sonucu. Satın alınamayan modülde çalışmayan ödeme düğmesi olmaz. Hazır olmayan İK veya satın alma modülü satışa açık gösterilmez.
+4. **Self servis ödeme:** ancak fiyatlar ve sözleşme koşulları belirlendikten sonra sağlayıcı bağlantısı. Tarayıcıdaki başarılı ödeme dönüşü hak açmaya yeterli değildir. İmza doğrulamalı sunucu olayı, tekrar ve sıra bozukluğu kontrolü, sipariş/şirket/ürün/tutar/para birimi eşleşmesi ve idempotent hak verme gerekir. Kart bilgisi BPS'te saklanmaz. İptal, iade ve başarısız yenileme ayrı olaylardır.
+
+Kabul: hakkı olmayan modül UI/servis/DB'den açılamaz; modülü kapatmak ödeme iptaline yol açmaz; aynı ödeme olayı iki hak oluşturmaz; farklı şirkete hak verilemez; geçmiş ve veriler korunur. Ticari yaşam döngüsü testleri ödeme sağlayıcısı seçilince sağlayıcı sandbox'ında yapılır. Bu not yeni ödeme entegrasyonu kurulması veya gerçek tahsilat yetkisi değildir.
+
+İzin/satın alma yönetici onayları, şirketin BPS aboneliğini satın alma işleminden ayrı iş akışlarıdır. İzin ve satın alma kararları ilgili yöneticiye gider; organizasyon ve bağlı yönetici İK-1'de kurulmadan rastgele tüm yöneticilere bildirim gönderilmez. Zeops'ta henüz doğrulanmamış vekâlet/iptal/ikinci onay davranışları BPS'te yapılmış sayılmaz.
+
 ## Bağlayıcı ürün yönü ve faz sınırı — 18 Ekim 2026
 
 Kullanıcının açık kararı: **BPS yalnız operasyon yazılımı değildir. Güçlü İnsan Kaynakları ve diğer şirket yönetimi modülleri, tenant bazında seçilebilir ürünün ana kapsamıdır.** Operasyon öncelikli mevcut geliştirme sırası, İK veya diğer modüllerin önemsiz/kalıcı kapsam dışı olduğu şeklinde yorumlanamaz. İK artık yalnız değerlendirilen bir aday değildir; onaylı ürün yönüdür. Eski dar operasyon paketlerindeki kapsam dışı notları bu kararı geçersiz kılmaz.
 
-İK kullanan şirket müşteri, müşteri şubesi veya personel talebi açmak zorunda değildir. Operasyon kapalı + İK açık; İK kapalı + operasyon açık; ikisi açık senaryoları desteklenecek. MEK ve Partner ayrı tenanttır. Modül hakkı, etkinliği ve kullanıcı veri yetkisi ayrı kontrollerdir. Operasyondaki kişi görünürlüğü özel İK belgelerine erişim vermez.
+İK kullanan şirket müşteri, müşteri şubesi veya personel talebi açmak zorunda değildir. Operasyon kapalı + İK açık; İK kapalı + operasyon açık; ikisi açık senaryoları desteklenecek. Her hesap tek şirketi yönetir; önceki MEK/Partner ayrımı kaldırılmıştır. Modül hakkı, etkinliği ve kullanıcı veri yetkisi ayrı kontrollerdir. Operasyondaki kişi görünürlüğü özel İK belgelerine erişim vermez.
 
 ### Faz 1: mevcut operasyon çekirdeğini teslim edilebilir noktada kapat
 
