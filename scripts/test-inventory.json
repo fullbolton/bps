@@ -812,5 +812,9 @@
   {
     "file": "scripts/hr-worker-coordinator.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-worker-runtime.test.mjs",
+    "suite": "application"
   }
 ]
