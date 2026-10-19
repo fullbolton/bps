@@ -1398,6 +1398,9 @@ export interface Database {
       hr_scoped_location_transfer_v1: {Args: {p_actor:string;p_tenant:string;p_command:string;p_revision:number;p_payload:Json};Returns:Json;};
       hr_document_shutdown_preflight_v1: {Args: {p_actor: string; p_tenant: string}; Returns: Json;};
       hr_document_verification_context_v1: {Args: {p_actor: string; p_tenant: string; p_upload: string}; Returns: Json;};
+      hr_malware_status_v1: {Args: {p_actor:string;p_tenant:string;p_upload:string};Returns:Json;};
+      hr_malware_enqueue_v1: {Args: {p_actor:string;p_tenant:string;p_upload:string};Returns:Json;};
+      hr_malware_rescan_v1: {Args: {p_actor:string;p_tenant:string;p_upload:string;p_request:string};Returns:Json;};
       hr_document_finish_v1: {Args: {p_actor: string; p_tenant: string; p_upload: string}; Returns: Json;};
       hr_document_attest_v1: {Args: {p_tenant: string; p_actor: string; p_upload: string; p_object: string; p_version: string; p_size: number; p_sha256: string}; Returns: undefined;};
       hr_document_cancel_request_v1: {Args: {p_actor: string; p_tenant: string; p_upload: string}; Returns: Json;};

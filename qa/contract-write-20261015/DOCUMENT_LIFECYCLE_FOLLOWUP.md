@@ -2057,3 +2057,14 @@ Aday hr_malware_rescan_v1 yalnız pending yüklemenin yetkili sahibine, tamamlan
 Karar: güvenlik kontrolünü aşabilen genel “tekrar dene” yerine yalnız eski temiz sonuç yenilenebilir. Üç hakkı dolan yüklemenin kullanıcı akışı ayrıca açıklanmalı; otomatik sonsuz tekrar yok. Aynı istek kimliği istemci tarafından tekrar gönderimde korunmalı. Bu sözleşme henüz upload API/UI'ye bağlanmadı.
 
 Kanıt: 892/892 uygulama testi, 9 gerçek geçici PostgreSQL test grubu, TypeScript ve diff kontrolü geçti. Yenileme sırasında eski lease reddi, isteğin üç aşamada tekrarı, yeni sonuçtan sonra eski isteğin iş başlatmaması, fresh/blocked/failed retleri ve toplam üç hak sınırı test edildi. ClamAV/Storage birleşik kabul bu SQL ve durum modeli paketinde tekrar edilmedi. Production migration, dağıtım veya canlı tarama aktivasyonu yapılmadı. Sonraki iş: asenkron upload API/UI ve kalıcı worker işletimi.
+
+
+## 20 Ekim — asenkron karantina API ve form bağlantısı (kapalı)
+
+BPS_HR_MALWARE_ENABLED=true olduğunda upload route artık kullanıcı kapsamıyla prepare → upsert:false Storage upload → doğrulama bağlamı → enqueue → durum kontrolü yürütür. Pending makbuz HTTP 202 döner; kullanıcı üzerinden karantina dosyası indirilmez, route servis anahtarı oluşturmaz ve evrakı sonlandırmaz. Kuyruk/bağlam hatasında eski senkron yola fallback yapılmaz. Mevcut ayar kapalıyken eski davranış korunur; yeni ayar hiçbir ortamda açılmadı.
+
+Yeni /api/hr/documents/scan POST uç noktası preview+malware bayrakları, aynı origin, doğrulanmış kullanıcı ve seçili şirket kontrolü uygular. Gövde akış sırasında 4096 byte ile sınırlıdır. Durum sorgusu, request UUID ile yeniden tarama ve temiz güncel sonuçta finish desteklenir. Her mutasyondan önce çalışan kapsamı doğrulanır; finish RPC son yetki/içerik/güncellik denetimidir. Form pending makbuzu başarıyla yayımlanmış saymaz; durum kontrolü, evrakı kaydet ve yeniden tara düğmeleri eklendi. Kayıp yeniden tarama yanıtında aynı istek UUID'si korunur. Otomatik polling yerine kullanıcı kontrollü yenileme seçildi.
+
+Kanıt: 897/897 uygulama testi ve TypeScript geçti. Beş yeni servis testi gerçek TypeScript yürütür: karantina indirmeme/attest/finish çağırmama, kayıp Storage cevabı, context/queue hataları, yanlış hash, yayımlanmış tekrar, hazır olmadan finalize reddi, son RPC stale reddi ve farklı çalışan kapsamını mutasyondan önce reddetme. Bu tur tarayıcı üzerinden form kabulü ve gerçek worker/Storage/HTTP birleşik kabul çalıştırılmadı; UI bağlantısı bu doğrulamalar bitmeden kabul edilmiş sayılmaz.
+
+Yayın engeli: candidate.sql → worker-report.sql → queue.sql üretim ön kontrolü/migration sırası, kalıcı worker kurulumu, güncel imza/config ölçümü, yeni route+form+gerçek worker uçtan uca kabul ve ardından kontrollü bayrak aktivasyonu. Bayrak tek başına güvenlik kurulumu değildir; SQL koruması olmadan açılmamalı. Sonraki paket bu yeni asenkron akışın tarayıcı ve gerçek HTTP kabulüdür. Üretim değişmedi.

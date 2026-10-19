@@ -6,6 +6,7 @@ import {readPdfUploadForm} from '@/lib/pdf-upload-body';
 import {isUuid} from '@/lib/operations/pilot-validation';
 import {executeHrDocumentUpload} from '@/lib/services/hr-document-verification';
 import type {HrUploadInput} from '@/lib/services/hr-document-upload';
+import {enqueueHrDocumentUpload} from '@/lib/services/hr-document-scan';
 export const runtime='nodejs';
 export async function POST(request:Request){
  const headers={'Cache-Control':'no-store'};
@@ -23,6 +24,10 @@ export async function POST(request:Request){
   const employee=form.get('employeeId'),expectedTenant=form.get('tenantId');
   const tenant=await user.rpc('current_user_verified_tenant');
   if(tenant.error||!isUuid(tenant.data)||tenant.data!==expectedTenant||!isUuid(employee)||form.get('actorId')!==auth.data.user.id)throw Error('HR_SCOPE');
+  if(process.env.BPS_HR_MALWARE_ENABLED==='true'){
+   const receipt=await enqueueHrDocumentUpload(user,{actor:auth.data.user.id,tenant:tenant.data,employee},input,await file.arrayBuffer());
+   return NextResponse.json({ok:true,receipt:{schemaVersion:1,actorId:auth.data.user.id,tenantId:tenant.data,employeeId:employee,...receipt}},{status:receipt.state==='pending'?202:200,headers});
+  }
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
   if(!url||!key)throw Error('HR_VERIFIER_UNAVAILABLE');
   // Narrow verifier: used solely for attest RPC after user-scoped readback.

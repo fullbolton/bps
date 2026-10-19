@@ -72,9 +72,9 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicRoute) {
     // A fetch upload must not follow a login redirect and turn into an HTML/405
     // response. The handler still checks the user, tenant and file independently.
-    if (pathname === "/api/hr/documents/upload") {
+    if ((pathname === "/api/hr/documents/upload" || pathname === "/api/hr/documents/scan")) {
       const response = NextResponse.json({ ok: false }, {
-        status: process.env.BPS_HR_PREVIEW_ENABLED === "true" ? 401 : 404,
+        status: process.env.BPS_HR_PREVIEW_ENABLED === "true" && (pathname !== "/api/hr/documents/scan" || process.env.BPS_HR_MALWARE_ENABLED === "true") ? 401 : 404,
         headers: { "Cache-Control": "no-store" },
       });
       supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie));
