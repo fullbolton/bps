@@ -46,3 +46,7 @@ Yanlış kapsam görünürlüğü, yetkisiz yazma veya belirsiz aktivasyon sonuc
 2. Satın alma: talep → tutar/şube/birim bazlı yönetici → gerekli ek onaylar → satın alma/teslim takibi; karar ile ödeme ayrı işlemler.
 
 Bu iki akışın ortak onay altyapısı tasarlanabilir; izin bakiyesi ile satın alma bütçesi aynı veri modeli veya tek bir genel görev durumu olarak tutulmamalıdır.
+
+## 20 Ekim ek kabulü
+
+transfer-http-result.json: gerçek yerel GoTrue parola oturumu + PostgREST ile dört transfer kabul grubu geçti (stale ret, güncel revizyon, idempotent tekrar, mevcut oturumda rol iptali). Bu, sentetik tarayıcı kabulünü tamamlayıcı ayrı API kanıtıdır; birleşik tarayıcı uçtan uca kabulü değildir. Üretimde pilot açılmadı.

@@ -1,0 +1,13 @@
+{
+  "measuredAt": "2026-10-19T22:02:03.791Z",
+  "checks": [
+    "Real password session creates employee and parses authorized transfer options over PostgREST",
+    "Stale policy rejected over authenticated HTTP; original assignment unchanged; refreshed revision returned",
+    "Fresh command succeeds; same-command retry returns identical receipt with exactly two history rows",
+    "Existing password token cannot retain transfer access after role rules are revoked"
+  ],
+  "actualGoTrue": true,
+  "actualPostgrest": true,
+  "syntheticOnly": true,
+  "browserE2E": false
+}
