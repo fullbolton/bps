@@ -1,0 +1,26 @@
+{
+  "measuredAt": "2026-10-19T17:22:50.443162+00:00",
+  "syntheticOnly": true,
+  "sql": {
+    "hr": false,
+    "finance": true,
+    "history": [
+      "bootstrap",
+      "catalog_upgrade",
+      "settings",
+      "settings"
+    ],
+    "settingsEvents": 2
+  },
+  "checks": [
+    "Preview and explicit confirmation for close and reopen",
+    "Finance sidebar removed while closed and restored on reopen",
+    "Four ordered history entries visible including catalog upgrade",
+    "HR stays disabled"
+  ],
+  "limits": [
+    "Local Next development browser; no production write",
+    "Not a lost-response or double-submit browser test"
+  ],
+  "deployed": false
+}

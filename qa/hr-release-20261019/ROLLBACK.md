@@ -25,4 +25,4 @@ Geçici bps_release_guard şeması yok, bps_release_write_guard sayısı 0. Bu �
 - Eski geçmiş okuyucusunun uyumsuzluk karakterizasyonu: 3 test geçti.
 - Üretim yazımı/deploy/şirket aktivasyonu yok.
 
-Kalan: hazırlanan uyumluluk adayının tarayıcı kabulü; üretim yük/kilit ölçümü; kontrollü yayın ve canlı smoke. Public dışı şemaların tam karşılaştırması ve gerçek veri klonlaması bu provanın kapsamı değildir.
+Uyumluluk adayının yerel okuma/yazma tarayıcı kabulü ve anlık üretim yük/kilit ölçümü tamamlandı. Kalan: yayın anında ölçümleri tazeleme, kontrollü 001 + uyumlu uygulama yayını ve canlı smoke. Public dışı şemaların tam karşılaştırması ve gerçek veri klonlaması bu provanın kapsamı değildir.

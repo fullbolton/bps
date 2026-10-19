@@ -1,0 +1,32 @@
+{
+  "measuredAt": "2026-10-19T17:20:58.855276+00:00",
+  "project": "dffdzbmnmnokbftbujsy",
+  "readOnly": true,
+  "rows": [
+    {
+      "load": {
+        "targets": [
+          {
+            "bytes": 49152,
+            "table": "tenant_module_changes",
+            "estimated_rows": -1
+          },
+          {
+            "bytes": 24576,
+            "table": "tenant_module_config",
+            "estimated_rows": -1
+          },
+          {
+            "bytes": 32768,
+            "table": "tenant_module_settings",
+            "estimated_rows": -1
+          }
+        ],
+        "measured_at": "2026-10-19T17:20:58.701628+00:00",
+        "waiting_locks": 0,
+        "active_transactions": 0,
+        "oldest_transaction_seconds": 0
+      }
+    }
+  ]
+}

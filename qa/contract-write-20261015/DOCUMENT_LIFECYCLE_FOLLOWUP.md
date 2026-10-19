@@ -1579,3 +1579,10 @@ Uyumluluk adayının sentetik localhost public ayarlarıyla production build kon
 İzole canlı-kaynak aday, resmi yerel Auth/PostgREST/Storage ve Next ile çalıştırıldı. SQL 001 sonrası katalog 1 kurulum kaydı görüldü; aynı disposable DB'ye SQL 002 uygulanıp durum yenilenince catalog_upgrade ve kurulum kayıtları birlikte görüntülendi. Geçmiş yenileme Enter ile çalıştı. Testte prepare.py başlık değiştirmesinin eski metne uymadığı bulundu; düzeltildi ve tam eşleşme assertion eklendi. Aday patch/hashler güncellendi.
 
 Fixture'ın 29 Storage/Auth HTTP kontrolü geçti. Test sekmesi, sunucular ve disposable DB kapatıldı. Kanıt qa/hr-release-20261019/bridge/browser-result.json ve browser-catalog2.png. Dev sunucuda tarayıcı kabulüdür; production build ayrıca sınanır. Yerelde modül yazma özelliği kapalı olduğundan write-enabled canlı benzeri tarayıcı akışı, üretim kilit ölçümü ve yayın hâlâ açık. Üretim SQL/yayın/şirket aktivasyonu yapılmadı.
+
+
+## 19 Ekim — Uyumluluk adayında modül yazma kabulü kapandı
+
+Gerçek yerel oturumda yazma flag'i açıkken Finansal özet ön kontrol/onay ile kapatılıp yeniden açıldı. Menü buna göre kaybolup geri geldi. Dört geçmiş kaydı (bootstrap, katalog yükseltmesi, kapatma, açma) görüldü; SQL tam iki settings olayı ve HR=false doğruladı. 29 fixture HTTP kontrolü geçti. Geçici sunucu/DB kapatıldı. Kanıt bridge/write-browser-result.json ve browser-write-roundtrip.png.
+
+Üretimde yalnız aggregate yük ölçümü: 19 Ekim 20:20:58 İstanbul saatinde bekleyen kilit/diğer aktif transaction 0. Üç hedef tablo toplam boyutları 48/24/32 KiB; satır tahmini -1 olduğundan satır sayısı bilinmiyor. Yayın anında tekrar ölçülmeli. Yerel okuma/yazma kabulü tamam; sıradaki operasyonel adım 001 + uyumluluk uygulaması kontrollü yayını ve canlı smoke. Bu tur production yazımı/deploy/gerçek şirket aktivasyonu yapılmadı.

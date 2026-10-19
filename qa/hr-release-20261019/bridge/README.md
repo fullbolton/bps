@@ -19,3 +19,11 @@ Aktif repo kökünde `python3 qa/hr-release-20261019/bridge/prepare.py` çalış
 ## Geri dönüş
 
 Bu aday, SQL 002 sonrası kullanılabilecek sınırlı uyumlu uygulama hedefidir; deploy kimliği henüz yoktur. HR aktivasyonu sonrası tam İK geri dönüşü sağlamaz. Üretimde SQL 001 öncesi mevcut uygulama kullanılmaya devam eder; 001 sonrası aday yayımlanıp tarayıcı kabulü bitmeden SQL 002+ başlatılmaz. Audit geçmişi silinmez, revizyonlar geri alınmaz.
+
+## Yazma açık tarayıcı kabulü
+
+NEXT_PUBLIC_BPS_MODULE_CHANGES_ENABLED=true ve SQL 002 seviyesinde gerçek yerel oturumla Finansal özet kapatılıp yeniden açıldı. Ön kontrol ve açık onay iki işlemde de kullanıldı. Menü kapalıyken kaldırıldı, açılınca geri geldi. SQL tam iki settings olayı ve dört sıralı geçmiş kaydı doğruladı; HR false kaldı. Tarihsel fixture'a güncel üretimde ölçülen authenticated EXECUTE izni yalnız yerelde eklendi. Kanıt write-browser-result.json ve browser-write-roundtrip.png. Fixture'ın 29 HTTP kontrolü geçti; test sunucusu ve DB kaldırıldı.
+
+Üretim yük ölçümü live-load.json: 19 Ekim 20:20:58 İstanbul saatinde bekleyen kilit 0, diğer aktif transaction 0. Hedef toplam boyutları: history 48 KiB, config 24 KiB, settings 32 KiB. estimated_rows=-1 bilinmiyor demektir, sıfır satır değildir. Bu ölçüm kalıcı kilit garantisi değildir; yayın anında yeniden alınır.
+
+Yerel uyumluluk adayının okuma/yazma kabulü tamamlandı. Kalan operasyonel adım: güncel deployment/ledger/hash kontrolü, yalnız 001'in ledger ile atomik kurulumu, bu uyumlu adayın production yapılandırmasıyla dağıtımı ve canlı salt okunur smoke. Sonraki SQL 002+ ancak bu dağıtım kaydı geri dönüş hedefi olarak doğrulandıktan sonra. Henüz yayın yapılmadı.
