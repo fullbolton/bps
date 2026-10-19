@@ -1617,3 +1617,12 @@ Kalan 20261019000200–01700 16 migration sırayla uygulandı. Her adımın DDL 
 Gerçek oturumla salt okunur smoke: Modüller kullanım hakkı etiketleri, İnsan Kaynakları Hazırlanıyor durumu, katalog yükseltmesi + eski kurulum geçmişi; platform yöneticisi olmayan hesapta haklar alanı ret; günlük operasyon yükleme; kapalı İK rotası 404 geçti. Gerçek iş kaydı veya İK aktivasyonu yapılmadı. Kanıt qa/hr-release-20261019/remaining/release.json, production-install.json ve production-verification.json.
 
 Sıradaki ürün paketi: İK-1 çalışan düzenleme/istihdam yaşam döngüsü, özel evrak ve Excel kabulü; yetki kapsamlarıyla uçtan uca doğrulama. İzin/satın alma yönetici onayları ayrıca tamamlanacak. Gerçek şirket İK aktivasyonu bu kabulden ayrı. Önceki 191 canlı / 16 bekliyor ifadeleri tarihsel kaldı. Geri dönüş için uyumluluk dağıtımı saklanıyor; SQL/audit silerek geri alınmaz.
+
+
+## 19 Ekim — İK çalışan temel bilgisi düzenleme paketi (yerel)
+
+Çalışan listesinde masaüstü/mobil Düzenle eylemi ve ad/personel kodu formu eklendi. Yeni 20261019001800 migration; context ve edit RPC'leri mevcut legacy/scoped yetki modelini izler. Scoped kullanıcıda hem okuma hem güncelleme yetkisi gerekir; her denemede ve makbuz tekrarında güncel erişim kontrol edilir. Çalışan/kişi/politika sürümleri ve mod değişikliği eski formu reddeder. Şirket kilidi, tek komut kimliği ve hr_commands geçmişi birlikte çalışır; audit hatasında veri geri alınır. Havuz bağlantılı ad salt okunur, personel kodu düzenlenebilir.
+
+UI yazılanları kesin ret sonrası korur ve güncel kayıtla karşılaştırır; belirsiz sonuçta aynı komutu tekrarlar. Bu paket işe giriş/çıkış tarihi, departman değişikliği veya yeniden işe alma düzenlemesi değildir. Yeni ekran gerçek yerel tarayıcıda henüz kabul edilmedi; yayına hazır tamamlanmış ürün olarak değerlendirilmez.
+
+Doğrulama: 6 PostgreSQL kabul grubu (idempotency/eski sürüm/mükerrer kod/audit rollback/scoped yetki/bağlı ad/kapalı modül kontrolleri), 4 gerçek kaynak istemci sözleşmesi grubu; 849 mevcut uygulama testi, TypeScript, statik kontrol (0 hata, commit öncesi migration uyarısı) ve sentetik ortam production build geçti. Kanıt qa/hr-catalog-20261018/employee-edit-*-result.json. Canlı hâlâ 207 migration; 018 uygulanmadı, İK kapalı. Sonraki adım: tarayıcıda form kaydetme/ret/yenileme ve mobil kabul, ardından istihdam yaşam döngüsü paketi.

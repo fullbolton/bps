@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "Update and receipt audit; exact retry idempotent; altered retry and stale revision rejected",
+    "Duplicate code, identity-like number and unknown fields rejected without revision changes",
+    "Audit failure rolls back data changes",
+    "Scoped reader cannot edit; update grant works; revoked grant blocks receipt replay; cross-tenant context rejected",
+    "Linked candidate name is read-only while employee code remains editable",
+    "Receipt replay requires current module access"
+  ],
+  "passed": 6,
+  "syntheticOnly": true
+}

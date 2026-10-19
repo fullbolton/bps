@@ -1,0 +1,10 @@
+{
+  "passed": 4,
+  "checks": [
+    "Context identity and revision validation",
+    "Immutable normalized intent preserves bigint revisions",
+    "Linked name and identity-number guard",
+    "Receipt identity and field equality"
+  ],
+  "actualSource": true
+}

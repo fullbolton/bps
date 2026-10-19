@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {writeFileSync} from 'node:fs';
+import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
+const {parseHrEdit,prepareHrEdit,saveHrEdit}=await importActualTypeScript(new URL('../../src/lib/services/hr-employee-edit.ts',import.meta.url));
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const raw={schemaVersion:1,actorId:id(1),tenantId:id(2),employeeId:id(3),name:'Synthetic',code:'HR1',nameEditable:true,employeeRevision:'9007199254740993',personRevision:'1',policyRevision:'1',mode:'scoped'};
+const parse=r=>parseHrEdit(r,id(1),id(2),id(3));const c=parse(raw);
+for(const patch of [{actorId:id(4)},{tenantId:id(4)},{employeeId:id(4)},{employeeRevision:1},{personRevision:'0'},{policyRevision:'1.2'},{mode:'other'},{nameEditable:'true'}])assert.throws(()=>parse({...raw,...patch}));
+const intent=prepareHrEdit(id(1),id(2),id(5),c,' New name ',' HR2 ');assert.equal(intent.p_payload.employeeRevision,'9007199254740993');assert.equal(intent.p_payload.code,'HR2');assert.ok(Object.isFrozen(intent.p_payload));
+assert.throws(()=>prepareHrEdit(id(1),id(2),id(5),{...c,nameEditable:false},'Different','HR2'));
+assert.throws(()=>prepareHrEdit(id(1),id(2),id(5),c,'Name','12345678901'));
+const reply={schemaVersion:1,actorId:id(1),tenantId:id(2),commandId:id(5),employeeId:id(3),name:'New name',code:'HR2'};
+const client=data=>({rpc:()=>({abortSignal:async()=>({data,error:null})})});
+await saveHrEdit(client(reply),intent);await assert.rejects(()=>saveHrEdit(client({...reply,commandId:id(6)}),intent));await assert.rejects(()=>saveHrEdit(client({...reply,name:'Other'}),intent));
+writeFileSync(new URL('./employee-edit-client-result.json',import.meta.url),JSON.stringify({passed:4,checks:['Context identity and revision validation','Immutable normalized intent preserves bigint revisions','Linked name and identity-number guard','Receipt identity and field equality'],actualSource:true},null,2)+'\n');console.log('PASS 4 client contract groups');
