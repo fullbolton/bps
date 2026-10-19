@@ -30,5 +30,6 @@
   "20261018000500_announcement_inbox.sql",
   "20261018000600_workspace_inbox.sql",
   "20261019000100_module_history_catalog_versions.sql",
-  "20261019000200_module_catalog_v2_storage.sql"
+  "20261019000200_module_catalog_v2_storage.sql",
+  "20261019000300_module_entitlements.sql"
 ]

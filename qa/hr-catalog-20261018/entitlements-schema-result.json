@@ -1,0 +1,15 @@
+{
+  "measuredAt": "2026-10-19T10:45:15.954Z",
+  "checks": [
+    "Legacy allocations retained; HR unallocated/unready; company manager cannot allocate rights or read another company",
+    "Platform-only idempotent allocation, stale/reused command rejection, active revocation block; allocation never activates HR or changes module history revisions",
+    "Legacy activation is denied without allocation and succeeds after reallocation using the same unchanged module revision",
+    "Concurrent allocations serialize: one commits, one rejects its stale revision; no lost update",
+    "Raw table access denied to client/service roles; new-company initialization includes explicit rights"
+  ],
+  "deployed": false,
+  "limits": [
+    "Local synthetic schema only",
+    "Platform allocation UI, payments, HR activation and new edit UI are not implemented"
+  ]
+}

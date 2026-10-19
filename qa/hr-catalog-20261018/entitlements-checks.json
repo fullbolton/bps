@@ -1,0 +1,15 @@
+{
+  "measuredAt": "2026-10-19T10:46:30.162456+00:00",
+  "applicationTests": 812,
+  "actualSchemaGroups": 5,
+  "tsc": "passed",
+  "build": "passed with synthetic localhost public values",
+  "productionChanged": false,
+  "browserTested": false,
+  "remaining": [
+    "Platform allocation UI",
+    "Company entitlements UI",
+    "Catalog v2 editing/preview",
+    "HR activation and HR1"
+  ]
+}

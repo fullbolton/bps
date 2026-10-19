@@ -1388,6 +1388,14 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      workspace_module_entitlements_v1: {
+        Args: {p_actor: string; p_tenant: string};
+        Returns: Json;
+      };
+      set_module_entitlement_v1: {
+        Args: {p_actor: string; p_tenant: string; p_revision: string; p_command: string; p_module: string; p_granted: boolean};
+        Returns: Json;
+      };
       current_workspace_modules_v2: {
         Args: Record<string, never>;
         Returns: Json;

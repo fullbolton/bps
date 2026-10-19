@@ -712,5 +712,9 @@
   {
     "file": "scripts/module-catalog-snapshot.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/module-entitlements.test.mjs",
+    "suite": "application"
   }
 ]

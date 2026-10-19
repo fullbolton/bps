@@ -1,3 +1,4 @@
+import {parseModuleEntitlements} from '@/lib/modules/entitlements';
 import {parseVersionedModuleHistory} from '@/lib/modules/change-history';
 import { parseRequestedModules, parseModuleChangePreview } from '@/lib/modules/change-preview';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -41,4 +42,11 @@ export async function loadModuleHistory(client: SupabaseClient<Database>, expect
   const {data,error}=await client.rpc('workspace_module_history_v2',{p_actor:expected.actorId,p_tenant:expected.tenantId}).abortSignal(AbortSignal.timeout(12_000));
   if(error) throw error;
   return parseVersionedModuleHistory(data,expected);
+}
+
+/** No inferred rights or fallback when allocation data is unavailable. */
+export async function loadModuleEntitlements(client: SupabaseClient<Database>, expected: import('@/lib/modules/context').WorkspaceModuleContext) {
+  const {data,error}=await client.rpc('workspace_module_entitlements_v1',{p_actor:expected.actorId,p_tenant:expected.tenantId}).abortSignal(AbortSignal.timeout(12_000));
+  if(error) throw error;
+  return parseModuleEntitlements(data,expected);
 }
