@@ -99,9 +99,15 @@ BEGIN
  END IF;
  RETURN NEW;
 END $$;
+ALTER TABLE public.hr_people ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hr_departments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hr_employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hr_employment_periods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hr_assignments ENABLE ROW LEVEL SECURITY;
+
 DO $$ DECLARE t text;BEGIN
  FOREACH t IN ARRAY ARRAY['hr_people','hr_departments','hr_employees','hr_employment_periods','hr_assignments'] LOOP
- EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',t);
+ -- RLS is enabled explicitly above for static auditability.
  EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC,anon,authenticated,service_role',t);
  EXECUTE format('CREATE TRIGGER hr_organization_guard BEFORE INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.hr_organization_guard()',t);
  END LOOP;

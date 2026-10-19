@@ -9,9 +9,16 @@ CREATE TABLE public.company_access_exceptions(id uuid PRIMARY KEY,tenant_id uuid
 CREATE INDEX company_access_exception_account ON public.company_access_exceptions(tenant_id,account_id) WHERE NOT revoked;
 CREATE TABLE public.company_access_commands(tenant_id uuid NOT NULL REFERENCES public.tenants(id),actor_id uuid NOT NULL REFERENCES public.profiles(id),command_id uuid NOT NULL,payload jsonb NOT NULL,result jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT statement_timestamp(),PRIMARY KEY(tenant_id,actor_id,command_id));
 CREATE TABLE public.company_access_history(tenant_id uuid NOT NULL REFERENCES public.tenants(id),revision bigint NOT NULL,actor_id uuid NOT NULL REFERENCES public.profiles(id),command_id uuid NOT NULL,before_value jsonb,after_value jsonb,created_at timestamptz NOT NULL DEFAULT statement_timestamp(),PRIMARY KEY(tenant_id,revision));
+ALTER TABLE public.company_access_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_access_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_access_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_access_exceptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_access_commands ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_access_history ENABLE ROW LEVEL SECURITY;
+
 DO $$ DECLARE t text;BEGIN
  FOREACH t IN ARRAY ARRAY['company_access_state','company_access_roles','company_access_assignments','company_access_exceptions','company_access_commands','company_access_history'] LOOP
- EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',t);
+ -- RLS is enabled explicitly above for static auditability.
  EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC,anon,authenticated,service_role',t);
  END LOOP;
 END $$;

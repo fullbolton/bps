@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T17:13:54.004663+00:00",
+  "measuredAt": "2026-10-19T17:29:19.283953+00:00",
   "project": "dffdzbmnmnokbftbujsy",
   "readOnly": true,
   "rows": [
@@ -5769,6 +5769,20 @@
             "nullable": "NO"
           },
           {
+            "type": "int4",
+            "table": "tenant_module_changes",
+            "column": "before_catalog_version",
+            "default": "1",
+            "nullable": "NO"
+          },
+          {
+            "type": "int4",
+            "table": "tenant_module_changes",
+            "column": "after_catalog_version",
+            "default": "1",
+            "nullable": "NO"
+          },
+          {
             "type": "uuid",
             "table": "tenant_module_config",
             "column": "tenant_id",
@@ -10833,6 +10847,12 @@
             "signature": "workspace_module_history_v1(uuid,uuid)"
           },
           {
+            "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+            "hash": "3231b70d009baa8938af6801a0b4458b",
+            "owner": "postgres",
+            "signature": "workspace_module_history_v2(uuid,uuid)"
+          },
+          {
             "acl": "{postgres=X/postgres}",
             "hash": "17c7487d4a426d4780404f66b5acbe69",
             "owner": "postgres",
@@ -13587,6 +13607,18 @@
             "table": "tenant_memberships",
             "validated": true,
             "definition": "UNIQUE (user_id, tenant_id)"
+          },
+          {
+            "name": "module_history_after_catalog_known",
+            "table": "tenant_module_changes",
+            "validated": true,
+            "definition": "CHECK ((after_catalog_version = 1))"
+          },
+          {
+            "name": "module_history_before_catalog_known",
+            "table": "tenant_module_changes",
+            "validated": true,
+            "definition": "CHECK ((before_catalog_version = 1))"
           },
           {
             "name": "tenant_module_changes_after_state_check",

@@ -1,0 +1,104 @@
+{
+  "measuredAt": "2026-10-19T17:31:33.971Z",
+  "syntheticOnly": true,
+  "checks": [
+    {
+      "version": "20261019000200",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019000300",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019000400",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019000500",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019000600",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019000700",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019000800",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019000900",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001000",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001100",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001200",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001300",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001400",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001500",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001600",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001700",
+      "rollback": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    }
+  ],
+  "finalLedger": 207,
+  "activationClosed": true
+}

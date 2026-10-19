@@ -1,0 +1,12 @@
+{
+  "measuredAt": "2026-10-19T17:32:33.629904+00:00",
+  "applicationTests": 849,
+  "applicationFailed": 0,
+  "staticFailures": 0,
+  "staticWarning": "uncommitted migration changes",
+  "typescript": "passed",
+  "build": "passed with synthetic public Supabase configuration; HR preview false",
+  "productionApplied": false,
+  "productionLedger": 191,
+  "atomicGroups": 16
+}

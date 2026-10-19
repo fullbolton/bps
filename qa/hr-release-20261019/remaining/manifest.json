@@ -1,0 +1,135 @@
+{
+  "baseline": 191,
+  "final": 207,
+  "atomicPerMigration": true,
+  "migrations": [
+    {
+      "version": "20261019000200",
+      "name": "module_catalog_v2_storage",
+      "sourceSha256": "b67196904029ca64e12c3c0c4ed3fa07d5d79c778d76b9b60fc21b71f8d9e7f0",
+      "installSha256": "baa163f99e4cd0cb8fa4931bc57d280323cc5e83ad0bef04ca604b69aebb2c05",
+      "expectedBefore": 191,
+      "expectedAfter": 192
+    },
+    {
+      "version": "20261019000300",
+      "name": "module_entitlements",
+      "sourceSha256": "9f3655b9ec9d6e334d3fbfd7ff0d0839a67ecf3ec147ec714e2b3a726f381013",
+      "installSha256": "582007bbb3e52389f6da1078e8b62f2120854ff1179c65814f50cd07630911b6",
+      "expectedBefore": 192,
+      "expectedAfter": 193
+    },
+    {
+      "version": "20261019000400",
+      "name": "platform_module_rights_reader",
+      "sourceSha256": "7c664efdddc440549746bde859b18cfc4604ddc241980e79bf5084068a41e090",
+      "installSha256": "b004cddc6bc05c634eb8231888399817fd8f7d7a1e273320ada8b028f69780f1",
+      "expectedBefore": 193,
+      "expectedAfter": 194
+    },
+    {
+      "version": "20261019000500",
+      "name": "hr_organization_foundation",
+      "sourceSha256": "332dfe9d36c9786ddab2fdcae249bab4fdf9e473db029c4df7fb62ccfe7a47a1",
+      "installSha256": "157171b95bfe6c56252bc5990ee81618ca0c77c40504d20535592c3747cd217b",
+      "expectedBefore": 194,
+      "expectedAfter": 195
+    },
+    {
+      "version": "20261019000600",
+      "name": "hr_directory_commands",
+      "sourceSha256": "9157b5546e38ca7fd1fd08935d768a9da33df169dfd67e87bb5542dedd43b8aa",
+      "installSha256": "b111989bb32d09fc64a8396d21edceb99a9297056551c09d54932c55d5325041",
+      "expectedBefore": 195,
+      "expectedAfter": 196
+    },
+    {
+      "version": "20261019000700",
+      "name": "hr_work_locations_and_accounts",
+      "sourceSha256": "8ecd5f9b091a58b401beae04f1e3a4c3dc60b2bda70bf820db56a406b88d2fe2",
+      "installSha256": "b011049023882c278c6c544978c60107ea260f9f6916f52d8670f7343752e7ce",
+      "expectedBefore": 196,
+      "expectedAfter": 197
+    },
+    {
+      "version": "20261019000800",
+      "name": "custom_access_roles",
+      "sourceSha256": "78294c3f3e3da77a3f3705eb19ab784121279eaeb0c8d3bb0f00bccb8c794be8",
+      "installSha256": "7f2fddaa2b56ae059c97e613f405acb68c678e9f491f06fa5c21d20b4cf75124",
+      "expectedBefore": 197,
+      "expectedAfter": 198
+    },
+    {
+      "version": "20261019000900",
+      "name": "access_editor_options",
+      "sourceSha256": "3c8970d4f6d7a2b4a2bc71d48668563de70ce2208c1180d05b7dacf1902c5349",
+      "installSha256": "3d70041eac1125155b7e35e6bf3a36ceca4b3e815a0abbeda2d64c57bf701865",
+      "expectedBefore": 198,
+      "expectedAfter": 199
+    },
+    {
+      "version": "20261019001000",
+      "name": "hr_scoped_directory",
+      "sourceSha256": "34f6c294cddade2ffeb0e450c2fea591f69b247f2b2aba7c24f40efef981d188",
+      "installSha256": "ba5345ed242ab59d3c67c7487255a4786e882a5f15f57d83e4169050d323112a",
+      "expectedBefore": 199,
+      "expectedAfter": 200
+    },
+    {
+      "version": "20261019001100",
+      "name": "hr_scoped_employee_create",
+      "sourceSha256": "f141c21a128439e52f081de02c796b7e8cc50d7741d823cfc5e1de3924f131c6",
+      "installSha256": "06c06465c21b6a4173589da087b56f58edec28cb6156a595021d2afebe2aff5b",
+      "expectedBefore": 200,
+      "expectedAfter": 201
+    },
+    {
+      "version": "20261019001200",
+      "name": "hr_create_options",
+      "sourceSha256": "bfb406ec36fc89bd2c873e33b446f4b9d072cd40235132a5cae3e67f7de1d5e8",
+      "installSha256": "780b9f2b4c86f6828dcc4f82e70a0f886a31bfacdc677a10439062e5c9adff36",
+      "expectedBefore": 201,
+      "expectedAfter": 202
+    },
+    {
+      "version": "20261019001300",
+      "name": "hr_scoped_location_transfer",
+      "sourceSha256": "9815a3e58ec9c51e11c95b0c6a872c883d3d7b8d823ca508d79c0261ef9865c6",
+      "installSha256": "717081de941b98453a82d7fa787f99ef2b84907cdc3672f744e0f06ab708854c",
+      "expectedBefore": 202,
+      "expectedAfter": 203
+    },
+    {
+      "version": "20261019001400",
+      "name": "hr_access_cutover_routes",
+      "sourceSha256": "fab156acaaa84b4af9282706119674967eb1c3d03375227383cedb6e13b71a5f",
+      "installSha256": "070c7a6dd5b53225e1aee7d7b009a4b9da04827c0a1a75503f2a321b60c94350",
+      "expectedBefore": 203,
+      "expectedAfter": 204
+    },
+    {
+      "version": "20261019001500",
+      "name": "hr_screen_context",
+      "sourceSha256": "0088d3e278aef958ee21ef9b42c63b1af395a9c36a16ba8f7234f702e9875e7d",
+      "installSha256": "da513afe18e3e6eaff9936f6bde7a7dcc69a1cc86113f3aec2e3e87767992601",
+      "expectedBefore": 204,
+      "expectedAfter": 205
+    },
+    {
+      "version": "20261019001600",
+      "name": "hr_transfer_options",
+      "sourceSha256": "78950324062b1f20f640f1734796a4b891b728e39637455ddbf3f8a9d6fdb78e",
+      "installSha256": "8661f5686edfa4071924edb68ea89d875be688c5251e7a375f4ae2aa939be207",
+      "expectedBefore": 205,
+      "expectedAfter": 206
+    },
+    {
+      "version": "20261019001700",
+      "name": "hr_access_activation",
+      "sourceSha256": "5e3a14b412d3a40ef9f5e6a9a9f118e4a9ea5523abbbb2f3894fa3440d5934c7",
+      "installSha256": "de99b62a0636957cdbdd158407aae03f90c522b7638d3a58b1d3219c3b5bb5f1",
+      "expectedBefore": 206,
+      "expectedAfter": 207
+    }
+  ]
+}

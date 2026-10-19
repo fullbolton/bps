@@ -1,6 +1,6 @@
 # İK yayın hazırlığı — 19 Ekim 2026
 
-Durum: **yerel sıralı kurulum geçti; üretim yayını yapılmadı.**
+Durum: **001 + uyumluluk uygulaması canlıda (191 migration). Kalan 002–017 için güncel üretim başlangıcıyla yerel kurulum ve atomik hata kabulü geçti; bu 16 migration henüz yayımlanmadı.**
 
 ## Doğrulanan kapsam
 

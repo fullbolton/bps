@@ -7,7 +7,11 @@ import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-m
 // Historical metadata only: this never connects to production or approves release.
 const root = new URL('../../', import.meta.url);
 const baseline = JSON.parse(readFileSync(new URL('../contract-write-20261015/review-help-production-preflight.json', import.meta.url)));
-const versions = baseline.state.versions;
+const bridge = JSON.parse(readFileSync(new URL('./bridge/production-verification.json', import.meta.url)));
+assert.equal(bridge.rows[0].ledger_count, 191);
+assert.equal(bridge.rows[0].latest_version, '20261019000100');
+const versions = [...baseline.state.versions, '20261019000100'];
+assert.equal(new Set(versions).size, 191, 'Bridge baseline must be exactly 191 unique versions');
 const files = readdirSync(new URL('supabase/migrations/', root)).filter(f => f.endsWith('.sql')).sort();
 assert.equal(new Set(files.map(f => f.slice(0,14))).size, files.length, 'Duplicate migration version');
 for (const version of versions) assert.ok(files.some(f => f.startsWith(version + '_')), `Missing historical migration ${version}`);
@@ -76,7 +80,7 @@ try {
   assert.equal(vercel.git.deploymentEnabled['codex/tenant-modules-foundation-20260928'], false);
   const result = {
     measuredAt:new Date().toISOString(), candidate:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),
-    historicalBaseline:{measuredAt:baseline.measuredAt,migrationCount:versions.length,lastVersion:versions.at(-1)},
+    historicalBaseline:{measuredAt:bridge.measuredAt,migrationCount:versions.length,lastVersion:versions.at(-1)},
     currentProductionLedgerVerified:true,productionLedgerMeasuredAt:liveLedger.measuredAt,catalogDriftCount:drift.length,acceptedParenthesization:accepted.length,unresolvedCatalogDrift:unresolved.length,syntheticOnly:true,migrations,
     checks:['All historical ledger versions present','No duplicate or backdated candidate version','Strict fixture manifest matches candidate','Sequential candidate installation passed','No approved HR release gates','No scoped company activation','Development Git deployment disabled'],
     limits:['Synthetic template reconciled against measured public catalog subset; non-public schemas and production data not compared','No production SQL, deployment, data export or company activation','Application rollback and production lock duration not measured']

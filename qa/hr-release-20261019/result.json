@@ -1,22 +1,18 @@
 {
-  "measuredAt": "2026-10-19T17:14:36.658Z",
-  "candidate": "af0324a4f8f5ef8037a8dba3b60443b2aec3bff4",
+  "measuredAt": "2026-10-19T17:31:27.217Z",
+  "candidate": "881a09e2714bdc16eb786709b92dd0f7e442a8fb",
   "historicalBaseline": {
-    "measuredAt": "2026-10-18T17:24:23.756002+00:00",
-    "migrationCount": 190,
-    "lastVersion": "20261018000600"
+    "measuredAt": "2026-10-19T17:27:43.753469+00:00",
+    "migrationCount": 191,
+    "lastVersion": "20261019000100"
   },
   "currentProductionLedgerVerified": true,
-  "productionLedgerMeasuredAt": "2026-10-19T12:41:03.537519+00:00",
+  "productionLedgerMeasuredAt": "2026-10-19T17:29:16.102692+00:00",
   "catalogDriftCount": 8,
   "acceptedParenthesization": 8,
   "unresolvedCatalogDrift": 0,
   "syntheticOnly": true,
   "migrations": [
-    {
-      "name": "20261019000100_module_history_catalog_versions.sql",
-      "sha256": "75c2fff80129221ef572ffccfa3748427affc5118ea0ce034e41bf8daabe6796"
-    },
     {
       "name": "20261019000200_module_catalog_v2_storage.sql",
       "sha256": "b67196904029ca64e12c3c0c4ed3fa07d5d79c778d76b9b60fc21b71f8d9e7f0"
@@ -31,7 +27,7 @@
     },
     {
       "name": "20261019000500_hr_organization_foundation.sql",
-      "sha256": "8b1a18c24d03e72a0db77a50adfb4718566b15517b8e67dc684a47f9a395ba61"
+      "sha256": "332dfe9d36c9786ddab2fdcae249bab4fdf9e473db029c4df7fb62ccfe7a47a1"
     },
     {
       "name": "20261019000600_hr_directory_commands.sql",
@@ -39,11 +35,11 @@
     },
     {
       "name": "20261019000700_hr_work_locations_and_accounts.sql",
-      "sha256": "904ced22f80fb2546ae64537a0689861fed5e43ee8e8ed24b670c36322f73a45"
+      "sha256": "8ecd5f9b091a58b401beae04f1e3a4c3dc60b2bda70bf820db56a406b88d2fe2"
     },
     {
       "name": "20261019000800_custom_access_roles.sql",
-      "sha256": "20ea018d76911532a383b53ba297495ac57a2bb8458e029b9adc2e402d9788ec"
+      "sha256": "78294c3f3e3da77a3f3705eb19ab784121279eaeb0c8d3bb0f00bccb8c794be8"
     },
     {
       "name": "20261019000900_access_editor_options.sql",

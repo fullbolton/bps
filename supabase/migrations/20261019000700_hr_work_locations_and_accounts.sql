@@ -57,9 +57,13 @@ BEGIN
  RETURN NEW;
 END $$;
 CREATE TRIGGER hr_period_location_guard BEFORE UPDATE ON public.hr_employment_periods FOR EACH ROW EXECUTE FUNCTION public.hr_period_location_guard();
+ALTER TABLE public.hr_work_locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hr_location_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hr_account_links ENABLE ROW LEVEL SECURITY;
+
 DO $$ DECLARE t text;BEGIN
  FOREACH t IN ARRAY ARRAY['hr_work_locations','hr_location_assignments','hr_account_links'] LOOP
-  EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',t);
+  -- RLS is enabled explicitly above for static auditability.
   EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC,anon,authenticated,service_role',t);
   EXECUTE format('CREATE TRIGGER hr_workplace_guard BEFORE INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.hr_workplace_guard()',t);
  END LOOP;

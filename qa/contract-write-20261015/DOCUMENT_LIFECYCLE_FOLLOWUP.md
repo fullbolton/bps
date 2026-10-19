@@ -1597,3 +1597,12 @@ Yalnız 20261019000100 atomik DDL + migration ledger işlemiyle uygulandı; üre
 Süreç notu: İlk yayın sonrası kontrolün sonuç dosyası yanlış çalışma dizinine yazılamadı; shell promote işlemine devam etti. Kontrol doğru dizinde hemen tekrarlandı, beklenen tüm koşullar doğrulandı. Sonraki yayın komutları hata halinde kesin durmalı.
 
 Sıradaki sınır: kalan 16 SQL (002–017) için artık 191 kayıtlı canlı şema üstünden ön kontrol/prova; yeni uygulama ve İK kapalı teknik altyapı yayını. Bu uyumluluk dağıtımı katalog yükseltmesinden sonra uygulama geri dönüş hedefidir; gerçek İK aktivasyonundan sonra tek başına yeterli değildir. İK açma, satın alma/izin onayları ve özel roller tamamlanmış veya yayımlanmış sayılmaz.
+
+
+## 19 Ekim — 191 başlangıcından kalan 16 migration kabul paketi
+
+Canlı ledger/public katalog/bariyer/yük ölçümü yenilendi. 001 canlı; kalan 002–017 sentetik DB üzerinde 191 başlangıcından geçti, beklenmeyen katalog farkı 0. remaining/ altında her biri DDL+ledger atomik, tam önceki sürüm listesine kilitli 16 kurulum dosyası üretildi. Her adımda hata enjeksiyonu/rollback, yeniden başarılı kurulum, başarılı işlemin tekrar reddi geçti (16 grup). İK/erişim tablolarının tümünde RLS açık; teknik onay ve scoped aktivasyon kapalı.
+
+Statik kontrol dinamik RLS döngülerini tanımadığı için 005/007/008 henüz uygulanmamış migration'larda RLS ifadeleri açık tablo adlarıyla yazıldı. Yeni hashlerle tüm provayı tekrar geçirdik. 849 uygulama testi geçti, statik kontrol 0 hata (commit öncesi migration değişikliği uyarısı), TypeScript geçti. İlk build ortam değişkeni eksikliğiyle durdu; sentetik Supabase URL/anahtarı ve HR preview kapalı yapılandırmayla production build geçti. Bu build gerçek üretim ortamı kabulü değildir.
+
+Üretim bu tur değişmedi: 191 migration ve uyumluluk uygulaması. Kalan yayın kapısı: yeni uygulamanın gerçek production ortamında alan adına bağlanmadan derlenmesi; ardından güncel ön kontrol ve kontrollü 002–017 kurulumu, uygulama geçişi, canlı smoke. Şirket İK aktivasyonu ayrı kalır. Kanıt qa/hr-release-20261019/remaining/test-result.json ve package-checks.json.
