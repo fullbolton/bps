@@ -5,6 +5,7 @@
   "realClamav": true,
   "realWorkerAdapters": true,
   "realApplicationService": true,
+  "realCoordinatorCycle": true,
   "nextRouteTested": false,
   "leasedExecution": true,
   "userJwtPassedToWorker": false,

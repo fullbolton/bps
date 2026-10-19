@@ -35,6 +35,6 @@ export async function accept({sql,rpcResult,request,id,jwt,service,docker,storag
    else {assert.equal(sql(`SELECT state FROM hr_document_uploads WHERE id='${upload}'`),'pending');assert.equal((await rpc('hr_document_shutdown_preflight_v1',{p_actor:actor,p_tenant:tenant})).blocking,true);}
    checks.push({file,verdict,quarantineBeforeScan:true,published:finished.ok,readableAfterScan:readable.ok});
   }
-  writeFileSync(new URL('./storage-result.json',import.meta.url),JSON.stringify({realStorageHttp:true,realPostgrest:true,realDatabase:true,realClamav:true,realWorkerAdapters:true,realApplicationService:true,nextRouteTested:false,leasedExecution:true,userJwtPassedToWorker:false,syntheticOnly:true,productionReady:false,checks},null,2)+'\n');return ['Real Storage → measured ClamAV → guarded report → finalize: clean publishes once; encrypted/limit stay quarantined and block closure'];
+  writeFileSync(new URL('./storage-result.json',import.meta.url),JSON.stringify({realStorageHttp:true,realPostgrest:true,realDatabase:true,realClamav:true,realWorkerAdapters:true,realApplicationService:true,realCoordinatorCycle:true,nextRouteTested:false,leasedExecution:true,userJwtPassedToWorker:false,syntheticOnly:true,productionReady:false,checks},null,2)+'\n');return ['Real Storage → measured ClamAV → guarded report → finalize: clean publishes once; encrypted/limit stay quarantined and block closure'];
  }finally{for(const name of [sidecar,daemon])try{docker(['rm','-f',name]);}catch{}docker(['volume','rm',volume]);}
 }

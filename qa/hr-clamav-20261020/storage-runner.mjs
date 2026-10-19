@@ -3,6 +3,7 @@ import http from 'node:http';
 import {createHash} from 'node:crypto';import {readFileSync} from 'node:fs';
 import {createLeasedHrScanAdapters} from '/worker/leased-storage.mjs';
 import {createEngineReader} from '/worker/config.mjs';
+import {runWorkerCycle} from '/worker/coordinator.mjs';
 import {runHrScan} from '/worker/job.mjs';
 import {scanBytes} from '/worker/clamd.mjs';
 const env=process.env;
@@ -12,10 +13,8 @@ const proxy=http.createServer(async(req,res)=>{try{if(!req.url.startsWith('/stor
 await new Promise(r=>proxy.listen(0,'127.0.0.1',r));
 try{
  const service=client(env.SERVICE_TOKEN);
- const lease=await service.rpc('hr_malware_claim_v1',{p_tenant:env.TENANT,p_worker:env.WORKER}).abortSignal(AbortSignal.timeout(12000));
- if(lease.error||lease.data?.uploadId!==env.UPLOAD)throw Error('HR_SCAN_CLAIM');
- const adapters=await createLeasedHrScanAdapters({claim:lease.data,worker:env.WORKER,service,storageOrigin:`http://127.0.0.1:${proxy.address().port}`,serviceKey:env.SERVICE_TOKEN});
  const readEngineState=createEngineReader({expectedDigest:createHash('sha256').update(readFileSync('/evidence/clamd.conf')).digest('hex'),acceptanceOnly:true});
- const report=await runHrScan({...adapters,readEngineState,scan:bytes=>scanBytes(bytes,{socketPath:'/run/bps-clam/clamd.sock'})});
+ let report;
+ await runWorkerCycle({tenant:env.TENANT,worker:env.WORKER,service,storageOrigin:`http://127.0.0.1:${proxy.address().port}`,serviceKey:env.SERVICE_TOKEN,readEngineState,scan:bytes=>scanBytes(bytes,{socketPath:'/run/bps-clam/clamd.sock'}),makeAdapters:async options=>{if(options.claim.uploadId!==env.UPLOAD)throw Error('HR_SCAN_CLAIM');return createLeasedHrScanAdapters(options);},runScan:async options=>{report=await runHrScan(options);return report;}});
  console.log(JSON.stringify({verdict:report.verdict,complete:report.complete,sha256:report.sha256,signatureVersion:report.signatureVersion}));
 }finally{proxy.closeAllConnections();await new Promise(r=>proxy.close(r));}
