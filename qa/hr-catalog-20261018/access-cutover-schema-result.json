@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-19T11:59:14.872Z",
+  "checks": [
+    "Default mode preserves legacy access; scoped writers disabled and implementation/mode tables inaccessible to clients",
+    "Old list becomes scoped, old nonmanager writers blocked, explicit manager administration preserved, settings reports enforced HR",
+    "Authenticated new writer/options work only under scoped policy; removal never falls back to legacy HR role",
+    "Controlled mode rollback restores legacy route and closes scoped writer, without deleting records"
+  ],
+  "deployed": false,
+  "productionModeChanged": false
+}

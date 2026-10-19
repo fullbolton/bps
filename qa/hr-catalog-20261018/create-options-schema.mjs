@@ -10,7 +10,7 @@ const sql=(q,d=db)=>execFileSync('docker',['exec','-i',server,'psql','-X','-qAt'
 const rule=(scope,effect='allow')=>({capability:'hr.employees.read',effect,scope});
 const setRules=rules=>sql(`UPDATE company_access_roles SET rules='${JSON.stringify(rules)}' WHERE id='${id(9990)}'`);
 let created=false;const checks=[];
-const call=(payload,command=9900,revision=1)=>JSON.parse(sql(`BEGIN;SET LOCAL request.jwt.claims='{"sub":"${id(11)}","active_tenant_id":"${id(1)}"}';SELECT hr_scoped_employee_create_v1('${id(11)}','${id(1)}','${id(command)}',${revision},'${JSON.stringify(payload)}');COMMIT;`).split('\n').at(-1));
+const call=(payload,command=9900,revision=1)=>JSON.parse(sql(`BEGIN;SET LOCAL request.jwt.claims='{"sub":"${id(11)}","active_tenant_id":"${id(1)}"}';SELECT hr_scoped_employee_create_internal_v1('${id(11)}','${id(1)}','${id(command)}',${revision},'${JSON.stringify(payload)}');COMMIT;`).split('\n').at(-1));
 const base={name:'Synthetic employee',code:'SC1',startsOn:'2026-01-01',departmentId:id(9992),position:'Synthetic',locationId:id(9993)};
 const selected={kind:'selected',departmentIds:[id(9992)],locationIds:[id(9993)]};
 const grants=scope=>[rule(scope),{...rule(scope),capability:'hr.employees.create'}];
@@ -18,12 +18,12 @@ const fails=(fn,message)=>assert.throws(fn,e=>String(e.stderr).includes(message)
 try {
  sql(`CREATE DATABASE ${db} TEMPLATE bps_module_chain_20261005`,'postgres');created=true;
  for(const f of loadFixtureMigrations())sql(readFileSync(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
- assert.equal(sql("SELECT has_function_privilege('authenticated','hr_scoped_employee_create_v1(uuid,uuid,uuid,bigint,jsonb)','EXECUTE')"),'f');
+ assert.equal(sql("SELECT has_function_privilege('authenticated','hr_scoped_employee_create_internal_v1(uuid,uuid,uuid,bigint,jsonb)','EXECUTE')"),'f');
  fails(()=>call(base),'HR_FORBIDDEN');
  sql(`ALTER TABLE tenant_module_settings DISABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='hr';ALTER TABLE tenant_module_settings ENABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_entitlements SET granted=true WHERE tenant_id='${id(1)}' AND module_key='hr';INSERT INTO company_access_state VALUES('${id(1)}',1);INSERT INTO company_access_roles(id,tenant_id,name,rules) VALUES('${id(9990)}','${id(1)}','Synthetic scoped writer','[]');INSERT INTO company_access_assignments SELECT tenant_id,user_id,id,'${id(9990)}' FROM tenant_memberships WHERE tenant_id='${id(1)}' AND user_id='${id(11)}';INSERT INTO hr_departments(id,tenant_id,name) VALUES('${id(9992)}','${id(1)}','Synthetic Dept');INSERT INTO hr_work_locations(id,tenant_id,name) VALUES('${id(9993)}','${id(1)}','Synthetic Office')`);
 
- const options=(after=null)=>JSON.parse(sql(`BEGIN;SET LOCAL request.jwt.claims='{"sub":"${id(11)}","active_tenant_id":"${id(1)}"}';SELECT hr_scoped_create_options_v1('${id(11)}','${id(1)}',${after?`'${after}'`:'NULL'});COMMIT;`).split('\n').at(-1));
- assert.equal(sql("SELECT has_function_privilege('authenticated','hr_scoped_create_options_v1(uuid,uuid,text)','EXECUTE')"),'f');
+ const options=(after=null)=>JSON.parse(sql(`BEGIN;SET LOCAL request.jwt.claims='{"sub":"${id(11)}","active_tenant_id":"${id(1)}"}';SELECT hr_scoped_create_options_internal_v1('${id(11)}','${id(1)}',${after?`'${after}'`:'NULL'});COMMIT;`).split('\n').at(-1));
+ assert.equal(sql("SELECT has_function_privilege('authenticated','hr_scoped_create_options_internal_v1(uuid,uuid,text)','EXECUTE')"),'f');
  setRules(grants(selected));const page=parseHrCreateOptions(options(),id(11),id(1));assert.equal(page.options.length,1);assert.equal(page.options[0].departmentId,id(9992));assert.equal(page.options[0].locationId,id(9993));assert.equal(page.canCreateFuture,false);
  call(base);checks.push('Only exact authorized department/location pair returned and accepted by actual writer');
  setRules([rule(selected)]);assert.equal(options().options.length,0);

@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T11:55:26.474Z",
+  "measuredAt": "2026-10-19T11:59:40.493Z",
   "checks": [
     "Source-only, destination-only, read-only and explicit destination deny cannot move an employee",
     "Stale policy/row, unchanged location and injected insert failure leave the original assignment unchanged",

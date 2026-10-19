@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T11:51:58.837Z",
+  "measuredAt": "2026-10-19T11:59:44.007Z",
   "checks": [
     "Only exact authorized department/location pair returned and accepted by actual writer",
     "Read-only, self-only and explicit deny never expose creation choices",
