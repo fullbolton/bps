@@ -804,5 +804,9 @@
   {
     "file": "scripts/hr-document-scan.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-scan-route.test.mjs",
+    "suite": "application"
   }
 ]

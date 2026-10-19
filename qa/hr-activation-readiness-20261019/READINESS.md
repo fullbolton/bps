@@ -251,3 +251,12 @@ Gerçek HrDocumentUpload bileşeni ayrı yerel Next uygulamasında CUA tarayıc�
 storage-accept.mjs artık gerçek enqueueHrDocumentUpload ve actOnHrDocumentScan TypeScript servislerini kullanıyor. Gerçek yerel Storage HTTP + PostgREST + geçici PostgreSQL + ölçülmüş ClamAV + lease işçisiyle 31 kabul grubu geçti. Yükleme pending, sorgu queued, tarama sonrası temiz ready/diğer blocked, sonlandırma temiz published doğrulandı. Şifreli ve limit dosyaları okunamaz/yayımlanamaz kaldı. storage-result.json realApplicationService=true, nextRouteTested=false olarak kapsamı ayırır.
 
 Kalan somut kabul: Next upload/scan route seviyesinde oturum/origin/gövde limiti ve bayrak testleri; dosya seçimiyle tam form→gerçek route→worker birleşimi; kalıcı worker işletimi ve üretim ön kontrolü. Bu tur ürün kodu değişmedi, önceki 897 uygulama testi tekrar çalıştırılmadı. Geçici tarayıcı sekmeleri, uygulama ve test servisleri kapatıldı; gerçek veri kullanılmadı. Üretim yayını ve bayrak aktivasyonu yok.
+
+
+## 20 Ekim — route güvenlik kabulü ve gövde okuma süresi
+
+Yeni scripts/hr-scan-route.test.mjs gerçek scan/upload POST kodunu ve gerçek uygulama servislerini yürütür; yalnız Supabase oturum/RPC sınırı sentetiktir. Kapalı preview/malware, eksik/farklı/bozuk origin, oturumsuz JSON 401, yanlış şirket/kullanıcı/çalışan kimliği, bilinmeyen işlem, bozuk JSON, yanlış Content-Length ile 4096 byte üzeri gövde, no-store yanıtı, blocked finalize reddi, iç hata ayrıntısının saklanması, ready finalize ve rescan UUID kontrolü test edildi. Canlı HTTP oturumu veya dağıtılmış Next sunucusu testi değildir.
+
+Bulgu ve düzeltme: boyut sınırı olan body reader için okuma süresi yoktu. readHrScanRequest artık 12 saniyelik toplam okuma/JSON ayrıştırma yarışı, 4096 byte sınırı ve katı UTF-8 uygular. Hata/başarı sonunda okuyucu iptal edilir; iptal sağlayıcısının yanıtı handler'ı bekletmez. Testte bekleyen stream kısa test süresinde iptal edildi; bozuk UTF-8 reddedildi. Dönüşte nesne yapısı açıkça kontrol edilir.
+
+Kanıt: 905/905 uygulama testi (8 yeni route grubu dahil), TypeScript ve diff kontrolü geçti. Önceki gerçek Storage/ClamAV testi bu body-reader değişikliğinde tekrar edilmedi. Kalan: gerçek oturumlu Next HTTP/form dosya seçimi birleşik kabulü, kalıcı worker dağıtım/işletim planı ve üretim ön kontrolü. Bayraklar açılmadı; üretime yayın yapılmadı.
