@@ -756,5 +756,9 @@
   {
     "file": "scripts/hr-screen.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-access-activation.test.mjs",
+    "suite": "application"
   }
 ]

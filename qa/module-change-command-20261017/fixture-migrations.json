@@ -44,5 +44,6 @@
   "20261019001300_hr_scoped_location_transfer.sql",
   "20261019001400_hr_access_cutover_routes.sql",
   "20261019001500_hr_screen_context.sql",
-  "20261019001600_hr_transfer_options.sql"
+  "20261019001600_hr_transfer_options.sql",
+  "20261019001700_hr_access_activation.sql"
 ]

@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T12:04:29.642Z",
+  "measuredAt": "2026-10-19T12:18:43.058Z",
   "checks": [
     "Default mode preserves legacy access; scoped writers disabled and implementation/mode tables inaccessible to clients",
     "Old list becomes scoped, old nonmanager writers blocked, explicit manager administration preserved, settings reports enforced HR",

@@ -1,4 +1,5 @@
 'use client';
+import HrActivation from './HrActivation';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {useAuth} from '@/context/AuthContext';
 import {useVerifiedTenant} from '@/hooks/useVerifiedTenant';
@@ -17,7 +18,7 @@ type Rule=AccessPolicy['rules'][number];
 function Screen({actor,tenant}:{actor:string;tenant:string}){
  const load=useCallback(()=>loadAccessSettings(createClient(),actor,tenant),[actor,tenant]);
  const resource=useScopedResource(`${actor}:${tenant}`,load);
- const [tab,setTab]=useState<'roles'|'people'|'history'>('roles');
+ const [tab,setTab]=useState<'roles'|'people'|'history'|'activation'>('roles');
  const [editing,setEditing]=useState(false),[roleId,setRoleId]=useState<string|undefined>(),[name,setName]=useState(''),[rules,setRules]=useState<Rule[]>([]);
  const [person,setPerson]=useState(''),[assignedRole,setAssignedRole]=useState('');
  const [intent,setIntent]=useState<ReturnType<typeof prepareAccessCommand>|null>(null),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[message,setMessage]=useState('');
@@ -25,7 +26,8 @@ function Screen({actor,tenant}:{actor:string;tenant:string}){
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
  const intentAccount=intent&&'accountId' in intent.p_payload?intent.p_payload.accountId:null;
  const intentRole=intent?.p_payload.kind==='assign_role'?intent.p_payload.roleId:intent&&'id' in intent.p_payload?intent.p_payload.id:null;
- const dirty=editing||!!intent||!!person||!!assignedRole;
+ const [activationPending,setActivationPending]=useState(false);
+ const dirty=activationPending||editing||!!intent||!!person||!!assignedRole;
  useEffect(()=>{if(!dirty)return;const off=guard.register(event=>{event.preventDefault();setMessage('Önce açık düzenlemeyi tamamlayın veya kapatın.');});const block=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};window.addEventListener('beforeunload',block);return()=>{off();window.removeEventListener('beforeunload',block);};},[dirty,guard]);
  function clear(){setEditing(false);setRoleId(undefined);setName('');setRules([]);setPerson('');setAssignedRole('');setIntent(null);setUncertain(false);}
  function review(payload:AccessCommand){if(!resource.data||flight.current)return;try{setIntent(prepareAccessCommand(actor,tenant,crypto.randomUUID(),resource.data.revision,payload));setMessage('');}catch{setMessage('Rol adını, izinleri ve kapsam seçimlerini kontrol edin. Seçilmiş kapsam için en az bir departman veya iş yeri gerekli.');}}
@@ -33,7 +35,7 @@ function Screen({actor,tenant}:{actor:string;tenant:string}){
  function changeRule(index:number,next:Rule){setRules(old=>old.map((r,i)=>i===index?next:r));}
  return <main className="mx-auto max-w-6xl space-y-5">
  <header><h1 className="text-2xl font-semibold">Roller ve erişim</h1><p className="mt-2 rounded-lg bg-amber-50 p-3 text-amber-950">{resource.data?.enforcement==='hr_scoped'?'Özel roller İK çalışan erişiminde uygulanıyor. Şirket yöneticilerinin yönetim erişimi korunur. Finans kuralları henüz hazırlık aşamasında.':resource.data?'Hazırlık alanı: Burada kaydedilen özel roller henüz çalışan ekranlarında uygulanmıyor. Mevcut kullanıcı erişimleri değişmez.':'Erişim ayarları kontrol ediliyor.'}</p></header>
- <nav aria-label="Erişim ayarları" className="flex flex-wrap gap-2">{([['roles','Roller'],['people','Kişiler'],['history','Değişiklikler']] as const).map(([key,label])=><button key={key} className={button} aria-pressed={tab===key} disabled={dirty||busy} onClick={()=>setTab(key)}>{label}</button>)}<button className={button} disabled={dirty||busy} onClick={()=>void resource.reload()}>Yenile</button></nav>
+ <nav aria-label="Erişim ayarları" className="flex flex-wrap gap-2">{([['roles','Roller'],['people','Kişiler'],['history','Değişiklikler'],['activation','İK geçişi']] as const).map(([key,label])=><button key={key} className={button} aria-pressed={tab===key} disabled={dirty||busy} onClick={()=>setTab(key)}>{label}</button>)}<button className={button} disabled={dirty||busy} onClick={()=>void resource.reload()}>Yenile</button></nav>
  {message&&<p role="status" className="rounded-lg bg-blue-50 p-3">{message}</p>}
  {resource.loading&&<p role="status">Erişim ayarları yükleniyor…</p>}
  {resource.error&&<p role="alert">Erişim ayarları alınamadı. Yeniden deneyin; sorun sürerse şirket yöneticinizle görüşün.</p>}
@@ -55,6 +57,7 @@ function Screen({actor,tenant}:{actor:string;tenant:string}){
  {tab==='people'&&!intent&&<section className="space-y-4"><p>Yönetici hesapları bu alandan değiştirilemez. Rol atamak izin veya satın alma onay sırasını belirlemez.</p>
  <form className="max-w-xl space-y-3" onSubmit={e=>{e.preventDefault();review({kind:'assign_role',accountId:person,roleId:assignedRole});}}><label className="block">Kişi<select required className={input} value={person} onChange={e=>setPerson(e.target.value)}><option value="">Kişi seçin</option>{resource.data.people.filter(p=>p.id!==actor&&p.role!=='yonetici').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label className="block">Özel rol<select required className={input} value={assignedRole} onChange={e=>setAssignedRole(e.target.value)}><option value="">Rol seçin</option>{resource.data.roles.filter(r=>!r.archived).map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label><div className="flex gap-2"><button className={button}>Atamayı gözden geçir</button><button type="button" className={button} onClick={clear}>Temizle</button></div></form>
  <ul className="space-y-2">{resource.data.assignments.map(a=><li key={a.accountId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"><span>{resource.data!.people.find(p=>p.id===a.accountId)?.name??'Şirketten ayrılmış hesap'} · {resource.data!.roles.find(r=>r.id===a.roleId)?.name}{!resource.data!.people.some(p=>p.id===a.accountId&&p.membershipId===a.membershipId)&&' · Geçersiz bağlantı; kaldırın veya yeniden atayın'}</span><button className={button} disabled={dirty||resource.data!.people.some(p=>p.id===a.accountId&&p.role==='yonetici')} onClick={()=>review({kind:'unassign_role',accountId:a.accountId})}>Atamayı kaldır</button></li>)}</ul></section>}
+ {tab==='activation'&&<HrActivation actor={actor} tenant={tenant} onPending={setActivationPending} onSaved={resource.reload}/>}
  {tab==='history'&&<section><h2 className="font-semibold">Son 20 değişiklik</h2><ul className="mt-3 space-y-2">{resource.data.history.map(h=><li key={h.revision} className="rounded border p-3">Değişiklik {h.revision} · {new Date(h.createdAt).toLocaleString('tr-TR')}</li>)}</ul>{!resource.data.history.length&&<p>Henüz değişiklik yok.</p>}</section>}
  </>}
  {intent&&<section aria-label="Değişiklik onayı" className="space-y-3 rounded-xl border-2 border-blue-300 p-4"><h2 className="font-semibold">{intent.p_payload.kind==='save_role'?`Rol kaydı: ${intent.p_payload.name}`:intent.p_payload.kind==='assign_role'?'Özel rol ataması':intent.p_payload.kind==='unassign_role'?'Özel rol atamasını kaldır':'Rolü arşivle'}</h2>{resource.data&&<p>{'accountId' in intent.p_payload?`${resource.data.people.find(p=>p.id===intentAccount)?.name??'Şirketten ayrılmış hesap'}${intent.p_payload.kind==='assign_role'?` → ${resource.data.roles.find(r=>r.id===intentRole)?.name??'Rol'}`:''}`:'id' in intent.p_payload?resource.data.roles.find(r=>r.id===intentRole)?.name:null}</p>}<p>{resource.data?.enforcement==='hr_scoped'?'Bu değişiklik İK çalışan erişimlerine uygulanacak. Finans kuralları henüz erişimi değiştirmez.':'Bu işlem hazırlık ayarlarına kaydedilecek. Mevcut ekranlardaki erişim değişmeyecek.'}</p><div className="flex flex-wrap gap-2"><button className={button} disabled={busy} onClick={()=>void save()}>{busy?'Kaydediliyor…':uncertain?'Aynı işlemi yeniden dene':'Onayla ve kaydet'}</button><button className={button} disabled={busy} onClick={()=>{if(uncertain){clear();void resource.reload();}else setIntent(null);}}>{uncertain?'Düzenlemeyi kapat ve yenile':'Geri dön'}</button></div></section>}

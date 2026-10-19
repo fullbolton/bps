@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-19T12:20:50.114Z",
+  "checks": [
+    "Default release gate denies activation; nonmanagers cannot inspect or activate; audit and approval tables private",
+    "Policy revision, membership role, release approval and module entitlement changes invalidate reviewed token",
+    "Missing HR role blocks transition; audit insertion failure rolls back; concurrent activation and exact retry produce one mode change and one receipt",
+    "Activated state reaches real settings and nonmanager screen context; legacy writer cannot bypass custom access"
+  ],
+  "deployed": false,
+  "productionModeChanged": false
+}
