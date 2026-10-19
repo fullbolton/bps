@@ -1913,3 +1913,8 @@ Kanıt: qa/hr-activation-readiness-20261019/download-browser-result.json. Tekrar
 ## 20 Ekim — pilot kabul kayıtlarının birleştirilmesi
 
 Git durumu temiz ve son kaynak c17c05b olarak doğrulandı. READINESS.md içindeki eski “tarayıcı kabulü eksik” maddeleri güncellendi; sekiz kanıt grubu tek tabloda, sınırlarıyla toplandı. Kalanlar hesap/kapsam ve PDF politika kararları, güncel yayın ön kontrolü, tek şirket aktivasyon sırası ve gerçek pilot hesabı kabulüdür. Kullanıcıya ilk iki karar için kısa sorular iletildi. Bu tur testler tekrar çalıştırılmadı, ürün veya üretim değiştirilmedi.
+
+
+## 20 Ekim — antivirüs kararı ve ilk sözleşme
+
+Kullanıcı kararları gerekçeleriyle kaydedip öneriye göre ilerlemeyi onayladı. READINESS.md içinde ClamAV, özel işçi, gerçek karantina sınırı, dosya sürümüne bağlı rapor, hata halinde kapalı kalma ve pilot rol şablonları kaydedildi. Temiz rapor doğrulayıcı ve üç test grubu eklendi. Henüz tarama servisi kurulu/aktif değil; SQL/Storage/finalize entegrasyonu sonraki pakettir. Üretime dokunulmadı.

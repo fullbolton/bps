@@ -84,3 +84,18 @@ Son ürün kodu kontrolü: 857 uygulama testi, TypeScript ve production build ge
 - İndirme ekranı: BPS_HR_STORAGE_ACCEPTANCE=1 BPS_HR_DOWNLOAD_BROWSER=1 BPS_LOCAL_BROWSER=1 BPS_HR_PREVIEW_ENABLED=true.
 
 Bu değişkenlere BPS_RELEASE_BARRIER=1 eklenerek `node qa/contract-write-20261015/storage-http.mjs` çalıştırılır. Yalnız sentetik yerel fixture içindir. Tarayıcı senaryoları ayrıca UI adımlarını gerektirir; sunucunun açılması testin geçtiği anlamına gelmez.
+
+## 20 Ekim — tarama ve karantina karar kaydı
+
+Kullanıcı öneriye göre ilerlemeyi ve kararların gerekçeleriyle kayıt altına alınmasını istedi. Seçim: sentetik pilot devam eder; gerçek özel evrak pilotundan önce tarama eklenir. Pilot yönetici şirket genelinde, İK tek şube/departman, şube yöneticisi temel çalışan bilgileri, muhasebe başlangıçta kapalı. Bunlar rol şablonlarıdır; gerçek hesap kimlikleri atanmış değildir.
+
+- Motor: kendi yönettiğimiz ClamAV işçisi. Dış genel dosya tarama servisine İK belgeleri gönderilmez. clamd TCP kimlik doğrulamaz; internete açılmaz, özel ağ/soket kullanılır. Sunucu satın alınmadı veya servis kurulmadı.
+- Akış: yükleme rezervasyonu → erişime kapalı nesne → tarama → içerik/sahiplik doğrulaması → yayın. Mevcut pending nesne okuma politikası doğrulayıcının kullanıcı oturumuyla indirmesine izin verir; bu nedenle mevcut pending durumuna yalnız “karantina” adı vermek yeterli değildir. Ayrı durum/işçi okuma yetkisi ve Storage RLS değişikliği gereklidir.
+- Bağlama: temiz sonucu tenant, upload, object kimliği, object sürümü, boyut ve SHA-256 ile aynı dosyaya bağla. Tarayıcı temiz raporu veremez. Veritabanı finalize kontrolü de bunu zorunlu tutmalı.
+- Hata: tarama yoksa/yarımsa, limit aşılmışsa veya şifreli içerik incelenemiyorsa temiz sayılmaz. Şüpheli dosya otomatik silinmez; normal indirme kapalı kalır.
+- Başlangıç mühendislik politikası: imza yaşı en çok 24 saat, finalize için sonuç yaşı en çok 5 dakika, saat toleransı 30 saniye. Bunlar ürün tercihi; antivirüs garantisi değildir. Yeniden denemede nesne sürümü tekrar doğrulanır.
+- Kapsam: geçmiş yayımlanmış dosyalara toplu değişiklik yok. Gerçek rollout öncesi eski belgelerin nasıl ele alınacağı ayrı migration/ön kontrol kapsamında belirlenir.
+
+İlk kod parçası: src/lib/services/hr-malware-verdict.ts temiz rapor sözleşmesi. Üç test grubu geçer (bağlama, kısmi/zararlı sonuç, eski/gelecek zaman). Henüz yükleme/finalize/Storage politikasına bağlanmadı; mevcut sistem antivirüs koruması kazanmış sayılmaz. Sıradaki paket: kalıcı tarama durumu ve SQL/Storage karantina sınırı, ardından özel işçi ve gerçek motor kabulü.
+
+Kaynaklar: https://docs.clamav.net/manual/Usage/Scanning.html ve https://docs.clamav.net/manual/Usage/SignatureManagement.html (20 Ekim incelemesi). Belgelerde dosya limiti nedeniyle atlanan dosyaların temiz varsayılabilmesi özellikle ele alındı; işçi limit/şifreli içerik durumlarını temiz rapora dönüştürmemeli.
