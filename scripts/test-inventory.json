@@ -740,5 +740,9 @@
   {
     "file": "scripts/access-management.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/access-settings.test.mjs",
+    "suite": "application"
   }
 ]

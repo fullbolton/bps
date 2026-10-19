@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-migrations.mjs';
 import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
 const {prepareAccessCommand,saveAccessCommand}=await importActualTypeScript(new URL('../../src/lib/services/access-management.ts',import.meta.url));
+const {parseAccessSettings}=await importActualTypeScript(new URL('../../src/lib/services/access-settings.ts',import.meta.url));
 const {evaluateAccess,parseAccessPolicy}=await importActualTypeScript(new URL('../../src/lib/access/policy.ts',import.meta.url));
 const server='supabase_db_bps-supabase-acceptance',db=`bps_access_${process.pid}`;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -41,6 +42,7 @@ try {
  assert.equal(getPolicy().roleId,roleId);
  checks.push('Single main role assigned; own/admin account and in-use role archive protected');
  const settings=auth(`company_access_settings_v1('${id(11)}','${id(1)}')`);assert.equal(settings.enforcement,'preview_only');assert.equal(settings.roles.length,1);assert.equal(settings.assignments.length,1);assert.equal(settings.recentHistory.length,2);assert.equal(settings.revision,rev);
+ const choices=auth(`company_access_options_v1('${id(11)}','${id(1)}')`);assert.equal(parseAccessSettings(settings,choices,id(11),id(1)).roles[0].id,roleId);assert.ok(choices.people.every(p=>!Object.hasOwn(p,'email')));
  const when='2026-10-19T12:00:00.000Z';
  const compare=(cap,department=null,location=null,account=null,now=when,enabled=true)=>{
   const p=getPolicy(),q=x=>x?`'${x}'`:'NULL';

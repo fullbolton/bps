@@ -36,5 +36,6 @@
   "20261019000500_hr_organization_foundation.sql",
   "20261019000600_hr_directory_commands.sql",
   "20261019000700_hr_work_locations_and_accounts.sql",
-  "20261019000800_custom_access_roles.sql"
+  "20261019000800_custom_access_roles.sql",
+  "20261019000900_access_editor_options.sql"
 ]
