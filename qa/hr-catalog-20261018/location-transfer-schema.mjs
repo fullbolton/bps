@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-migrations.mjs';
 import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
 const {parseHrDirectory}=await importActualTypeScript(new URL('../../src/lib/services/hr-directory.ts',import.meta.url));
-const {prepareHrLocationTransfer,parseHrLocationTransferReceipt}=await importActualTypeScript(new URL('../../src/lib/services/hr-scoped-transfer.ts',import.meta.url));
+const {prepareHrLocationTransfer,parseHrLocationTransferReceipt,parseHrTransferOptions,mergeHrTransferOptions}=await importActualTypeScript(new URL('../../src/lib/services/hr-scoped-transfer.ts',import.meta.url));
 const server='supabase_db_bps-supabase-acceptance',db=`bps_hr_transfer_${process.pid}`;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const sql=(q,d=db)=>execFileSync('docker',['exec','-i',server,'psql','-X','-qAt','-U','postgres','-d',d,'-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();
@@ -40,7 +40,16 @@ try {
  setRules([...update({kind:'company'}),{...rule({kind:'selected',departmentIds:[],locationIds:[id(9994)]},'deny'),capability:'hr.employees.update'}]);fails(()=>transfer(),'HR_FORBIDDEN');
  assert.equal(sql(`SELECT ends_on IS NULL FROM hr_location_assignments WHERE id='${assignment}'`),'t');
  checks.push('Source-only, destination-only, read-only and explicit destination deny cannot move an employee');
- setRules(update({kind:'company'}));fails(()=>transfer(payload,9905,2),'ACCESS_STALE');fails(()=>transfer({...payload,expectedRevision:2}),'HR_STALE_OR_NOT_TRANSFERABLE');fails(()=>transfer({...payload,locationId:id(9993)}),'HR_INPUT');
+ sql(`INSERT INTO company_hr_access_modes(tenant_id,mode) VALUES('${id(1)}','scoped')`);
+ const options=(after=null)=>JSON.parse(sql(`BEGIN;SET LOCAL request.jwt.claims='{"sub":"${id(11)}","active_tenant_id":"${id(1)}"}';SET LOCAL ROLE authenticated;SELECT hr_location_transfer_options_v1('${id(11)}','${id(1)}','${employee}',${after?`'${after}'`:'NULL'});COMMIT;`).split('\n').at(-1));
+ setRules(update(selected));assert.equal(options().locations.length,0);
+ setRules([rule({kind:'company'})]);fails(options,'HR_TRANSFER_UNAVAILABLE');
+ setRules(update({kind:'company'}));
+ let extra='';for(let n=1;n<=55;n++)extra+=`INSERT INTO hr_work_locations(id,tenant_id,name) VALUES('${id(12000+n)}','${id(1)}','Synthetic target ${n}');`;sql(extra);
+ const first=parseHrTransferOptions(options(),id(11),id(1),employee);assert.equal(first.locations.length,50);assert.equal(first.hasMore,true);assert.equal(first.assignmentId,assignment);assert.equal(first.sourceLocationId,id(9993));
+ const second=parseHrTransferOptions(options(first.locations.at(-1).id),id(11),id(1),employee);assert.equal(second.locations.length,6);assert.equal(mergeHrTransferOptions(first,second).locations.length,56);assert.ok(first.locations.every(x=>x.id!==id(9993)));
+ checks.push('Authenticated options expose authorized source/targets only; 56 targets paginate 50+6 through real TS parser');
+ fails(()=>transfer(payload,9905,2),'ACCESS_STALE');fails(()=>transfer({...payload,expectedRevision:2}),'HR_STALE_OR_NOT_TRANSFERABLE');fails(()=>transfer({...payload,locationId:id(9993)}),'HR_INPUT');
  // Synthetic fault at the second write must roll back the source closure too.
  sql(`CREATE FUNCTION public.synthetic_transfer_failure() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'SYNTHETIC_INSERT_FAILURE';END$$;CREATE TRIGGER synthetic_transfer_failure BEFORE INSERT ON hr_location_assignments FOR EACH ROW EXECUTE FUNCTION synthetic_transfer_failure()`);
  fails(()=>transfer(),'SYNTHETIC_INSERT_FAILURE');assert.equal(sql(`SELECT ends_on IS NULL AND revision=1 FROM hr_location_assignments WHERE id='${assignment}'`),'t');
@@ -48,7 +57,7 @@ try {
  checks.push('Stale policy/row, unchanged location and injected insert failure leave the original assignment unchanged');
  const execute=()=>promisify(execFile)('docker',['exec',server,'psql','-X','-qAt','-U','postgres','-d',db,'-v','ON_ERROR_STOP=1','-c',query()]);
  const results=await Promise.all([execute(),execute()]);assert.equal(results[0].stdout,results[1].stdout);
- const result=transfer();assert.equal(parseHrLocationTransferReceipt(result,prepareHrLocationTransfer(id(11),id(1),id(9905),1,payload),employee).id,result.id);assert.equal(result.previousId,assignment);assert.equal(result.employeeId,employee);
+ const result=transfer();fails(options,'HR_TRANSFER_UNAVAILABLE');assert.equal(parseHrLocationTransferReceipt(result,prepareHrLocationTransfer(id(11),id(1),id(9905),1,payload),employee).id,result.id);assert.equal(result.previousId,assignment);assert.equal(result.employeeId,employee);
  assert.equal(sql(`SELECT count(*) FROM hr_location_assignments WHERE employee_id='${employee}'`),'2');
  assert.equal(sql(`SELECT (a.ends_on+1=b.starts_on AND a.revision=2 AND b.revision=1) FROM hr_location_assignments a CROSS JOIN hr_location_assignments b WHERE a.id='${assignment}' AND b.id='${result.id}'`),'t');
  assert.equal(parseHrDirectory(read(),id(11),id(1)).employees[0].id,employee);
@@ -57,5 +66,5 @@ try {
  setRules(update(selected));fails(()=>transfer(),'HR_FORBIDDEN');
  setRules(update({kind:'company'}));sql(`UPDATE tenant_module_entitlements SET granted=false WHERE tenant_id='${id(1)}' AND module_key='hr'`);fails(()=>transfer(),'HR_FORBIDDEN');
  checks.push('New command on ended source, same-day transfer, revoked destination access and module revocation are denied');
- writeFileSync(new URL('./location-transfer-schema-result.json',import.meta.url),JSON.stringify({measuredAt:new Date().toISOString(),checks,deployed:false,clientExecuteGranted:false},null,2)+'\n');console.log(`PASS ${checks.length} location transfer groups`);
+ writeFileSync(new URL('./location-transfer-schema-result.json',import.meta.url),JSON.stringify({measuredAt:new Date().toISOString(),checks,deployed:false,clientExecuteGranted:true,clientRouteRequiresScopedMode:true},null,2)+'\n');console.log(`PASS ${checks.length} location transfer groups`);
 } finally {if(created)sql(`DROP DATABASE ${db} WITH(FORCE)`,'postgres');}

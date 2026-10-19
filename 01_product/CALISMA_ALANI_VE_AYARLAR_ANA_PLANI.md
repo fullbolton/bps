@@ -784,3 +784,16 @@ Gerçek yerel GoTrue/PostgREST/Next tarayıcı kabulü: sentetik şirket/İK üy
 Sınır: ekran hâlâ BPS_HR_PREVIEW_ENABLED sunucu bayrağı arkasındadır. Hiçbir gerçek şirketin scoped modu açılmadı; HR readiness değişmedi; production migration/deploy yok. Kalan zorunlu parçalar: transfer için güncel atama/izinli hedef okuyucusu ve ekranı; aktif rol ekranının tarayıcı kabulü; mod açma ön kontrolü+audit+komutu ve bütün akışların kabulü. İK-1 bütünü tamamlandı değildir.
 
 Son kontrol: sentetik localhost public değerleriyle production build geçti.
+
+
+## 19 Ekim — Yetki kapsamlı iş yeri transfer ekranı tamamlandı (yerel)
+
+20261019001600_hr_transfer_options.sql ve LocationTransfer.tsx: güncel atama ve yalnız yetkili hedef iş yerlerini okuyan, 50 satırlık sayfalama kullanan transfer paneli tamamlandı. Kaynak iş yeri, çalışan adı ve yürürlük tarihi kayıt öncesi onayda gösterilir. Politika/atama revizyonu veya tarih değişen sayfalar birleştirilmez. Kayıt tek uçuş ve sabit komut kimliği kullanır; sonucu doğrulanamayan işlem aynı komutla yeniden denenir. Panel açıkken gezinme korunur, liste yenileme/sayfalama kapatılır. Başarı mesajında yeni iş yeri ismi görünür.
+
+Gerçek authenticated PostgreSQL testi: kaynak/hedef/read-only/deny ayrımı, 56 hedefin 50+6 sayfalanması ve TypeScript parser uyumu, eski revizyon reddi, atomik geri alma, eşzamanlı tekrarın tek atama oluşturması ve kesintisiz geçmiş dahil 5 kontrol grubu geçti. Sonuç dosyasındaki clientExecuteGranted bilgisi public scoped route gerçeğine göre düzeltildi; internal implementasyonlar istemcilere kapalı kalır.
+
+845/845 uygulama testi, TypeScript ve sentetik localhost değerleriyle production build geçti. Gerçek yerel GoTrue/PostgREST/Next tarayıcı kabulünde sentetik çalışan Merkez'den Anadolu Ofisi'ne taşındı; isimli onay ve başarı görüldü. Kanıt: qa/hr-catalog-20261018/location-transfer-browser.png. Geçici test sunucusu/DB kapatıldı. Gerçek şirket verisi değiştirilmedi.
+
+Sınırlar: transfer ekranı scoped nonmanager yolundadır; yönetici eski yönetim yolunu kullanır. Aynı gün açılmış veya bitiş tarihli atamalar ve ileri tarih transferleri bu akışta desteklenmez. Satır düğmesi uygunluğu panel açıldığında doğrular; satır bazında gizleme ve listede iş yeri kolonu henüz yoktur. Mobil ve ağ hatası tarayıcı enjeksiyonu yapılmadı. HR preview/readiness kapıları korunur; gerçek şirket scoped aktivasyonu ve üretim migration/deploy yapılmadı.
+
+Sonraki zorunlu paket: aktif rol ekranının tarayıcı kabulü; şirket bazlı kapsamlı yetki aktivasyonu için ön kontrol, etki özeti, audit ve atomik komut; mobil ve uçtan uca kapanış kabulü. Bu transfer paketi tamamlandı; İK-1 bütünü tamamlandı değildir.

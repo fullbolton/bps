@@ -1392,6 +1392,8 @@ export interface Database {
         Args: {p_actor: string; p_tenant: string};
         Returns: Json;
       };
+      hr_location_transfer_options_v1: {Args: {p_actor:string;p_tenant:string;p_employee:string;p_after?:string};Returns:Json;};
+      hr_scoped_location_transfer_v1: {Args: {p_actor:string;p_tenant:string;p_command:string;p_revision:number;p_payload:Json};Returns:Json;};
       hr_screen_context_v1: {Args: {p_actor: string; p_tenant: string}; Returns: Json;};
       hr_scoped_create_options_v1: {Args: {p_actor: string; p_tenant: string; p_after?: string}; Returns: Json;};
       hr_scoped_employee_create_v1: {Args: {p_actor: string; p_tenant: string; p_command: string; p_revision: number; p_payload: Json}; Returns: Json;};

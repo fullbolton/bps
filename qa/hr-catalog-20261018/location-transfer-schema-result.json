@@ -1,11 +1,13 @@
 {
-  "measuredAt": "2026-10-19T11:59:40.493Z",
+  "measuredAt": "2026-10-19T12:13:40.569Z",
   "checks": [
     "Source-only, destination-only, read-only and explicit destination deny cannot move an employee",
+    "Authenticated options expose authorized source/targets only; 56 targets paginate 50+6 through real TS parser",
     "Stale policy/row, unchanged location and injected insert failure leave the original assignment unchanged",
     "Concurrent retry creates one transfer with contiguous history, same receipt and current directory visibility",
     "New command on ended source, same-day transfer, revoked destination access and module revocation are denied"
   ],
   "deployed": false,
-  "clientExecuteGranted": false
+  "clientExecuteGranted": true,
+  "clientRouteRequiresScopedMode": true
 }
