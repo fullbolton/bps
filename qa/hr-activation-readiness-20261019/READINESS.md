@@ -24,7 +24,7 @@ Modülün görünür olması, kullanım hakkının verilmesi ve özel yetkilerin
 1. Pilot şirket ve kullanılacak yönetici/İK hesapları belirlenir. Bir hesap bir şirket yaklaşımı korunur; eski Partner–Mek seçimine dayalı ürün akışı eklenmez.
 2. İK hesaplarının departman/iş yeri kapsamı ve açık ret kuralları incelenir. Personel havuzu ile çalışan dizini ayrı yetki alanları olarak değerlendirilir. Maaş, dışa aktarma ve belge indirme ayrı yetkilerdir.
 3. Mevcut 216 şemasıyla gerçek PostgreSQL kabulü ve uygulama eşlemesi doğrulanır. access-activation-schema.mjs bu tur dört grupta geçti: varsayılan kapı/yetkisiz erişim, stale token, audit rollback/eşzamanlı tekrar, eski yazıcı engeli.
-4. Eksik tarayıcı kabulü tamamlanır: aktivasyon hazırlık listesinin tüm engelleri ve klavye kullanımı; transferin kesin ret sonrası hedef yenilemesi. Önceki mobil ve yanıt kaybı kanıtları korunur; tekrar yapılmış sayılmaz.
+4. Sentetik RPC sınırıyla gerçek bileşenlerin tarayıcı kabulü tamamlandı: üç aktivasyon engeli, hazır durumda Enter ile inceleme/kapatma, transfer kesin ret → hedef yenileme → yeni hedefle başarı. Eski ret mesajı yenilemede temizlenir. Bu kanıt gerçek Auth/PostgREST uçtan uca kabul veya tam klavye erişilebilirlik denetimi değildir; pilotta bunlar ayrıca doğrulanır. Önceki mobil ve yanıt kaybı kanıtları korunur.
 5. Özel PDF politikasının ilk kapsamı belirlenir. Mevcut sahiplik/tür/özet doğrulaması zararlı yazılım taraması değildir; gerçek özel evrak pilotu için bu sınır ürün kabulünde açıkça kaydedilir.
 6. Katalog/readiness, sunucu bayrakları, kullanım hakkı, teknik kabul ve şirket geçişinin uygulanacak sırası tek pilot için somutlaştırılır. Her aşamada yalnız gerekli kapsam değişir; doğrulanmamış toplu aktivasyon yapılmaz.
 

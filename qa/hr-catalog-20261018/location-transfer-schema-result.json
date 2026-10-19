@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T12:13:40.569Z",
+  "measuredAt": "2026-10-19T19:33:24.444Z",
   "checks": [
     "Source-only, destination-only, read-only and explicit destination deny cannot move an employee",
     "Authenticated options expose authorized source/targets only; 56 targets paginate 50+6 through real TS parser",

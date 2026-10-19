@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-19",
+  "environment": "loopback synthetic RPC; real UI components and parsers",
+  "checks": [
+    "Blocked activation checklist: three blockers and disabled review",
+    "Ready activation: Enter review and close/refresh",
+    "Transfer ACCESS_STALE: disabled save and refresh action",
+    "Refresh clears old target, command and obsolete rejection message",
+    "Only new target selectable; successful save with current revision"
+  ],
+  "applicationTests": 856,
+  "typecheck": "pass",
+  "postgresTransferGroups": 5,
+  "fullAuthPostgrestE2E": false,
+  "productionDeployed": false,
+  "productionBuild": "pass; synthetic build environment, HR preview disabled"
+}

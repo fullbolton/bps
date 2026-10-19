@@ -1,0 +1,23 @@
+// UI acceptance with actual components/parsers and a synthetic RPC boundary.
+import {mkdtempSync,cpSync,rmSync,mkdirSync,writeFileSync,symlinkSync,readFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';import {join} from 'node:path';import {spawn} from 'node:child_process';
+const root=process.cwd(),dir=mkdtempSync(join(tmpdir(),'bps-hr-readiness-'));
+cpSync(join(root,'src'),join(dir,'src'),{recursive:true});
+const activation=readFileSync(join(root,'src/app/(main)/ayarlar/roller/HrActivation.tsx'));
+const transfer=readFileSync(join(root,'src/app/(main)/insan-kaynaklari/LocationTransfer.tsx'));
+rmSync(join(dir,'src/app'),{recursive:true});rmSync(join(dir,'src/middleware.ts'),{force:true});mkdirSync(join(dir,'src/app'),{recursive:true});
+for(const f of ['package.json','tsconfig.json','postcss.config.mjs'])cpSync(join(root,f),join(dir,f));symlinkSync(join(root,'node_modules'),join(dir,'node_modules'),'dir');
+cpSync(join(root,'src/app/globals.css'),join(dir,'src/app/globals.css'));
+writeFileSync(join(dir,'src/app/HrActivation.tsx'),activation);writeFileSync(join(dir,'src/app/LocationTransfer.tsx'),transfer);
+writeFileSync(join(dir,'src/app/layout.tsx'),`import './globals.css';export default function Layout({children}:{children:React.ReactNode}){return <html lang="tr"><body>{children}</body></html>}`);
+writeFileSync(join(dir,'src/app/page.tsx'),`'use client';import {useState,useCallback,useEffect} from 'react';import HrActivation from './HrActivation';import LocationTransfer from './LocationTransfer';import {NavigationGuardProvider} from '@/context/NavigationGuardContext';const id=(n:number)=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');export default function Page(){const [result,setResult]=useState('');const [transfer,setTransfer]=useState(false);useEffect(()=>setTransfer(location.search.includes('transfer')),[]);const pending=useCallback(()=>{},[]);const saved=useCallback(async()=>{},[]);return <NavigationGuardProvider><main className="mx-auto max-w-3xl space-y-4 p-4"><h1>Sentetik İK kabulü</h1><nav><a href="/?case=blocked">Engeller</a> · <a href="/?case=ready">Hazır</a> · <a href="/?case=transfer">Transfer reddi</a></nav>{transfer?<LocationTransfer actor={id(1)} tenant={id(2)} employee={{id:id(3),name:'Sentetik çalışan'}} onClose={()=>setResult('Panel kapatıldı')} onSaved={async name=>{setResult('Kaydedildi: '+name)}}/>:<HrActivation actor={id(1)} tenant={id(2)} onPending={pending} onSaved={saved}/>}<p role="status">{result}</p></main></NavigationGuardProvider>}`);
+writeFileSync(join(dir,'src/lib/supabase/client.ts'),`
+const id=(n:number)=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');let rejected=false;
+const client={rpc:(name:string,args:any)=>({abortSignal:async()=>{
+if(name==='hr_access_activation_preflight_v1'){const ready=location.search.includes('ready');return {error:null,data:{schemaVersion:1,actorId:id(1),tenantId:id(2),mode:'legacy',modeRevision:0,policyRevision:1,releaseApproved:ready,moduleOpen:ready,missingHrPolicies:ready?0:1,canActivate:ready,token:'a'.repeat(32),members:[{accountId:id(1),membershipId:id(8),membershipVersion:id(9),name:'Sentetik yönetici',role:'yonetici',policyAssigned:false,permanentReadRule:false},{accountId:id(3),membershipId:id(4),membershipVersion:id(5),name:'Sentetik İK',role:'ik',policyAssigned:ready,permanentReadRule:ready}]}};}
+if(name==='hr_location_transfer_options_v1')return {error:null,data:{schemaVersion:1,actorId:id(1),tenantId:id(2),employeeId:id(3),policyRevision:rejected?2:1,assignmentRevision:1,assignmentId:id(4),sourceLocationId:id(5),sourceLocationName:'Merkez',effectiveOn:'2026-10-19',locations:[{id:id(rejected?7:6),name:rejected?'Yeni izinli şube':'Eski hedef'}],hasMore:false}};
+if(name==='hr_scoped_location_transfer_v1'){if(!rejected){rejected=true;return {data:null,error:{code:'P0001',message:'ACCESS_STALE'}};}if(args.p_revision!==2||args.p_payload.locationId!==id(7))throw Error('Fixture rejected stale target');return {error:null,data:{schemaVersion:1,actorId:id(1),tenantId:id(2),employeeId:id(3),commandId:args.p_command,kind:'transfer_location',previousId:id(4),id:id(10),revision:1,startsOn:'2026-10-19'}};}
+throw Error('Unexpected fixture RPC '+name);}})};export function createClient(){return client as any;}
+`);
+const app=spawn(process.execPath,[join(root,'node_modules/next/dist/bin/next'),'dev','--hostname','127.0.0.1','--port','3073'],{cwd:dir,env:{...process.env,NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:1',NEXT_PUBLIC_SUPABASE_ANON_KEY:'synthetic',BPS_HR_PREVIEW_ENABLED:'false'},stdio:'inherit'});
+for(const sig of ['SIGINT','SIGTERM'])process.on(sig,()=>app.kill('SIGTERM'));app.on('exit',()=>{rmSync(dir,{recursive:true,force:true});process.exit(0)});

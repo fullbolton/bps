@@ -1848,3 +1848,12 @@ HrActivation ekranındaki dağınık engel cümleleri üç maddelik hazırlık l
 Gerçek geçici PostgreSQL'de güncel 026 dahil şema ile dört aktivasyon grubu yeniden geçti. Üç uygulama sözleşme testi dahil toplam 856 uygulama testi ve TypeScript geçti. Bu tur yeni listenin tarayıcı/klavye kabulü veya production build yapılmadı; önceki ekran testleri yeni checklist için kanıt sayılmıyor.
 
 Pilot açılış sınırı qa/hr-activation-readiness-20261019/READINESS.md içinde birleştirildi: rota/readiness/hak/teknik kabul/özel yetki geçişi ayrı kapılardır. Eksik transfer kesin ret tarayıcı kabulü, pilot hesap-kapsam seçimi ve özel PDF politika sınırı açıkça kayıtlı. İzin/satın alma yönetici onayı ayrı sonraki ürün paketleridir. Bu tur üretim yazımı/yayın/İK aktivasyonu yok; canlı c2fbbf0 ve 216 migration değişmedi.
+
+
+## 19 Ekim — İK hazırlık ve transfer tarayıcı kabulü
+
+Gerçek bileşen ve ayrıştırıcılarla, sentetik RPC sınırında aktivasyonun üç engeli, hazır durumdaki Enter ile inceleme/kapatma ve transfer kesin ret → güncel hedefleri yükleme → yeni hedefle kayıt akışı tarayıcıda doğrulandı. Transfer yenilemesinde eski ret mesajının kalması düzeltildi. Yenileme eski hedefi/komutu temizliyor; yeni hedef seçilmeden inceleme kapalı. Tekrar kullanılabilir fixture: qa/hr-activation-readiness-20261019/browser.mjs.
+
+856 uygulama testi ve TypeScript geçti. Gerçek geçici PostgreSQL üzerinde beş transfer kabul grubu geçti (location-transfer-schema-result.json). Tarayıcı testi gerçek Auth/PostgREST uçtan uca kanıt değildir; tüm klavye erişilebilirliği doğrulanmış sayılmaz. Üretim yayını/SQL yazımı/İK aktivasyonu yapılmadı. Son doğrulanmış canlı sürüm c2fbbf0, 216 migration. Pilot hesap ve kapsam seçimi, özel PDF politika sınırı ve gerçek oturumla pilot kabulü halen açık.
+
+Bu paketin production build kontrolü de sentetik ortam değerleri ve İK önizlemesi kapalı olarak geçti.
