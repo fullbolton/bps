@@ -1,0 +1,19 @@
+{
+  "strictIsolation": true,
+  "productionConfig": true,
+  "realClamav": true,
+  "realUnixSocket": true,
+  "emulatedDaemon": true,
+  "storageAndPersistence": "synthetic",
+  "productionReady": false,
+  "checks": [
+    {
+      "file": "clean.pdf",
+      "verdict": "clean"
+    },
+    {
+      "file": "encrypted.pdf",
+      "verdict": "infected"
+    }
+  ]
+}

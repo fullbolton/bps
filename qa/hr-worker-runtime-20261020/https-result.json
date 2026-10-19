@@ -1,0 +1,10 @@
+{
+  "syntheticOnly": true,
+  "realHttps": true,
+  "certificateVerification": true,
+  "redirectNotFollowed": true,
+  "oversizedAndMalformedRejected": true,
+  "untrustedCertificateRejected": true,
+  "realDatabase": false,
+  "productionReady": false
+}
