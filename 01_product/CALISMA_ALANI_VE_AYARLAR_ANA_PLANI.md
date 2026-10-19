@@ -619,3 +619,41 @@ Kaynak 6cd6007, Vercel dpl_DzXDKuGn8wt2bQdPwAP45qAnrVJR www.bpsys.net üzerinde 
 ## 18 Ekim — görev bildirim olayları yerel aday
 
 qa/task-inbox-20261018/candidate.sql, mevcut atama geçmişi trigger'ından UUID olay kaydı üretir; source transaction ile atomik, task/revision tekil, kendi üstlenme ve kapalı görev sessiz. Gerçek yerel task_execute_v1 üzerinden 8 alt senaryo, üst test dahil 9/9 geçti. Bildirim yazımı hatasının kaynak işlemi de rollback ettiği doğrulandı. İstemci tablo/RPC yetkisi yok; okuyucu, okunma komutu, duyuru modeli ve ortak UI hâlâ açık. SQL production migration zincirine alınmadı ve uygulanmadı; canlı 6cd6007/186 değişmedi (son yayın kaydı). Ayrıntı qa/task-inbox-20261018/README.md. Genel olay+delivery modeli tek alıcılı görev için kaynak bazlı olay tablosuna daraltıldı; ortak API/ses kimliği işi sonraki aşamada.
+
+## 19 Ekim — Özel roller, çok iş yeri ve İK geçiş sırası (onaylı devam)
+
+Kullanıcı yönü: tek müşteri hesabında tek şirket; aynı şirketin birden çok kendi ofisi/iş yeri olabilir. İK, idari işler ve diğer modüller operasyon kadar ürünün parçasıdır. Şirketin kendi iş yeri, hizmet verilen müşterinin şubesi değildir. Mevcut müşteri şubesi kayıtları ofis olarak yeniden kullanılmayacak.
+
+### Kullanıcı deneyimi ve veri ayrımları
+
+Ayarlar → Roller ve erişim: Roller, Kişiler, Değişiklik geçmişi. Hazır şablondan kopyalanan şirket rolü, kişi başına bir ana rol ve gerekçeli/süreli istisna. Rol ünvan veya onay zinciri değildir. Modül hakkı, modül etkinliği, işlem yetkisi, kayıt kapsamı ve alan erişimi ayrı denetlenir. Ücret/maaş gibi hassas veri okuma, belge indirme ve Excel dışa aktarma ayrı izinlerdir. Maaş yetkisi tanımlamak maaş modülü/verisi oluşturmaz; TC/telefon veri politikasını değiştirmez.
+
+Kapsamlar: tüm şirket, kendisi, seçilmiş departman/iş yerleri. Aynı boyuttaki seçimler VEYA, departman ve iş yeri birlikteyse VE. Boş seçilmiş kapsam her şey anlamına gelmez; geçersizdir. Eksik iş yeri/departman bilgisi seçilmiş kapsamı karşılamaz. Kendisi için kullanıcı hesabı–çalışan bağı sunucuda doğrulanır. Takım/hiyerarşi kapsamı ilk sürüme dahil değildir; tarihli organizasyon ve SQL çözümlemesi tamamlanmadan eklenmez. Organizasyon boyutları ayrı tutulur: departman, kendi iş yeri, pozisyon, bağlı yönetici; maliyet merkezi sonraki ihtiyaca göre.
+
+Muhasebe elemanı örneği: finansal özeti görme; yönetici örneği: aynı kaydı görme+düzenleme+ayrı dışa aktarma. Hiçbiri kendiliğinden çalışan maaşı göremez. Şablonlar öneridir; mevcut muhasebe/İK rollerinin yetkisi sessizce genişletilmeyecek. Rol atanması satın alma veya izin talebini otomatik kullanıcıya yönlendirmez. Onaylayabilme yetkisine ek olarak ilgili talebin o kişiye atanmış olması, tutar sınırı, vekalet dönemi ve kendini onaylamama kuralı gerekir. Ortak onay motoru henüz yok.
+
+### Paket A — yürütülebilir karar sözleşmesi (yerel tamamlandı)
+
+src/lib/access/policy.ts, v1 kapsam/rol/istisna sözleşmesi ve saf karar fonksiyonu. İlk katalog mevcut İK/finans sınırları için 9 yetenek içerir. Bilinmeyen yetenek, wildcard, hatalı kapsam/tarih veya yanlış şirket/kişi/revizyon reddedilir. Açık ret izinleri bastırır; süreli istisna kalıcı açık reddi aşamaz. Geçerli zaman aralığı başlangıç dahil, bitiş hariçtir. Modül kapalı/hak yoksa istisna izin veremez. Hassas alan, indirme ve dışa aktarma aynı kayda okuma izni de ister. Hiçbir yönetici adı otomatik bypass oluşturmaz.
+
+Bu sözleşme henüz üretim yetkilendirmesine bağlı değildir; mevcut SQL/RLS kontrolleri değişmedi. Arayüzün bu fonksiyona güvenerek veri filtrelemesi yeterli değildir. İstemci tarafından verilen konum/sahiplik/tarih güvenilir sayılmaz. Yetki önizlemesi sunucunun doğrulanmış bağlamıyla çalışacak; bu saf fonksiyon yalnız semantik sözleşme ve test aracıdır.
+
+### Paket B — şirket organizasyonu ve özel erişim deposu (sıradaki)
+
+1. Şirketin kendi iş yerleri, tarihli çalışan iş yeri bağlantısı ve hesap–çalışan eşlemesi. Departman+iş yeri seçimleri tenant FK ile doğrulanır; kayıt düzenleyerek kapsam dışına taşıma ayrıca yetkilendirilir.
+2. Özel role, role grant, kullanıcı rol ataması, istisna ve salt okunur değişiklik geçmişi tabloları. Doğrudan tablo yazımı kapalı; açık rol adı/veri modeli, sürüm, revizyon ve actor/tenant bağlamı.
+3. Rol/atama/istisna komutlarında idempotency ve beklenen revizyon. Değişiklik şirket erişim revizyonunu artırır; eski ekran/cache yeni çağrıda yeniden doğrulanır. Yazma sırasında aynı transaction içinde güncel erişim kontrolü; iptal/değişiklik yarışları test edilir. Süreli izinlerin bitmesi cron gerektirmez; her kararda sunucu saati kullanılır.
+4. Erişim yöneticiliği uygulama izinlerinden ayrı korunur. Kendi yetkisini artırma, yönetemediği izni başkasına verme ve son aktif erişim yöneticisini kaldırma engellenir. Platform yöneticiliği şirket rol editöründe atanamaz. Rol silme yerine arşiv; bağlı kişiler varken arşivleme engellenir. Tüm yetki genişlemeleri açık değişiklik özetiyle onaylanır.
+5. SQL kararları yukarıdaki karar tablosuyla aynı fixture'larda karşılaştırılır. Kayıtları tarayıcıya çekip sonradan filtrelemek yerine SQL sorgusu kapsamı uygular; sayfalama/sayımlar da aynı kapsamdan çıkar. Alanları API yanıtına almadan projeksiyon; export/download aynı kurala bağlı. İzinli export maaş/özel alan iznini kendiliğinden vermez. Performans: tenant/rol/kapsam indeksleri ve toplu sorgu; her satır için ayrı RPC yok.
+
+### Paket C — yönetim ekranı ve aşamalı bağlama
+
+Rol listesi/kopyalama/adlandırma; modüle göre sade izin grupları; kişilerde rol ve iş yeri/departman kapsamı; süreli istisna; önce/sonra özeti ve revizyon çakışmasında taslağı koruma. “Bu kişi neye erişebilir?” incelemesi yalnız erişim nedenlerini gösterir, özel veriyi açmaz. Kapalı modülde tanımlanmış izinler saklanır fakat etkin görünmez. Menü, sayfa, API, SQL, dışa aktarma ve dosya bağlantısı birlikte geçirilmeden ilgili özel rol kullanıma açılmaz.
+
+İlk geçiş İK okuyucu/oluşturucu; sonra İK detay/düzenleme ve finans. Legacy rol kontrolü OR yeni rol kontrolü şeklinde birleştirilmez: aksi halde özel kısıtlar eski rol tarafından aşılır. Her modülün geçişi ayrı açık sürüm ve kabul testine bağlıdır. Tamamlanmamış modüllerde özel izin düzenleme kullanıma sunulmaz. Kullanıcıya çalışan bir sınır gibi gösterilen ama sunucuda uygulanmayan checkbox olmayacak.
+
+### Paket D — İK-1 bitişi ve ardından onay akışları
+
+Çalışan detay/düzenleme, tarihli yönetici ve iş yeri atama, ayrılış/yeniden giriş, aday kimliği ve güvenli birleştirme, filtre/arama, Excel önizleme/aktarımı, özel belgeler. Çıkış kriteri: şirketler arası ve kapsam dışı erişim reddi, kayıt bütünlüğü, export/indirme denetimi, revizyon yarışları, gerçek yerel Storage ve masaüstü/mobil kabulü. Sonra HR modülünün hazır olma ve v2 açma ekranı. Ardından izin hakları/talepleri ve idari işler satın alma: yöneticiye düşme, vekalet, onay/ret/iade, durum geçmişi ve bildirimler. Ödeme/abonelik sağlayıcısı bu paketlerden bağımsızdır.
+
+Operasyon Faz 1 genişletilmeyecek; yalnız mevcut akışta doğrulanmış hata ele alınacak. Üretim geçişi öncesi güncel katalog ve migration sırası tekrar ölçülür. Bu plan erişim ekranı, SQL yetki yönetimi veya İK-1 tamamlandı iddiası değildir.

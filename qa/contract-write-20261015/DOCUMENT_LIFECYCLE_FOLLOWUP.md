@@ -1348,3 +1348,14 @@ Gerçek yerel GoTrue/PostgREST/Next tarayıcısında önce kapalı modülün lis
 Kalan: çalışan detayı/düzenleme, tarihli yönetici atama ve yeniden işe giriş/ayrılış komutları, adaydan ortak kimliğe geçiş/HR-aware merge, filtre/arama, Excel ve özel belgeler; v2 modül açma ve HR hazır olma teslimi. İK-1 bütünü tamamlanmadı. Üretime yayın, gerçek kişi oluşturma veya gerçek HR aktivasyonu yapılmadı.
 
 Son kontrol: TypeScript ve sentetik localhost public değerlerle production build geçti.
+
+
+## 19 Ekim — özel roller karar çekirdeği ve çok iş yeri geçiş planı
+
+Kullanıcının onaylı devamı doğrultusunda özel rol/işlem/kapsam/hassas alan ayrımı kod sözleşmesine taşındı. src/lib/access/policy.ts: 9 İK/finans yeteneği, tüm şirket/kendisi/seçilmiş departman ve kendi iş yeri kapsamı, açık ret önceliği, gerekçeli süreli istisna, actor/tenant/revizyon bağlama, modül+hak kontrolü. Departman ve iş yeri birlikteyse kesişim uygulanır. Export, maaş okuma ve dosya indirme ayrı izinlerdir; aynı kayda okuma iznini de gerektirir. İzin/ satın alma onay rotası, özel rol yetkisiyle karıştırılmadı; bunlar sonraki veri/API paketidir.
+
+832/832 uygulama testi ve TypeScript geçti. Yeni 8 grup: geçersiz sözleşme/wildcard; tenant/actor/revizyon/modül sınırları; kapsam kesişimi/null; açık ret; süre sınırları; export/hassas alan ön koşulu; muhasebe elemanı/yönetici ayrımı; yetenek bağımlılık döngü kontrolü. git diff --check temiz. UI/SQL değişmediği için tarayıcı/Storage veya SQL kabulü yapıldığı iddia edilmez.
+
+Ana plana A–D sırası işlendi: A karar sözleşmesi; B kendi iş yerleri+hesap/çalışan bağı+özel rol deposu ve SQL yazarları; C rol/kişi/geçmiş ekranı ve bütün erişim yollarına aşamalı bağlama; D İK-1 bitişi ve yöneticiye yönlenen izin/satın alma. Son yönetici, kendine yetki artırma, modül kapısı, revizyon iptali, SQL kapsamlı sayfalama ve alan projeksiyonu kabul şartları kaydedildi.
+
+Sınır: bu çekirdek üretim yetkilendirmesine BAĞLI DEĞİLDİR. Mevcut rol/SQL korumaları değişmedi; özel rol menüsü veya rol kaydetme henüz yok. Karar fonksiyonuna yalnız sunucunun doğruladığı kayıt/bağlam verilebilir; istemci tarafı filtre güvenlik değildir. Özel rol sistemi veya İK-1 tamamlandı sayılmaz. Üretime yayın ve yeni migration yok. Sonraki somut paket B; operasyon Faz 1 kapsamı genişletilmedi.

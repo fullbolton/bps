@@ -728,5 +728,9 @@
   {
     "file": "scripts/hr-directory.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/access-policy.test.mjs",
+    "suite": "application"
   }
 ]
