@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "DDL rolls back on ledger failure",
+    "Install adds exactly one ledger version and v2 reader",
+    "Repeat stops on ledger mismatch"
+  ],
+  "syntheticOnly": true,
+  "passed": 3
+}

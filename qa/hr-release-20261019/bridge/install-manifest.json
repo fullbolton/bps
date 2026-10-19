@@ -1,0 +1,8 @@
+{
+  "version": "20261019000100",
+  "name": "module_history_catalog_versions",
+  "sha256": "75c2fff80129221ef572ffccfa3748427affc5118ea0ce034e41bf8daabe6796",
+  "expectedLedgerCount": 190,
+  "transaction": "migration and ledger atomic",
+  "scope": "Only 20261019000100"
+}
