@@ -784,5 +784,9 @@
   {
     "file": "scripts/hr-malware-storage.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-clamd-version.test.mjs",
+    "suite": "application"
   }
 ]

@@ -1,0 +1,34 @@
+{
+  "measuredAt": "2026-10-19T22:54:34.698Z",
+  "loadedEngine": {
+    "engine": "clamav",
+    "engineVersion": "1.5.4",
+    "signatureVersion": "28158",
+    "signaturesUpdatedAt": "2026-10-19T06:26:01.000Z"
+  },
+  "signatureAgeMs": 59313698,
+  "stableAcrossScans": true,
+  "daemonTimezone": "UTC",
+  "realEngine": true,
+  "realUnixTransport": true,
+  "syntheticOnly": true,
+  "productionReady": false,
+  "checks": [
+    {
+      "file": "clean.pdf",
+      "verdict": "clean"
+    },
+    {
+      "file": "eicar.txt",
+      "verdict": "infected"
+    },
+    {
+      "file": "encrypted.pdf",
+      "verdict": "infected"
+    },
+    {
+      "file": "limit.pdf",
+      "verdict": "infected"
+    }
+  ]
+}

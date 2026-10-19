@@ -1982,3 +1982,14 @@ Karar: testte MaxFileSize=1M bilerek düşük, StreamMaxLength=10M; bu clamd.con
 Tekrar araçları: fixtures.py pypdf==6.21.1 ile geçici dizinde PDF/EICAR üretir. clamd.conf salt okunur bağlanarak sabitlenmiş imajda clamd başlatılır; /run/bps-clam paylaşılan Docker volume'dür. accept.mjs, engine.json ölçümüyle, /worker=workers/hr-malware (salt okunur), /fixtures=sentetik dizin (salt okunur), /evidence=bu QA dizini bağlanmış Node konteynerinde çalışır. Node imajı digest'i engine.json içindedir. Standart EICAR test verisi dışında zararlı yazılım örneği kullanılmaz.
 
 Kaynaklar: https://docs.clamav.net/manual/Installing/Docker.html ve https://raw.githubusercontent.com/Cisco-Talos/clamav/main/etc/clamd.conf.sample. Sonraki işler: güncel imza temini ve çalışan motor/config ölçüm adaptörü, işçi/Storage/SQL birlikte yerel uçtan uca kabulü; sonra yayın ön kontrolü. Bu tur ürün kodu değişmedi, genel uygulama testleri tekrarlanmadı. Üretime yayın yok.
+
+
+## 20 Ekim — güncel imza ve çalışan motor sürümü ölçümü
+
+Freshclam resmî kaynaktan daily veritabanını 28157 → 28158 güncelledi ve kendi database testini geçti. Güncelleme sırasında daemon çalışmadığından bildirilemedi uyarısı beklenen durumdu; sonrasında güncel volume ile yeni clamd başlatıldı. workers/hr-malware/version.mjs, VERSION komutunu Unix soketinden okuyup tam yanıtı, motor sürümünü, imza numarasını ve geçerli takvim tarihini ayrıştırır. Eksik/çoklu/bilinmeyen yanıt başarısızdır; bu ölçüm configurationVerified üretmez.
+
+Ölçülen çalışan motor: 1.5.4 / 28158 / 2026-10-19T06:26:01Z. Kabul anında imza yaşı 24 saatin içindeydi (fresh-result.json). Temiz, EICAR, şifreli ve limit aşımı dosyaları gerçek soketle tekrar beklenen sonuçları verdi; taramalar öncesi/sonrası sürüm aynı kaldı. Son tarih ayrıştırma sıkılaştırmasından sonra gerçek set yeniden geçti. Toplam 883 uygulama testi geçti.
+
+Karar: VERSION tarihi yerel saat formatında olduğundan yönetilen daemon TZ=UTC ile başlatıldı; bu ön koşul sağlanmadan adaptör sonucu üretim kanıtı sayılmaz. İmza yaşı her işte tekrar ölçülmeli; bu kayıttaki güncellik zamanla geçerliliğini kaybeder. Güncelleyici ayrı konteynerde ağ erişimiyle, tarayıcı network=none ve imza volume salt okunur olarak çalıştı. Güncelleyici/daemon ve socket volume kaldırıldı; bps-clam-signatures-20261020 imza volume'ü sonraki kabul için yerelde korundu, şirket verisi içermez.
+
+Sınır: sunucu config ölçüm adaptörü hâlâ eksik; imza sürümü ölçmek motor ayarlarını doğrulamak değildir. Storage/SQL/işçi birleşik yerel kabulü ve upload route bağlantısı tamamlanmadan karantina migration'ı yayımlanmaz. Üretim değişmedi; canlı antivirüs aktif değil.
