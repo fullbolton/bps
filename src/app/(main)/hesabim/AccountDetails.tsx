@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 const roles = { yonetici: "Yönetici", partner: "Partner", operasyon: "Operasyon", ik: "İK", muhasebe: "Muhasebe", goruntuleyici: "Görüntüleyici" };
 const button = "inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600";
 
-export default function AccountDetails({ multiWorkspace, conversations, unifiedInbox=false }: { multiWorkspace: boolean; conversations: boolean; unifiedInbox?: boolean }) {
+export default function AccountDetails({ conversations, unifiedInbox=false }: { conversations: boolean; unifiedInbox?: boolean }) {
   const { user, role, loading, refreshProfile } = useAuth();
   const { workspace, loading: workspaceLoading, error: workspaceError, reload } = useWorkspace();
   const guard = useNavigationGuard();
@@ -41,7 +41,6 @@ export default function AccountDetails({ multiWorkspace, conversations, unifiedI
       <h2 id="account-workspace" className="font-semibold text-slate-900">Çalıştığınız şirket</h2>
       {workspaceLoading ? <p role="status" className="mt-4">Şirket doğrulanıyor…</p> : workspaceError || !workspace || workspace.actorId !== user.id || workspace.tenantId !== user.app_metadata.active_tenant ? <div role="alert" className="mt-4"><p>Şirket bilgisi doğrulanamadı.</p><button className={button + " mt-3"} onClick={() => void reload()}>Yeniden dene</button></div> : <dl className="mt-4 grid gap-4 sm:grid-cols-2"><div><dt className="text-sm text-slate-500">Şirket</dt><dd className="mt-1 break-words">{workspace.name}</dd></div><div><dt className="text-sm text-slate-500">Bu şirketteki rolünüz</dt><dd className="mt-1">{roles[role]}</dd></div></dl>}
       <div className="mt-4 flex flex-wrap gap-3">
-        {multiWorkspace && <Link className={button} href="/sirket-sec" onClick={guard.handle}>Şirket değiştir</Link>}
         {role === "yonetici" && <Link className={button} href="/ayarlar" onClick={guard.handle}>Şirket ayarları</Link>}
       </div>
     </section>

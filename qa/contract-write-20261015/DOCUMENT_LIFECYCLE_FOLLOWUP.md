@@ -1303,3 +1303,16 @@ Yeni 20261019000400 migration yalnız platform yöneticisine kapsamlı okuyucu s
 Doğrulama: 819 uygulama testi; 6 gerçek yerel veritabanı kontrol grubu; tsc ve production build geçti. Kanıt platform-rights-browser.png, entitlements-schema-result.json, platform-rights-checks.json. Bu ekran 20261019000400 okuyucusunu ve önceki hak migration'ını gerektirir. Üretim şeması ölçülmedi; yayın yapılmadı; otomatik yayın kapalı kaldı.
 
 Sıradaki paket: tek şirket kullanıcı deneyimi sadeleştirmesi ve HR1 personel/organizasyon sınırlarının uygulanması; İK hazır olduğunda v2 açma/ön kontrol. İzin ve satın alma yönetici onayları takip eden paketlerdir. Operasyon Faz 1 yeniden açılmadı; ödeme entegrasyonu bu pakette yok.
+
+
+## 19 Ekim — Tek şirket kullanıcı akışı
+
+Üst menü ve Hesabım şirket değiştirme bağlantıları kaldırıldı. Eski /sirket-sec adresi kırılmadan şirket bağlantısı doğrulama ekranına çevrildi. Doğrulanmış aktif şirket varsa yalnız o şirket sunulur; aktif şirket yok ve tek üyelik varsa o üyelik sunulur. Birden fazla eski üyelik ve belirlenmiş şirket yoksa rastgele ilk kayıt seçilmez, platform yöneticisine yönlendirme gösterilir. Yetkisiz veya eksik okumada şirket kartı gösterilmez. Devam işlemi mevcut idempotent seçim, oturum yenileme ve DB bağlam doğrulama zincirini korur.
+
+Giriş ekranındaki sabit Partner Staff adı kaldırıldı; Hesabım ve erişim yenileme metinleri tek şirket diline getirildi. Bu bir kullanıcı akışı geçişidir: eski üyelikler silinmedi/taşınmadı, tenant izolasyonu ve eski seçim RPC'si korunur. Sunucuda hesap başına tek üyelik zorunluluğu tamamlandı sayılmaz; eski çoklu üyeliklerin ölçümü ve kontrollü geçişi ayrı iştir. Platform yöneticisinin müşteri şirketlerine hak tahsis ekranı farklı amaçlıdır ve korunur.
+
+821/821 uygulama testi geçti; sıfır/tek/çok üyelik ve mevcut şirketi koruma, belirsiz hesapta devam düğmesi olmaması doğrulandı. İlk yeni bileşen testi VM bağlamında AbortSignal bulunmadığı için hata verdi; test ortamına AbortSignal eklenince geçti, ürün kontrolü gevşetilmedi. Son metin değişikliklerinden sonra ilgili 7 test tekrar geçti. Gerçek yerel tarayıcıda Synthetic A doğrulama → dashboard geçişi ve Hesabım şirket/rol görünümü doğrulandı; şirket değiştirme seçeneği yok. Kanıt single-company-browser.png ve single-company-account.png. Test sunucusu/veritabanı temizlendi.
+
+İK-1 personel/organizasyon şema ve ekranları henüz bu pakette uygulanmadı. Sonraki uygulama bloğu budur; bağlı yönetici ilişkisi izin ve satın alma onaylarının temelini oluşturacak. Üretime yayın yapılmadı ve otomatik yayın açılmadı.
+
+Son kontrol: tsc ve yerel sentetik public değerlerle production build geçti.

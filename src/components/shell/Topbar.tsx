@@ -71,7 +71,6 @@ export default function Topbar() {
 
         <div className="flex items-center gap-2 ml-auto">
           {(process.env.NEXT_PUBLIC_BPS_CONVERSATION_ENABLED==="true"||process.env.NEXT_PUBLIC_BPS_WORKSPACE_INBOX_ENABLED==="true")&&<ConversationInbox />}
-          {process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&<Link href="/sirket-sec" onClick={navigationGuard.handle} className="inline-flex min-h-11 items-center rounded-lg border px-3 text-sm">Şirket değiştir</Link>}
           {/* User menu */}
           <div ref={userMenuRef} className="relative"
             onKeyDown={e => {

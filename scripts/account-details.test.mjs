@@ -10,7 +10,7 @@ function setup(reader){
 }
 const text=t=>nodes(t).flatMap(n=>[n.props?.children].flat()).filter(x=>typeof x==='string').join(' ');
 test('account shows database name and verified company role without manager settings for operations',async()=>{
- const x=setup(async()=>({id:'actor-a',display_name:'Ayşe'}));x.render();await settle();const t=x.render();assert.equal(nodes(t).find(n=>n.type==='editor').props.initialName,'Ayşe');assert.match(text(t),/Şirket A/);assert.match(text(t),/Operasyon/);assert.ok(!nodes(t).some(n=>n.props?.href==='/ayarlar'));assert.ok(nodes(t).some(n=>n.type==='sound-controls'));x.close();
+ const x=setup(async()=>({id:'actor-a',display_name:'Ayşe'}));x.render();await settle();const t=x.render();assert.equal(nodes(t).find(n=>n.type==='editor').props.initialName,'Ayşe');assert.match(text(t),/Şirket A/);assert.ok(!nodes(t).some(n=>n.props?.href==='/sirket-sec'));assert.match(text(t),/Operasyon/);assert.ok(!nodes(t).some(n=>n.props?.href==='/ayarlar'));assert.ok(nodes(t).some(n=>n.type==='sound-controls'));x.close();
 });
 test('failed new-account read removes prior name and offers retry',async()=>{
  let fail=false;const x=setup(async()=>{if(fail)throw Error('offline');return {id:'actor-a',display_name:'Ayşe'};});x.render();await settle();x.workspace({workspace:null,loading:false,error:true,reload:async()=>{}});let t=x.render();assert.doesNotMatch(text(t),/Şirket A/);assert.doesNotMatch(text(t),/Operasyon/);

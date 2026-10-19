@@ -28,3 +28,14 @@ export async function completeWorkspaceSwitch(command:SelectionCommand,io:{selec
  if(!record(context)||context.selectionVersion!==receipt.selectionVersion||context.membershipVersion!==receipt.membershipVersion||access.user?.app_metadata.active_tenant!==receipt.tenantId)throw Error('WORKSPACE_REFRESH_UNVERIFIED');
  return receipt;
 }
+
+/** Preserve an existing verified company during migration; never pick the first legacy membership. */
+export function resolveAccountCompany(choices: WorkspaceChoices) {
+ if (choices.activeTenantId) {
+  const membership = choices.memberships.find(item => item.tenantId === choices.activeTenantId);
+  if (!membership) throw Error('WORKSPACE_RESPONSE');
+  return {status: 'ready' as const, membership};
+ }
+ if (choices.memberships.length === 1) return {status: 'ready' as const, membership: choices.memberships[0]};
+ return {status: choices.memberships.length === 0 ? 'missing' as const : 'ambiguous' as const};
+}

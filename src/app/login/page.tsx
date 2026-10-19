@@ -298,7 +298,7 @@ export default function LoginPage() {
         {/* BPS branding */}
         <div className={`text-center ${mode === "request" ? "mb-6" : "mb-8"}`}>
           <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">BPS</h1>
-          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>Partner Staff — İç Ofis Operasyon</p>
+          <p className={`${TYPE_CAPTION} ${TEXT_MUTED} mt-1`}>Şirket yönetimi</p>
           {mode === "request" && (
             <p
               className={`${TYPE_CAPTION} font-medium text-blue-700/90 mt-3 pt-3 border-t border-slate-100`}

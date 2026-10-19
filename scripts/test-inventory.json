@@ -720,5 +720,9 @@
   {
     "file": "scripts/platform-module-rights.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/single-company.test.mjs",
+    "suite": "application"
   }
 ]
