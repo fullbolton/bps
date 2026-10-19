@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T17:29:23.887216+00:00",
+  "measuredAt": "2026-10-19T17:38:32.055388+00:00",
   "project": "dffdzbmnmnokbftbujsy",
   "readOnly": true,
   "rows": [
@@ -22,7 +22,7 @@
             "estimated_rows": -1
           }
         ],
-        "measured_at": "2026-10-19T17:29:23.826134+00:00",
+        "measured_at": "2026-10-19T17:38:32.006012+00:00",
         "waiting_locks": 0,
         "active_transactions": 0,
         "oldest_transaction_seconds": 0

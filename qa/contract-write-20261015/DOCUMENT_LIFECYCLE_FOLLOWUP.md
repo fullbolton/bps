@@ -1606,3 +1606,14 @@ Canlı ledger/public katalog/bariyer/yük ölçümü yenilendi. 001 canlı; kala
 Statik kontrol dinamik RLS döngülerini tanımadığı için 005/007/008 henüz uygulanmamış migration'larda RLS ifadeleri açık tablo adlarıyla yazıldı. Yeni hashlerle tüm provayı tekrar geçirdik. 849 uygulama testi geçti, statik kontrol 0 hata (commit öncesi migration değişikliği uyarısı), TypeScript geçti. İlk build ortam değişkeni eksikliğiyle durdu; sentetik Supabase URL/anahtarı ve HR preview kapalı yapılandırmayla production build geçti. Bu build gerçek üretim ortamı kabulü değildir.
 
 Üretim bu tur değişmedi: 191 migration ve uyumluluk uygulaması. Kalan yayın kapısı: yeni uygulamanın gerçek production ortamında alan adına bağlanmadan derlenmesi; ardından güncel ön kontrol ve kontrollü 002–017 kurulumu, uygulama geçişi, canlı smoke. Şirket İK aktivasyonu ayrı kalır. Kanıt qa/hr-release-20261019/remaining/test-result.json ve package-checks.json.
+
+
+## 19 Ekim — İK/modül altyapısı büyük paketi CANLIDA
+
+Kalan 20261019000200–01700 16 migration sırayla uygulandı. Her adımın DDL ve ledger kaydı aynı transaction içinde tamamlandı; ardından tam sürüm dizisi doğrulandı. Üretim artık 207 migration. Kaynak f02edb04433daa85ccb69b64b740c1c1ccc7bce6, Vercel dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU, www.bpsys.net READY. Üretim ortamındaki temiz remote build başarılı.
+
+Üretimde katalog 2 geçişi tamamlandı. Onaylı İK teknik kapısı 0, scoped şirket 0, etkin İK modülü 0; İK/özel erişim tablolarının tümünde RLS açık. BPS_HR_PREVIEW_ENABLED=false. Mevcut modül aç/kapa üretim flag'i değiştirilmedi. Kullanım hakkı altyapısı ödeme entegrasyonu değildir.
+
+Gerçek oturumla salt okunur smoke: Modüller kullanım hakkı etiketleri, İnsan Kaynakları Hazırlanıyor durumu, katalog yükseltmesi + eski kurulum geçmişi; platform yöneticisi olmayan hesapta haklar alanı ret; günlük operasyon yükleme; kapalı İK rotası 404 geçti. Gerçek iş kaydı veya İK aktivasyonu yapılmadı. Kanıt qa/hr-release-20261019/remaining/release.json, production-install.json ve production-verification.json.
+
+Sıradaki ürün paketi: İK-1 çalışan düzenleme/istihdam yaşam döngüsü, özel evrak ve Excel kabulü; yetki kapsamlarıyla uçtan uca doğrulama. İzin/satın alma yönetici onayları ayrıca tamamlanacak. Gerçek şirket İK aktivasyonu bu kabulden ayrı. Önceki 191 canlı / 16 bekliyor ifadeleri tarihsel kaldı. Geri dönüş için uyumluluk dağıtımı saklanıyor; SQL/audit silerek geri alınmaz.

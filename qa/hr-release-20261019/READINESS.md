@@ -1,6 +1,6 @@
 # İK yayın hazırlığı — 19 Ekim 2026
 
-Durum: **001 + uyumluluk uygulaması canlıda (191 migration). Kalan 002–017 için güncel üretim başlangıcıyla yerel kurulum ve atomik hata kabulü geçti; bu 16 migration henüz yayımlanmadı.**
+Durum: **002–017 ve f02edb0 uygulaması CANLIDA. Üretim 207 migration; İK aktivasyonu kapalı. Güncel kanıt remaining/release.json. Aşağıdaki hazırlık ölçümleri yayın öncesi tarihsel kayıttır.**
 
 ## Doğrulanan kapsam
 

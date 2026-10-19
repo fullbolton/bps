@@ -1,0 +1,41 @@
+{
+  "releasedAt": "2026-10-19T17:43:23.435665+00:00",
+  "sourceCommit": "f02edb04433daa85ccb69b64b740c1c1ccc7bce6",
+  "deploymentId": "dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU",
+  "url": "bps-grxtj3ctv-furkanyahsi-1537s-projects.vercel.app",
+  "domain": "https://www.bpsys.net",
+  "readyState": "READY",
+  "migrationCount": 207,
+  "appliedVersions": [
+    "20261019000200",
+    "20261019000300",
+    "20261019000400",
+    "20261019000500",
+    "20261019000600",
+    "20261019000700",
+    "20261019000800",
+    "20261019000900",
+    "20261019001000",
+    "20261019001100",
+    "20261019001200",
+    "20261019001300",
+    "20261019001400",
+    "20261019001500",
+    "20261019001600",
+    "20261019001700"
+  ],
+  "hrPreviewEnabled": false,
+  "hrActivated": false,
+  "browserSmoke": {
+    "moduleEntitlementsRead": true,
+    "catalogUpgradeHistory": true,
+    "platformAdminDeniedForCompanyUser": true,
+    "dailyOperationsLoaded": true,
+    "disabledHrRoute404": true
+  },
+  "limits": [
+    "Read-only production browser smoke; no business write or real HR activation",
+    "HR employee editing, Excel/private documents and leave/purchasing approval features remain unfinished"
+  ],
+  "rollbackDeployment": "dpl_HqsDv6dSm8tej9yeAEsqnEG9Tjib"
+}

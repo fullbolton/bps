@@ -1,0 +1,17 @@
+{
+  "measuredAt": "2026-10-19T17:41:26.316377+00:00",
+  "project": "dffdzbmnmnokbftbujsy",
+  "readOnly": true,
+  "rows": [
+    {
+      "ledger_count": 207,
+      "latest_version": "20261019001700",
+      "approved_hr_gates": 0,
+      "scoped_companies": 0,
+      "hr_enabled": 0,
+      "old_catalogs": 0,
+      "unprotected_hr_access_tables": 0,
+      "release_barrier": null
+    }
+  ]
+}

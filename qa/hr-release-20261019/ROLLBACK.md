@@ -30,3 +30,7 @@ Uyumluluk adayının yerel okuma/yazma tarayıcı kabulü ve anlık üretim yük
 
 ## Güncel yayın hedefi — 19 Ekim
 001 + uyumluluk uygulaması yayımlandı; canlı ledger 191. Doğrulanmış uyumlu dağıtım: dpl_HqsDv6dSm8tej9yeAEsqnEG9Tjib / bps-ag2c7kr48-furkanyahsi-1537s-projects.vercel.app. Geçmiş ilk okuma ve yenileme gerçek oturumda geçti. 002–017 henüz uygulanmadı. Önceki bölümlerdeki yayın bekliyor ifadeleri tarihsel kayıttır; güncel kanıt bridge/release.json.
+
+
+## 19 Ekim — Katalog 2 sonrası güncel durum
+002–017 ve f02edb0 uygulaması yayımlandı (207 migration). Canlı dağıtım dpl_3pr5omHWjqsUAAVaL7sLksb7P8GU. İK hâlâ kapalı, scoped aktivasyon yok. Geri dönüş uygulaması dpl_HqsDv6dSm8tej9yeAEsqnEG9Tjib; 6300bee eski uygulamasına doğrudan dönüş yapılmaz. SQL/audit kayıtları silinmez. Kanıt remaining/release.json.
