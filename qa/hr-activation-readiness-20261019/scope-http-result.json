@@ -1,0 +1,16 @@
+{
+  "measuredAt": "2026-10-19T22:10:37.557Z",
+  "checks": [
+    "Selected department filters public directory before response; employee read alone does not grant private document metadata",
+    "Matching employee and document scopes expose only allowed metadata and never storage paths",
+    "Download-only permission and explicit document deny both block metadata while independent employee read remains available",
+    "Explicit employee deny and subsequent rule removal take effect on the same real login token"
+  ],
+  "actualGoTrue": true,
+  "actualPostgrest": true,
+  "syntheticOnly": true,
+  "limits": [
+    "Document metadata RPC only; binary download and signed URL lifetime not tested",
+    "Not a production pilot account acceptance"
+  ]
+}

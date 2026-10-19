@@ -1887,3 +1887,10 @@ Gerçek uygulama, GoTrue ve PostgREST ile aktivasyon tarayıcı akışı tamamla
 Düzeltme: HrActivation kesin PostgreSQL retlerini belirsiz ağ hatasından ayırıyor. İlk denemedeki STALE/BLOCKED ve yetki retleri yenilemeye yönlendirir; daha önce belirsiz sonuç varsa sonraki ret önceki kaydı çürütemeyeceğinden aynı komutla deneme korunur. 857 uygulama testi ve TypeScript geçti. Gerçek üretim aktivasyonu/yayın yapılmadı.
 
 Production build sentetik ortam değerleriyle geçti; geçici yerel test ortamı temizlendi.
+
+
+## 20 Ekim — gerçek oturumla İK kapsam ve evrak yetki matrisi
+
+Yerel GoTrue parola oturumu ve public PostgREST RPC'leriyle dört grup geçti: seçili departman dışında kayıt/sayfa bilgisi sızmaması; çalışan okuma yetkisinin tek başına özel evrak metadata erişimi vermemesi; çalışan ve belge kapsamlarının birlikte gerekmesi ve storage yolunun dönmemesi; belge açık ret kuralı ile çalışan okumanın bağımsız kalması; çalışan açık reddi ve rol kaldırılmasının aynı token üzerinde etkili olması.
+
+Kanıt: qa/hr-activation-readiness-20261019/scope-http-result.json. Tekrar: BPS_LOCAL_BROWSER=1 BPS_HR_SCOPE_HTTP=1 BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Test sentetik fixture ve özel evrak metadata RPC'si içindir; dosya baytlarının indirilmesi, imzalı URL süresi veya gerçek pilot hesapları kabul edilmiş sayılmaz. Koşu başarılı ve geçici ortam temizlendi. Ürün kodu/migration değişmedi; üretim yayını yapılmadı.

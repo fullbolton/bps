@@ -61,3 +61,5 @@ transfer-http-result.json: gerçek yerel GoTrue parola oturumu + PostgREST ile d
 - Sonraki geliştirme: izin ve satın alma yönetici onayları; bu paketlerin tamamlandığı veya canlıda olduğu varsayılmaz.
 
 Tekrar kurulumu: BPS_LOCAL_BROWSER=1 BPS_HR_ACTIVATION_BROWSER=1 BPS_ACCESS_PREVIEW_ENABLED=true BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Hazırlık bayrakları yalnız yerel test için kullanılır.
+
+20 Ekim kapsam kabulü: scope-http-result.json gerçek yerel Auth/API ile departman filtresi, çalışan/belge ayrı yetkileri, açık ret ve aynı oturumda rol iptalini doğrular. Özel belge metadata erişimi test edildi; gerçek dosya indirme ve pilot hesap seçimi ayrı kalır.
