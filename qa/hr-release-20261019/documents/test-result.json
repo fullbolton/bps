@@ -1,0 +1,71 @@
+{
+  "measuredAt": "2026-10-19T18:57:17.977Z",
+  "syntheticOnly": true,
+  "checks": [
+    {
+      "version": "20261019001800",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019001900",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019002000",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019002100",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019002200",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019002300",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019002400",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019002500",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    },
+    {
+      "version": "20261019002600",
+      "rollback": true,
+      "catalogRestored": true,
+      "retryAfterRollback": true,
+      "repeatedInstallRejected": true
+    }
+  ],
+  "finalLedger": 216,
+  "activationClosed": true
+}

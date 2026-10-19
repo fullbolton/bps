@@ -1,6 +1,6 @@
 {
-  "measuredAt": "2026-10-19T18:55:27.535Z",
-  "sourceCommit": "43bb842e360fff02a2d2f25aff9ceb8a9611271a",
+  "measuredAt": "2026-10-19T18:56:34.000Z",
+  "sourceCommit": "01ead7eed27fd3f116887793f55b48c3b86ef27d",
   "historicalBaseline": {
     "migrationCount": 207,
     "sourceCommit": "f02edb04433daa85ccb69b64b740c1c1ccc7bce6",

@@ -1,0 +1,79 @@
+{
+  "baseline": 207,
+  "final": 216,
+  "atomicPerMigration": true,
+  "migrations": [
+    {
+      "version": "20261019001800",
+      "name": "hr_employee_edit",
+      "sourceSha256": "647a0670374c861fc8787f4962782b30768f0ed90d763fbdda01e2f07a7524d4",
+      "installSha256": "658888e0af5b49fcf920eca5ac025bfb8490e5726641846751f713d3e509a9d0",
+      "expectedBefore": 207,
+      "expectedAfter": 208
+    },
+    {
+      "version": "20261019001900",
+      "name": "hr_employment_lifecycle",
+      "sourceSha256": "0aefcfbc06f5e55837c5eeec4ce155528541f217d2c296c99cf7ae6dc2c6ab46",
+      "installSha256": "769b279f52555cf429d8686d56370347b9c971a3085be779bfadfd232492b9fe",
+      "expectedBefore": 208,
+      "expectedAfter": 209
+    },
+    {
+      "version": "20261019002000",
+      "name": "hr_import_preview",
+      "sourceSha256": "cb514effd43d4dfe4bc192421bce051c013078727a9fceb73a69d4ee9af3e830",
+      "installSha256": "0d7f647f2603eff97430dc65b361ef68b2a6f1d08be9b5a6810b8051fae5c42a",
+      "expectedBefore": 209,
+      "expectedAfter": 210
+    },
+    {
+      "version": "20261019002100",
+      "name": "hr_import_commit",
+      "sourceSha256": "4b6054c6810bbebcf8f310179da827bf13d50e31c937b41e61a5996f00017f1f",
+      "installSha256": "0e364a646405278005ee38ae559a5fb97c5bbe6a81a2eb1751710335e09f7c25",
+      "expectedBefore": 210,
+      "expectedAfter": 211
+    },
+    {
+      "version": "20261019002200",
+      "name": "hr_private_document_boundary",
+      "sourceSha256": "17e0fed16caf33eaa66120e34490cacb61fc60bb659edef8f1e2b2d0b9763c7f",
+      "installSha256": "ff783a80496d3fded1ea02bebf78b092b0a698cccc93660b2912b898c8789f2b",
+      "expectedBefore": 211,
+      "expectedAfter": 212
+    },
+    {
+      "version": "20261019002300",
+      "name": "hr_document_upload_ledger",
+      "sourceSha256": "7c3e8f4d257fa213b3f9460d75e15c8b6830a82af871884868d848db7239ce35",
+      "installSha256": "0badd0ab6042866a3e26cbf736d2484f4cccebfd2f5692669622a681f299c2a2",
+      "expectedBefore": 212,
+      "expectedAfter": 213
+    },
+    {
+      "version": "20261019002400",
+      "name": "hr_upload_shutdown_guard",
+      "sourceSha256": "5258d809f068937a003415ff92c060cd4468ff6169dcf7b0329617eeacd7bb45",
+      "installSha256": "4ab3842a4845cef3d88305c24915cbadbc180b3dc2ff753d2363475daf3e8639",
+      "expectedBefore": 213,
+      "expectedAfter": 214
+    },
+    {
+      "version": "20261019002500",
+      "name": "hr_document_verified_finalize",
+      "sourceSha256": "060084be43d67c861c8095c24b7ece45718109aa2f78785b97aca3bc31fd0a04",
+      "installSha256": "c25f9a8e8cc5a75d374b83a3480d5da850e91fd313123a11004f9386b7132a71",
+      "expectedBefore": 214,
+      "expectedAfter": 215
+    },
+    {
+      "version": "20261019002600",
+      "name": "hr_document_storage_lifecycle",
+      "sourceSha256": "116eb0076c6d3bd19980a9d2f8ef598ce1490b66eac1ee4822e103d0db45b7d9",
+      "installSha256": "1041ed3fcc1f8145af6345dff65a3a5c77ed5347cc123afee51159ec76038bf8",
+      "expectedBefore": 215,
+      "expectedAfter": 216
+    }
+  ]
+}

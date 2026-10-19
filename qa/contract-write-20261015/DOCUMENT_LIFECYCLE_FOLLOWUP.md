@@ -1763,3 +1763,10 @@ Gerçek yerel tarayıcıda cleanup_requested=true sentetik bekleyen yükleme ayn
 Yeni documents/check-candidate.mjs geçmiş yayın commit'indeki 207 migration dosyasını mevcut kaynakla birebir karşılaştırır, yinelenen/geriye tarihli sürümleri ve 018–026 sırasını kontrol eder. Dokuz adayın SHA-256 özeti candidate.json içinde kayıtlı; beklenen son sayı 216. Geliştirme dalının otomatik yayını kapalı doğrulandı. Kontrol geçti. Bu tarihsel kaynak kontrolüdür: güncel üretim şeması ölçülmedi, yayın onayı veya yayın başarısı değildir.
 
 Sıradaki yayın kapıları: güncel salt okunur üretim ledger/katalog/yük ve Storage politikası karşılaştırması; korumalı atomik kurulum dosyaları ve güncel baseline provası; ortam/geri dönüş uyumluluğu; İK preview ve şirket aktivasyonu kapalı canlı smoke. Yeni modül açılmadı, üretim yayını yapılmadı.
+
+
+## 19 Ekim — 018–026 atomik kurulum ve rollback provası
+
+Dokuz migration için tam beklenen ledger denetimi, ledger kilidi, 5 sn lock_timeout ve 60 sn statement_timeout içeren kurulum dosyaları üretildi. Kaynak/kurulum SHA-256 manifesti hazır. Gerçek geçici PostgreSQL'de her dosyada ledger yazımından hemen önce kasıtlı hata verildi: public katalog, Storage politikaları/tetikleyicileri ve hr-private bucket durumu birebir geri döndü. Ardından kurulum geçti, tekrar uygulama reddedildi. Yanlış sırada kurulum da reddedildi. Son sentetik ledger 216, aktivasyon kapalı. İlk test betiğindeki parantez hatası düzeltildikten sonra genişletilmiş son koşu geçti.
+
+Yalnız metadata/toplam okuyan preflight.sql baseline üzerinde doğrulandı; gerçek çalışan/dosya içeriği okumaz. Güncel üretim sorgusu bu tur çalıştırılmadı. Yayın kapıları ve hata halinde durma sırası documents/READINESS.md içinde kayıtlı. Kalan: güncel üretim ledger/public+Storage katalog/yük karşılaştırması, yeni SQL ile uygulama geri dönüş uyumluluğu ve kapalı İK üretim smoke. Üretim değişmedi; otomatik dal yayını kapalı.
