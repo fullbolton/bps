@@ -1,0 +1,28 @@
+{
+  "realNextRoutes": true,
+  "realPasswordSession": true,
+  "realAuth": true,
+  "realStorage": true,
+  "realDatabase": true,
+  "realClamav": true,
+  "browserFormInteraction": true,
+  "productionReady": false,
+  "syntheticOnly": true,
+  "checks": [
+    "real password session cookies; anonymous and cross-origin rejected",
+    "multipart route queued upload",
+    "scan route status",
+    "scan route status",
+    "scan route finalize",
+    "multipart route queued upload",
+    "scan route status",
+    "scan route status"
+  ],
+  "browserRecoveryInteraction": true,
+  "browserInitialFileUpload": false,
+  "browserEvidenceMode": "manual-cua-with-checkpoint",
+  "observedUi": [
+    "clean: Tarama tamamlandı, kayıt bekliyor → Evrakı kaydet → Kaydedildi",
+    "encrypted: Dosya güvenlik kontrolünden geçemedi; no save or rescan action"
+  ]
+}
