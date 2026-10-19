@@ -1,7 +1,8 @@
 {
-  "measuredAt": "2026-10-19T10:45:15.954Z",
+  "measuredAt": "2026-10-19T10:53:37.896Z",
   "checks": [
     "Legacy allocations retained; HR unallocated/unready; company manager cannot allocate rights or read another company",
+    "Platform reader denies company-only users and actor spoofing; real SQL output passes actual client validation",
     "Platform-only idempotent allocation, stale/reused command rejection, active revocation block; allocation never activates HR or changes module history revisions",
     "Legacy activation is denied without allocation and succeeds after reallocation using the same unchanged module revision",
     "Concurrent allocations serialize: one commits, one rejects its stale revision; no lost update",

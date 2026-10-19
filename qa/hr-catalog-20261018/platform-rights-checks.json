@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-19",
+  "applicationTests": 819,
+  "databaseGroups": 6,
+  "typecheck": "passed",
+  "productionBuild": "passed",
+  "browser": [
+    "normal manager denied",
+    "explicit company selection",
+    "HR grant verified",
+    "HR remains preparing"
+  ],
+  "productionDeployed": false
+}

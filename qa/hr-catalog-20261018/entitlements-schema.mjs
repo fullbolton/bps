@@ -5,6 +5,7 @@ import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-m
 import {promisify} from 'node:util';
 import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
 const {parseModuleEntitlements}=await importActualTypeScript(new URL('../../src/lib/modules/entitlements.ts',import.meta.url));
+const {parsePlatformRights}=await importActualTypeScript(new URL('../../src/lib/services/platform-module-rights.ts',import.meta.url));
 const server='supabase_db_bps-supabase-acceptance',db=`bps_entitlements_${process.pid}`;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const sql=(q,d=db)=>execFileSync('docker',['exec','-i',server,'psql','-X','-qAt','-U','postgres','-d',d,'-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();
@@ -20,7 +21,11 @@ try{
  assert.throws(()=>grant('1',9951,'hr',true),e=>String(e.stderr).includes('MODULE_ENTITLEMENT_SCOPE'));
  assert.throws(()=>auth(`workspace_module_entitlements_v1('${id(11)}','${id(2)}')`));
  checks.push('Legacy allocations retained; HR unallocated/unready; company manager cannot allocate rights or read another company');
- admin(true);const receipt=grant('1',9951,'hr',true);assert.equal(receipt.revision,'2');assert.deepEqual(grant('1',9951,'hr',true),{...receipt,replayed:true});
+ assert.throws(()=>auth(`platform_module_rights_v1('${id(11)}','${id(1)}')`));
+ admin(true);const platform=auth(`platform_module_rights_v1('${id(11)}','${id(1)}')`);parsePlatformRights(platform,id(11),id(1));
+ assert.throws(()=>auth(`platform_module_rights_v1('${id(12)}','${id(1)}')`));
+ checks.push('Platform reader denies company-only users and actor spoofing; real SQL output passes actual client validation');
+ const receipt=grant('1',9951,'hr',true);assert.equal(receipt.revision,'2');assert.deepEqual(grant('1',9951,'hr',true),{...receipt,replayed:true});
  assert.throws(()=>grant('1',9951,'hr',false),e=>String(e.stderr).includes('MODULE_COMMAND_REUSED'));
  assert.throws(()=>grant('1',9952,'hr',false),e=>String(e.stderr).includes('MODULE_ENTITLEMENT_STALE'));
  assert.throws(()=>grant('2',9953,'finance',false),e=>String(e.stderr).includes('MODULE_ENTITLEMENT_ACTIVE'));

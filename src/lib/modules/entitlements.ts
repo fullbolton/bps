@@ -5,7 +5,7 @@ import { isRevision, parseWorkspaceModuleContext, type WorkspaceModuleContext } 
 type Rights = Readonly<Record<ModuleKey | 'hr',boolean>>;
 const keys = [...MODULE_CATALOG.map(module=>module.key),'hr'] as const;
 /** Rights do not have activation dependencies: allocation and activation are separate. */
-function parseRights(raw: unknown): Rights {
+export function parseRights(raw: unknown): Rights {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw Error('MODULE_ENTITLEMENTS_RESPONSE');
   const value = raw as Record<string,unknown>;
   if (Object.keys(value).length !== keys.length || keys.some(key=>!Object.hasOwn(value,key)||typeof value[key]!=='boolean')) throw Error('MODULE_ENTITLEMENTS_RESPONSE');

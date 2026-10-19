@@ -1392,6 +1392,10 @@ export interface Database {
         Args: {p_actor: string; p_tenant: string};
         Returns: Json;
       };
+      platform_module_rights_v1: {
+        Args: {p_actor: string; p_tenant: string};
+        Returns: Json;
+      };
       set_module_entitlement_v1: {
         Args: {p_actor: string; p_tenant: string; p_revision: string; p_command: string; p_module: string; p_granted: boolean};
         Returns: Json;

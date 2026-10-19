@@ -8,6 +8,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import Link from "next/link";
+import PlatformModuleRights from "./PlatformModuleRights";
 import WorkspaceModules from "./WorkspaceModules";
 import { useNavigationGuard } from "@/context/NavigationGuardContext";
 import { useRole } from "@/context/RoleContext";
@@ -73,6 +74,7 @@ import {
 const TABS: TabItem[] = [
   { key: "kullanicilar", label: "Şirket ekibi" },
   { key: "moduller", label: "Modüller" },
+  { key: "modul-haklari", label: "Platform modül hakları" },
   { key: "erisim-talepleri", label: "Platform başvuruları" },
 ];
 
@@ -326,7 +328,8 @@ export default function AyarlarPage() {
   const guard = useNavigationGuard();
   const [activeTab, setActiveTab] = useState("kullanicilar");
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("bolum") === "moduller") setActiveTab("moduller");
+    const section=new URLSearchParams(window.location.search).get("bolum");
+    if (section && TABS.some(tab=>tab.key===section)) setActiveTab(section);
   }, []);
 
   // Auth not resolved yet — don't flash "Erişim kısıtlı" (role defaults to
@@ -372,6 +375,7 @@ export default function AyarlarPage() {
           </details>
         </>}
         {activeTab === "moduller" && <WorkspaceModules changesEnabled={process.env.NEXT_PUBLIC_BPS_MODULE_CHANGES_ENABLED === "true"} />}
+        {activeTab === "modul-haklari" && <PlatformModuleRights />}
         {activeTab === "erisim-talepleri" && <>
           <p className="text-sm text-slate-600">Platforma gelen başvurular içindir. Şirketinize ekip üyesi eklemek için Ekip davetleri ve kurulum bölümünü kullanın.</p>
           <AccessRequestsTab />

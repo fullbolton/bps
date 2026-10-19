@@ -716,5 +716,9 @@
   {
     "file": "scripts/module-entitlements.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/platform-module-rights.test.mjs",
+    "suite": "application"
   }
 ]
