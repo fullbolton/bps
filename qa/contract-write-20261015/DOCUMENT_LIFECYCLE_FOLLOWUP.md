@@ -1958,3 +1958,14 @@ Karar: motorun PDF tarama ve şifreli/limit aşımı uyarıları gerçek çalı�
 Doğrulama: 6 işçi senaryosu ve toplam 873 uygulama testi geçti. İçerik/sürüm değişimi, eski imza/ölçüm, uygun olmayan yapılandırma, motor yenilenmesi, zararlı/bilinmeyen sonuç, bağlantı ve kayıt hatası kapsandı. Temiz raporun mevcut doğrulayıcı tarafından kabulü ayrıca geçti.
 
 Sınır: bu paket adaptörleri enjekte edilen çekirdektir; gerçek motor ölçüm adaptörü, sınırlı Storage okuması ve guarded RPC persist bağlantısı henüz bağlanmadı. readObject adaptörü aktarım sırasında 10 MiB sınırını da uygulamalı; sonradan uzunluk kontrolü tek başına yeterli değildir. Gerçek motor kurulumu ve uçtan uca kabul tamamlanmadan yayın yok. Üretim değişmedi.
+
+
+## 20 Ekim — sınırlı Storage okuma ve sonuç gönderme adaptörü
+
+workers/hr-malware/storage.mjs: kullanıcı oturumuyla hr_document_verification_context_v1 çağrısı, actor/tenant/upload/path/pending/boyut/özet/sürüm doğrulaması; ardından yalnız doğrulanmış UUID yolundan özel PDF okuması. İndirme öncesi ve sonrası kullanıcı kapsamı ve nesne bağlamı yeniden okunur. Content-Length olmasa bile akış beklenen dosya boyutunu ve 10 MiB üst sınırını aşarsa iptal edilir. Yanlış MIME, eksik içerik, yönlendirme ve zaman aşımı reddedilir. Sonuç yalnız hr_malware_report_v1 üzerinden gönderilir; kayıt hatası başarı sayılmaz.
+
+Karar: karantina pending okumaları kullanıcı RLS'sinde kapalı kalırken hizmet anahtarı yalnız güvenilir sunucu koordinatöründe sabit Storage yolu için kullanılır; clamd sürecine verilmez. Bu, anahtarın kendisini dar yetkili yapmaz. Uç adresi sunucu yapılandırmasından gelir; kullanıcıdan URL alınmaz, HTTPS zorunludur (yerel test için loopback HTTP istisnası). Motor bağlanana kadar mevcut upload route değiştirilmez.
+
+Kanıt: 8 adaptör testi ve toplam 881 uygulama testi geçti. Gerçek yerel HTTP sunucusunda yönlendirme hedefi sıfır istek aldı; takılan indirme gövdesi zaman aşımıyla durdu. Diğer testler sentetik RPC/Response kullanır; gerçek Supabase Storage uçtan uca kabulü değildir. Son sıkı objectId tipi kontrolünden sonra 8 adaptör testi ayrıca geçti.
+
+Kalan entegrasyon: çalışan motorun imza/ayar ölçümü, gerçek ClamAV kurulumu ve EICAR/temiz/limit/şifreli kabulü, bu adaptörlerle işçi çekirdeğinin sunucuya bağlanması, gerçek yerel Storage + karantina SQL uçtan uca testi. Üretime migration veya uygulama yayını yapılmadı; antivirüs hâlâ aktif değil.

@@ -780,5 +780,9 @@
   {
     "file": "scripts/hr-malware-job.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-malware-storage.test.mjs",
+    "suite": "application"
   }
 ]
