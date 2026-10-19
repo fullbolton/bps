@@ -138,6 +138,10 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    const {acceptActivation}=await import('../hr-activation-readiness-20261019/activation-http.mjs');
    await acceptActivation({sql,id,authBase,restBase,loginPassword,syncAuthScope,browserSeed:true});
   }
+  if(process.env.BPS_HR_DOWNLOAD_BROWSER==='1'){
+   sql(`UPDATE profiles SET role='ik' WHERE id='${id(11)}';UPDATE tenant_memberships SET role='ik' WHERE user_id='${id(11)}' AND tenant_id='${id(1)}'`);
+   syncAuthScope();
+  }
   const out=openSync('/tmp/bps-authenticated-next.log','w',0o600);
   app=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--hostname','127.0.0.1','--port','3060'],{cwd:appRoot,env:{...process.env,...(process.env.BPS_HR_PREVIEW_ENABLED==='true'?{SUPABASE_SERVICE_ROLE_KEY:service}:{}),NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3061',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon},stdio:['ignore',out,out]});closeSync(out);
   console.log('LOCAL_BROWSER_READY http://127.0.0.1:3060/login — synthetic document-qa@example.test');

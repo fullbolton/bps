@@ -65,3 +65,5 @@ Tekrar kurulumu: BPS_LOCAL_BROWSER=1 BPS_HR_ACTIVATION_BROWSER=1 BPS_ACCESS_PREV
 20 Ekim kapsam kabulü: scope-http-result.json gerçek yerel Auth/API ile departman filtresi, çalışan/belge ayrı yetkileri, açık ret ve aynı oturumda rol iptalini doğrular. Özel belge metadata erişimi test edildi; gerçek dosya indirme ve pilot hesap seçimi ayrı kalır.
 
 20 Ekim dosya baytı kabulü: ../hr-catalog-20261018/hr-storage-http-result.json yedi gerçek Storage HTTP grubu geçti. Çalışan+belge izinleri, açık ret, aynı tokenda kural iptali ve kullanım hakkı kaldırılması yeni dosya indirme isteklerinde doğrulandı. Sentetik JWT kullanıldı; GoTrue+tarayıcı dosya indirme birleşik kabulü değildir. Mevcut UI doğrudan authenticated download kullanır, imzalı URL üretmez.
+
+20 Ekim birleşik indirme kabulü tamamlandı: download-browser-result.json. Gerçek giriş→liste→PDF indirme ve tam içerik eşleşmesi; açık panelde izin iptali→indirme reddi→yenilemede metadata kaldırılması doğrulandı. Önceki yalnız Storage testinin tarayıcı boşluğu bu senaryo için kapandı. Gerçek pilot kabulü değildir.

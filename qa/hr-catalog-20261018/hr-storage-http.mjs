@@ -52,5 +52,7 @@ export async function acceptHrStorage({sql,rpcResult,request,id,pdf,jwt,service,
  sql(`UPDATE tenant_module_entitlements SET granted=false WHERE tenant_id='${tenant}' AND module_key='hr'`);assert.equal((await bytes()).ok,false);
  assert.equal(sql(`SELECT count(*) FROM storage.objects WHERE bucket_id='hr-private' AND name='${path(9701)}'`),'1');
  checks.push('Entitlement removal denies new binary reads without deleting the published object');
+ // Optional browser fixture: generic document setup needs its manager first.
+ if(process.env.BPS_HR_DOWNLOAD_BROWSER==='1')sql(`UPDATE profiles SET role='yonetici' WHERE id='${actor}';UPDATE tenant_memberships SET role='yonetici' WHERE user_id='${actor}' AND tenant_id='${tenant}';UPDATE tenant_module_entitlements SET granted=true WHERE tenant_id='${tenant}' AND module_key='hr'`);
  writeFileSync(new URL('./hr-storage-http-result.json',import.meta.url),JSON.stringify({passed:checks.length,checks,syntheticOnly:true,actualStorageHttp:true},null,2)+'\n');return checks;
 }

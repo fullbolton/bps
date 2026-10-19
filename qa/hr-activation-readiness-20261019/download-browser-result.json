@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-20",
+  "actualApplication": true,
+  "actualGoTrue": true,
+  "actualStorageHttp": true,
+  "syntheticOnly": true,
+  "checks": [
+    "Actual login and private document list",
+    "Browser download event and exact fixture byte equality",
+    "Download permission revoked while panel open: new download rejected",
+    "Refresh removes old document metadata and displays access failure"
+  ],
+  "sha256": "fa03da7d82d5465249bb237dfb03a4ac120cde69693713d023d10b4d36042993",
+  "productionChanged": false
+}

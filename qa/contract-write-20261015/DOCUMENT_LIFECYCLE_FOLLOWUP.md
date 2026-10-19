@@ -1901,3 +1901,10 @@ Kanıt: qa/hr-activation-readiness-20261019/scope-http-result.json. Tekrar: BPS_
 HR Storage HTTP kabulü 4 gruptan 7 gruba genişletildi ve tamamı geçti. Yayımlanmış PDF'nin yeni indirme istekleri için çalışan okuma ve belge indirme izinlerinin birlikte gerektiği; yalnız birinin yetersiz olduğu; açık belge reddi ve rol kurallarının kaldırılmasının aynı token üzerinde sonraki indirmeyi engellediği; modül kullanım hakkı kaldırılınca dosya silinmeden erişimin kesildiği doğrulandı. İzinli yanıtta gerçek içerik SHA-256 eşleşmesi kontrol edildi.
 
 Kanıt: qa/hr-catalog-20261018/hr-storage-http-result.json. Koşu: BPS_HR_STORAGE_ACCEPTANCE=1 BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Gerçek yerel Storage/PostgREST ve sentetik JWT kullanıldı; bu koşu GoTrue parola girişi veya tarayıcı indirme testi değildir. EmployeeDocuments mevcut kodu kullanıcı oturumuyla doğrudan download kullanır; imzalı URL üretmez. Önceden cihaza indirilmiş dosyanın geri alınması bu korumanın kapsamında değildir. Üretim yazımı/yayını veya yeni migration yok.
+
+
+## 20 Ekim — özel PDF birleşik tarayıcı indirme kabulü
+
+Gerçek uygulama, GoTrue ve Storage ile sentetik İK hesabı özel evrak listesini açtı; PDF indir düğmesi tarayıcı indirme olayı üretti. İndirilen dosyanın baytları fixture ile birebir eşleşti (SHA-256 download-browser-result.json içinde). Panel açıkken belge izni kaldırıldı: yeni indirme hata mesajıyla reddedildi. Evrakları yenile sonrası eski metadata kaldırıldı ve erişim hatası gösterildi. Önceden indirilmiş dosyanın geri alınması iddia edilmez.
+
+Kanıt: qa/hr-activation-readiness-20261019/download-browser-result.json. Tekrar: BPS_HR_STORAGE_ACCEPTANCE=1 BPS_HR_DOWNLOAD_BROWSER=1 BPS_LOCAL_BROWSER=1 BPS_HR_PREVIEW_ENABLED=true BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Yedi Storage grubu da bu kurulumda geçti. Yerel test sekmesi ve geçici servisler kapatıldı. Üretim verisi/hesabı kullanılmadı, uygulama kodu veya migration değişmedi; yayın yok. Gerçek pilot hesap/kapsam ve PDF politika kararı açık kalır.
