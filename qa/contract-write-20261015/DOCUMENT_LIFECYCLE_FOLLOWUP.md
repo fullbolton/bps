@@ -2214,3 +2214,16 @@ Mount yolları canonical olmalı; çift slash, nokta/üst dizin alias'ı, kök d
 Kanıt: 941/941 uygulama testi geçti. preflight-accept.mjs gerçek Linux container dosya sistemi üstünde geçerli özel dizilimi kabul etti; açık izinli secret, yazılabilir control, yanlış socket sahibi, config digest farkı, secret/code symlink'lerini reddetti. preflight-result.json kaydedildi; sentetik tmpfs/container temizlendi. Bu yalnız filesystem kabulüdür (nativeHostAcceptance=false). QA managed-rotation sürücüsündeki emülasyon düzeni açık dependency seam ile preflight atlar; üretim varsayılanı atlamaz ve çevre değişkeni istisnası yoktur.
 
 Kalan yayın kapıları değişmedi: gerçek host bootstrap/supervisor ve native Linux strict main birleşimi; gerçek oturumlu Next/DB akışı; üretim şema/yayın sırası. Host ön kontrolü yerel dosya sistemini doğrular; uzak Docker endpoint kurulumu doğrulanmış değildir. Üretime yayın, anahtar kurulumu veya İK aktivasyonu yapılmadı.
+
+
+## 20 Ekim — sıkı izolasyon ile gerçek DB/Storage birleşik kabulü
+
+Docker engine ölçümü linux/aarch64 döndü. Native x64 üretim kabulü bu hostta tamamlanmış sayılmadı. Bu tur birbirinden ayrı doğrulanan süreç izolasyonu ve gerçek DB/Storage zinciri birleştirildi.
+
+BPS_RELEASE_BARRIER=1 BPS_HR_MALWARE_HTTP=1 BPS_HR_STRICT_ISOLATION=1 node qa/contract-write-20261015/storage-http.mjs komutu 31/31 kabul grubu geçti. ClamAV UID/GID 10001, capability yok, no-new-privileges, read-only root ve socket 660; işçi root/ek grup 10001 ve yalnız SYS_PTRACE+DAC_READ_SEARCH ile çalıştı. Her motor ölçümünde strict isolation ve üretim clamd.conf ayrıca doğrulandı. Gerçek uygulama servis fonksiyonları, PostgREST, klon sentetik PostgreSQL ve Storage HTTP kullanıldı.
+
+Temiz PDF tarama öncesi okunamadı/finalize edilmedi; temiz sonuçtan sonra bir kez yayımlandı ve okunabildi. Şifreli PDF blocked kaldı; finalize/read reddedildi ve modül kapatma ön kontrolü engel bildirdi. strict-storage-result.json kanıtı kaydedildi. Önceki 1 MB sınır fixture'ı üretimin 10 MB politikasını temsil etmediği için bu modda çalıştırılmadı (sizeLimitFixtureTested=false); eski ayrı sınır testi korunur. Şifreli PDF için infected sonucu zararlı yazılım bulunduğu iddiası değil, şifreleme politikasının konservatif engel sonucudur.
+
+Kapsam: realDatabase/realStorageHttp/realPostgrest/realApplicationService/realCoordinatorCycle=true. Transport yerel HTTP; daemon Mac/Rosetta; worker main sürekli servis ve gerçek oturumlu Next route/form bu testte yok. nextRouteTested=false, productionMainEntry=false, productionReady=false. Test DB/container/volume temizlendi; gerçek şirket verisine dokunulmadı. Ürün kodu değişmediğinden 941 uygulama testi yeniden çalıştırılmadı; yeni kabul, sözdizimi ve diff kontrolleri geçti.
+
+Kalan iki ana kabul: gerçek Next oturumuyla form/API zinciri ve native Linux host launcher/main uçtan uca çalışması. Sonrasında üretim şema/yayın sırası kontrolü gerekir. Canlıya yayın veya İK aktivasyonu yapılmadı.
