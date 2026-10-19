@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import {readFileSync} from 'node:fs';
+import {verifyClamdConfig} from '../workers/hr-malware/config.mjs';
+const text=readFileSync(new URL('../qa/hr-clamav-20261020/clamd.conf',import.meta.url),'utf8');
+const options=s=>({socketPath:'/run/bps-clam/clamd.sock',expectedDigest:createHash('sha256').update(s).digest('hex'),acceptanceOnly:true});
+test('explicit pinned acceptance config passes but is not a deployment config',()=>{assert.equal(verifyClamdConfig(text,options(text)).configurationVerified,true);assert.throws(()=>verifyClamdConfig(text,{...options(text),acceptanceOnly:false}));const production=text.replace('LocalSocketMode 666','LocalSocketMode 660').replace('MaxFileSize 1M','MaxFileSize 10M');assert.equal(verifyClamdConfig(production,{...options(production),acceptanceOnly:false}).configurationVerified,true);});
+test('disabled security flags, duplicates, includes and unknown overrides reject',()=>{for(const s of [text.replace('ScanPDF yes','ScanPDF no'),text.replace('HeuristicAlerts yes','HeuristicAlerts no'),text.replace('AlertEncrypted yes','AlertEncrypted no'),text.replace('AlertExceedsMax yes','AlertExceedsMax no'),text+'ScanPDF yes\n',text+'Include /tmp/override\n',text+'ExcludePath .*\n'])assert.throws(()=>verifyClamdConfig(s,options(s)));});
+test('changed digest cannot approve otherwise valid policy',()=>{assert.throws(()=>verifyClamdConfig(text+'\n',options(text)),/HR_SCAN_CONFIG_CHANGED/);});

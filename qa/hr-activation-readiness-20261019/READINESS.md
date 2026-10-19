@@ -167,3 +167,14 @@ Freshclam resmî kaynaktan daily veritabanını 28157 → 28158 güncelledi ve k
 Karar: VERSION tarihi yerel saat formatında olduğundan yönetilen daemon TZ=UTC ile başlatıldı; bu ön koşul sağlanmadan adaptör sonucu üretim kanıtı sayılmaz. İmza yaşı her işte tekrar ölçülmeli; bu kayıttaki güncellik zamanla geçerliliğini kaybeder. Güncelleyici ayrı konteynerde ağ erişimiyle, tarayıcı network=none ve imza volume salt okunur olarak çalıştı. Güncelleyici/daemon ve socket volume kaldırıldı; bps-clam-signatures-20261020 imza volume'ü sonraki kabul için yerelde korundu, şirket verisi içermez.
 
 Sınır: sunucu config ölçüm adaptörü hâlâ eksik; imza sürümü ölçmek motor ayarlarını doğrulamak değildir. Storage/SQL/işçi birleşik yerel kabulü ve upload route bağlantısı tamamlanmadan karantina migration'ı yayımlanmaz. Üretim değişmedi; canlı antivirüs aktif değil.
+
+
+## 20 Ekim — çalışan motor ayarı ölçümü ve gerçek işçi akışı
+
+workers/hr-malware/config.mjs eklendi. Sıkı izinli config anahtar listesi ve SHA-256 pini; PDF/heuristic/şifreli/limit uyarılarının açık olması, limitler, socket yolu ve izinleri kontrol edilir. Duplicate, Include, ExcludePath veya bilinmeyen override reddedilir. Üretim modunda 660 ve 10M; kabul testinde açık acceptanceOnly ile 666 ve 1M sınırı desteklenir.
+
+Linux ölçüm adaptörü paylaşılan PID namespace içinde clamd komut satırını, süreç başlangıç kimliğini, TZ=UTC ortamını, config mount'un salt okunur olmasını ve soket inode/device eşleşmesini kontrol eder. VERSION ölçümünden sonra süreç kimliğini yeniden kontrol eder. Yanlış config özeti gerçek motor üzerinde reddedildi. Bu kanıt yalnız güvenilir başlatıcının sabit imajı ve doğru config'i başlangıçtan itibaren salt okunur bağladığı yönetilen kurulum içindir; keyfî bir daemon'un ne yüklediği sırf sonradan config okuyarak ispatlanamaz. Üretim dağıtım tanımı henüz yapılmadı.
+
+config-job-accept.mjs / config-job-result.json: gerçek ClamAV + gerçek config/süreç/soket ölçümü + runHrScan çekirdeğiyle üç iş geçti. Temiz PDF complete=true; şifreli ve limitli PDF complete=false/infected. İçerik özeti ve boyut gerçek sentetik dosyalardan hesaplandı. Storage read/persist bu testte sentetik adaptördür; tam veritabanı/Storage entegrasyonu değildir. 886 uygulama testi geçti; üretim config kabulü ek doğrulaması sonrasında üç config testi ayrıca geçti.
+
+Geçici daemon ve socket volume kaldırıldı; üretime dokunulmadı. Kalan kapanış: gerçek yerel Storage ve guarded SQL raporlama ile birleşik tarama/finalize kabulü, upload route'un yeni akışa bağlanması, güncel şema/yayın sırası kontrolü. Antivirüs henüz canlıda aktif değil.

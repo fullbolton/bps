@@ -788,5 +788,9 @@
   {
     "file": "scripts/hr-clamd-version.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-clamd-config.test.mjs",
+    "suite": "application"
   }
 ]

@@ -1,0 +1,39 @@
+{
+  "measuredAt": "2026-10-19T22:56:36.096Z",
+  "state": {
+    "configurationDigest": "e65f1f4fb61b2e8daf1ad050b74051d71af0e16710447029656a412b29a0d50c",
+    "configurationVerified": true,
+    "scanPdf": true,
+    "alertEncrypted": true,
+    "alertExceedsMax": true,
+    "policy": "hr-pdf-v1",
+    "engine": "clamav",
+    "engineVersion": "1.5.4",
+    "signatureVersion": "28158",
+    "signaturesUpdatedAt": "2026-10-19T06:26:01.000Z",
+    "instanceId": "pid1-3501533-543543",
+    "measuredAt": "2026-10-19T22:56:36.027Z"
+  },
+  "realEngine": true,
+  "realProcessMeasurement": true,
+  "realUnixTransport": true,
+  "storageAndPersistence": "synthetic adapters",
+  "productionReady": false,
+  "checks": [
+    {
+      "file": "clean.pdf",
+      "verdict": "clean",
+      "complete": true
+    },
+    {
+      "file": "encrypted.pdf",
+      "verdict": "infected",
+      "complete": false
+    },
+    {
+      "file": "limit.pdf",
+      "verdict": "infected",
+      "complete": false
+    }
+  ]
+}
