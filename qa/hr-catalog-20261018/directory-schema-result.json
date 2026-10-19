@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T11:11:42.564Z",
+  "measuredAt": "2026-10-19T11:27:01.881Z",
   "checks": [
     "Closed module, actor spoof and foreign company are denied",
     "Operations/accounting/viewer denied; HR role can create within company",

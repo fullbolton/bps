@@ -34,5 +34,6 @@
   "20261019000300_module_entitlements.sql",
   "20261019000400_platform_module_rights_reader.sql",
   "20261019000500_hr_organization_foundation.sql",
-  "20261019000600_hr_directory_commands.sql"
+  "20261019000600_hr_directory_commands.sql",
+  "20261019000700_hr_work_locations_and_accounts.sql"
 ]

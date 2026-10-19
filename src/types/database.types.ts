@@ -1396,6 +1396,10 @@ export interface Database {
         Args: {p_actor: string; p_tenant: string; p_after?: string};
         Returns: Json;
       };
+      hr_workplace_command_v1: {
+        Args: {p_actor: string; p_tenant: string; p_command: string; p_payload: Json};
+        Returns: Json;
+      };
       hr_create_record_v1: {
         Args: {p_actor: string; p_tenant: string; p_command: string; p_payload: Json};
         Returns: Json;

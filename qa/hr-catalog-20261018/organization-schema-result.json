@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-19T11:06:30.956Z",
+  "measuredAt": "2026-10-19T11:26:59.644Z",
   "checks": [
     "Private RLS tables, no grants to client/service roles, no automatic backfill",
     "HR-only identity creates no candidate/worker; cross-company links and duplicate personnel code rejected",

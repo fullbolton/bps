@@ -1,0 +1,12 @@
+{
+  "measuredAt": "2026-10-19T11:26:31.988Z",
+  "checks": [
+    "Private tables, disabled module and spoofed actor deny writes",
+    "Location and assignment replay; duplicate names, overlapping dates and out-of-employment assignments rejected",
+    "Historical locations survive transfer; close/shorten blocked, stale revision denied, adjacent periods allowed",
+    "Only manager links accounts; unique mapping, membership identity validation and idempotent unlink preserve history",
+    "Concurrent identical commands return one receipt/record; unsupported transaction isolation rejected",
+    "Cross-company location blocked, revoked entitlement blocks replay, account resolver remains internal"
+  ],
+  "deployed": false
+}

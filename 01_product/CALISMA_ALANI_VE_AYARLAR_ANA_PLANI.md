@@ -657,3 +657,18 @@ Rol listesi/kopyalama/adlandırma; modüle göre sade izin grupları; kişilerde
 Çalışan detay/düzenleme, tarihli yönetici ve iş yeri atama, ayrılış/yeniden giriş, aday kimliği ve güvenli birleştirme, filtre/arama, Excel önizleme/aktarımı, özel belgeler. Çıkış kriteri: şirketler arası ve kapsam dışı erişim reddi, kayıt bütünlüğü, export/indirme denetimi, revizyon yarışları, gerçek yerel Storage ve masaüstü/mobil kabulü. Sonra HR modülünün hazır olma ve v2 açma ekranı. Ardından izin hakları/talepleri ve idari işler satın alma: yöneticiye düşme, vekalet, onay/ret/iade, durum geçmişi ve bildirimler. Ödeme/abonelik sağlayıcısı bu paketlerden bağımsızdır.
 
 Operasyon Faz 1 genişletilmeyecek; yalnız mevcut akışta doğrulanmış hata ele alınacak. Üretim geçişi öncesi güncel katalog ve migration sırası tekrar ölçülür. Bu plan erişim ekranı, SQL yetki yönetimi veya İK-1 tamamlandı iddiası değildir.
+
+
+## 19 Ekim — kendi iş yerleri ve çalışan–hesap bağlantısı paketi (yerel)
+
+20261019000700_hr_work_locations_and_accounts.sql: müşteri şubelerinden ayrı hr_work_locations; tarihli hr_location_assignments; geçmişi koruyan hr_account_links. İş yeri ataması istihdam dönemi içinde kalır, aynı çalışanın tarihleri çakışamaz, ardışık dönemler mümkündür. Departman/pozisyon atamasından ayrı tutulur. Açık atama varken iş yeri kapatma veya istihdamı kısaltma reddedilir. Normal fiziksel silme yok; bitiş ve kapanış beklenen revizyonla yapılır.
+
+hr_workplace_command_v1 altı işlem sağlar: iş yeri oluşturma, tarihli atama, atama bitirme, iş yeri kapatma, hesap bağlama ve bağlantıyı sonlandırma. Doğrulanmış tenant/actor, açık HR modülü+hak, config→profile→tenant kilidi, idempotent komut defteri ve kesin makbuz kullanır. Hesap bağlama/ayırma yalnız yönetici içindir; İK rolü tek başına kendisi erişimini değiştiremez. Read committed dışındaki yazma izolasyonu reddedilir; kilit bekleme sınırı 5 saniye. Aynı komut eşzamanlı geldiğinde bir kayıt ve aynı makbuz oluşur.
+
+Bir hesap şirkette yalnız bir çalışanla, çalışan yalnız bir hesapla aktif bağlı olabilir. Üyelik varlığı ve üyelik kaydının kimliği tutulur; silinip yeniden oluşturulmuş üyelik eski bağı canlandırmaz. İç resolver güncel üyelikle eşleşmeyen bağlantıyı döndürmez. Üyelik kaldırmayı bu yeni tablo FK ile engellemez. Resolver istemciye açık değildir; mevcut self erişim akışları henüz bu bağı kullanmaz. Bağlantı oluşturma mevcut üyeliği veya rolü değiştirmez.
+
+src/lib/services/hr-workplace.ts veri sözleşmesi/immutable komut ve makbuz doğrulaması eklendi; TypeScript RPC tipi tanımlandı. Aynı belirsiz komut güvenle tekrar gönderilebilir; başka kayıt/şirket/kişi/komut/revizyon makbuzu başarı sayılmaz. Yeni yönetim ekranı veya okuma listesi eklenmedi; mevcut İK ekranı henüz bu komutlara bağlı değildir.
+
+Doğrulama: 834/834 uygulama testi; TypeScript; yeni gerçek PostgreSQL 6 kontrol grubu; mevcut İK dizin 6 ve organizasyon 7 grubu geçti. Eşzamanlı aynı komut iki bağlantıda test edildi. Kanıt qa/hr-catalog-20261018/workplace-schema-result.json ve workplace-schema.mjs; eski İK sonuçları yeniden ölçüldü. Geçici test DB'leri finally ile kaldırıldı. UI değişmedi; tarayıcı/build veya üretim kontrolü yapılmış sayılmaz.
+
+Paket B'nin organizasyon ve hesap bağı alt paketi tamamlandı. Özel rol depolaması, rol/istisna/atama komutları, revizyon iptali ve SQL yetki değerlendirmesi hâlâ sıradadır; özel rol yönetimi tamamlandı değildir. Ardından Ayarlar/Roller ve erişim, iş yerleri ve çalışan detayı ekranlarına bağlama. Yeni migration üretimde uygulanmadı, HR aktivasyonu açılmadı, gerçek veriye dokunulmadı. Otomatik yayın kapalı geliştirme dalında ilerleniyor.
