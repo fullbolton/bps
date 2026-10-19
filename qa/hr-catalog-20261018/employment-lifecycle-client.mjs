@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {writeFileSync} from 'node:fs';
+import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
+const {parseHrEmployment,prepareHrEmployment,saveHrEmployment}=await importActualTypeScript(new URL('../../src/lib/services/hr-employment.ts',import.meta.url));
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const raw={schemaVersion:1,actorId:id(1),tenantId:id(2),employeeId:id(3),periodId:id(4),startsOn:'2026-01-01',endsOn:null,revision:'9007199254740993',token:'a'.repeat(32),assignments:[],locations:[],reports:[],linkedAccount:false};
+const parse=r=>parseHrEmployment(r,id(1),id(2),id(3));const c=parse(raw);
+for(const patch of [{tenantId:id(9)},{actorId:id(9)},{employeeId:id(9)},{periodId:'bad'},{startsOn:'2026-02-30'},{endsOn:'2025-12-31'},{revision:1},{token:'bad'},{locations:null},{reports:[{id:id(9),endsOn:'bad',revision:'1'}]},{linkedAccount:'false'}])assert.throws(()=>parse({...raw,...patch}));
+const intent=prepareHrEmployment(c,id(5),'end','2026-06-30');assert.ok(Object.isFrozen(intent));assert.equal(intent.p_token,raw.token);
+assert.throws(()=>prepareHrEmployment(c,id(5),'end','2026-02-30'));assert.throws(()=>prepareHrEmployment(c,id(5),'rehire','2026-07-01'));
+const closed=parse({...raw,endsOn:'2026-06-30'});assert.throws(()=>prepareHrEmployment(closed,id(5),'rehire','2026-06-30'));prepareHrEmployment(closed,id(5),'rehire','2026-07-01');
+const receipt={schemaVersion:1,actorId:id(1),tenantId:id(2),employeeId:id(3),periodId:id(4),commandId:id(5),kind:'end',date:'2026-06-30',before:raw};
+const client=data=>({rpc:()=>({abortSignal:async()=>({data,error:null})})});await saveHrEmployment(client(receipt),intent);
+for(const patch of [{commandId:id(9)},{kind:'rehire'},{date:'2026-07-01'},{periodId:id(9)},{before:{...raw,token:'b'.repeat(32)}}])await assert.rejects(()=>saveHrEmployment(client({...receipt,...patch}),intent));
+writeFileSync(new URL('./employment-lifecycle-client-result.json',import.meta.url),JSON.stringify({passed:3,actualSource:true,checks:['Strict context identity, real calendar dates and nested shapes','Immutable intent and lifecycle date boundaries','Receipt bound to command, date, period and review token']},null,2)+'\n');console.log('PASS 3 employment client groups');

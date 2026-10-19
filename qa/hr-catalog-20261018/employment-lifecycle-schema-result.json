@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "Invalid dates rejected; audit failure rolls back employment and both assignments",
+    "End closes both assignments atomically; retry does not duplicate; changed command and stale review rejected",
+    "Rehire preserves old period, rejects overlap, creates one empty new period without copying assignments",
+    "Active account link blocks termination and link changes invalidate review",
+    "Manager reports and future workplace assignment prevent history-breaking termination",
+    "Cross-company, non-manager, anonymous and closed-module replay denied"
+  ],
+  "passed": 6,
+  "syntheticOnly": true
+}

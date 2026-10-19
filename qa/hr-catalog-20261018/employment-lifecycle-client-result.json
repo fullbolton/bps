@@ -1,0 +1,9 @@
+{
+  "passed": 3,
+  "actualSource": true,
+  "checks": [
+    "Strict context identity, real calendar dates and nested shapes",
+    "Immutable intent and lifecycle date boundaries",
+    "Receipt bound to command, date, period and review token"
+  ]
+}
