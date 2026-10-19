@@ -11,7 +11,7 @@ Geçici bps_release_guard şeması yok, bps_release_write_guard sayısı 0. Bu �
 1. 20261019000100 geçmiş sürümü kolonları ve v2 okuyucusunu ekler. Eski katalog değişmeden uyumlu uygulama köprüsü hazırlanabilecek ayrım noktası budur.
 2. 20261019000200 mevcut şirketleri katalog 2'ye geçirir, revizyon artırır ve catalog_upgrade audit kaydı oluşturur. HR kapalı eklenir; ancak bu migration sadece boş tablo kurulumu değildir.
 3. Eski geçmiş parser'ı yeni olay/katalog biçimini kabul etmez. legacy-history.mjs üç karakterizasyonu geçti. Bu nedenle 002 sonrası eski canlı uygulamaya körlemesine alias dönüşü güvenli geri dönüş değildir.
-4. Önerilen sıra: önce 001 + hem eski hem yeni geçmişi okuyabilen, HR preview kapalı uyumluluk uygulaması ayrı aday olarak doğrulanır. Bu uyumlu dağıtım geri dönüş hedefi olarak saklanır. Sonra kalan SQL ve yeni uygulama kontrollü uygulanır. Bu uyumluluk dağıtımı henüz hazırlanıp yayımlanmadı.
+4. Önerilen sıra: önce 001 + hem eski hem yeni geçmişi okuyabilen, HR preview kapalı uyumluluk uygulaması ayrı aday olarak doğrulanır. Bu uyumlu dağıtım geri dönüş hedefi olarak saklanır. Sonra kalan SQL ve yeni uygulama kontrollü uygulanır. Uyumluluk kaynak adayı bridge/ altında hazırlandı ve iki SQL aşamasında test edildi; tarayıcı kabulü ve yayın henüz yapılmadı.
 5. Sonraki uygulama sorunu durumunda SQL tablolarını/audit kayıtlarını silerek geri dönülmez. Uyumlu uygulama hedefi kullanılır; DB ileri düzeltme ile onarılır. Şirket scoped aktivasyonu ayrı kabul ve karardır; gerçekleştiyse legacy'ye otomatik dönüş yapılmaz.
 
 ## Kilit ve başarısızlık yönetimi
@@ -25,4 +25,4 @@ Geçici bps_release_guard şeması yok, bps_release_write_guard sayısı 0. Bu �
 - Eski geçmiş okuyucusunun uyumsuzluk karakterizasyonu: 3 test geçti.
 - Üretim yazımı/deploy/şirket aktivasyonu yok.
 
-Kalan: uyumluluk uygulaması adayını hazırlama ve tarayıcı kabulü; üretim yük/kilit ölçümü; kontrollü yayın ve canlı smoke. Public dışı şemaların tam karşılaştırması ve gerçek veri klonlaması bu provanın kapsamı değildir.
+Kalan: hazırlanan uyumluluk adayının tarayıcı kabulü; üretim yük/kilit ölçümü; kontrollü yayın ve canlı smoke. Public dışı şemaların tam karşılaştırması ve gerçek veri klonlaması bu provanın kapsamı değildir.

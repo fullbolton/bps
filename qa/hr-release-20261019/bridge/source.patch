@@ -1,0 +1,177 @@
+--- a/src/lib/modules/change-history.ts
++++ b/src/lib/modules/change-history.ts
+@@ -1,8 +1,9 @@
+ import { MODULE_CATALOG, parseModuleStates, type ModuleKey } from './catalog';
+ import { isRevision, parseWorkspaceModuleContext, type WorkspaceModuleContext } from './context';
++import { compareCatalogSnapshots, parseCatalogSnapshot } from './catalog-snapshot';
+ export type ModuleHistoryEntry = {
+-  revision: string; createdAt: string; actorName: string | null; kind: 'bootstrap' | 'settings';
+-  changes: { key: ModuleKey; enabled: boolean }[];
++  revision: string; createdAt: string; actorName: string | null; kind: 'bootstrap' | 'settings' | 'catalog_upgrade';
++  changes: { key: ModuleKey | 'hr'; enabled: boolean }[];
+ };
+ /** Bounded newest-first history; malformed or partial audit data is never shown as complete. */
+ export function parseModuleHistory(raw: unknown, expected: WorkspaceModuleContext): ModuleHistoryEntry[] {
+@@ -19,7 +20,8 @@
+       || typeof row.createdAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(row.createdAt) || !Number.isFinite(Date.parse(row.createdAt))) throw Error('MODULE_HISTORY_ENTRY');
+     const bootstrap = row.revision === '1';
+     if (row.kind !== (bootstrap ? 'bootstrap' : 'settings') || (bootstrap ? row.actorName !== null : typeof row.actorName !== 'string' || !row.actorName.trim())) throw Error('MODULE_HISTORY_ENTRY');
+-    const after = parseModuleStates(row.after);
++    const afterSnapshot = parseCatalogSnapshot(1, row.after);
++    const after = afterSnapshot.modules;
+     if (MODULE_CATALOG.some(m=>after[m.key]!==expectedState[m.key])) throw Error('MODULE_HISTORY_CHAIN');
+     let changes: ModuleHistoryEntry['changes'];
+     if (bootstrap) {
+@@ -28,9 +30,48 @@
+     } else {
+       const before = parseModuleStates(row.before);
+       expectedState = before;
+-      changes = MODULE_CATALOG.filter(m=>before[m.key]!==after[m.key]).map(m=>({key:m.key,enabled:after[m.key]}));
++      changes = compareCatalogSnapshots({ version: 1, modules: before }, afterSnapshot).changes.map(change => ({ key: change.key as ModuleKey, enabled: change.enabled }));
+       if (!changes.length) throw Error('MODULE_HISTORY_ENTRY');
+     }
+     return { revision:row.revision,createdAt:row.createdAt,actorName:row.actorName as string|null,kind:row.kind as ModuleHistoryEntry['kind'],changes };
+   });
+ }
++
++/** Mixed catalog history preserves every revision, including the migration event. */
++export function parseVersionedModuleHistory(raw: unknown, expected: WorkspaceModuleContext): ModuleHistoryEntry[] {
++  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw Error('MODULE_HISTORY_RESPONSE');
++  const data = raw as Record<string, unknown>;
++  if (!data.context || typeof data.context !== 'object' || Array.isArray(data.context)) throw Error('MODULE_HISTORY_SCOPE');
++  const wire = data.context as Record<string, unknown>;
++  // Validate identity before interpreting a newer catalog. For known v2, scope
++  // validation uses its explicit v1 projection; audit snapshots remain complete.
++  const projected = wire.catalogVersion === 2 && wire.modules && typeof wire.modules === 'object'
++    ? Object.fromEntries(Object.entries(wire.modules).filter(([key]) => key !== 'hr')) : wire.modules;
++  const context = parseWorkspaceModuleContext(wire.catalogVersion === 2 ? { ...wire, catalogVersion: 1, modules: projected } : wire, expected);
++  if (context.role !== 'yonetici' || expected.role !== 'yonetici' || context.configRevision !== expected.configRevision
++    || MODULE_CATALOG.some(m => context.modules[m.key] !== expected.modules[m.key])) throw Error('MODULE_HISTORY_SCOPE');
++  if (data.historySchemaVersion !== 2 || !Array.isArray(data.entries)) throw Error('MODULE_HISTORY_VERSION');
++  if (data.entries.length !== Math.min(Number(BigInt(context.configRevision)),20)) throw Error('MODULE_HISTORY_SCOPE');
++  let expectedSnapshot = parseCatalogSnapshot(wire.catalogVersion, wire.modules);
++  return data.entries.map((value: unknown,index: number) => {
++    if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('MODULE_HISTORY_ENTRY');
++    const row = value as Record<string,unknown>;
++    if (!isRevision(row.revision) || BigInt(row.revision) !== BigInt(context.configRevision)-BigInt(index)
++      || typeof row.createdAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(row.createdAt)
++      || !Number.isFinite(Date.parse(row.createdAt))) throw Error('MODULE_HISTORY_ENTRY');
++    const after = parseCatalogSnapshot(row.afterCatalogVersion,row.after);
++    if (after.version !== expectedSnapshot.version || compareCatalogSnapshots(after,expectedSnapshot).changes.length) throw Error('MODULE_HISTORY_CHAIN');
++    if (row.revision === '1') {
++      if (row.kind !== 'bootstrap' || row.actorName !== null || row.beforeCatalogVersion !== row.afterCatalogVersion
++        || !row.before || typeof row.before !== 'object' || Array.isArray(row.before) || Object.keys(row.before).length) throw Error('MODULE_HISTORY_ENTRY');
++      return {revision:row.revision,createdAt:row.createdAt,actorName:null,kind:'bootstrap',changes:[]};
++    }
++    const before = parseCatalogSnapshot(row.beforeCatalogVersion,row.before);
++    const delta = compareCatalogSnapshots(before,after);
++    if (delta.upgraded ? row.kind !== 'catalog_upgrade' || row.actorName !== null
++      : row.kind !== 'settings' || typeof row.actorName !== 'string' || !row.actorName.trim() || !delta.changes.length) throw Error('MODULE_HISTORY_ENTRY');
++    expectedSnapshot = before;
++    return {revision:row.revision,createdAt:row.createdAt,actorName:row.actorName as string|null,
++      kind:delta.upgraded?'catalog_upgrade':'settings',changes:delta.changes.map(change=>({...change}))};
++  });
++}
+--- /dev/null
++++ b/src/lib/modules/catalog-snapshot.ts
+@@ -0,0 +1,60 @@
++import { MODULE_CATALOG, parseModuleStates, type ModuleStates } from './catalog';
++
++export type CatalogSnapshot =
++  | Readonly<{ version: 1; modules: ModuleStates }>
++  | Readonly<{ version: 2; modules: ModuleStates & Readonly<{ hr: boolean }> }>;
++
++/** Stored snapshot versions are explicit. This does not enable catalog 2 in the UI. */
++export function parseCatalogSnapshot(version: unknown, value: unknown): CatalogSnapshot {
++  if (version === 1) return Object.freeze({ version, modules: parseModuleStates(value) });
++  if (version !== 2) throw Error('MODULE_HISTORY_VERSION');
++  if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('MODULE_CONFIG_RESPONSE');
++  const record = value as Record<string, unknown>;
++  if (Object.keys(record).length !== MODULE_CATALOG.length + 1
++    || !Object.hasOwn(record, 'hr') || typeof record.hr !== 'boolean') throw Error('MODULE_CONFIG_RESPONSE');
++  const { hr, ...legacy } = record;
++  return Object.freeze({ version, modules: Object.freeze({ ...parseModuleStates(legacy), hr }) });
++}
++
++/** The only default is at the explicit 1→2 migration boundary, never on a read. */
++export function upgradeCatalogSnapshot(value: unknown): Extract<CatalogSnapshot, { version: 2 }> {
++  return parseCatalogSnapshot(2, { ...parseModuleStates(value), hr: false }) as Extract<CatalogSnapshot, { version: 2 }>;
++}
++
++/** Old clients may change their known keys, but must preserve the stored HR flag.
++ * Call only after the server's scope, revision and lock checks. This pure merge is
++ * neither an entitlement check nor authorization to persist or activate HR.
++ */
++export function mergeCatalogRequest(current: CatalogSnapshot, clientVersion: unknown, desired: unknown): CatalogSnapshot {
++  const stored = parseCatalogSnapshot(current.version, current.modules);
++  const request = parseCatalogSnapshot(clientVersion, desired);
++  if (stored.version === 1) {
++    if (request.version !== 1) throw Error('MODULE_CATALOG_UPGRADE_REQUIRED');
++    return request;
++  }
++  return request.version === 2 ? request : parseCatalogSnapshot(2, { ...request.modules, hr: stored.modules.hr });
++}
++
++export type CatalogDelta = Readonly<{
++  upgraded: boolean;
++  changes: ReadonlyArray<Readonly<{ key: keyof ModuleStates | 'hr'; enabled: boolean }>>;
++}>;
++
++/** An upgrade is an audit event in its own right; never invent a toggle for it. */
++export function compareCatalogSnapshots(before: CatalogSnapshot, after: CatalogSnapshot): CatalogDelta {
++  const left = parseCatalogSnapshot(before.version, before.modules);
++  const right = parseCatalogSnapshot(after.version, after.modules);
++  if (left.version === 2 && right.version === 1) throw Error('MODULE_CATALOG_DOWNGRADE');
++  const upgraded = left.version === 1 && right.version === 2;
++  if (upgraded && right.version === 2 && right.modules.hr) throw Error('MODULE_CATALOG_UPGRADE_HR_ENABLED');
++  const changes: { key: keyof ModuleStates | 'hr'; enabled: boolean }[] = MODULE_CATALOG
++    .filter(module => left.modules[module.key] !== right.modules[module.key])
++    .map(module => ({ key: module.key, enabled: right.modules[module.key] }));
++  // Migration must preserve existing settings, and activation must be a later,
++  // separately authorized event so its actor and entitlement can be audited.
++  if (upgraded && changes.length) throw Error('MODULE_CATALOG_UPGRADE_CHANGED_STATE');
++  if (left.version === 2 && right.version === 2 && left.modules.hr !== right.modules.hr) {
++    changes.push({ key: 'hr', enabled: right.modules.hr });
++  }
++  return Object.freeze({ upgraded, changes: Object.freeze(changes.map(change => Object.freeze(change))) });
++}
+--- a/src/lib/services/workspace-modules.ts
++++ b/src/lib/services/workspace-modules.ts
+@@ -1,4 +1,4 @@
+-import {parseModuleHistory} from '@/lib/modules/change-history';
++import {parseVersionedModuleHistory} from '@/lib/modules/change-history';
+ import { parseRequestedModules, parseModuleChangePreview } from '@/lib/modules/change-preview';
+ import type { SupabaseClient } from '@supabase/supabase-js';
+ import type { WorkspaceScope } from '@/lib/workspace-context';
+@@ -37,7 +37,7 @@
+ }
+ 
+ export async function loadModuleHistory(client: SupabaseClient<Database>, expected: import('@/lib/modules/context').WorkspaceModuleContext) {
+-  const {data,error}=await client.rpc('workspace_module_history_v1',{p_actor:expected.actorId,p_tenant:expected.tenantId}).abortSignal(AbortSignal.timeout(12_000));
++  const {data,error}=await client.rpc('workspace_module_history_v2',{p_actor:expected.actorId,p_tenant:expected.tenantId}).abortSignal(AbortSignal.timeout(12_000));
+   if(error) throw error;
+-  return parseModuleHistory(data,expected);
++  return parseVersionedModuleHistory(data,expected);
+ }
+--- a/src/types/database.types.ts
++++ b/src/types/database.types.ts
+@@ -1375,6 +1375,7 @@
+         Returns: TaskRow[];
+       };
+       workspace_module_history_v1: { Args: { p_actor: string; p_tenant: string }; Returns: Json };
++      workspace_module_history_v2: { Args: { p_actor: string; p_tenant: string }; Returns: Json };
+       change_workspace_modules_v1: {
+         Args: {p_actor:string;p_tenant:string;p_membership_version:string;p_selection_version:string|null;p_revision:string;p_command:string;p_modules:Json};
+         Returns: Json;
+--- a/src/app/(main)/ayarlar/ModuleChangeHistory.tsx
++++ b/src/app/(main)/ayarlar/ModuleChangeHistory.tsx
+@@ -20,7 +20,8 @@
+    {resource.data&&<ol className="divide-y divide-slate-100">{resource.data.map(entry=><li key={entry.revision} className="py-3">
+     <p className="text-sm font-medium text-slate-900">{entry.kind==='bootstrap'?'Çalışma alanı oluşturuldu':entry.actorName}</p>
+     <time dateTime={entry.createdAt} className="text-xs text-slate-500">{new Intl.DateTimeFormat('tr-TR',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Istanbul'}).format(new Date(entry.createdAt))}</time>
+-    {entry.kind==='settings'&&<ul className="mt-2 space-y-1 text-sm text-slate-700">{entry.changes.map(change=><li key={change.key}>{MODULE_CATALOG.find(m=>m.key===change.key)!.name}: {change.enabled?'Açıldı':'Kapatıldı'}</li>)}</ul>}
++    {entry.kind==='catalog_upgrade'&&<p className="mt-2 text-sm text-slate-600">İnsan Kaynakları seçeneği bu kayıtta kapalı olarak eklendi.</p>}
++    {entry.kind==='settings'&&<ul className="mt-2 space-y-1 text-sm text-slate-700">{entry.changes.map(change=><li key={change.key}>{change.key==='hr'?'İnsan Kaynakları':MODULE_CATALOG.find(m=>m.key===change.key)!.name}: {change.enabled?'Açıldı':'Kapatıldı'}</li>)}</ul>}
+    </li>)}</ol>}
+   </div>}
+  </section>;

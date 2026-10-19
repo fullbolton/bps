@@ -1,0 +1,28 @@
+{
+  "base": "6300bee0f0b52f4f63c95f7691e0d5c8f5b6c374",
+  "path": "/var/folders/fg/qm_gg6w16299dhr_lz9xr38r0000gn/T/bps-history-bridge-319qi3q9",
+  "files": [
+    {
+      "path": "src/lib/modules/change-history.ts",
+      "sha256": "00b59b029bbd69366b01e431a5b8ca22ad50019e644795fb20c2b3c4185ed4ff"
+    },
+    {
+      "path": "src/lib/modules/catalog-snapshot.ts",
+      "sha256": "2ae0a0ae026ad31774cab2ec8ca93d42aa56e9836526013513b52e51ddf24151"
+    },
+    {
+      "path": "src/lib/services/workspace-modules.ts",
+      "sha256": "5780effd2c794bb11a6ab9b8df254090dd53d1b2c3001ae8441c28812b52c03e"
+    },
+    {
+      "path": "src/types/database.types.ts",
+      "sha256": "9118d2393d4a90c820eb145a819b6b1c467a88728dc7ebb0d25e64d36e494ed1"
+    },
+    {
+      "path": "src/app/(main)/ayarlar/ModuleChangeHistory.tsx",
+      "sha256": "7889924e0ea6c48944aa73dd3d2b0ceedf5380bd04f2e906ac33e170df33bd9d"
+    }
+  ],
+  "requiresMigration": "20261019000100_module_history_catalog_versions.sql",
+  "deployed": false
+}

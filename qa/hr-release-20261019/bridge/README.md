@@ -1,0 +1,21 @@
+# Geçmiş uyumluluk adayı
+
+Temel: canlı yayın kaydındaki 6300bee0f0b52f4f63c95f7691e0d5c8f5b6c374. Sadece beş dosya değişir; candidate.json her dosyanın SHA-256 değerini taşır. source.patch tam değişikliği saklar. Yeni İK ekranı, hak tahsis servisi veya özel rol ekranı dahil değildir.
+
+## Yeniden hazırlama
+
+Aktif repo kökünde `python3 qa/hr-release-20261019/bridge/prepare.py` çalıştırılır. Git archive temiz geçici dizine açılır; .env veya yerel gizli dosyalar kopyalanmaz. node_modules yalnız yerel derleme için mevcut bağımlılıklara bağlanır. Yeni aday yolu candidate.json içine yazılır.
+
+`node qa/hr-release-20261019/bridge/verify.mjs` adayın gerçek TypeScript geçmiş okuyucusunu yerel PostgreSQL senaryolarında çalıştırır. Geçici veritabanları ve geçici test betikleri kapanışta kaldırılır.
+
+## Kabul ve sıra
+
+1. Ön koşul: 20261019000100 SQL uygulanmış olmalı. Aday v2 okuyucusunu kullanır; mevcut 190 migration üzerinde okuyucu yoktur. Hata halinde v1'e sessiz dönüş yapmaz.
+2. SQL 001 sonrası katalog hâlâ 1 iken 5 grup geçti: mevcut yanıt/makbuz korunması, sürümlü geçmiş okuması, tenant/rol sınırları ve bootstrap dahil.
+3. SQL 002 sonrası 6 grup geçti: tüm geçmiş revizyonlarının korunması, catalog_upgrade olayının okunması, eski yazma komutu ve makbuz tekrarı dahil.
+4. İzole aday TypeScript kontrolü geçti. Üretim derleme sonucu build-result.json içindedir.
+5. Gerçek tarayıcıda adayın ayarlar/geçmiş ekranı henüz sınanmadı. Bu sonuç yayın onayı veya canlı smoke değildir.
+
+## Geri dönüş
+
+Bu aday, SQL 002 sonrası kullanılabilecek sınırlı uyumlu uygulama hedefidir; deploy kimliği henüz yoktur. HR aktivasyonu sonrası tam İK geri dönüşü sağlamaz. Üretimde SQL 001 öncesi mevcut uygulama kullanılmaya devam eder; 001 sonrası aday yayımlanıp tarayıcı kabulü bitmeden SQL 002+ başlatılmaz. Audit geçmişi silinmez, revizyonlar geri alınmaz.

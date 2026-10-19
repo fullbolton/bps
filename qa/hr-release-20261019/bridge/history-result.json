@@ -1,0 +1,18 @@
+{
+  "baseSource": "749b1088a6a27e26a6c15ee5c4d45ac2c487d7ce",
+  "measuredAt": "2026-10-19T17:16:44.661Z",
+  "migration": "20261019000100_module_history_catalog_versions.sql",
+  "checks": [
+    "Existing v1 response, states, revisions, command receipts and hashes unchanged",
+    "v2 reader returns complete versioned history accepted by actual application parser",
+    "Cross-tenant and non-manager access denied; anonymous execute and direct writes remain denied",
+    "Unknown snapshot catalog versions cannot be stored before the next reviewed migration",
+    "Existing bootstrap writer supplies valid version metadata through defaults"
+  ],
+  "limits": [
+    "Synthetic local PostgreSQL clone, not production preflight",
+    "Catalog remains v1; no HR activation or v2 write command",
+    "New reader not yet connected to UI; no HTTP/browser acceptance"
+  ],
+  "deployed": false
+}
