@@ -25,7 +25,7 @@ export default function ModuleChangeHistory({context}:{context:WorkspaceModuleCo
    {resource.error&&<p role="alert" className="text-sm text-red-700">Geçmiş doğrulanamadı. Tekrar deneyin; şirket ayarları değiştiyse üstteki Durumu yenile düğmesini kullanın.</p>}
    {resource.data?.updateRequired&&<div role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
     <p>Modül ayarlarının sürümü değişti. Geçmişi eksiksiz görmek için sayfayı yenileyin. Yenilemeden önce açık formlarınızdaki değişiklikleri kaydedin.</p>
-    <button type="button" onClick={()=>window.location.reload()} className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3 font-medium">Sayfayı yenile</button>
+    <button type="button" onClick={()=>window.location.replace("/ayarlar?bolum=moduller")} className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3 font-medium">Sayfayı yenile</button>
    </div>}
    {resource.data&&!resource.data.updateRequired&&<ol className="divide-y divide-slate-100">{resource.data.entries.map(entry=><li key={entry.revision} className="py-3">
     <p className="text-sm font-medium text-slate-900">{entry.kind==='bootstrap'?'Çalışma alanı oluşturuldu':entry.actorName}</p>

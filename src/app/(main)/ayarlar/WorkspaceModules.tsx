@@ -44,7 +44,7 @@ export default function WorkspaceModules({changesEnabled = false}: {changesEnabl
     {resource.error && <p role="alert" className="text-sm text-red-700">Modül bilgileri alınamadı. Durumu yenileyerek tekrar deneyin.</p>}
     {resource.data?.updateRequired&&<div role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
       <p>Modül ayarlarının sürümü değişti. Güncel ayarları görmek için sayfayı yenileyin. Önce açık formlarınızdaki değişiklikleri kaydedin.</p>
-      <button type="button" onClick={()=>window.location.reload()} className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3 font-medium">Sayfayı yenile</button>
+      <button type="button" onClick={()=>window.location.replace("/ayarlar?bolum=moduller")} className="mt-2 min-h-11 rounded-lg border border-amber-300 px-3 font-medium">Sayfayı yenile</button>
     </div>}
     {data && <>
       <p className="text-sm font-medium text-slate-800">{data.name}</p>

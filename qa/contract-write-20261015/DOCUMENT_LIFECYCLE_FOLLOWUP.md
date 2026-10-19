@@ -1241,3 +1241,12 @@ Bu tur yalnız plan/ilerleme kayıtları; kaynak kodu, migration, müşteri veri
 ## 19 Ekim — Zeops ürün aileleri ve menü kapsamı onaylandı
 
 Kullanıcının talebiyle ana plana ürün ailesi/menü/kapsam/teslim sırası matrisi eklendi. İK, self servis, izin/onay, idari işler/satın alma, zimmet, masraf/avans, formlar, işe alım, toplu işlemler, raporlar, bilgi bankası/anket ve sonraki eğitim başlıkları kayıtlı. Menü grubu satılan modülle aynı olmak zorunda değil; hak+etkinlik+yetki ile görünür. Kişisel performans ve süreye bağlı eskalasyon kapsam dışı kalır. Bordro motoru, konum takibi, ödeme ve zaman damgası sağlayıcısı ayrıca karar gerektirir. Bu tur plan güncellendi; uygulama ve yayın yapılmadı.
+
+
+## 19 Ekim — H0c geçmiş bağlantısı gerçek tarayıcı kabulü
+
+Sentetik yerel Next/GoTrue/PostgREST üzerinde giriş→Ayarlar→Modüller→Değişiklik geçmişi zinciri tamamlandı. Gerçek v2 geçmiş RPC'si kurulum kaydını gösterdi. Yalnız geçici bps_storage_http_<PID> DB'de history RPC yanıtının context.catalogVersion değeri 2 yapıldığında açık panel güncelleme mesajı gösterdi ve time satırı sayısı 0 oldu. Normal fonksiyon geri yüklendi; kullanıcı yenilemesi sonrası kayıt tekrar göründü. Bu tam katalog v2 geçişi değildir; yanıt uyumluluğu testidir.
+
+Tarayıcıda bulunan UX hatası düzeltildi: Sayfayı yenile eylemi şirket ekibine dönüyordu; geçmiş ve modül panelindeki eylemler artık /ayarlar?bolum=moduller adresine tam yenilemeyle döner. Gerçek tarayıcıda aynı sekme ve bir geçmiş satırı doğrulandı. 16 hedefli test ve tsc geçti. İki callback değişimi için tam suite/build tekrarlanmadı. Kanıt browser-result.json, browser-refresh.png, browser-restored.png; tekrar için browser-response.mjs yalnız allowlist geçici DB adını kabul eder. Test sekmesi kapandı; harness SIGTERM sonrası exit 0 ile kendi kaynaklarını temizledi.
+
+Bu kabul geçmiş bağlantısı ve açık panel yenileme yolunu kapatır. Katalog v2 geçişi, v2 yazma/ön kontrol, ilk sayfa gelecek sürüm tarayıcı kabulü ve yayın ön kontrolü hâlâ açık. Üretim değişmedi, HR açılmadı.

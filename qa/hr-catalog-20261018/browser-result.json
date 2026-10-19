@@ -1,0 +1,23 @@
+{
+  "baseSource": "5c3bbaf",
+  "date": "2026-10-19",
+  "environment": "Disposable Next + GoTrue + PostgREST + PostgreSQL; synthetic user",
+  "checks": [
+    "Actual settings page loaded history v2 bootstrap event",
+    "Future catalog injected only into disposable history RPC response; update warning shown and time rows = 0",
+    "Normal RPC restored; explicit refresh returns to /ayarlar?bolum=moduller and bootstrap event visible again"
+  ],
+  "fix": "History and module panel refresh preserve modules section",
+  "tests": {
+    "targeted": 16,
+    "passed": 16,
+    "typecheck": "passed"
+  },
+  "limits": [
+    "Future catalog is synthetic response, not full catalog migration acceptance",
+    "Initial page future-version and all roles not browser-tested in this package",
+    "Full suite/build not repeated for two navigation callback changes"
+  ],
+  "deployed": false,
+  "cleanup": "Local tab closed; harness exited 0 and cleaned temporary databases/containers"
+}

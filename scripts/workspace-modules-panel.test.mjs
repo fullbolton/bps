@@ -62,7 +62,7 @@ test('new catalog clears editor and asks for full refresh instead of retrying ol
 // These execute the actual callbacks, but do not substitute for browser acceptance.
 test('an open editor is removed when reload discovers a newer catalog; refresh is explicit',async()=>{
  let upgraded=false,reloads=0;
- const x=setup(async()=>{if(upgraded)throw Error('MODULE_CLIENT_UPDATE_REQUIRED');return data('A');},true,{window:{location:{reload(){reloads++;}}}});
+ const x=setup(async()=>{if(upgraded)throw Error('MODULE_CLIENT_UPDATE_REQUIRED');return data('A');},true,{window:{location:{replace(url){assert.equal(url,"/ayarlar?bolum=moduller");reloads++;}}}});
  x.render();await settle();let tree=x.render();
  assert.ok(nodes(tree).some(n=>typeof n.type==='function'&&n.props.context));
  upgraded=true;nodes(tree).find(n=>n.type==='button').props.onClick();
