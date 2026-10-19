@@ -1556,3 +1556,10 @@ qa/hr-release-20261019/rehearse.mjs, tarihsel baseline üstüne 17 bekleyen migr
 Resmi read-only Management API üzerinden güncel üretim ledger ölçüldü: 190 migration tarihsel kayıtla birebir eşleşti. Public fonksiyon hash/ACL/owner, kolon, tablo RLS/ACL ve policy metaverisi alındı; şirket içeriği veya dosyalar indirilmedi. Tarihsel fixture'daki tek fark modül değiştirme fonksiyonunun authenticated EXECUTE izniydi; yalnız disposable DB'de canlıdaki grant eşlendi. Son karşılaştırma eşleşti ve 17 aday migration bu tabanda tekrar geçti. Beklenmedik katalog farkı artık provayı durduruyor.
 
 Kanıtlar qa/hr-release-20261019/live-ledger.json, live-catalog.json, catalog-comparison.json ve result.json. Bu bir tam şema/veri klonu değildir: index/constraint/trigger ve public dışı katalog kapsamı, güncel bariyer, üretim kilit süreleri, uygulama geri dönüşü ve yayın sonrası smoke ayrıca açık. Üretim SQL yazımı/deploy/gerçek şirket İK aktivasyonu yapılmadı. Teknik kabul kapıları kapalı kalır.
+
+
+## 19 Ekim — Genişletilmiş şema ve geri dönüş paketi
+
+Public indeksler/valid-ready, constraint/validated ve trigger/enabled durumları üretimde salt okunur ölçüldü. İndeks/tetikleyici farkı yok; sekiz CHECK yalnız AND parantez gösteriminde farklı. Tam çiftler sabitlendi ve canlı ifadelerin yerel PostgreSQL'de aynı düz gösterime dönüştüğü disposable DB'de doğrulandı. Başka fark provayı durdurur. Geçici yayın guard şeması yok, trigger sayısı 0. 17 sıralı migration, 6 katalog senaryosu ve 3 eski parser uyumsuzluk testi geçti.
+
+Önemli yayın sınırı: 20261019000200 catalog_upgrade geçmişi ürettiğinden eski uygulamaya koşulsuz dönüş güvenli değil. Önce 001 ve iki geçmiş sürümünü okuyan preview-kapalı uyumluluk uygulaması adayının doğrulanması, sonra kalan paket öneriliyor. Bu dağıtım henüz hazırlanmadı. SQL/audit geri silme planlanmıyor. qa/hr-release-20261019/ROLLBACK.md kalan kapıları içerir. Üretim yazımı/deploy/aktivasyon yapılmadı.

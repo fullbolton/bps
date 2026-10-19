@@ -9,7 +9,7 @@ Durum: **yerel sıralı kurulum geçti; üretim yayını yapılmadı.**
 - Bu tarihsel seviyeye sentetik template üzerinden hazırlanmış disposable PostgreSQL üzerinde aşağıdaki 17 migration sırayla geçti. SHA-256 değerleri result.json içinde sabittir.
 - Kurulum sonunda onaylı HR teknik kabul kaydı ve scoped şirket modu yok. Geliştirme dalının otomatik Git yayını kapalı.
 - CLI worktree bağlantısı yerine mevcut Supabase CLI profilinin kimliğiyle resmi read-only Management API kullanıldı. Kimlik bilgileri dosyaya veya çıktıya yazılmadı. Public fonksiyon gövdeleri hash olarak, ACL/owner, kolonlar, tablo RLS/ACL ve politikalar ölçüldü (live-catalog.json). Şirket satırları/dosya içerikleri okunmadı.
-- Tek tarihsel fixture farkı change_workspace_modules_v1 authenticated EXECUTE izniydi. Güncel canlı ACL doğrulandıktan sonra yalnız disposable DB'ye aynı GRANT uygulandı; karşılaştırılan katalog eşleşti. Beklenmedik fark artık provayı durdurur. Constraints/indexes/triggers, public dışı şemalar ve gerçek veri dağılımı bu karşılaştırmaya dahil değildir.
+- Tek tarihsel fixture farkı change_workspace_modules_v1 authenticated EXECUTE izniydi. Güncel canlı ACL doğrulandıktan sonra yalnız disposable DB'ye aynı GRANT uygulandı; karşılaştırılan katalog eşleşti. Beklenmedik fark artık provayı durdurur. İndeks/constraint/trigger kapsamı sonraki kontrolde eklendi: ayrıntılar ROLLBACK.md. Public dışı şemalar ve gerçek veri dağılımı dahil değildir.
 
 ## Aday sırası
 
@@ -53,3 +53,5 @@ Aktivasyon PostgreSQL regresyonu ayrıca tekrar çalıştırıldı: 4 kontrol gr
 Yalnız yerel Docker fixture'ını kullanır; geçici veritabanını finally içinde kaldırır. Üretim bağlantısı, veri yedeği veya deploy yapmaz. Tarihsel baseline değişirse betik ve kanıtlar bilinçli olarak güncellenmelidir.
 
 API referansı: https://supabase.com/docs/reference/api/v1-read-only-query
+
+Son genişletilmiş kontrol: indeks/tetikleyici eşleşmesi, sekiz incelenmiş AND parantez farkı ve geçici yayın bariyerinin yokluğu doğrulandı. Eski uygulamaya doğrudan dönüş kısıtı bulundu; ROLLBACK.md yayın sırasını iki aşamalı uyumluluk geçişi olarak netleştirir.

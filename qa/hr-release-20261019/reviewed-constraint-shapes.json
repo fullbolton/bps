@@ -1,0 +1,98 @@
+[
+  {
+    "kind": "constraints",
+    "key": "reporting_period_events.reporting_period_events_reason_check",
+    "reason": "definition differs",
+    "fields": [
+      {
+        "name": "definition",
+        "live": "CHECK ((((length(btrim(reason)) >= 5) AND (length(btrim(reason)) <= 500)) AND (reason !~ '[[:cntrl:]]'::text)))",
+        "local": "CHECK (((length(btrim(reason)) >= 5) AND (length(btrim(reason)) <= 500) AND (reason !~ '[[:cntrl:]]'::text)))"
+      }
+    ]
+  },
+  {
+    "kind": "constraints",
+    "key": "reporting_periods.reporting_periods_month_check",
+    "reason": "definition differs",
+    "fields": [
+      {
+        "name": "definition",
+        "live": "CHECK ((((month >= '2000-01-01'::date) AND (month <= '2099-12-01'::date)) AND (EXTRACT(day FROM month) = (1)::numeric)))",
+        "local": "CHECK (((month >= '2000-01-01'::date) AND (month <= '2099-12-01'::date) AND (EXTRACT(day FROM month) = (1)::numeric)))"
+      }
+    ]
+  },
+  {
+    "kind": "constraints",
+    "key": "reporting_person_codes.reporting_person_codes_code_check",
+    "reason": "definition differs",
+    "fields": [
+      {
+        "name": "definition",
+        "live": "CHECK ((((length(code) >= 1) AND (length(code) <= 160)) AND (code = btrim(code)) AND (code !~ '[[:cntrl:]]'::text)))",
+        "local": "CHECK (((length(code) >= 1) AND (length(code) <= 160) AND (code = btrim(code)) AND (code !~ '[[:cntrl:]]'::text)))"
+      }
+    ]
+  },
+  {
+    "kind": "constraints",
+    "key": "reporting_projects.reporting_projects_name_check",
+    "reason": "definition differs",
+    "fields": [
+      {
+        "name": "definition",
+        "live": "CHECK ((((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 160)) AND (name !~ '[[:cntrl:]]'::text)))",
+        "local": "CHECK (((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 160) AND (name !~ '[[:cntrl:]]'::text)))"
+      }
+    ]
+  },
+  {
+    "kind": "constraints",
+    "key": "talent_availability.talent_availability_check1",
+    "reason": "definition differs",
+    "fields": [
+      {
+        "name": "definition",
+        "live": "CHECK ((((starts_on >= '2000-01-01'::date) AND (starts_on <= '2100-12-31'::date)) AND (ends_on <= '2100-12-31'::date)))",
+        "local": "CHECK (((starts_on >= '2000-01-01'::date) AND (starts_on <= '2100-12-31'::date) AND (ends_on <= '2100-12-31'::date)))"
+      }
+    ]
+  },
+  {
+    "kind": "constraints",
+    "key": "talent_call_lists.talent_call_lists_name_check",
+    "reason": "definition differs",
+    "fields": [
+      {
+        "name": "definition",
+        "live": "CHECK ((((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 60)) AND (name !~ '[[:cntrl:]]'::text)))",
+        "local": "CHECK (((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 60) AND (name !~ '[[:cntrl:]]'::text)))"
+      }
+    ]
+  },
+  {
+    "kind": "constraints",
+    "key": "talent_shared_views.talent_shared_views_name_check",
+    "reason": "definition differs",
+    "fields": [
+      {
+        "name": "definition",
+        "live": "CHECK ((((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 60)) AND (name !~ '[[:cntrl:]]'::text)))",
+        "local": "CHECK (((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 60) AND (name !~ '[[:cntrl:]]'::text)))"
+      }
+    ]
+  },
+  {
+    "kind": "constraints",
+    "key": "workspace_invitations.workspace_invitations_email_check",
+    "reason": "definition differs",
+    "fields": [
+      {
+        "name": "definition",
+        "live": "CHECK ((((length(email) >= 3) AND (length(email) <= 254)) AND (email = lower(btrim(email)))))",
+        "local": "CHECK (((length(email) >= 3) AND (length(email) <= 254) AND (email = lower(btrim(email)))))"
+      }
+    ]
+  }
+]

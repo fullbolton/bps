@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-18T20:01:25.478Z",
+  "measuredAt": "2026-10-19T17:14:42.634Z",
   "checks": [
     "Raw HR-only history event rejected by exact v1 state parser",
     "Stripping HR produces no-op event, correctly rejected",

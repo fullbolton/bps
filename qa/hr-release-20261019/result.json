@@ -1,6 +1,6 @@
 {
-  "measuredAt": "2026-10-19T12:42:40.736Z",
-  "candidate": "154bd4a86577bf8bba3273f98912e03c92920640",
+  "measuredAt": "2026-10-19T17:14:36.658Z",
+  "candidate": "af0324a4f8f5ef8037a8dba3b60443b2aec3bff4",
   "historicalBaseline": {
     "measuredAt": "2026-10-18T17:24:23.756002+00:00",
     "migrationCount": 190,
@@ -8,7 +8,9 @@
   },
   "currentProductionLedgerVerified": true,
   "productionLedgerMeasuredAt": "2026-10-19T12:41:03.537519+00:00",
-  "catalogDriftCount": 0,
+  "catalogDriftCount": 8,
+  "acceptedParenthesization": 8,
+  "unresolvedCatalogDrift": 0,
   "syntheticOnly": true,
   "migrations": [
     {
@@ -90,7 +92,7 @@
     "Development Git deployment disabled"
   ],
   "limits": [
-    "Synthetic template reconciled against measured public catalog subset; indexes, constraints, triggers, non-public schemas and production data not compared",
+    "Synthetic template reconciled against measured public catalog subset; non-public schemas and production data not compared",
     "No production SQL, deployment, data export or company activation",
     "Application rollback and production lock duration not measured"
   ]

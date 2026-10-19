@@ -1,0 +1,1 @@
+SELECT to_regnamespace('bps_release_guard') IS NOT NULL AS release_guard_schema_present, (SELECT count(*) FROM pg_trigger WHERE tgname='bps_release_write_guard') AS release_guard_triggers

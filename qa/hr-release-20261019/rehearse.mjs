@@ -32,10 +32,26 @@ try {
   const writer = liveCatalog.rows[0].catalog.functions.find(r => r.signature === 'change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb)');
   assert.equal(writer?.acl, '{postgres=X/postgres,authenticated=X/postgres}', 'Production writer ACL changed; review before rehearsal');
   sql('GRANT EXECUTE ON FUNCTION public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb) TO authenticated');
-  const localCatalog = JSON.parse(sql(readFileSync(new URL('./catalog.sql', import.meta.url),'utf8')));
+  let localCatalog = JSON.parse(sql(readFileSync(new URL('./catalog.sql', import.meta.url),'utf8')));
+  // Exact reviewed AND parenthesization differences, not general SQL normalization.
+  // Recreate the measured production expression only in this disposable database.
+  const reviewed = JSON.parse(readFileSync(new URL('./reviewed-constraint-shapes.json', import.meta.url)));
+  for (const item of reviewed) {
+    const [table,name] = item.key.split('.');
+    assert.ok(/^[a-z_]+$/.test(table) && /^[a-z_0-9]+$/.test(name));
+    const local = localCatalog.constraints.find(r => r.table===table && r.name===name);
+    const live = liveCatalog.rows[0].catalog.constraints.find(r => r.table===table && r.name===name);
+    assert.equal(local?.definition,item.fields[0].local,'Reviewed local constraint changed');
+    assert.equal(live?.definition,item.fields[0].live,'Reviewed production constraint changed');
+    sql(`ALTER TABLE public.${table} DROP CONSTRAINT ${name}; ALTER TABLE public.${table} ADD CONSTRAINT ${name} ${live.definition}`);
+  }
+  localCatalog = JSON.parse(sql(readFileSync(new URL('./catalog.sql', import.meta.url),'utf8')));
+  const barrier = JSON.parse(readFileSync(new URL('./live-barrier.json', import.meta.url)));
+  assert.equal(barrier.rows[0].release_guard_schema_present,false);
+  assert.equal(barrier.rows[0].release_guard_triggers,0);
   const drift = [];
   for (const [kind, liveRows] of Object.entries(liveCatalog.rows[0].catalog)) {
-    const key = row => kind === 'functions' ? row.signature : kind === 'columns' ? `${row.table}.${row.column}` : kind === 'policies' ? `${row.table}.${row.name}` : row.table;
+    const key = row => kind === 'functions' ? row.signature : kind === 'columns' ? `${row.table}.${row.column}` : ['policies','indexes','constraints','triggers'].includes(kind) ? `${row.table}.${row.name}` : row.table;
     const local = new Map(localCatalog[kind].map(row => [key(row), row]));
     for (const row of liveRows) {
       const candidate = local.get(key(row));
@@ -44,8 +60,10 @@ try {
     }
     for (const name of local.keys()) drift.push({kind,key:name,reason:'only local'});
   }
-  writeFileSync(new URL('./catalog-comparison.json',import.meta.url),JSON.stringify({measuredAt:new Date().toISOString(),liveMeasuredAt:liveCatalog.measuredAt,drift,matched:drift.length===0},null,2)+'\n');
-  assert.equal(drift.length,0,'Production public catalog differs; reconcile before applying candidate');
+  const accepted = drift.filter(item => reviewed.some(r => JSON.stringify(r) === JSON.stringify(item)));
+  const unresolved = drift.filter(item => !accepted.includes(item));
+  writeFileSync(new URL('./catalog-comparison.json',import.meta.url),JSON.stringify({measuredAt:new Date().toISOString(),liveMeasuredAt:liveCatalog.measuredAt,drift,acceptedParenthesization:accepted.length,unresolved,matched:drift.length===0,compatible:unresolved.length===0},null,2)+'\n');
+  assert.equal(unresolved.length,0,'Production public catalog differs; reconcile before applying candidate');
   const migrations = [];
   for (const name of pending) {
     const body = readFileSync(new URL('supabase/migrations/' + name, root),'utf8');
@@ -59,9 +77,9 @@ try {
   const result = {
     measuredAt:new Date().toISOString(), candidate:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),
     historicalBaseline:{measuredAt:baseline.measuredAt,migrationCount:versions.length,lastVersion:versions.at(-1)},
-    currentProductionLedgerVerified:true,productionLedgerMeasuredAt:liveLedger.measuredAt,catalogDriftCount:drift.length,syntheticOnly:true,migrations,
+    currentProductionLedgerVerified:true,productionLedgerMeasuredAt:liveLedger.measuredAt,catalogDriftCount:drift.length,acceptedParenthesization:accepted.length,unresolvedCatalogDrift:unresolved.length,syntheticOnly:true,migrations,
     checks:['All historical ledger versions present','No duplicate or backdated candidate version','Strict fixture manifest matches candidate','Sequential candidate installation passed','No approved HR release gates','No scoped company activation','Development Git deployment disabled'],
-    limits:['Synthetic template reconciled against measured public catalog subset; indexes, constraints, triggers, non-public schemas and production data not compared','No production SQL, deployment, data export or company activation','Application rollback and production lock duration not measured']
+    limits:['Synthetic template reconciled against measured public catalog subset; non-public schemas and production data not compared','No production SQL, deployment, data export or company activation','Application rollback and production lock duration not measured']
   };
   writeFileSync(new URL('./result.json', import.meta.url),JSON.stringify(result,null,2)+'\n');
   console.log(`PASS: ${migrations.length} sequential migrations; HR activation closed; historical baseline ${versions.length}`);
