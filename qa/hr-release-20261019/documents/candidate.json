@@ -1,0 +1,58 @@
+{
+  "measuredAt": "2026-10-19T18:55:27.535Z",
+  "sourceCommit": "43bb842e360fff02a2d2f25aff9ceb8a9611271a",
+  "historicalBaseline": {
+    "migrationCount": 207,
+    "sourceCommit": "f02edb04433daa85ccb69b64b740c1c1ccc7bce6",
+    "releasedAt": "2026-10-19T17:43:23.435665+00:00"
+  },
+  "appliedFilesUnchanged": true,
+  "expectedFinalCount": 216,
+  "automaticBranchDeployment": false,
+  "migrations": [
+    {
+      "name": "20261019001800_hr_employee_edit.sql",
+      "sha256": "647a0670374c861fc8787f4962782b30768f0ed90d763fbdda01e2f07a7524d4"
+    },
+    {
+      "name": "20261019001900_hr_employment_lifecycle.sql",
+      "sha256": "0aefcfbc06f5e55837c5eeec4ce155528541f217d2c296c99cf7ae6dc2c6ab46"
+    },
+    {
+      "name": "20261019002000_hr_import_preview.sql",
+      "sha256": "cb514effd43d4dfe4bc192421bce051c013078727a9fceb73a69d4ee9af3e830"
+    },
+    {
+      "name": "20261019002100_hr_import_commit.sql",
+      "sha256": "4b6054c6810bbebcf8f310179da827bf13d50e31c937b41e61a5996f00017f1f"
+    },
+    {
+      "name": "20261019002200_hr_private_document_boundary.sql",
+      "sha256": "17e0fed16caf33eaa66120e34490cacb61fc60bb659edef8f1e2b2d0b9763c7f"
+    },
+    {
+      "name": "20261019002300_hr_document_upload_ledger.sql",
+      "sha256": "7c3e8f4d257fa213b3f9460d75e15c8b6830a82af871884868d848db7239ce35"
+    },
+    {
+      "name": "20261019002400_hr_upload_shutdown_guard.sql",
+      "sha256": "5258d809f068937a003415ff92c060cd4468ff6169dcf7b0329617eeacd7bb45"
+    },
+    {
+      "name": "20261019002500_hr_document_verified_finalize.sql",
+      "sha256": "060084be43d67c861c8095c24b7ece45718109aa2f78785b97aca3bc31fd0a04"
+    },
+    {
+      "name": "20261019002600_hr_document_storage_lifecycle.sql",
+      "sha256": "116eb0076c6d3bd19980a9d2f8ef598ce1490b66eac1ee4822e103d0db45b7d9"
+    }
+  ],
+  "currentProductionVerified": false,
+  "releaseApproved": false,
+  "remaining": [
+    "Fresh read-only production ledger/catalog/load and Storage policy comparison",
+    "Guarded atomic migration payload rehearsal against current baseline",
+    "Deployment environment and rollback compatibility validation",
+    "Production smoke with HR preview and activation still disabled"
+  ]
+}

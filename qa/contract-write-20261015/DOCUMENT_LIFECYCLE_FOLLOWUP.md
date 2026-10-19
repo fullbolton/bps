@@ -1754,3 +1754,12 @@ Ayrı sentetik pending rezervasyonda farklı PDF reddedildi; doğru PDF ile mobi
 Bu paket temel yeni yükleme, aynı dosyayla kurtarma ve yetkili indirmeyi uçtan uca bağlar. Üretim yayını yapılmadı; 018–026 migration zinciri ve sunucu env/yayın sırası üretim ön kontrolü gerektiriyor. Geçmiş istihdam dönemi seçimi, malware taraması, daha ayrıntılı belge türü politikaları ve yeni iptal mesaj dalının tarayıcı kabulü bu kanıtın kapsamı değildir. İK modülü üretimde açılmadı.
 
 Son kaynakla sentetik ortam production build de başarıyla tamamlandı.
+
+
+## 19 Ekim — İptal kurtarma kabulü ve 018–026 yayın adayı kontrolü
+
+Gerçek yerel tarayıcıda cleanup_requested=true sentetik bekleyen yükleme aynı PDF ile tekrarlandı. Sunucu kesin iptal yanıtı verdi; yeniden gönderme kapandı, formu kapatma açık kaldı. Bekleyenler panelinden iptal tamamlandı ve liste boşaldı. SQL state=cancelled, cleanup_requested=true, oluşturulan belge=0 doğruladı. Kanıt hr-cancel-browser-result.json ve hr-cancel-browser.png. Önceki kayıttaki iptal mesaj dalı kabul eksiği kapandı. Test sekmesi kapatıldı, geçici Storage/DB servisleri sonlandırıldı; gerçek veri kullanılmadı.
+
+Yeni documents/check-candidate.mjs geçmiş yayın commit'indeki 207 migration dosyasını mevcut kaynakla birebir karşılaştırır, yinelenen/geriye tarihli sürümleri ve 018–026 sırasını kontrol eder. Dokuz adayın SHA-256 özeti candidate.json içinde kayıtlı; beklenen son sayı 216. Geliştirme dalının otomatik yayını kapalı doğrulandı. Kontrol geçti. Bu tarihsel kaynak kontrolüdür: güncel üretim şeması ölçülmedi, yayın onayı veya yayın başarısı değildir.
+
+Sıradaki yayın kapıları: güncel salt okunur üretim ledger/katalog/yük ve Storage politikası karşılaştırması; korumalı atomik kurulum dosyaları ve güncel baseline provası; ortam/geri dönüş uyumluluğu; İK preview ve şirket aktivasyonu kapalı canlı smoke. Yeni modül açılmadı, üretim yayını yapılmadı.

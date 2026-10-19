@@ -1,0 +1,17 @@
+{
+  "syntheticOnly": true,
+  "scenario": "cleanup_requested pending upload recovery",
+  "browser": {
+    "cancelledResponseShown": true,
+    "resubmitDisabled": true,
+    "closeEnabled": true,
+    "cancelFromPendingSucceeded": true,
+    "pendingEmpty": true
+  },
+  "database": {
+    "state": "cancelled",
+    "cleanupRequested": true,
+    "documentsCreated": 0
+  },
+  "productionChanged": false
+}
