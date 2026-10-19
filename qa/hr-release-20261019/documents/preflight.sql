@@ -11,5 +11,5 @@ SELECT jsonb_build_object(
  'storage_policies',(SELECT coalesce(jsonb_agg(p ORDER BY policyname),'[]') FROM pg_policies p WHERE schemaname='storage' AND tablename='objects'),
  'storage_triggers',(SELECT coalesce(jsonb_agg(jsonb_build_object('name',tgname,'definition',pg_get_triggerdef(oid),'enabled',tgenabled) ORDER BY tgname),'[]') FROM pg_trigger WHERE tgrelid='storage.objects'::regclass AND NOT tgisinternal),
  'hr_bucket',(SELECT jsonb_build_object('id',id,'public',public,'file_size_limit',file_size_limit,'allowed_mime_types',allowed_mime_types) FROM storage.buckets WHERE id='hr-private'),
- 'target_sizes',(SELECT jsonb_agg(jsonb_build_object('table',relname,'bytes',pg_total_relation_size(c.oid),'estimated_rows',reltuples) ORDER BY relname) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('hr_employees','hr_employments','tenant_module_settings','tenant_module_entitlements'))
+ 'target_sizes',(SELECT jsonb_agg(jsonb_build_object('table',relname,'bytes',pg_total_relation_size(c.oid),'estimated_rows',reltuples) ORDER BY relname) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('hr_employees','hr_employment_periods','hr_assignments','tenant_module_settings','tenant_module_entitlements'))
 ) AS preflight;

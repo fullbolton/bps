@@ -1,6 +1,6 @@
 # İK 018–026 kurulum paketi
 
-Durum: **Yerel kurulum ve hata sonrası geri alma provası geçti; üretim ölçümü ve yayın yapılmadı.**
+Durum: **Yerel kurulum ve hata sonrası geri alma provası geçti. Güncel üretim metadata karşılaştırması ve eşlenmiş kurulum geçti; yayın yapılmadı.**
 
 ## Kanıt
 
@@ -27,3 +27,9 @@ node qa/hr-release-20261019/documents/test.mjs
 ```
 
 Bu komutlar üretime bağlanmaz. Üretilen SQL dosyaları tek başına yayın yetkisi veya güncel şema uygunluğu kanıtı değildir. İzin/satın alma onay zincirleri bu evrak paketinden sonraki ayrı ürün işleridir.
+
+## Güncel ölçüm — 19 Ekim 22:01 Türkiye
+
+Üretim 207 migration, İK kapalı, hr-private bucket yok; ölçümde bekleyen kilit/diğer aktif transaction yok. Public ve Storage katalog karşılaştırmasında çözülmemiş fark sıfır. Bilinen fixture yetkisi yerelde eşlendi, sekiz kesin CHECK parantez farkı önceki inceleme listesiyle doğrulandı. compare-baseline.mjs eşlenen tabana dokuz migration kurdu; 216 kayda ulaşıldı. Mevcut canlı fonksiyon tanımları ve ACL'leri değişmedi. Eski uygulamanın davranışsal geri dönüş kabulü henüz yapılmadı. Üretim dosya/çalışan içeriği alınmadı; yayın yok.
+
+API yöntemi: [Supabase salt okunur sorgu](https://supabase.com/docs/reference/api/v1-read-only-query). Canlı ölçüm bir anlık kanıttır; yayın anında tazelenmelidir.

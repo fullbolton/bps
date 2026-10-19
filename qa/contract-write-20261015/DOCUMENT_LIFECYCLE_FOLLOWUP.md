@@ -1770,3 +1770,14 @@ Sıradaki yayın kapıları: güncel salt okunur üretim ledger/katalog/yük ve 
 Dokuz migration için tam beklenen ledger denetimi, ledger kilidi, 5 sn lock_timeout ve 60 sn statement_timeout içeren kurulum dosyaları üretildi. Kaynak/kurulum SHA-256 manifesti hazır. Gerçek geçici PostgreSQL'de her dosyada ledger yazımından hemen önce kasıtlı hata verildi: public katalog, Storage politikaları/tetikleyicileri ve hr-private bucket durumu birebir geri döndü. Ardından kurulum geçti, tekrar uygulama reddedildi. Yanlış sırada kurulum da reddedildi. Son sentetik ledger 216, aktivasyon kapalı. İlk test betiğindeki parantez hatası düzeltildikten sonra genişletilmiş son koşu geçti.
 
 Yalnız metadata/toplam okuyan preflight.sql baseline üzerinde doğrulandı; gerçek çalışan/dosya içeriği okumaz. Güncel üretim sorgusu bu tur çalıştırılmadı. Yayın kapıları ve hata halinde durma sırası documents/READINESS.md içinde kayıtlı. Kalan: güncel üretim ledger/public+Storage katalog/yük karşılaştırması, yeni SQL ile uygulama geri dönüş uyumluluğu ve kapalı İK üretim smoke. Üretim değişmedi; otomatik dal yayını kapalı.
+
+
+## 19 Ekim — Güncel üretim karşılaştırması ve eşlenmiş kurulum
+
+Resmi Supabase salt okunur Management API ile üretim metadata'sı yenilendi (19:01 UTC / 22:01 Türkiye). Ledger 207, son sürüm 20261019001700; İK enabled=0, onaylı aktivasyon=0, scoped şirket=0, hr-private bucket yok, yayın bariyeri yok. Ölçüm anında bekleyen kilit ve diğer aktif transaction sayısı sıfır. Bu anlık ölçüm ileride kilit olmayacağını garanti etmez. Çalışan satırları/dosya içerikleri alınmadı, kimlik bilgisi kayda yazılmadı.
+
+Public fonksiyon/hash/ACL, tablo/kolon/indeks/kısıt/tetikleyici/policy ve Storage nesne politikası/tetikleyicisi karşılaştırıldı. Tarihsel fixture'daki bilinen change_workspace_modules_v1 authenticated EXECUTE farkı yalnız disposable DB'de canlıya eşlendi. Önceden tek tek incelenmiş sekiz CHECK parantez farkı dışında çözülmemiş fark sıfır. Yeni farkları genel normalizasyonla gizleyen bir kural eklenmedi.
+
+Bu karşılaştırılmış tabana dokuz hash-doğrulamalı kurulum uygulandı: sentetik ledger 216; aktivasyon kapalı. Mevcut üretim fonksiyonlarının hiçbirinin imzası/gövde hash'i/ACL/owner bilgisi değişmedi. Bu yapısal uyumluluk kanıtıdır; eski uygulamanın davranışsal rollback testi sayılmaz. Geçici DB kaldırıldı. Kanıtlar documents/live-preflight.json, live-catalog.json, baseline-comparison.json ve compared-installation.json.
+
+Ön kontrol sorgusundaki istihdam tablo adı hr_employment_periods olarak düzeltildi ve hr_assignments boyut ölçümüne eklendi; güncel sorgu üretimde tekrar salt okunur çalıştırıldı. Kalan yayın kapısı: aday build/env ve eski uygulama davranışsal uyumluluğu, yayın anında ölçüm tazeleme, kontrollü SQL+uygulama ve canlı smoke. Üretime yazım/yayın yapılmadı.

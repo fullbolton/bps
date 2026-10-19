@@ -1,0 +1,24 @@
+{
+  "measuredAt": "2026-10-19T19:01:42.428Z",
+  "productionMeasuredAt": "2026-10-19T19:01:12.270026+00:00",
+  "syntheticOnly": true,
+  "baselineReconciliations": [
+    "Known authenticated EXECUTE grant on change_workspace_modules_v1",
+    "Eight exact reviewed constraint parenthesization differences"
+  ],
+  "migrations": [
+    "20261019001800",
+    "20261019001900",
+    "20261019002000",
+    "20261019002100",
+    "20261019002200",
+    "20261019002300",
+    "20261019002400",
+    "20261019002500",
+    "20261019002600"
+  ],
+  "finalLedger": 216,
+  "changedExistingFunctions": [],
+  "activationClosed": true,
+  "applicationRollbackBehaviorVerified": false
+}
