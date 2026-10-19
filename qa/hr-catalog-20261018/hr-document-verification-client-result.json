@@ -1,0 +1,13 @@
+{
+  "passed": 5,
+  "actualSource": true,
+  "actualBytes": true,
+  "realStorageHttp": false,
+  "checks": [
+    "Download then attest then finalize",
+    "Size digest and PDF header mismatch fail before attestation",
+    "Scope path and object-version binding before download",
+    "Attestation failure prevents finalize",
+    "Lost finalize response never reported successful"
+  ]
+}

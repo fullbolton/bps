@@ -1715,3 +1715,14 @@ Doğrulama: 8 PostgreSQL yükleme/kapama grubu; 4 gerçek kaynak istemci grubu; 
 Özel evrakın kalan zorunlu sınırı: güvenilir sunucu doğrulamasına bağlı finalize (doğrudan istemci RPC'siyle atlanamayacak), immutable Storage sahipliği, nesneli iptal/temizleme, süreli indirme ve gerçek baytlarla kabul. Bunlar tamamlanmadan yükleme açılmayacak. Üretim yayını yapılmadı; son doğrulanmış canlı 207 migration/İK kapalı. 018–024 ve ekranlar geliştirme dalında kalır.
 
 Son doğrulama: sentetik ortamla production build de başarıyla tamamlandı.
+
+
+## 19 Ekim — İK özel evrakta güvenilir doğrulama ve atomik finalize çekirdeği
+
+025 migration ile doğrulama kaydı ayrı RLS tablosuna alındı. Tarayıcı/anon doğrulama oluşturamaz; yalnız service_role için dar attest RPC yetkisi var, tabloya doğrudan erişim yok. Attest rezervasyon sahibi/şirketi, içerik özeti/boyutu ve Storage nesnesinin kimliği/sürümü/sahibi/PDF MIME metadata'sını eşleştirir. SQL gerçek bayt okumaz; doğrulama kaydı yalnız güvenilir sunucu kodunun bayt kontrolünden sonra üretilecek. Nesne kimliğinde unique indeks hem tekillik hem Storage trigger sorgu maliyetini sınırlar.
+
+Kullanıcı kapsamlı context RPC nesne sürümünü sağlar. Yeni hizmet kullanıcı istemcisiyle gerçek dosyayı indirir; boyut, PDF başlığı ve SHA-256 kontrolünden sonra ayrı doğrulayıcı istemciyle attest, ardından kullanıcı istemcisiyle finalize yapar. PDF başlığı kontrolü zararlı içerik taraması veya tam PDF yapısal doğrulaması değildir. Finalize her seferinde güncel erişimi kontrol eder, aynı nesne/sürüm/doğrulama eşleşmeden belge oluşturmaz. Belge metadata'sı ve published durumu atomiktir; tekrarda tek belge kalır. Doğrulanmış Storage nesnesine UPDATE/DELETE kapalıdır; ayrı temizleme protokolü henüz yoktur.
+
+6 gerçek PostgreSQL kabul grubu geçti: tarayıcı attest reddi, doğrulamasız finalize reddi, yanlış owner/hash/size/version reddi, context sürümü, tek doğrulama ve immutable nesne, metadata hatasında rollback, tek belge/replay ve güncel yetki. Gerçek kaynak hizmetinde 5 grup gerçek sentetik baytlarla geçti: doğru sıra, boyut/hash/PDF başlığı reddi, scope/path/sürüm, attest hatası, finalize yanıt kaybında başarı üretmeme. Önceki 8 yükleme/kapama DB grubu da geçti. TypeScript ve diff temiz; statik 0 hata/1 yeni migration uyarısı.
+
+Bu tur HTTP Storage transferi veya tarayıcı testi yapılmadı. Hizmette kimlik bilgisi oluşturulmadı; yeni public API route veya bucket/policy açılmadı. Kalan: dar sunucu route bağlantısı ve rol anahtarının mevcut statik güvenlik kuralına kontrollü entegrasyonu; immutable upload/read Storage kuralları; nesneli iptal/kurtarma; yetkili indirme; gerçek yerel Storage ve tarayıcı uçtan uca kabul. Üretim değişmedi, son doğrulanmış 207 migration/İK kapalı; 018–025 geliştirme dalında bekler. Kanıt hr-document-finalize-result.json ve hr-document-verification-client-result.json.

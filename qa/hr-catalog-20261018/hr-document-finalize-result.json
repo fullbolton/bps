@@ -1,0 +1,13 @@
+{
+  "passed": 6,
+  "checks": [
+    "Browser cannot attest; finalize requires trusted verification",
+    "Attestation binds exact reserved digest, size, storage version and owner",
+    "Attestation replay is singular and verified object cannot be replaced",
+    "Metadata insertion failure leaves pending reservation unchanged",
+    "Atomic publication and exact retry produce one document; published cancel refused",
+    "Published replay rechecks current authorization"
+  ],
+  "syntheticOnly": true,
+  "actualStorageBytesVerified": false
+}
