@@ -760,5 +760,9 @@
   {
     "file": "scripts/hr-access-activation.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-write-failure.test.mjs",
+    "suite": "application"
   }
 ]

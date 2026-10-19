@@ -1514,3 +1514,18 @@ Doğrulama: 847/847 uygulama testi; son parser sıkılaştırması sonrası ilgi
 Gerçek yerel GoTrue/PostgREST/Next tarayıcı kabulü: teknik kabul yokken engel; yalnız disposable DB'de kabul verilince eksik İK rolü engeli; sentetik rol atandıktan sonra onay; başarılı geçiş ve aktif İK/henüz aktif olmayan finans banner'ı görüldü. Kanıt qa/hr-catalog-20261018/access-activation-browser.png. Test sunucusu/DB kapatıldı; üretim verisine dokunulmadı.
 
 Sınır: HR readiness ve server preview bayrakları korunur; teknik kabul kapısı varsayılan kapalıdır. Hiçbir gerçek şirkette aktivasyon, production migration veya deploy yapılmadı. Bu tur mobil, tarayıcı ağ hata enjeksiyonu ve tam kayıt bazlı erişim karşılaştırması yapılmadı. Sonraki kapanış paketi: mobil/klavye ve yetki değişimi sırasında açık form kabulü; sınırlı HR ekran kapsamının ürün kabulü; güncel şema ve migration sırasıyla yayın hazırlığı. HR-1 çalışan düzenleme, ileri tarihli atama, yeniden işe alma ve özel evrak/Excel işleri ayrıca açık; izin/satın alma onay zinciri bu erişim rolünden ayrı planlanır.
+
+
+## 19 Ekim — Mobil İK listesi ve açık formda yetki değişimi
+
+Mobil Çalışanlar listesi 768 piksel altında kartlara ayrıldı; masaüstü tablosu korundu. Ad/kod/işe giriş/ayrılış/departman/pozisyon ve transfer eylemi kartta yer alır. Form düğmeleri satıra sığmadığında alta geçer, kapsam seçicilerinin genişliği sınırlandı.
+
+hr-write-failure.ts: yalnız açıkça tanınan PostgreSQL P0001 rollback yanıtları kesin ret sayılır. Ağ hatası, bozuk makbuz ve bilinmeyen yanıt belirsiz kalır. Daha önce belirsiz sonuç alınmışsa sonraki ret ilk isteğin kaydedilmediğini kanıtlamaz; aynı komut kimliği korunur. ScopedEmployeeForm kesin rette ad/kod/tarih/pozisyonu silmeden güncel seçenekleri getirir; artık yetkili olmayan eşleşmeyi kaldırır, yazma yetkisi yoksa Kaydet kapalı kalır. Yeniden denetleme açık taslak üzerinde mümkündür. LocationTransfer kesin rette güncel atama/izinli hedefleri yeniden getirir; belirsiz sonucu yeni komuta çevirmez.
+
+Yerel 390×844 tarayıcı kabulü: form açıkken politika revizyonu değiştirildi; eski kayıt reddedildi, alanlar korundu, yeniden kontrol sonrası tam bir kayıt oluşturuldu. İkinci taslakta oluşturma yetkisi kaldırıldı; kayıt reddedildi, seçenek yenileme boş döndü ve Kaydet kapalı kaldı. SQL sayımı QA-MOBILE=1; QA-DENIED yok. Mobil DOM viewport=390/scrollWidth=390; yatay taşma yok. Kanıtlar mobile-draft-recovery.png ve mobile-revoked-draft.png. Yerel test sunucusu/DB kapatıldı; geçici viewport sıfırlandı.
+
+849/849 uygulama testi geçti; bunlara kesin ret/belirsizlik ve belirsiz ilk istek sonrası yetki reddinde aynı komutu koruma testleri dahildir. Son metin ve boş seçenek yenileme düzenlemesi tarayıcıda doğrulandı. Bu tur yeni migration yok. Transferin yeni kesin ret arayüzü ayrı tarayıcı senaryosuyla test edilmedi; ortak sınıflandırıcı test edildi. Mobil test gerçek telefon/Safari veya tüm ekranlar için kabul değildir. Gerçek ağ kesilmesi/yanıt kaybı tarayıcı enjeksiyonu, tam klavye kabulü ve üretim şema ölçümü yapılmadı.
+
+Yayın kapıları: canlı sürüm/ledger yeniden ölçülmeli; seçilen adayın tüm bekleyen migration'ları canlı şema üzerine sıralı prova edilmeli; HR teknik kabul ve preview/readiness kapıları açıkça değerlendirilmeden hiçbir şirket modu açılmamalı. Eski yayın hazırlığı belgelerindeki sayılar güncel canlı ölçüm yerine kullanılmaz. Üretim deploy/şirket aktivasyonu yapılmadı. Sonraki blok gerçek belirsiz yanıt/kurtarma kabulü ve transfer/aktivasyon ekranlarının mobil-klavye kapanışıdır; bütün HR-1 tamamlanmış değildir.
+
+Son kontrol: sentetik localhost public değerleriyle production build ve TypeScript geçti.
