@@ -1,9 +1,10 @@
 {
-  "passed": 7,
+  "passed": 8,
   "checks": [
     "Browser cannot attest; finalize requires trusted verification",
     "Attestation binds exact reserved digest, size, storage version and owner",
     "Attestation replay is singular and verified object cannot be replaced",
+    "Trusted reporting rejects browser, wrong binding, invalid types, stale/incomplete scans; exact retry singular; old/conflicting results and infected downgrade refused; cleanup blocks reporting",
     "Missing/infected/stale/wrong-object/wrong-tenant/partial/encrypted/outdated-signature scans block publication; pending bytes hidden; scanner table private",
     "Metadata insertion failure leaves pending reservation unchanged",
     "Atomic publication and exact retry produce one document; published cancel refused",

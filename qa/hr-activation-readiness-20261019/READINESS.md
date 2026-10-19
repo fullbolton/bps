@@ -110,3 +110,14 @@ workers/hr-malware/clamd.mjs özel Unix soketinden INSTREAM protokolüyle en ço
 Karar: bu katmanın clean sonucu tek başına yayına izin değildir. İmza güncelliği, motor yapılandırması (şifreli/limit nedeniyle atlanan içerik), nesne sürümü ve sahiplik ayrıca güvenilir işçide doğrulanmalı. Gerçek motor henüz kurulmadı; yedi test gerçek Unix soketi üstündeki sahte daemon ile protokol kabulüdür, antivirüs tespit başarısı değildir. Kaynak: https://docs.clamav.net/manual/Usage/ClamdProtocol.html.
 
 Doğrulama: 7 bağlantı testi, 867 uygulama testi ve TypeScript geçti. İlk genel test denemesi yeni iki test dosyası envantere eklenmediği için durdu; sınıflandırma tamamlandıktan sonra tüm 867 test geçti. Üretim yayını yapılmadı. Sıradaki kapanış işi: dar yetkili işçi okuma/raporlama akışı, gerçek motor ve uçtan uca karantina kabulü.
+
+
+## 20 Ekim — güvenilir tarama sonucu kayıt sınırı
+
+qa/hr-quarantine-20261020/worker-report.sql adayına hr_malware_report_v1 eklendi. Yalnız service_role ve uygun JWT rolü çağırabilir; normal kullanıcı/anon doğrudan kayıt yazamaz. Kayıt pending ve temizleme istenmemiş yüklemeye bağlıdır; şirket, yükleme, boyut ve özet eşleşir. Mevcut hr_document_attest_v1 tekrar kullanılarak nesne sahibi, MIME, sürüm ve boyut doğrulanır; dosya değişmezliği korunur. Tarama sonucuyla içerik doğrulaması tek transaction içindedir.
+
+Kararlar: aynı zaman damgasındaki birebir sonuç tek kaydı korur; çelişen tekrar ve daha eski sonuç reddedilir. Infected sonucu sıradan clean/error raporuyla kaldırılamaz; yanlış pozitif için gelecekte ayrı denetimli inceleme gerekir. Hata raporu daha yeni geçerli taramayla yenilenebilir. Yayımlanmış veya temizleme istenmiş yüklemeye yeni rapor yazılmaz. ClamAV işlemine service_role anahtarı verilmeyecek; RPC güvenilir uygulama/işçi koordinatöründe kalacak.
+
+Kanıt: geçici sentetik PostgreSQL'de 8 kabul grubu geçti (result.json). Yeni senaryolar: anon/kullanıcı reddi, eksik service rol iddiası, yanlış şirket/sürüm, tip hataları, eski/kısmi rapor, tek kayıtlı tekrar, çelişen/eski sonuç, infected düşürme, temizleme ve yayın sonrası ret. Ürün TypeScript değişmedi; bu tur genel uygulama testleri tekrar edilmedi.
+
+Sınır: worker-report.sql üretim migration zincirinde değildir. Gerçek ClamAV kurulumu, imza/config doğrulaması, dar kapsamlı dosya okuma ve yükleme API entegrasyonu henüz tamamlanmadı. Bu RPC kendi başına tarama yapmaz ve service_role anahtarını dar yetkili hale getirmez. Mevcut kullanıcı pending readback yolu değiştirilmeden karantina adayı yayımlanamaz. Üretim değişmedi.
