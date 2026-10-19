@@ -313,3 +313,14 @@ Config UUID/digest/HTTPS kök adresi en başta doğrulanır. Secret okuyucu O_NO
 Kanıt: 920/920 uygulama testi, 5 yeni lifecycle grubu dahil geçti. Sentetik lifecycle testinde mevcut iş tamamlanıp stopped sağlık yazıldı; hatalı config ve secret hatasında başarı kalmadı. qa/hr-worker-runtime-20261020/startup-accept.mjs gerçek Linux Node konteynerinde gerçek main ve health girişlerini çalıştırdı: root/0600 sentetik key okundu, eksik config main exit 1 verdi, önceki idle health unavailable oldu, health komutu exit 1 verdi. startup-result.json kaydedildi; test volume temizlendi. Bu gerçek daemon ile başarılı sürekli main çalışması veya gerçek SIGTERM entegrasyon testi değildir.
 
 Kalan: native Linux gerçek main+ClamAV+HTTPS işleme ve SIGTERM kabulü, imza güncelleme/yeniden başlatma işletimi, gerçek oturumlu Next form/API birleşimi, üretim şema/yayın sırası. Bu tur yeni canlı hizmet veya anahtar kurulmadı; üretim değişmedi.
+
+
+## 20 Ekim — gerçek çalışma döngüsü, HTTPS ve SIGTERM birleşik kabulü
+
+qa/hr-worker-runtime-20261020/continuous-accept.mjs ayrı UID'li gerçek ClamAV, internal Docker ağındaki geçici TLS API, salt okunur sentetik key mount, worker runtime ve sağlık dosyasını birlikte çalıştırdı. API sınırı sentetik claim/context/Storage/complete cevapları üretir; taşıyıcı ve worker kodu gerçektir. Gerçek temiz PDF indirilip hash/binding kontrolünden ve clamd taramasından geçti.
+
+Complete isteği sunucuya ulaştığında yanıt 5 saniye bekletildi; bu sırada docker kill --signal TERM gönderildi. Worker başlayan işi tamamladı, exit 0 ile durdu. Sunucu sayaçları claims=1, completionStarted=1, completed=1 ve validReport=true; ikinci claim alınmadı. Sağlık dosyası stopped oldu, logda complete görüldü, sentetik anahtar loga çıkmadı. continuous-result.json kanıtı kaydedildi. Geçici network/container/volume/TLS dosyaları temizlendi.
+
+Kapsam: realClamav/realHttps/realRuntime/realSigtermDuringCompletion=true; realDatabase=false. Bu Mac kabulünde daemon Rosetta ile çalışır; test girişindeki engine reader emülasyona izin verirken strict process isolation ve üretim config kontrolünü uygular. Üretim main girişi değiştirilmedi; productionMainEntry=false, productionReady=false. Native Linux production main + gerçek PostgREST/Storage uçları için kabul hâlâ gerekir. Ürün kodu değişmedi; önceki 920 uygulama testi tekrar edilmedi. Yeni üç test dosyasının sözdizimi ve diff kontrolü geçti.
+
+Kalan işletim paketi: imza dosyalarını ayrı güncelleyicide hazırlama, daemon'u kontrollü yeniden başlatma ve yeniden ölçüm, native Linux launcher/supervisor sınırları, gerçek oturumlu Next form/API birleşimi ve üretim şema ön kontrolü. Üretim yayını veya gerçek anahtar kurulumu yok.
