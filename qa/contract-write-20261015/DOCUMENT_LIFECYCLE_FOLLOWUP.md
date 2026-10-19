@@ -1908,3 +1908,8 @@ Kanıt: qa/hr-catalog-20261018/hr-storage-http-result.json. Koşu: BPS_HR_STORAG
 Gerçek uygulama, GoTrue ve Storage ile sentetik İK hesabı özel evrak listesini açtı; PDF indir düğmesi tarayıcı indirme olayı üretti. İndirilen dosyanın baytları fixture ile birebir eşleşti (SHA-256 download-browser-result.json içinde). Panel açıkken belge izni kaldırıldı: yeni indirme hata mesajıyla reddedildi. Evrakları yenile sonrası eski metadata kaldırıldı ve erişim hatası gösterildi. Önceden indirilmiş dosyanın geri alınması iddia edilmez.
 
 Kanıt: qa/hr-activation-readiness-20261019/download-browser-result.json. Tekrar: BPS_HR_STORAGE_ACCEPTANCE=1 BPS_HR_DOWNLOAD_BROWSER=1 BPS_LOCAL_BROWSER=1 BPS_HR_PREVIEW_ENABLED=true BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Yedi Storage grubu da bu kurulumda geçti. Yerel test sekmesi ve geçici servisler kapatıldı. Üretim verisi/hesabı kullanılmadı, uygulama kodu veya migration değişmedi; yayın yok. Gerçek pilot hesap/kapsam ve PDF politika kararı açık kalır.
+
+
+## 20 Ekim — pilot kabul kayıtlarının birleştirilmesi
+
+Git durumu temiz ve son kaynak c17c05b olarak doğrulandı. READINESS.md içindeki eski “tarayıcı kabulü eksik” maddeleri güncellendi; sekiz kanıt grubu tek tabloda, sınırlarıyla toplandı. Kalanlar hesap/kapsam ve PDF politika kararları, güncel yayın ön kontrolü, tek şirket aktivasyon sırası ve gerçek pilot hesabı kabulüdür. Kullanıcıya ilk iki karar için kısa sorular iletildi. Bu tur testler tekrar çalıştırılmadı, ürün veya üretim değiştirilmedi.

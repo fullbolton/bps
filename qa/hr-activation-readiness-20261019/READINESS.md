@@ -24,7 +24,7 @@ Modülün görünür olması, kullanım hakkının verilmesi ve özel yetkilerin
 1. Pilot şirket ve kullanılacak yönetici/İK hesapları belirlenir. Bir hesap bir şirket yaklaşımı korunur; eski Partner–Mek seçimine dayalı ürün akışı eklenmez.
 2. İK hesaplarının departman/iş yeri kapsamı ve açık ret kuralları incelenir. Personel havuzu ile çalışan dizini ayrı yetki alanları olarak değerlendirilir. Maaş, dışa aktarma ve belge indirme ayrı yetkilerdir.
 3. Mevcut 216 şemasıyla gerçek PostgreSQL kabulü ve uygulama eşlemesi doğrulanır. access-activation-schema.mjs bu tur dört grupta geçti: varsayılan kapı/yetkisiz erişim, stale token, audit rollback/eşzamanlı tekrar, eski yazıcı engeli.
-4. Sentetik RPC sınırıyla gerçek bileşenlerin tarayıcı kabulü tamamlandı: üç aktivasyon engeli, hazır durumda Enter ile inceleme/kapatma, transfer kesin ret → hedef yenileme → yeni hedefle başarı. Eski ret mesajı yenilemede temizlenir. Bu kanıt gerçek Auth/PostgREST uçtan uca kabul veya tam klavye erişilebilirlik denetimi değildir; pilotta bunlar ayrıca doğrulanır. Önceki mobil ve yanıt kaybı kanıtları korunur.
+4. Yerel birleşik tarayıcı kabulü tamamlandı: aktivasyon kesin ret/yenileme/başarı, transfer kesin ret/yenileme/başarı ve özel PDF indirme/izin iptali. Gerçek uygulama, GoTrue ve API kullanıldı. Kanıt tablosu aşağıdadır. Bu sonuçlar gerçek pilot hesaplarını veya tam klavye erişilebilirlik denetimini kapsamaz.
 5. Özel PDF politikasının ilk kapsamı belirlenir. Mevcut sahiplik/tür/özet doğrulaması zararlı yazılım taraması değildir; gerçek özel evrak pilotu için bu sınır ürün kabulünde açıkça kaydedilir.
 6. Katalog/readiness, sunucu bayrakları, kullanım hakkı, teknik kabul ve şirket geçişinin uygulanacak sırası tek pilot için somutlaştırılır. Her aşamada yalnız gerekli kapsam değişir; doğrulanmamış toplu aktivasyon yapılmaz.
 
@@ -47,23 +47,40 @@ Yanlış kapsam görünürlüğü, yetkisiz yazma veya belirsiz aktivasyon sonuc
 
 Bu iki akışın ortak onay altyapısı tasarlanabilir; izin bakiyesi ile satın alma bütçesi aynı veri modeli veya tek bir genel görev durumu olarak tutulmamalıdır.
 
-## 20 Ekim ek kabulü
+## 20 Ekim — güncel kabul özeti
 
-transfer-http-result.json: gerçek yerel GoTrue parola oturumu + PostgREST ile dört transfer kabul grubu geçti (stale ret, güncel revizyon, idempotent tekrar, mevcut oturumda rol iptali). Bu, sentetik tarayıcı kabulünü tamamlayıcı ayrı API kanıtıdır; birleşik tarayıcı uçtan uca kabulü değildir. Üretimde pilot açılmadı.
+Aşağıdaki kanıtlar farklı katmanları kapsar; satırların test sayıları toplanarak tek bir test toplamı üretilmez. Tamamlanmış senaryolar, kod veya kabul koşulu değişmedikçe tekrar çalıştırılmaz.
 
-20 Ekim sonraki kabul: transfer-browser-result.json ile transferin gerçek uygulama + GoTrue + PostgREST birleşik tarayıcı kabulü tamamlandı. Kesin ret, yenileme ve başarı DB tarih kontrolüyle doğrulandı. Bu sonuç yalnız transfer içindir; aktivasyon/pilot kapsamı halen açıktır.
+| Alan | Kanıt | Sonuç ve sınır |
+|---|---|---|
+| Hazırlık listesi | browser-acceptance.json | Sentetik RPC ile üç engel ve temel Enter kullanımı; tam erişilebilirlik denetimi değil |
+| Transfer API | transfer-http-result.json | Gerçek GoTrue/PostgREST ile 4 grup; stale ret, tekrar, rol iptali |
+| Transfer ekranı | transfer-browser-result.json | Gerçek uygulama/oturum/API; kesin ret → yenileme → başarı; DB tarih geçmişi |
+| Aktivasyon API | activation-http-result.json | Gerçek oturum/API ile 4 grup; engeller, stale token, eşzamanlı tek geçiş |
+| Aktivasyon ekranı | activation-browser-result.json | Gerçek uygulama/oturum/API; kesin ret → yenileme → scoped; DB tek makbuz |
+| Kapsam ve evrak listesi | scope-http-result.json | Gerçek oturum/API ile 4 grup; departman, ayrı evrak izni, açık ret, rol iptali |
+| Dosya baytları | ../hr-catalog-20261018/hr-storage-http-result.json | Gerçek Storage HTTP ile 7 grup; sentetik JWT, izin iptali ve içerik eşleşmesi |
+| Dosya indirme ekranı | download-browser-result.json | Gerçek GoTrue/uygulama/Storage; tarayıcı indirilen bayt eşleşmesi, açık panelde izin iptali |
 
-20 Ekim aktivasyon ek kabulü: activation-http-result.json ile gerçek yerel Auth + PostgREST dört grup geçti. Eksik şart, stale token, eşzamanlı tekrar ve ikinci geçiş reddi doğrulandı. Üretimde teknik kabul kapısı açılmadı.
+Son ürün kodu kontrolü: 857 uygulama testi, TypeScript ve production build geçti (activation-browser-result.json). Sonraki değişiklikler kabul araçları ve kayıtlarıdır. Bu durum üretimde pilot açıldığı anlamına gelmez.
 
-### Kalan pilot sınırı (güncel)
-- Teknik: aktivasyon ekranının gerçek Auth/API ile birleşik tarayıcı kabulü tamamlandı (activation-browser-result.json). Pilot hesaplarında kapsam dışı görünürlük ve belge/dışa aktarma yetkilerinin hesap bazında kontrolü kalır.
-- Ürün kararı: pilot şirket/hesaplar ve departman/iş yeri kapsamları; özel PDF politikası. Gerçek hesaplara tahmini kapsam atanmaz.
-- Sonraki geliştirme: izin ve satın alma yönetici onayları; bu paketlerin tamamlandığı veya canlıda olduğu varsayılmaz.
+## Kalan işler ve kapanış ölçütü
 
-Tekrar kurulumu: BPS_LOCAL_BROWSER=1 BPS_HR_ACTIVATION_BROWSER=1 BPS_ACCESS_PREVIEW_ENABLED=true BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Hazırlık bayrakları yalnız yerel test için kullanılır.
+| İş | Gereken | Kapanış kanıtı |
+|---|---|---|
+| Pilot hesap/kapsam | Kullanıcının şirket, yönetici/İK hesapları ve departman/şube kapsamını belirtmesi | Hesap bazında görünür/gizli örnekler, belge ve dışa aktarma yetkileri onaylı matrise işlenmiş |
+| Özel PDF politikası | Sentetik belgelerle pilot veya gerçek belgeler öncesi tarama tercihinin belirlenmesi | Belge kapsamı ve mevcut tarama sınırı açıkça kabul edilmiş; gerekiyorsa tarama geliştirmesi tamamlanmış |
+| Yayın ön kontrolü | Güncel canlı uygulama/şema, kaynak commit ve yayın sırasının tekrar ölçümü | Kaynak ve migration eşleşmesi; bu belgede yazan eski ölçüm tek başına yeterli değil |
+| Pilot aktivasyon sırası | Katalog hazırlığı, ayrı sunucu bayrakları, kullanım hakkı, teknik kabul ve şirket geçişinin tek şirket için hazırlanması | Her adımın ön koşulu ve sonucu kayıtlı; fixture SQL'i üretimde kullanılmaz |
+| Gerçek pilot kabulü | Onaylanan hesaplarla görünürlük/ret, izinli düzenleme, evrak ve operasyon kontrolleri | Hesap bazında sonuçlar; bekleyen dosya varken kapatma kontrolü |
 
-20 Ekim kapsam kabulü: scope-http-result.json gerçek yerel Auth/API ile departman filtresi, çalışan/belge ayrı yetkileri, açık ret ve aynı oturumda rol iptalini doğrular. Özel belge metadata erişimi test edildi; gerçek dosya indirme ve pilot hesap seçimi ayrı kalır.
+İlk iki karar bekleniyor. Gerçek hesaplara tahmini kapsam atanmaz. Karar beklerken geçmiş testleri yeniden koşturmak veya sırf ilerleme göstermek için kapsam eklemek yerine mevcut onaylı teknik eksikler ele alınır.
 
-20 Ekim dosya baytı kabulü: ../hr-catalog-20261018/hr-storage-http-result.json yedi gerçek Storage HTTP grubu geçti. Çalışan+belge izinleri, açık ret, aynı tokenda kural iptali ve kullanım hakkı kaldırılması yeni dosya indirme isteklerinde doğrulandı. Sentetik JWT kullanıldı; GoTrue+tarayıcı dosya indirme birleşik kabulü değildir. Mevcut UI doğrudan authenticated download kullanır, imzalı URL üretmez.
+## Tekrar kurulumu
 
-20 Ekim birleşik indirme kabulü tamamlandı: download-browser-result.json. Gerçek giriş→liste→PDF indirme ve tam içerik eşleşmesi; açık panelde izin iptali→indirme reddi→yenilemede metadata kaldırılması doğrulandı. Önceki yalnız Storage testinin tarayıcı boşluğu bu senaryo için kapandı. Gerçek pilot kabulü değildir.
+- API: BPS_LOCAL_BROWSER=1 ve ilgili BPS_HR_TRANSFER_HTTP / BPS_HR_ACTIVATION_HTTP / BPS_HR_SCOPE_HTTP=1.
+- Transfer ekranı: BPS_LOCAL_BROWSER=1 BPS_HR_TRANSFER_BROWSER=1 BPS_HR_PREVIEW_ENABLED=true.
+- Aktivasyon ekranı: BPS_LOCAL_BROWSER=1 BPS_HR_ACTIVATION_BROWSER=1 BPS_ACCESS_PREVIEW_ENABLED=true.
+- İndirme ekranı: BPS_HR_STORAGE_ACCEPTANCE=1 BPS_HR_DOWNLOAD_BROWSER=1 BPS_LOCAL_BROWSER=1 BPS_HR_PREVIEW_ENABLED=true.
+
+Bu değişkenlere BPS_RELEASE_BARRIER=1 eklenerek `node qa/contract-write-20261015/storage-http.mjs` çalıştırılır. Yalnız sentetik yerel fixture içindir. Tarayıcı senaryoları ayrıca UI adımlarını gerektirir; sunucunun açılması testin geçtiği anlamına gelmez.
