@@ -816,5 +816,9 @@
   {
     "file": "scripts/hr-worker-runtime.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-worker-isolation.test.mjs",
+    "suite": "application"
   }
 ]

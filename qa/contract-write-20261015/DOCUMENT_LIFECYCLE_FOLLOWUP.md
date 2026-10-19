@@ -2108,3 +2108,14 @@ health.mjs /run/bps-worker/health.json dosyasını 0600 ve atomic rename ile yaz
 Kanıt: 913/913 uygulama testi, runtime+coordinator odaklı 8 test ve main sözdizimi/diff kontrolü geçti. Yeni HTTP taşıyıcısı bu tur gerçek HTTPS Supabase sunucusuna bağlanmadı; taşıma testinde fetch sınırı sentetiktir. Önceki gerçek servis kabulü eski test RPC taşıyıcısını kullanır; bununla yeni taşıyıcı için gerçek ağ kanıtı iddia edilmez.
 
 Dağıtım kararı: hazır production compose/host kurulumu henüz yapılmıyor. Mevcut /proc ölçümü worker'ı daemon PID namespace'ine bağlar; aynı UID/root ile iki yönlü /proc üzerinden worker dosyası okuma riski ayrıca doğrulanmalıdır. Anahtarı clamd'a doğrudan mount etmemek tek başına izolasyon kanıtı değildir. Sentetik anahtarla süreç/UID/proc erişim kabulü ve gerekirse ayrı kimlik/ölçüm mimarisi tamamlanmadan gerçek service key bağlanmayacak. Bu, üretimde tespit edilmiş bir olay değil; yerel tasarımın açık dağıtım kabul şartıdır. Sonraki paket: bu izolasyon testi ve gerçek HTTPS taşıyıcı kabulü. Üretim değişmedi.
+
+
+## 20 Ekim — gerçek Docker süreç izolasyonu bulgusu ve koruması
+
+qa/hr-worker-isolation-20261020/accept.mjs gerçek Docker süreçleri ve yalnız sentetik 0600 canary dosyasıyla çalıştırıldı. Aynı UID=0/PID namespace düzeninde daemon rolündeki süreç worker'ın /proc/PID/root/run/secrets/canary dosyasını, environ ve fd listesini okuyabildi; kill(pid,0) erişim kontrolü de geçti. Bu yerel tasarım testidir, üretim ihlali değildir; gerçek anahtar kullanılmadı.
+
+Çözüm adayı: daemon UID/GID 10001, tüm capability'ler kapalı, no-new-privileges; güvenilir worker UID/GID 0, yalnız SYS_PTRACE ve DAC_READ_SEARCH, no-new-privileges, socket 660 erişimi için ek grup 10001. Aynı testte daemon'ın worker anahtar/ortam/fd/sinyal erişimleri reddedildi; worker daemon environ/mountinfo/root ölçümünü yapabildi. İlk denemede yalnız SYS_PTRACE yetmedi: environ EACCES verdi. DAC_READ_SEARCH eklenince ölçüm geçti; daha geniş DAC_OVERRIDE verilmedi.
+
+workers/hr-malware/isolation.mjs bu UID/GID/capability/NoNewPrivs/ek grup sözleşmesini doğrular; config.mjs üretim modunda motor sorgusundan önce uygular. Aynı UID veya gereksiz capability ile fail closed. acceptanceOnly eski sentetik ClamAV düzeni için istisnadır; main.mjs bunu açmaz. İşçi hâlâ güvenilir ve ayrıcalıklı bileşendir; bu koruma host/kernel/container-runtime güven sınırının yerini tutmaz.
+
+Kanıt: 915/915 uygulama testi geçti. Son ek grup şartından sonra odaklı 2 test ve gerçek Docker izolasyonu yeniden geçti. result.json aynı UID guard=rejected, ayrı UID guard=accepted ve dört daemon erişiminin false olduğunu kaydeder. Test süreçleri Node'dur (realClamav=false); yeni UID/socket/secret dizilimiyle gerçek clamd + main sürekli çalışma henüz sınanmadı. Tüm geçici container/volume kaldırıldı. Sonraki paket bu gerçek daemon birleşimi ve HTTPS taşıyıcı kabulüdür. Üretim yayını/anahtar kurulumu yok.

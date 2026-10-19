@@ -1,0 +1,48 @@
+{
+  "syntheticOnly": true,
+  "realDocker": true,
+  "realClamav": false,
+  "productionReady": false,
+  "results": [
+    {
+      "label": "same_uid_baseline",
+      "daemonUid": 0,
+      "workerUid": 0,
+      "workerPtrace": false,
+      "workerReadSearch": false,
+      "guard": "rejected",
+      "daemonCanAccessWorker": {
+        "secret": true,
+        "environment": true,
+        "descriptors": true,
+        "signal": true
+      },
+      "workerCanMeasureDaemon": true,
+      "measurementDetails": {
+        "/proc/1/environ": "ok",
+        "/proc/1/mountinfo": "ok",
+        "/proc/1/root": "ok"
+      }
+    },
+    {
+      "label": "separate_daemon_uid",
+      "daemonUid": 10001,
+      "workerUid": 0,
+      "workerPtrace": true,
+      "workerReadSearch": true,
+      "guard": "accepted",
+      "daemonCanAccessWorker": {
+        "secret": false,
+        "environment": false,
+        "descriptors": false,
+        "signal": false
+      },
+      "workerCanMeasureDaemon": true,
+      "measurementDetails": {
+        "/proc/1/environ": "ok",
+        "/proc/1/mountinfo": "ok",
+        "/proc/1/root": "ok"
+      }
+    }
+  ]
+}
