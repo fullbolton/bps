@@ -3,6 +3,8 @@ import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-migrations.mjs';
+const {importActualTypeScript}=await import('../../scripts/helpers/import-typescript.mjs');
+const {parseVersionedModuleHistory}=await importActualTypeScript(new URL('../../src/lib/modules/change-history.ts',import.meta.url));
 const server='supabase_db_bps-supabase-acceptance',db=`bps_history_versions_${process.pid}`;
 const migration='20261019000100_module_history_catalog_versions.sql';
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -26,7 +28,8 @@ try {
  checks.push('Existing v1 response, states, revisions, command receipts and hashes unchanged');
  const v2=call(2);assert.equal(v2.historySchemaVersion,2);assert.deepEqual(v2.context,before.context);
  assert.deepEqual(v2.entries.map(({beforeCatalogVersion,afterCatalogVersion,...row})=>{assert.equal(beforeCatalogVersion,1);assert.equal(afterCatalogVersion,1);return row;}),before.entries);
- checks.push('v2 reader returns same complete bounded history with explicit snapshot versions');
+ assert.equal(parseVersionedModuleHistory(v2,v2.context).length,before.entries.length);
+ checks.push('v2 reader returns complete versioned history accepted by actual application parser');
  assert.throws(()=>call(2,11,2),e=>String(e.stderr).includes('WORKSPACE_SCOPE'));
  sql(`UPDATE tenant_memberships SET role='operasyon' WHERE user_id='${id(11)}' AND tenant_id='${id(1)}';UPDATE profiles SET role='operasyon' WHERE id='${id(11)}'`);
  assert.throws(()=>call(2),e=>String(e.stderr).includes('WORKSPACE_SCOPE'));

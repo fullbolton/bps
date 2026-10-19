@@ -34,3 +34,19 @@ export function parseModuleHistory(raw: unknown, expected: WorkspaceModuleContex
     return { revision:row.revision,createdAt:row.createdAt,actorName:row.actorName as string|null,kind:row.kind as ModuleHistoryEntry['kind'],changes };
   });
 }
+
+/** Versioned API requires explicit snapshot metadata; never assume missing versions. */
+export function parseVersionedModuleHistory(raw: unknown, expected: WorkspaceModuleContext): ModuleHistoryEntry[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw Error('MODULE_HISTORY_RESPONSE');
+  const data = raw as Record<string, unknown>;
+  // Validate scope before classifying any protocol version supplied by the server.
+  parseWorkspaceModuleContext(data.context, expected);
+  if (data.historySchemaVersion !== 2 || !Array.isArray(data.entries)) throw Error('MODULE_HISTORY_VERSION');
+  for (const entry of data.entries) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw Error('MODULE_HISTORY_ENTRY');
+    const row = entry as Record<string, unknown>;
+    // Only catalog 1 is supported until the catalog migration and its writers ship.
+    if (row.beforeCatalogVersion !== 1 || row.afterCatalogVersion !== 1) throw Error('MODULE_HISTORY_VERSION');
+  }
+  return parseModuleHistory(raw, expected);
+}

@@ -1375,6 +1375,7 @@ export interface Database {
         Returns: TaskRow[];
       };
       workspace_module_history_v1: { Args: { p_actor: string; p_tenant: string }; Returns: Json };
+      workspace_module_history_v2: { Args: { p_actor: string; p_tenant: string }; Returns: Json };
       change_workspace_modules_v1: {
         Args: {p_actor:string;p_tenant:string;p_membership_version:string;p_selection_version:string|null;p_revision:string;p_command:string;p_modules:Json};
         Returns: Json;

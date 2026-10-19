@@ -45,7 +45,7 @@ Bu bölüm ürün uygulaması değildir; mevcut kaynakla doğrulanmış uygulama
 
 H0c uygulama parçası: açık geçmiş paneline yeni katalog sürümünde açık güncelleme mesajı ve sayfa yenileme düğmesi eklendi (yerel). İlk sayfa yüklemesinde güncelleme yönlendirmesi de eklendi; tam v2 geçmiş/API hâlâ bağlı değil, HR açılmaz.
 
-H0c veri katmanı: 20261019000100 ileri migration ile olay bazlı katalog sürümleri ve workspace_module_history_v2 okuyucusu yerelde eklendi. Gerçek sentetik BPS şemasında 5 kabul grubu ve 796 uygulama testi geçti. Katalog v1, istemci v1; bu adım HR aktivasyonu veya tam v2 katalog geçişi değildir. Üretime uygulanmadı.
+H0c veri katmanı: 20261019000100 ileri migration ile olay bazlı katalog sürümleri ve workspace_module_history_v2 okuyucusu yerelde eklendi. Gerçek sentetik BPS şemasında 5 kabul grubu ve 796 uygulama testi geçti. Katalog v1; geçmiş istemcisi v2 okuyucuya bağlandı ve gerçek SQL yanıtı parser ile doğrulandı (798 test). Yeni arayüzden önce 20261019000100 migration gerekir. Bu adım HR aktivasyonu veya tam v2 katalog geçişi değildir. Üretime uygulanmadı.
 
 **H0c uyumluluk bulgusu:** gerçek `parseModuleHistory` HR-only olayı üç biçimde de (ham, HR alanı çıkarılmış, olay atlanmış) reddediyor. `qa/hr-catalog-20261018/legacy-history-result.json` bunu çalıştırarak doğrular. Eski istemcinin yalnız state projeksiyonuyla bütün geçmişi okuyacağı varsayımı geçersizdir. Önce sürümlü geçmişi anlayan uyumluluk istemcisi/API, sonra HR aktivasyonu; eski açık istemciye gerektiğinde açık güncelleme yönlendirmesi. Olayları gizleyerek ya da revision numaralarını değiştirerek uyumluluk taklidi yapılmaz. Bu engel yeni HR yayını içindir; mevcut canlı v1 çalışmasını bozmaz.
 

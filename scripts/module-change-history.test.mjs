@@ -47,3 +47,21 @@ test('new catalog on refresh removes previously displayed audit entries',async()
  await settle();tree=x.render();assert.equal(nodes(tree).filter(n=>n.type==='time').length,0);
  assert.ok(nodes(tree).some(n=>n.type==='button'&&n.props.children==='Sayfayı yenile'));x.dispose();
 });
+
+const {parseVersionedModuleHistory}=await importActualTypeScript(new URL('../src/lib/modules/change-history.ts',import.meta.url));
+const {loadModuleHistory}=await importActualTypeScript(new URL('../src/lib/services/workspace-modules.ts',import.meta.url));
+const versioned=()=>{const v=make();return {...v,historySchemaVersion:2,entries:v.entries.map(row=>({...row,beforeCatalogVersion:1,afterCatalogVersion:1}))};};
+test('versioned history preserves validated legacy events without inferred metadata',()=>{
+ assert.deepEqual(parseVersionedModuleHistory(versioned(),ctx),parseModuleHistory(make(),ctx));
+ for(const mutate of [v=>delete v.historySchemaVersion,v=>v.historySchemaVersion=1,v=>delete v.entries[0].beforeCatalogVersion,v=>v.entries[0].afterCatalogVersion='1',v=>v.entries[0].afterCatalogVersion=2,v=>v.entries.pop(),v=>v.entries[0].after=all,v=>v.context={...ctx,tenantId:id(9)}]){
+  const v=versioned();mutate(v);assert.throws(()=>parseVersionedModuleHistory(v,ctx));
+ }
+});
+test('history service uses only versioned RPC and never falls back after failure',async()=>{
+ const calls=[];let failure=null,payload=versioned();
+ const client={rpc(name,args){calls.push({name,args});return {abortSignal:async()=>({data:payload,error:failure})};}};
+ assert.deepEqual(await loadModuleHistory(client,ctx),parseModuleHistory(make(),ctx));
+ assert.deepEqual(calls,[{name:'workspace_module_history_v2',args:{p_actor:ctx.actorId,p_tenant:ctx.tenantId}}]);
+ failure={code:'PGRST202'};await assert.rejects(loadModuleHistory(client,ctx),e=>e===failure);assert.equal(calls.length,2);
+ failure=null;payload=make();await assert.rejects(loadModuleHistory(client,ctx),/MODULE_HISTORY_VERSION/);assert.equal(calls.length,3);
+});

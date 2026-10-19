@@ -1213,3 +1213,12 @@ Yeni ileri migration `20261019000100_module_history_catalog_versions.sql` eklend
 `history-schema.mjs` gerçek BPS şablonunu yalnız geçici yerel DB'ye klonlayıp bütün ileri migration'ları sırasıyla uygular. 5 grup geçti: v1 yanıtı ve mevcut olay/makbuz/hash içerikleri aynı; gerçek change_workspace_modules_v1 komutunun migration sonrası tekrarı aynı sonucu verir; v2 aynı olayları sürüm metadata'sıyla döndürür; başka tenant/operasyon rolü/anon ve doğrudan tablo yazması reddedilir; bilinmeyen sürüm yazılamaz; eski bootstrap yeni metadata'yı sağlar. İlk rol fixture'ında yalnız profiles.role değiştirmek yetmediği görüldü; canlı yetki kaynağı tenant_memberships de sentetik fixture içinde değiştirilerek ret doğrulandı. Ürün yetki mantığı gevşetilmedi. Harness finally kendi geçici DB'sini temizledi.
 
 796/796 uygulama testi geçti. Kanıt `qa/hr-catalog-20261018/history-schema-result.json`. Bu değişiklik SQL/QA'dır; önceki build kanıtı yeni migration'ın üretim doğrulaması değildir. Üretim ön kontrolü/yayın yok. Yeni migration tablo kilidi gerektirir; üretim katalog ölçümü ve yayın sırası tekrar doğrulanmadan uygulanmaz. Sonraki: sürümlü geçmiş istemcisi ve v1→v2 katalog geçişi/yazarların birlikte güncellenmesi; ardından gerçek HTTP/tarayıcı kabulü. İK açılmadı.
+
+
+## 19 Ekim — H0c sürümlü geçmiş uygulama bağlantısı
+
+`loadModuleHistory` artık workspace_module_history_v2 çağırır. Yeni parseVersionedModuleHistory açık historySchemaVersion=2 ve her olayda before/afterCatalogVersion=1 ister; ardından mevcut scope, revision, tam alan, olay sayısı ve durum zinciri doğrulamalarını kullanır. Eksik sürüm metadata'sı varsayılmaz; API hatasında v1'e sessiz fallback yok. Geçmiş paneli aynı kullanıcı akışını korur. Database RPC tipi eklendi. Bu yalnız v2 geçmiş protokolüdür; katalog hâlâ v1, HR açılmaz.
+
+8 hedefli ve 798/798 uygulama testi, tsc, sentetik localhost public değerleriyle production build geçti. Gerçek BPS şeması kopyasında 5 grup yeniden geçti; yeni SQL yanıtı bu kez gerçek uygulama parser'ından da geçirildi. İlk DB girişimi Docker kapalı olduğu için başlamadı; Docker başlatıldı, tekrar başarılı oldu ve geçici DB temizlendi. Kanıt history-schema-result.json. HTTP/tarayıcı kabulü hâlâ yapılmadı.
+
+Yayın bağımlılığı: 20261019000100 migration uygulamadan ÖNCE çıkmalı; API olmadan yeni arayüz yayımlanmamalı. Üretim yayını/şema değişimi yapılmadı. Sonraki kalan: katalog v2, versiyonlu değişim/ön kontrol ve eski komutlarla birlikte çalışma; gerçek tarayıcı kabulü. Faz 1 tekrar açılmaz.
