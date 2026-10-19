@@ -42,6 +42,36 @@ BEGIN
  WHERE upload_id=job.upload_id RETURNING * INTO job;
  RETURN jsonb_build_object('schemaVersion',1,'tenantId',job.tenant_id,'actorId',job.actor_id,'uploadId',job.upload_id,'leaseToken',job.lease_token,'leaseUntil',job.lease_until,'attempt',job.attempts);
 END $$;
+CREATE FUNCTION public.hr_malware_context_v1(p_tenant uuid,p_upload uuid,p_worker uuid,p_lease uuid) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path='' SET lock_timeout='5s' AS $$
+DECLARE job public.hr_malware_jobs;attempt public.hr_document_uploads;obj storage.objects;path text;
+BEGIN
+ IF current_setting('transaction_isolation')<>'read committed' THEN RAISE EXCEPTION 'ACCESS_ISOLATION';END IF;
+ IF auth.role() IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'HR_SCANNER_REQUIRED';END IF;
+ PERFORM 1 FROM public.tenant_module_config WHERE tenant_id=p_tenant FOR UPDATE;
+ SELECT * INTO job FROM public.hr_malware_jobs WHERE upload_id=p_upload AND tenant_id=p_tenant FOR SHARE;
+ IF NOT FOUND OR p_lease IS NULL OR p_worker IS NULL OR job.state<>'running' OR job.lease_token IS DISTINCT FROM p_lease OR job.worker_id IS DISTINCT FROM p_worker
+ OR job.lease_until IS NULL OR job.lease_until<=statement_timestamp() THEN RAISE EXCEPTION 'HR_SCAN_LEASE';END IF;
+ PERFORM 1 FROM public.profiles WHERE id=job.actor_id FOR SHARE;
+ PERFORM 1 FROM public.tenant_memberships WHERE user_id=job.actor_id AND tenant_id=p_tenant AND role='yonetici' FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'HR_MANAGER_REQUIRED';END IF;
+ PERFORM 1 FROM public.workspace_selections WHERE user_id=job.actor_id FOR SHARE;
+ IF FOUND THEN
+  IF NOT EXISTS(SELECT FROM public.workspace_selections WHERE user_id=job.actor_id AND tenant_id=p_tenant) THEN RAISE EXCEPTION 'HR_SCOPE';END IF;
+ ELSE
+  IF (SELECT count(*) FROM public.tenant_memberships WHERE user_id=job.actor_id)<>1 THEN RAISE EXCEPTION 'HR_SCOPE';END IF;
+ END IF;
+ IF NOT EXISTS(SELECT FROM public.tenant_module_settings s JOIN public.tenant_module_entitlements e USING(tenant_id,module_key) WHERE s.tenant_id=p_tenant AND s.module_key='hr' AND s.enabled AND e.granted) THEN RAISE EXCEPTION 'HR_MODULE_CLOSED';END IF;
+ SELECT * INTO attempt FROM public.hr_document_uploads WHERE id=p_upload AND tenant_id=p_tenant AND actor_id=job.actor_id FOR SHARE;
+ IF NOT FOUND OR attempt.state<>'pending' OR attempt.cleanup_requested THEN RAISE EXCEPTION 'HR_UPLOAD_UNAVAILABLE';END IF;
+ path:=p_tenant::text||'/'||p_upload::text||'.pdf';
+ SELECT * INTO obj FROM storage.objects WHERE bucket_id='hr-private' AND name=path FOR SHARE;
+ IF NOT FOUND OR obj.owner_id IS DISTINCT FROM job.actor_id::text OR obj.version IS NULL OR obj.version='' OR obj.metadata->>'mimetype' IS DISTINCT FROM 'application/pdf'
+ OR jsonb_typeof(obj.metadata->'size') IS DISTINCT FROM 'number' OR (obj.metadata->>'size')::numeric IS DISTINCT FROM attempt.file_size::numeric THEN RAISE EXCEPTION 'HR_UPLOAD_OBJECT';END IF;
+ RETURN jsonb_build_object('schemaVersion',1,'actorId',job.actor_id,'tenantId',p_tenant,'id',p_upload,'state','pending','path',path,'objectId',obj.id,'objectVersion',obj.version,'size',attempt.file_size,'sha256',attempt.content_sha256);
+END $$;
+REVOKE ALL ON FUNCTION public.hr_malware_context_v1(uuid,uuid,uuid,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.hr_malware_context_v1(uuid,uuid,uuid,uuid) TO service_role;
 CREATE FUNCTION public.hr_malware_complete_v1(p_tenant uuid,p_upload uuid,p_worker uuid,p_lease uuid,p_report jsonb) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' SET lock_timeout='5s' AS $$
 DECLARE job public.hr_malware_jobs;stamp timestamptz:=statement_timestamp();
@@ -56,6 +86,7 @@ BEGIN
   RETURN jsonb_build_object('schemaVersion',1,'uploadId',p_upload,'state',job.state);
  END IF;
  IF job.state<>'running' OR job.lease_until IS NULL OR job.lease_until<=stamp THEN RAISE EXCEPTION 'HR_SCAN_LEASE';END IF;
+ PERFORM public.hr_malware_context_v1(p_tenant,p_upload,p_worker,p_lease);
  PERFORM public.hr_malware_report_v1(job.actor_id,p_tenant,p_upload,p_report);
  UPDATE public.hr_malware_jobs SET state=CASE p_report->>'verdict' WHEN 'clean' THEN 'complete' WHEN 'infected' THEN 'blocked' ELSE CASE WHEN attempts>=3 THEN 'failed' ELSE 'queued' END END,
  available_at=stamp+interval '30 seconds',lease_until=NULL,completed_report=p_report WHERE upload_id=p_upload RETURNING * INTO job;

@@ -2026,3 +2026,16 @@ Kararlar: en çok 3 deneme, hata sonucu sonrası 30 saniye bekleme. Çöken iş�
 queue-accept.mjs gerçek geçici PostgreSQL'de 6 grup geçti. İki ayrı eşzamanlı oturum tam bir lease ve bir attempt aldı. Süresi dolmuş/eski/yanlış işçi lease reddi, hatalı raporda atomik geri alma, backoff, üç deneme sınırı, tek tarama/tek yayın, aynı tamamlamanın tekrarı, çelişen rapor, infected ve cleanup kontrolleri geçti. Veritabanı test bitiminde kaldırıldı. Ürün TypeScript değişmedi; genel uygulama testleri tekrar edilmedi.
 
 Kalan: işçi runner'ın claim/complete API'sine geçmesi, kullanıcı oturumu saklamadan işçinin güncel kapsam kontrolü, API/UI bekleyen tarama akışı. Önceki storage-accept testi queue.sql uygulamaz; eski report yetkisiyle çalışır. Kuyruk entegrasyonu tamamlandığında birleşik kabul yeni lease akışıyla tekrar edilmelidir. Adaylar birlikte üretime hazır sayılmaz. Üretim değişmedi.
+
+
+## 20 Ekim — kullanıcı JWT'siz lease işçisi ve birleşik kabul
+
+queue.sql içine hr_malware_context_v1 eklendi: servis rolü + geçerli worker/lease, güncel yönetici üyeliği, şirket seçimi (eski tek üyelikli hesap için mevcut fallback kuralı), açık İK kullanım hakkı, pending/cleanup, nesne sahipliği/MIME/boyut kontrolleri. Aynı kontrol yeni sonuç kaydından hemen önce de yapılır. Kullanıcı iddiası taklit edilmez veya JWT üretilmez/saklanmaz. Mevcut özel evrak yazma yetkisi yalnız yönetici olduğundan işçi de aynı sınırı uygular.
+
+workers/hr-malware/leased-storage.mjs, bounded Storage adaptörünü context/complete RPC'lerine bağlar; tamamlanma makbuzunun id/durumunu doğrular. storage-runner artık service claim alır ve kullanıcı token'ı olmadan tarar. Gerçek HTTP kabulüne queue.sql dahil edildi; eski doğrudan raporlama yetkisi kapalıyken test geçti.
+
+Kanıt: 889 uygulama testi, 7 geçici PostgreSQL kuyruk grubu, 31 gerçek HTTP kabul grubu geçti. Son HTTP tekrarında clean işin complete, şifreli/limit işlerinin blocked durumu SQL'den ayrıca doğrulandı. storage-result.json leasedExecution=true ve userJwtPassedToWorker=false içerir. Yönetici rolü kaldırılınca context ve completion reddedildi; cleanup context'i kapattı; bekleyen dosya kullanım hakkı kapatmasını engelledi. Geçici servisler ve DB test sonunda kaldırıldı.
+
+Test düzeltmeleri: ilk denemede workspace_selections kaydı olmayan eski tek şirket hesabı gereksiz reddediliyordu; mevcut current_user_active_tenant kuralındaki tek üyelik fallback'i uygulandı. Başka bir denemede kullanım hakkı kapatma test hazırlığı mevcut HR_UPLOADS_PENDING korumasına takıldı; koruma atlanmadı, beklenen ret olarak teste işlendi.
+
+Sınır: bu, yerel worker runner entegrasyonudur; kalıcı işçi dağıtımı ve upload route/UI hâlâ bağlı değildir. Sonraki paket kullanıcıya bekleyen/taranıyor/engellendi durumları ve idempotent enqueue/finalize akışıdır. Production migration/yayın yapılmadı; canlı antivirüs aktif değil.

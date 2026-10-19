@@ -4,6 +4,8 @@
   "realDatabase": true,
   "realClamav": true,
   "realWorkerAdapters": true,
+  "leasedExecution": true,
+  "userJwtPassedToWorker": false,
   "syntheticOnly": true,
   "productionReady": false,
   "checks": [

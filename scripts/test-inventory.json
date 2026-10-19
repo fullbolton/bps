@@ -792,5 +792,9 @@
   {
     "file": "scripts/hr-clamd-config.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-leased-storage.test.mjs",
+    "suite": "application"
   }
 ]

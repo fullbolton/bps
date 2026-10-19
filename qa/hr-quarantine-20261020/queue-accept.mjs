@@ -38,6 +38,17 @@ try{
  assert.equal(sql("SELECT has_function_privilege('service_role','hr_malware_report_v1(uuid,uuid,uuid,jsonb)','EXECUTE')"),'f');
  checks.push('Enqueue retries produce one private job; browser cannot claim and service cannot bypass leased completion');
  const first=claim();assert.equal(first.attempt,1);assert.equal(claim(),null);
+ const context=()=>svc(`hr_malware_context_v1('${id(1)}','${id(9810)}','${worker}','${first.leaseToken}')`);
+ assert.equal(context().objectId,id(9820));
+ sql(`UPDATE tenant_memberships SET role='ik' WHERE user_id='${id(11)}' AND tenant_id='${id(1)}'`);
+ fails(context,'HR_MANAGER_REQUIRED');fails(()=>complete(9810,first.leaseToken,report(9810)),'HR_MANAGER_REQUIRED');
+ sql(`UPDATE tenant_memberships SET role='yonetici' WHERE user_id='${id(11)}' AND tenant_id='${id(1)}'`);
+ fails(()=>sql(`UPDATE tenant_module_entitlements SET granted=false WHERE tenant_id='${id(1)}' AND module_key='hr'`),'HR_UPLOADS_PENDING');
+ sql(`UPDATE hr_document_uploads SET cleanup_requested=true WHERE id='${id(9810)}'`);
+ fails(context,'HR_UPLOAD_UNAVAILABLE');
+ sql(`UPDATE hr_document_uploads SET cleanup_requested=false WHERE id='${id(9810)}'`);
+ checks.push('Leased context and completion recheck live manager role; pending jobs block entitlement removal and cleanup denies object context without a user JWT');
+
  fails(()=>complete(9810,first.leaseToken,{...report(9810),objectVersion:'changed'}),'HR_UPLOAD_OBJECT');
  assert.equal(sql('SELECT count(*) FROM hr_malware_scans'),'0');assert.equal(sql('SELECT state FROM hr_malware_jobs'),'running');
  fails(()=>complete(9810,first.leaseToken,report(9810),other),'HR_SCAN_LEASE');

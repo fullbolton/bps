@@ -18,8 +18,10 @@ export async function accept({sql,rpcResult,request,id,jwt,service,docker,storag
    const uploaded=await request('/object/hr-private/'+path,'POST',bytes,token,{'Content-Type':'application/pdf','x-upsert':'false'});assert.ok(uploaded.ok,uploaded.text);
    assert.equal((await request('/object/authenticated/hr-private/'+path,'GET',undefined,token)).ok,false,'quarantined bytes must not be readable');
    assert.equal((await rpcResult('hr_document_finish_v1',args,token)).ok,false,'unscanned finalize');
-   const env={ACTOR:actor,TENANT:tenant,UPLOAD:upload,USER_TOKEN:token,SERVICE_TOKEN:service,STORAGE:`http://${storage}:5000`,REST:`http://${rest}:3000`};
+   await rpc('hr_malware_enqueue_v1',args);
+   const env={WORKER:id(9650),ACTOR:actor,TENANT:tenant,UPLOAD:upload,SERVICE_TOKEN:service,STORAGE:`http://${storage}:5000`,REST:`http://${rest}:3000`};
    const result=JSON.parse(docker(['run','--rm','--name',sidecar,'--pid=container:'+daemon,'--network',network,'--entrypoint','node','-v',`${volume}:/run/bps-clam`,'-v',`${root}workers/hr-malware:/worker:ro`,'-v',`${evidence}:/evidence:ro`,...Object.entries(env).flatMap(([k,v])=>['-e',`${k}=${v}`]),'public.ecr.aws/supabase/storage-api@sha256:5a3ecdc67dbe9e88a56810b5b2f432f2d93708dcb4dc9de34e78e342b390eb4d','/evidence/storage-runner.mjs']));
+   assert.equal(sql(`SELECT state FROM hr_malware_jobs WHERE upload_id='${upload}'`),verdict==='clean'?'complete':'blocked');
    assert.equal(result.verdict,verdict);assert.equal(result.sha256,sha);assert.equal(sql(`SELECT verdict FROM hr_malware_scans WHERE upload_id='${upload}'`),verdict);
    const finished=await rpcResult('hr_document_finish_v1',args,token);assert.equal(finished.ok,verdict==='clean');
    const readable=await request('/object/authenticated/hr-private/'+path,'GET',undefined,token);assert.equal(readable.ok,verdict==='clean');
@@ -27,6 +29,6 @@ export async function accept({sql,rpcResult,request,id,jwt,service,docker,storag
    else {assert.equal(sql(`SELECT state FROM hr_document_uploads WHERE id='${upload}'`),'pending');assert.equal((await rpc('hr_document_shutdown_preflight_v1',{p_actor:actor,p_tenant:tenant})).blocking,true);}
    checks.push({file,verdict,quarantineBeforeScan:true,published:finished.ok,readableAfterScan:readable.ok});
   }
-  writeFileSync(new URL('./storage-result.json',import.meta.url),JSON.stringify({realStorageHttp:true,realPostgrest:true,realDatabase:true,realClamav:true,realWorkerAdapters:true,syntheticOnly:true,productionReady:false,checks},null,2)+'\n');return ['Real Storage → measured ClamAV → guarded report → finalize: clean publishes once; encrypted/limit stay quarantined and block closure'];
+  writeFileSync(new URL('./storage-result.json',import.meta.url),JSON.stringify({realStorageHttp:true,realPostgrest:true,realDatabase:true,realClamav:true,realWorkerAdapters:true,leasedExecution:true,userJwtPassedToWorker:false,syntheticOnly:true,productionReady:false,checks},null,2)+'\n');return ['Real Storage → measured ClamAV → guarded report → finalize: clean publishes once; encrypted/limit stay quarantined and block closure'];
  }finally{for(const name of [sidecar,daemon])try{docker(['rm','-f',name]);}catch{}docker(['volume','rm',volume]);}
 }

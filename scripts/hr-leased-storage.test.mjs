@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createLeasedHrScanAdapters} from '../workers/hr-malware/leased-storage.mjs';
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const claim={schemaVersion:1,actorId:id(1),tenantId:id(2),uploadId:id(3),leaseToken:id(4)};
+function setup(state='complete'){const calls=[];const service={rpc:(name,args)=>({abortSignal:async()=>{calls.push({name,args});return {error:null,data:name==='hr_malware_context_v1'?{schemaVersion:1,actorId:id(1),tenantId:id(2),id:id(3),state:'pending',path:`${id(2)}/${id(3)}.pdf`,objectId:id(6),objectVersion:'v1',size:5,sha256:'a'.repeat(64)}:{schemaVersion:1,uploadId:id(3),state}};}})};return {calls,options:{claim,worker:id(5),service,storageOrigin:'http://127.0.0.1',serviceKey:'synthetic-only'}};}
+test('leased adapter uses only scoped context and complete RPCs without a user token',async()=>{const f=setup(),a=await createLeasedHrScanAdapters(f.options);await a.persist({...a.expected,verdict:'clean'});assert.ok(f.calls.every(c=>['hr_malware_context_v1','hr_malware_complete_v1'].includes(c.name)));for(const c of f.calls){assert.equal(c.args.p_lease,id(4));assert.equal(c.args.p_worker,id(5));assert.equal(c.args.p_tenant,id(2));assert.equal(c.args.p_upload,id(3));}});
+test('invalid completion receipt does not become successful persistence',async()=>{const f=setup('running'),a=await createLeasedHrScanAdapters(f.options);await assert.rejects(a.persist({...a.expected,verdict:'clean'}),/HR_SCAN_REPORT_UNCERTAIN/);});
+test('malformed claim is rejected before any RPC',async()=>{const f=setup();await assert.rejects(createLeasedHrScanAdapters({...f.options,claim:{...claim,leaseToken:'bad'}}),/HR_SCAN_LEASE/);assert.equal(f.calls.length,0);});
