@@ -1927,3 +1927,12 @@ qa/hr-quarantine-20261020/candidate.sql: RLS korumalı tarama kayıt tablosu, ö
 Aday gerçek geçici PostgreSQL'de yedi kabul grubundan geçti. Eksik, infected, stale, yanlış sürüm/tenant, kısmi, şifreli ve eski imza raporları yayını durdurdu. Pending nesne authenticated SELECT'te sıfır; temiz yayın sonrası bir. Tarama tablosuna anon/authenticated/service_role doğrudan erişemiyor. Test nesneleri sentetik SQL metadata; gerçek motor ve Storage HTTP testi henüz yok.
 
 Karar: worker ve server doğrulama yolu hazır olmadan supabase/migrations içine alınmaz. Mevcut kullanıcı oturumuyla pending readback bu taslakta bilerek kapanır; bu nedenle tek başına yayına uygun değildir. Sonraki paket: dar yetkili işçi okuma/raporlama protokolü ve gerçek ClamAV kabulü. Henüz tarama servisi, worker RPC veya production migration yok; üretim değişmedi.
+
+
+## 20 Ekim — ClamAV bağlantı katmanı
+
+workers/hr-malware/clamd.mjs özel Unix soketinden INSTREAM protokolüyle en çok 10 MiB dosyayı parçalı gönderir. Gönderilen baytlar çağırandan bağımsız kopyalanır. Mutlak zaman aşımı, bağlantı hatası, erken temiz yanıt, kesik/çoklu/bilinmeyen/aşırı uzun yanıt temiz sonuç üretmez. Zararlı bulgusu ayrı sonuçtur. TCP uç noktası kabul edilmez.
+
+Karar: bu katmanın clean sonucu tek başına yayına izin değildir. İmza güncelliği, motor yapılandırması (şifreli/limit nedeniyle atlanan içerik), nesne sürümü ve sahiplik ayrıca güvenilir işçide doğrulanmalı. Gerçek motor henüz kurulmadı; yedi test gerçek Unix soketi üstündeki sahte daemon ile protokol kabulüdür, antivirüs tespit başarısı değildir. Kaynak: https://docs.clamav.net/manual/Usage/ClamdProtocol.html.
+
+Doğrulama: 7 bağlantı testi, 867 uygulama testi ve TypeScript geçti. İlk genel test denemesi yeni iki test dosyası envantere eklenmediği için durdu; sınıflandırma tamamlandıktan sonra tüm 867 test geçti. Üretim yayını yapılmadı. Sıradaki kapanış işi: dar yetkili işçi okuma/raporlama akışı, gerçek motor ve uçtan uca karantina kabulü.

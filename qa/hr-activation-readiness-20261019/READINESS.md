@@ -74,7 +74,7 @@ Son ürün kodu kontrolü: 857 uygulama testi, TypeScript ve production build ge
 | Pilot aktivasyon sırası | Katalog hazırlığı, ayrı sunucu bayrakları, kullanım hakkı, teknik kabul ve şirket geçişinin tek şirket için hazırlanması | Her adımın ön koşulu ve sonucu kayıtlı; fixture SQL'i üretimde kullanılmaz |
 | Gerçek pilot kabulü | Onaylanan hesaplarla görünürlük/ret, izinli düzenleme, evrak ve operasyon kontrolleri | Hesap bazında sonuçlar; bekleyen dosya varken kapatma kontrolü |
 
-İlk iki karar bekleniyor. Gerçek hesaplara tahmini kapsam atanmaz. Karar beklerken geçmiş testleri yeniden koşturmak veya sırf ilerleme göstermek için kapsam eklemek yerine mevcut onaylı teknik eksikler ele alınır.
+Güncelleme (20 Ekim): kullanıcı teknik kararları gerekçeleriyle kaydederek öneriye göre ilerlemeyi onayladı. Sentetik pilot ve gerçek özel evrak öncesi ClamAV seçildi. Gerçek hesap kimlikleri henüz belirlenmedi; tahmini kişilere kapsam atanmaz. Aşağıdaki karar kaydı eski PDF tercih bekleme maddesinin yerini alır.
 
 ## Tekrar kurulumu
 
@@ -101,3 +101,12 @@ Kullanıcı öneriye göre ilerlemeyi ve kararların gerekçeleriyle kayıt alt�
 Kaynaklar: https://docs.clamav.net/manual/Usage/Scanning.html ve https://docs.clamav.net/manual/Usage/SignatureManagement.html (20 Ekim incelemesi). Belgelerde dosya limiti nedeniyle atlanan dosyaların temiz varsayılabilmesi özellikle ele alındı; işçi limit/şifreli içerik durumlarını temiz rapora dönüştürmemeli.
 
 Karantina veri katmanı adayı: ../hr-quarantine-20261020/candidate.sql ve result.json. Yedi geçici PostgreSQL grubu geçti. Normal pending okumayı kapattığı için mevcut server readback akışıyla uyumsuzdur; işçi entegrasyonu bitmeden migration zincirine alınmaz. Gerçek antivirüs motoru henüz kurulu değildir.
+
+
+## 20 Ekim — ClamAV bağlantı katmanı
+
+workers/hr-malware/clamd.mjs özel Unix soketinden INSTREAM protokolüyle en çok 10 MiB dosyayı parçalı gönderir. Gönderilen baytlar çağırandan bağımsız kopyalanır. Mutlak zaman aşımı, bağlantı hatası, erken temiz yanıt, kesik/çoklu/bilinmeyen/aşırı uzun yanıt temiz sonuç üretmez. Zararlı bulgusu ayrı sonuçtur. TCP uç noktası kabul edilmez.
+
+Karar: bu katmanın clean sonucu tek başına yayına izin değildir. İmza güncelliği, motor yapılandırması (şifreli/limit nedeniyle atlanan içerik), nesne sürümü ve sahiplik ayrıca güvenilir işçide doğrulanmalı. Gerçek motor henüz kurulmadı; yedi test gerçek Unix soketi üstündeki sahte daemon ile protokol kabulüdür, antivirüs tespit başarısı değildir. Kaynak: https://docs.clamav.net/manual/Usage/ClamdProtocol.html.
+
+Doğrulama: 7 bağlantı testi, 867 uygulama testi ve TypeScript geçti. İlk genel test denemesi yeni iki test dosyası envantere eklenmediği için durdu; sınıflandırma tamamlandıktan sonra tüm 867 test geçti. Üretim yayını yapılmadı. Sıradaki kapanış işi: dar yetkili işçi okuma/raporlama akışı, gerçek motor ve uçtan uca karantina kabulü.

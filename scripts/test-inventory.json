@@ -768,5 +768,13 @@
   {
     "file": "scripts/auth-resolution-deadline.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-clamd.test.mjs",
+    "suite": "application"
+  },
+  {
+    "file": "scripts/hr-malware-verdict.test.mjs",
+    "suite": "application"
   }
 ]
