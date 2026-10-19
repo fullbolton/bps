@@ -1691,3 +1691,14 @@ Erişim: yönetici şirket erişimi; legacy İK okuma; scoped kullanıcıda hr.e
 6 geçici PostgreSQL kabul grubu: sayfalama/süre/path gizleme, legacy rol sınırları, scoped çift izin, departman ve explicit deny, doğrudan tablo/helper erişimi, tenant/kapalı modül. 3 gerçek kaynak istemci grubu ve TypeScript geçti. Statik 0 hata/1 yeni migration uyarısı; diff temiz. Kanıt hr-private-documents-result.json ve hr-private-documents-client-result.json. Üretim değişmedi; son doğrulanmış 207 migration; 018–022 yerel/GitHub bekliyor.
 
 Kalan zorunlu paket: prepare/finalize defteri; dosya sahipliği ve gerçek içerik doğrulaması; iptal/kurtarma/temizleme; modül kapanış bağlantısı; yetkili süreli indirme; çalışan ekranı ve gerçek Storage/tarayıcı kabulü. Özel evrak ürünü tamamlandı veya kullanılabilir diye sunulmaz. Geçici SQL test verisi temizlendi; gerçek belge kullanılmadı.
+
+
+## 19 Ekim — İK özel evrak yükleme defteri ve istemci sözleşmesi (yerel)
+
+023 migration ile şirkete/çalışana/istihdama ve işlemi başlatan yöneticiye bağlı yükleme rezervasyonu eklendi. Aynı kimlik ve aynı içerik tekrarında mevcut sonuç döner; değişen içerik reddedilir, iptal edilmiş kayıt yeniden açılmaz. Bekleyenler yalnız kendi yöneticisine 50 satırlık sayfalarla döner; şirket/yönetici başına 100 bekleyen sınırı vardır. Boş rezervasyon güvenle iptal edilir; Storage nesnesi varsa kayıt pending kalır ve temizleme akışı zorunlu tutulur. Yazma komutlarında read-committed ve mevcut şirket/modül kilit sırası uygulanır.
+
+Gerçek TypeScript hizmeti rezervasyon makbuzunun bütün alanlarını gönderilen girdiye bağlar; şirket/kullanıcı/çalışan uyuşmazlığı, geçersiz tarih/boyut/hash, mükerrer veya sırasız sayfa ve yanlış iptal yanıtı reddedilir. RPC hatası başarıya çevrilmez. Bu hizmet henüz ekrana bağlı değildir; Storage bucket/policy veya gerçek dosya yüklemesi açılmadı.
+
+Doğrulama: 7 geçici PostgreSQL test grubu, 4 gerçek kaynak istemci grubu, TypeScript ve diff kontrolü geçti. Statik 0 hata/1 yeni migration uyarısı. Ek SQL kabulü gerçek Storage HTTP kabulü değildir: yalnız geçici DB'de sentetik nesne metadata'sı oluşturuldu; test DB'si tamamen kapatıldı, gerçek veri kullanılmadı. İlk genişletilmiş testte Storage doğrudan silme korumasına takılan fixture temizliği düzeltildi; son koşu başarılı. Kanıt hr-document-upload-result.json ve hr-document-upload-client-result.json.
+
+Sıradaki zorunlu işler: gerçek dosya sahipliği/içerik doğrulamalı finalize, nesneli iptal ve kurtarma, pending yüklemelerin modül kapatma ön kontrolüne bağlanması, süreli yetkili indirme, çalışan ekranı ve gerçek yerel Storage/tarayıcı kabulü. Bu parça özel evrak ürününü tamamlamaz. Üretime yayın yapılmadı; son doğrulanmış canlı 207 migration/İK kapalı, 018–023 geliştirme dalında bekliyor.

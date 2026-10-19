@@ -1,0 +1,10 @@
+{
+  "passed": 4,
+  "actualSource": true,
+  "checks": [
+    "Exact receipt binding and terminal states",
+    "Pending row shape, dates, pagination, duplicate and path exclusion",
+    "Cancel response binding",
+    "Prepare RPC errors never become success"
+  ]
+}
