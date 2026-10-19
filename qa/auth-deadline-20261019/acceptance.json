@@ -1,0 +1,24 @@
+{
+  "measuredAt": "2026-10-19T19:27:09.533Z",
+  "sourceCommit": "c2fbbf0",
+  "syntheticBrowser": true,
+  "realProvider": true,
+  "mockedBoundary": "Supabase browser client and profile reader only",
+  "browser": {
+    "initialLoading": true,
+    "timeoutMessage": true,
+    "retryButton": true,
+    "retryVerifiedCompany": true
+  },
+  "lateResponseRejection": "Five deterministic helper tests, including late identity after timeout; not separately timestamped in browser",
+  "applicationTests": 855,
+  "typecheck": true,
+  "static": {
+    "checks": 16,
+    "fail": 0,
+    "warn": 0
+  },
+  "productionBuild": true,
+  "buildLogSha256": "1f9f5d4873fa9a77ae578b1e6cd2bc64c743993d5002d8aba68f2db10d87ba35",
+  "productionDelayRootCauseIdentified": false
+}

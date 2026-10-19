@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-19T19:27:47.328Z",
+  "readOnly": true,
+  "rows": [
+    {
+      "migrations": 216,
+      "latest": "20261019002600",
+      "hr_enabled": 0,
+      "approved_hr": 0
+    }
+  ]
+}

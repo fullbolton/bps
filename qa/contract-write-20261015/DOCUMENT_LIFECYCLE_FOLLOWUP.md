@@ -1830,3 +1830,12 @@ Canlı smoke sırasında görülen ilk doğrulama beklemesinin kök nedeni kesin
 Arayüzde zaman aşımı için açık mesaj, Yeniden dene (sayfa yenileme) ve Şirket bağlantısını doğrula bağlantısı bulunur. Otomatik tekrar, yetki atlama veya gerçek veri değişikliği yok. Beş yeni gerçek helper testi: askıda ilk auth, askıda workspace ve yeni event ile toparlanma, eski deadline, background fail-closed, signout/dispose. Toplam 855 uygulama testi, TypeScript ve 16 statik kontrol (0 hata/uyarı) geçti.
 
 Değişiklik yereldir; canlı sürüm hâlâ 7363719 / 216 migration. Production build ve tarayıcıda zaman aşımı ekranının kabulü henüz yapılmadı. Canlı gecikmenin nedenini giderdiği iddia edilmez; süresiz beklemeye karşı koruma sağlar. Sonraki adım bu ekranın sentetik tarayıcı kabulü ve küçük uygulama yayını; İK açılmayacak.
+
+
+## 19 Ekim — Oturum doğrulama koruması canlıda
+
+c2fbbf0 kaynaklı zaman aşımı düzeltmesinin production build ve sentetik tarayıcı kabulü geçti. Gerçek AuthProvider ve çözümleme kodu, sahte Supabase oturum/profile sınırıyla çalıştırıldı: ilk bekleme → zaman aşımı mesajı → Yeniden dene → doğrulanmış sentetik erişim. Gecikmiş yanıt reddi beş deterministik helper testinde doğrulandı; tarayıcıda ayrıca zaman damgalı geç yanıt kanıtı toplanmadı. Fixture script qa/auth-deadline-20261019/browser.mjs tekrar kullanılabilir, geçici kaynaklar temizlenir ve üretim env kopyalanmaz.
+
+Vercel dpl_GjVfhqPRW6i7bTitncejtbfQkSRz READY sonrası promote edildi; www.bpsys.net eşleşmesi bağımsız inspect ile doğrulandı. Oturumlu canlı genel bakış ve şirket adı yüklendi; bekleme/zaman aşımı mesajı kalmadı. HR upload POST 404. Üretim salt okunur ön kontrolünde 216 migration/son 026 ve İK kapalı; bu pakette SQL yazımı ve HR aktivasyonu yok. 855 uygulama testi, TypeScript, statik ve build kanıtları acceptance.json; güncel yayın release.json.
+
+Bu koruma ilk gecikmenin nedenini çözdüğümüz anlamına gelmez. Sıradaki ürün işi kontrollü İK aktivasyonunun kabul şartlarını tamamlamak ve izin/satın alma onay akışlarına geçmektir.

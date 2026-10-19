@@ -1,0 +1,25 @@
+{
+  "releasedAt": "2026-10-19T19:29:38.417Z",
+  "sourceCommit": "c2fbbf0233b666b1a18b70a4a0a0054046db2bf3",
+  "deploymentId": "dpl_GjVfhqPRW6i7bTitncejtbfQkSRz",
+  "url": "https://bps-87mnqs9fk-furkanyahsi-1537s-projects.vercel.app",
+  "domain": "https://www.bpsys.net",
+  "readyState": "READY",
+  "domainVerified": true,
+  "migrationCount": 216,
+  "appliedMigrations": [],
+  "hrPreviewEnabled": false,
+  "hrActivated": false,
+  "rollbackDeployment": "dpl_71PNEthK8K91vYJ8baoorTMr7X6X",
+  "smoke": {
+    "authenticatedDashboard": true,
+    "companyVerified": true,
+    "notStuckLoading": true,
+    "noTimeoutOnNormalLogin": true,
+    "hrUpload404": true
+  },
+  "limitations": [
+    "Timeout/retry tested only in synthetic browser",
+    "Root cause of earlier production delay not established"
+  ]
+}
