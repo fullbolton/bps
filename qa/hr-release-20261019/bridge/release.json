@@ -1,0 +1,19 @@
+{
+  "releasedAt": "2026-10-19T17:28:51.168754+00:00",
+  "deploymentId": "dpl_HqsDv6dSm8tej9yeAEsqnEG9Tjib",
+  "url": "bps-ag2c7kr48-furkanyahsi-1537s-projects.vercel.app",
+  "domain": "https://www.bpsys.net",
+  "sourceBase": "6300bee0f0b52f4f63c95f7691e0d5c8f5b6c374",
+  "sourceManifest": "candidate.json",
+  "migration": "20261019000100",
+  "ledgerCount": 191,
+  "hrActivated": false,
+  "remainingMigrationCount": 16,
+  "browserSmoke": {
+    "authenticatedSettings": true,
+    "historyInitialLoad": true,
+    "historyRefresh": true,
+    "productionBusinessMutation": false
+  },
+  "processNote": "First verification query succeeded but evidence file write used wrong working directory. Shell continued promotion. Read-only verification immediately rerun and saved successfully after promotion; all expected invariants confirmed."
+}

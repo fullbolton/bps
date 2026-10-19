@@ -1,0 +1,17 @@
+{
+  "measuredAt": "2026-10-19T17:27:43.753469+00:00",
+  "project": "dffdzbmnmnokbftbujsy",
+  "readOnly": true,
+  "rows": [
+    {
+      "ledger_count": 191,
+      "latest_version": "20261019000100",
+      "history_reader": "workspace_module_history_v2(uuid,uuid)",
+      "authenticated_execute": true,
+      "anon_execute": false,
+      "upgraded_catalogs": 0,
+      "hr_settings": 0,
+      "release_barrier": null
+    }
+  ]
+}

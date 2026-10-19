@@ -26,3 +26,7 @@ Geçici bps_release_guard şeması yok, bps_release_write_guard sayısı 0. Bu �
 - Üretim yazımı/deploy/şirket aktivasyonu yok.
 
 Uyumluluk adayının yerel okuma/yazma tarayıcı kabulü ve anlık üretim yük/kilit ölçümü tamamlandı. Kalan: yayın anında ölçümleri tazeleme, kontrollü 001 + uyumlu uygulama yayını ve canlı smoke. Public dışı şemaların tam karşılaştırması ve gerçek veri klonlaması bu provanın kapsamı değildir.
+
+
+## Güncel yayın hedefi — 19 Ekim
+001 + uyumluluk uygulaması yayımlandı; canlı ledger 191. Doğrulanmış uyumlu dağıtım: dpl_HqsDv6dSm8tej9yeAEsqnEG9Tjib / bps-ag2c7kr48-furkanyahsi-1537s-projects.vercel.app. Geçmiş ilk okuma ve yenileme gerçek oturumda geçti. 002–017 henüz uygulanmadı. Önceki bölümlerdeki yayın bekliyor ifadeleri tarihsel kayıttır; güncel kanıt bridge/release.json.

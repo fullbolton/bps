@@ -1586,3 +1586,14 @@ Fixture'ın 29 Storage/Auth HTTP kontrolü geçti. Test sekmesi, sunucular ve di
 Gerçek yerel oturumda yazma flag'i açıkken Finansal özet ön kontrol/onay ile kapatılıp yeniden açıldı. Menü buna göre kaybolup geri geldi. Dört geçmiş kaydı (bootstrap, katalog yükseltmesi, kapatma, açma) görüldü; SQL tam iki settings olayı ve HR=false doğruladı. 29 fixture HTTP kontrolü geçti. Geçici sunucu/DB kapatıldı. Kanıt bridge/write-browser-result.json ve browser-write-roundtrip.png.
 
 Üretimde yalnız aggregate yük ölçümü: 19 Ekim 20:20:58 İstanbul saatinde bekleyen kilit/diğer aktif transaction 0. Üç hedef tablo toplam boyutları 48/24/32 KiB; satır tahmini -1 olduğundan satır sayısı bilinmiyor. Yayın anında tekrar ölçülmeli. Yerel okuma/yazma kabulü tamam; sıradaki operasyonel adım 001 + uyumluluk uygulaması kontrollü yayını ve canlı smoke. Bu tur production yazımı/deploy/gerçek şirket aktivasyonu yapılmadı.
+
+
+## 19 Ekim — Geçmiş uyumluluk paketi CANLIDA
+
+Yalnız 20261019000100 atomik DDL + migration ledger işlemiyle uygulandı; üretim kayıt sayısı 191. Canlı www.bpsys.net dağıtımı dpl_HqsDv6dSm8tej9yeAEsqnEG9Tjib (READY). Kaynak: 6300bee tabanı + bridge/candidate.json içindeki beş dosya; geliştirme dalının tamamı yayımlanmadı.
+
+Üretim doğrulaması: v2 geçmiş okuyucusu authenticated erişimine açık, anon erişimine kapalı; katalog 2 şirket sayısı 0, HR ayarı sayısı 0, geçici yayın bariyeri yok. Gerçek oturumla Ayarlar > Modüller ekranı, geçmiş ilk yükleme ve yenileme geçti. Canlı şirket ayarları değiştirilmedi. Yerel kabul: 11 SQL grup, 29 Storage/Auth HTTP kontrolü, okuma/yazma tarayıcı akışı ve production build; atomik kurulum/rollback/tekrar reddi 3 test. Kanıt: qa/hr-release-20261019/bridge/release.json ve production-verification.json.
+
+Süreç notu: İlk yayın sonrası kontrolün sonuç dosyası yanlış çalışma dizinine yazılamadı; shell promote işlemine devam etti. Kontrol doğru dizinde hemen tekrarlandı, beklenen tüm koşullar doğrulandı. Sonraki yayın komutları hata halinde kesin durmalı.
+
+Sıradaki sınır: kalan 16 SQL (002–017) için artık 191 kayıtlı canlı şema üstünden ön kontrol/prova; yeni uygulama ve İK kapalı teknik altyapı yayını. Bu uyumluluk dağıtımı katalog yükseltmesinden sonra uygulama geri dönüş hedefidir; gerçek İK aktivasyonundan sonra tek başına yeterli değildir. İK açma, satın alma/izin onayları ve özel roller tamamlanmış veya yayımlanmış sayılmaz.
