@@ -1,0 +1,16 @@
+{
+  "passed": 6,
+  "checks": [
+    "Enqueue retries produce one private job; browser cannot claim and service cannot bypass leased completion",
+    "Only one active claim; expired/reassigned and wrong-worker leases cannot report",
+    "Error backoff, clean retry, exact completion replay and one publication; conflicting replay rejected",
+    "Three crashed attempts exhaust retry budget; enqueue does not reset it",
+    "Infected result remains blocked and cleanup-requested upload is not claimed",
+    "Two concurrent database sessions obtain exactly one lease and one attempt; invalid report leaves running job without a scan"
+  ],
+  "syntheticOnly": true,
+  "actualDatabase": true,
+  "concurrentSessionsTested": true,
+  "candidateOnly": true,
+  "productionMigration": false
+}

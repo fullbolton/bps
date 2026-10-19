@@ -2015,3 +2015,14 @@ storage-result.json: temiz PDF tarama öncesi indirilemez/finalize edilemez; ba�
 Test geçici veritabanını, Storage/PostgREST/ClamAV/işçi konteynerlerini ve socket volume'ünü kaldırdı. İmza volume'ü sonraki ölçüm için korundu. Üretim hesabı/verisi kullanılmadı. Bu tur yalnız kabul araçları ve kanıtları değişti; genel uygulama testleri tekrar edilmedi.
 
 Karar: ClamAV ayrı yönetilen servis olarak kalır; Vercel upload route içinde Unix soketi veya kalıcı daemon varmış gibi entegrasyon yapılmayacak. Yükleme ekranına bağlamadan önce tarama işinin güvenilir teslimi/yeniden denemesi ve bekleyen durumun kullanıcıya gösterilmesi tamamlanmalı. Aday SQL hâlâ production migration zincirinde değil. Kalan: uygulama/ayrı işçi servis bağlantısı ve kullanıcı akışı; ardından güncel canlı şema ve yayın sırası kontrolü. Bu kabul productionReady anlamına gelmez, canlı antivirüs hâlâ aktif değil.
+
+
+## 20 Ekim — dayanıklı tarama kuyruğu SQL adayı
+
+qa/hr-quarantine-20261020/queue.sql eklendi; production migration değildir. Kullanıcı doğrulanmış pending dosyayı bir kez kuyruğa ekler. Tablo RLS ve doğrudan erişim kapalıdır. Servis işçiye 2 dakikalık rastgele lease verir; yalnız geçerli worker/lease sonuç kaydedebilir. Tarama raporu ve iş durumu aynı transaction içinde tamamlanır. Kuyruk adayı uygulandığında eski service_role doğrudan report yetkisi kaldırılır; lease kontrolü atlanamaz.
+
+Kararlar: en çok 3 deneme, hata sonucu sonrası 30 saniye bekleme. Çöken işçinin süresi bitince yeni lease üretilir; eski işçi sonuç gönderemez. Üçüncü çökme/hata failed olur, sıradan enqueue bütçeyi sıfırlamaz. Infected sonucu blocked olur. Tamamlanan isteğin birebir tekrarı aynı durum makbuzunu döndürür; farklı rapor çakışma hatasıdır. Kullanıcı JWT'si veya dosya içeriği kuyrukta saklanmaz. Temizleme istenmiş veya yayımlanmış yükleme yeniden alınmaz; eski iş kaydı denetim için kalır.
+
+queue-accept.mjs gerçek geçici PostgreSQL'de 6 grup geçti. İki ayrı eşzamanlı oturum tam bir lease ve bir attempt aldı. Süresi dolmuş/eski/yanlış işçi lease reddi, hatalı raporda atomik geri alma, backoff, üç deneme sınırı, tek tarama/tek yayın, aynı tamamlamanın tekrarı, çelişen rapor, infected ve cleanup kontrolleri geçti. Veritabanı test bitiminde kaldırıldı. Ürün TypeScript değişmedi; genel uygulama testleri tekrar edilmedi.
+
+Kalan: işçi runner'ın claim/complete API'sine geçmesi, kullanıcı oturumu saklamadan işçinin güncel kapsam kontrolü, API/UI bekleyen tarama akışı. Önceki storage-accept testi queue.sql uygulamaz; eski report yetkisiyle çalışır. Kuyruk entegrasyonu tamamlandığında birleşik kabul yeni lease akışıyla tekrar edilmelidir. Adaylar birlikte üretime hazır sayılmaz. Üretim değişmedi.

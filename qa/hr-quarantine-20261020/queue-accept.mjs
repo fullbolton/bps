@@ -1,0 +1,69 @@
+import {execFileSync,execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {readFileSync,writeFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {loadFixtureMigrations} from '../module-change-command-20261017/fixture-migrations.mjs';
+const server='supabase_db_bps-supabase-acceptance',db=`bps_hr_queue_${process.pid}`,id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const sql=(q,d=db)=>execFileSync('docker',['exec','-i',server,'psql','-X','-qAt','-U','postgres','-d',d,'-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim();
+let created=false;const checks=[];
+try{
+ sql(`CREATE DATABASE ${db} TEMPLATE bps_module_chain_20261005`,'postgres');created=true;
+ for(const f of loadFixtureMigrations())sql(readFileSync(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
+ sql(readFileSync(new URL('./candidate.sql',import.meta.url),'utf8'));
+ sql(readFileSync(new URL('./worker-report.sql',import.meta.url),'utf8'));
+ sql(readFileSync(new URL('./queue.sql',import.meta.url),'utf8'));
+ const auth=q=>JSON.parse(sql(`BEGIN;SET LOCAL request.jwt.claims='${JSON.stringify({sub:id(11),active_tenant_id:id(1),workspace_selection_version:sql(`SELECT version FROM workspace_selections WHERE user_id='${id(11)}'`),workspace_membership_version:sql(`SELECT version FROM tenant_memberships WHERE user_id='${id(11)}' AND tenant_id='${id(1)}'`)})}';SET LOCAL ROLE authenticated;SELECT ${q};COMMIT;`).split('\n').at(-1));
+ const fails=(fn,msg)=>assert.throws(fn,e=>String(e.stderr).includes(msg));
+ sql(`ALTER TABLE tenant_module_settings DISABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${id(1)}' AND module_key='hr';ALTER TABLE tenant_module_settings ENABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_entitlements SET granted=true WHERE tenant_id='${id(1)}' AND module_key='hr'`);
+ const make=(n,code)=>auth(`hr_create_record_v1('${id(11)}','${id(1)}','${id(n)}','${JSON.stringify({kind:'employee',name:'Synthetic HR',code,startsOn:'2026-01-01'})}')`).id;
+
+
+ const employee=make(9801,'UPLOAD');const period=sql(`SELECT id FROM hr_employment_periods WHERE employee_id='${employee}'`);
+ const prepare=(n=9810,title='Synthetic PDF')=>auth(`hr_document_prepare_v1('${id(11)}','${id(1)}','${id(n)}','${employee}','${period}','${title}',10,'${'a'.repeat(64)}')`);
+ const pending=()=>auth(`hr_document_pending_v1('${id(11)}','${id(1)}','${employee}')`);
+ const cancel=()=>auth(`hr_document_cancel_empty_v1('${id(11)}','${id(1)}','${id(9810)}')`);
+
+ const finish=()=>auth(`hr_document_finish_v1('${id(11)}','${id(1)}','${id(9810)}')`);
+ const attest=(size=10,sha='a'.repeat(64),version='synthetic-v1')=>sql(`BEGIN;SET LOCAL ROLE service_role;SET LOCAL request.jwt.claims='{"role":"service_role"}';SELECT hr_document_attest_v1('${id(1)}','${id(11)}','${id(9810)}','${id(9820)}','${version}',${size},'${sha}');COMMIT;`);
+ const worker=id(9901),other=id(9902);
+ const svc=q=>JSON.parse(sql(`BEGIN;SET LOCAL ROLE service_role;SET LOCAL request.jwt.claims='{"role":"service_role"}';SELECT ${q};COMMIT;`).split('\n').at(-1)||'null');
+ const enqueue=n=>auth(`hr_malware_enqueue_v1('${id(11)}','${id(1)}','${id(n)}')`);
+ const claim=()=>svc(`hr_malware_claim_v1('${id(1)}','${worker}')`);
+ const complete=(n,lease,report,w=worker)=>svc(`hr_malware_complete_v1('${id(1)}','${id(n)}','${w}','${lease}','${JSON.stringify(report)}')`);
+ const add=n=>{prepare(n);sql(`INSERT INTO storage.objects(id,bucket_id,name,owner_id,version,metadata) VALUES('${id(n+10)}','hr-private','${id(1)}/${id(n)}.pdf','${id(11)}','synthetic-v1','{"size":10,"mimetype":"application/pdf"}')`);};
+ const report=(n,verdict='clean')=>({schemaVersion:1,tenantId:id(1),uploadId:id(n),objectId:id(n+10),objectVersion:'synthetic-v1',sha256:'a'.repeat(64),size:10,policy:'hr-pdf-v1',engine:'clamav',engineVersion:'synthetic',signatureVersion:'synthetic',scannedAt:new Date().toISOString(),signaturesUpdatedAt:new Date().toISOString(),verdict,complete:true,encrypted:false,limitExceeded:false});
+ add(9810);assert.equal(enqueue(9810).state,'queued');enqueue(9810);assert.equal(sql('SELECT count(*) FROM hr_malware_jobs'),'1');
+ for(const role of ['anon','authenticated','service_role'])assert.equal(sql(`SELECT has_table_privilege('${role}','hr_malware_jobs','SELECT,INSERT,UPDATE')`),'f');
+ fails(()=>auth(`hr_malware_claim_v1('${id(1)}','${worker}')`),'permission denied');
+ assert.equal(sql("SELECT has_function_privilege('service_role','hr_malware_report_v1(uuid,uuid,uuid,jsonb)','EXECUTE')"),'f');
+ checks.push('Enqueue retries produce one private job; browser cannot claim and service cannot bypass leased completion');
+ const first=claim();assert.equal(first.attempt,1);assert.equal(claim(),null);
+ fails(()=>complete(9810,first.leaseToken,{...report(9810),objectVersion:'changed'}),'HR_UPLOAD_OBJECT');
+ assert.equal(sql('SELECT count(*) FROM hr_malware_scans'),'0');assert.equal(sql('SELECT state FROM hr_malware_jobs'),'running');
+ fails(()=>complete(9810,first.leaseToken,report(9810),other),'HR_SCAN_LEASE');
+ sql('UPDATE hr_malware_jobs SET lease_until=statement_timestamp()-interval \'1 second\'');
+ fails(()=>complete(9810,first.leaseToken,report(9810)),'HR_SCAN_LEASE');
+ const second=claim();assert.equal(second.attempt,2);assert.notEqual(second.leaseToken,first.leaseToken);
+ fails(()=>complete(9810,first.leaseToken,report(9810)),'HR_SCAN_LEASE');
+ checks.push('Only one active claim; expired/reassigned and wrong-worker leases cannot report');
+ const failed=report(9810,'error');assert.equal(complete(9810,second.leaseToken,failed).state,'queued');assert.equal(complete(9810,second.leaseToken,failed).state,'queued');assert.equal(claim(),null);
+ sql('UPDATE hr_malware_jobs SET available_at=statement_timestamp()-interval \'1 second\'');
+ const third=claim();assert.equal(third.attempt,3);const clean=report(9810);assert.equal(complete(9810,third.leaseToken,clean).state,'complete');assert.equal(complete(9810,third.leaseToken,clean).state,'complete');
+ fails(()=>complete(9810,third.leaseToken,{...clean,engineVersion:'changed'}),'HR_SCAN_REPLAY_CONFLICT');
+ assert.equal(sql('SELECT count(*) FROM hr_malware_scans'),'1');assert.equal(finish().state,'published');fails(()=>enqueue(9810),'HR_UPLOAD_UNAVAILABLE');
+ checks.push('Error backoff, clean retry, exact completion replay and one publication; conflicting replay rejected');
+ add(9811);enqueue(9811);
+ for(let n=1;n<=3;n++){assert.equal(claim().attempt,n);sql(`UPDATE hr_malware_jobs SET lease_until=statement_timestamp()-interval '1 second' WHERE upload_id='${id(9811)}'`);}
+ assert.equal(claim(),null);assert.equal(sql(`SELECT state FROM hr_malware_jobs WHERE upload_id='${id(9811)}'`),'failed');assert.equal(enqueue(9811).state,'failed');
+ checks.push('Three crashed attempts exhaust retry budget; enqueue does not reset it');
+ add(9812);enqueue(9812);const infected=claim();assert.equal(complete(9812,infected.leaseToken,report(9812,'infected')).state,'blocked');assert.equal(claim(),null);
+ fails(()=>auth(`hr_document_finish_v1('${id(11)}','${id(1)}','${id(9812)}')`),'HR_SCAN_NOT_CLEAN');
+ add(9813);enqueue(9813);auth(`hr_document_cancel_request_v1('${id(11)}','${id(1)}','${id(9813)}')`);assert.equal(claim(),null);
+ checks.push('Infected result remains blocked and cleanup-requested upload is not claimed');
+ add(9814);enqueue(9814);
+ const concurrent=async w=>{const input=`BEGIN;SET LOCAL ROLE service_role;SET LOCAL request.jwt.claims='{"role":"service_role"}';SELECT hr_malware_claim_v1('${id(1)}','${w}');SELECT pg_sleep(0.2);COMMIT;`;
+ const {stdout}=await promisify(execFile)('docker',['exec',server,'psql','-X','-qAt','-U','postgres','-d',db,'-v','ON_ERROR_STOP=1','-c',input],{encoding:'utf8'});return stdout.trim()?JSON.parse(stdout.trim()):null;};
+ const winners=await Promise.all([concurrent(worker),concurrent(other)]);assert.equal(winners.filter(Boolean).length,1);assert.equal(winners.find(Boolean).attempt,1);assert.equal(sql(`SELECT attempts FROM hr_malware_jobs WHERE upload_id='${id(9814)}'`),'1');
+ checks.push('Two concurrent database sessions obtain exactly one lease and one attempt; invalid report leaves running job without a scan');
+ writeFileSync(new URL('./queue-result.json',import.meta.url),JSON.stringify({passed:checks.length,checks,syntheticOnly:true,actualDatabase:true,concurrentSessionsTested:true,candidateOnly:true,productionMigration:false},null,2)+'\n');console.log('PASS',checks.length,'queue groups');
+}finally{if(created)sql(`DROP DATABASE ${db} WITH (FORCE)`,'postgres');}
