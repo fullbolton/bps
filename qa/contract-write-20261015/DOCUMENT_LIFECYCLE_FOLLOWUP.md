@@ -1702,3 +1702,16 @@ Gerçek TypeScript hizmeti rezervasyon makbuzunun bütün alanlarını gönderil
 Doğrulama: 7 geçici PostgreSQL test grubu, 4 gerçek kaynak istemci grubu, TypeScript ve diff kontrolü geçti. Statik 0 hata/1 yeni migration uyarısı. Ek SQL kabulü gerçek Storage HTTP kabulü değildir: yalnız geçici DB'de sentetik nesne metadata'sı oluşturuldu; test DB'si tamamen kapatıldı, gerçek veri kullanılmadı. İlk genişletilmiş testte Storage doğrudan silme korumasına takılan fixture temizliği düzeltildi; son koşu başarılı. Kanıt hr-document-upload-result.json ve hr-document-upload-client-result.json.
 
 Sıradaki zorunlu işler: gerçek dosya sahipliği/içerik doğrulamalı finalize, nesneli iptal ve kurtarma, pending yüklemelerin modül kapatma ön kontrolüne bağlanması, süreli yetkili indirme, çalışan ekranı ve gerçek yerel Storage/tarayıcı kabulü. Bu parça özel evrak ürününü tamamlamaz. Üretime yayın yapılmadı; son doğrulanmış canlı 207 migration/İK kapalı, 018–023 geliştirme dalında bekliyor.
+
+
+## 19 Ekim — Özel İK evrak paneli ve modül kapanış engeli
+
+Çalışan listesinin masaüstü/mobil satırlarına Evraklar eylemi ve ayrı yetkili panel bağlandı. Panel belge başlığı/geçerlilik/süre dolumunu sayfalı getirir; yönetici yalnız kendi bekleyen yüklemelerini görür. Boş yükleme iptalinde aynı kimlik korunur; belirsiz sonuçta yeni işlem ve kapatma engellenir, aynı iptal tekrarlanır. Dosya mevcut veya yayımlanmışsa ayrı anlaşılır mesaj gösterilir. Panel açıkken diğer çalışan formları ve sayfalama kilitlenir. Gerçek dosya yükleme/indirme düğmesi henüz eklenmedi.
+
+024 migration yöneticiye şirketin bekleyen İK yükleme sayısını veren salt okunur preflight sağlar. İK modülü enabled=false veya kullanım hakkı granted=false yapılırken pending kayıt varsa veritabanı trigger'ı HR_UPLOADS_PENDING ile reddeder; prepare ile aynı şirket modül kilidi kullanılır. Bu, gelecekteki HR kapatma yazıcısı için de alt katman korumasıdır. Mevcut v1 modül ekranı HR açma/kapatma sunmadığından bu tur o ekranın ön kontrol listesine HR satırı eklendi diye değerlendirilmez. HR aktivasyon yasağı korunur.
+
+Doğrulama: 8 PostgreSQL yükleme/kapama grubu; 4 gerçek kaynak istemci grubu; 849 mevcut uygulama testi; TypeScript ve statik kontrol (0 hata, yeni migration uyarısı). Gerçek yerel tarayıcıda sentetik süresi dolmuş metadata gösterildi, boş yükleme iptal edildi ve DB state=cancelled doğrulandı. 390x844 mobil görünümde scrollWidth=390. Kanıt hr-documents-browser-result.json ve hr-documents-mobile.png. Test sekmesi, viewport, geçici servisler ve test DB temizlendi. Dosya transferi/gerçek içerik kabulü bu testin kapsamı değildir.
+
+Özel evrakın kalan zorunlu sınırı: güvenilir sunucu doğrulamasına bağlı finalize (doğrudan istemci RPC'siyle atlanamayacak), immutable Storage sahipliği, nesneli iptal/temizleme, süreli indirme ve gerçek baytlarla kabul. Bunlar tamamlanmadan yükleme açılmayacak. Üretim yayını yapılmadı; son doğrulanmış canlı 207 migration/İK kapalı. 018–024 ve ekranlar geliştirme dalında kalır.
+
+Son doğrulama: sentetik ortamla production build de başarıyla tamamlandı.

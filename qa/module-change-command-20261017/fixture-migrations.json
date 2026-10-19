@@ -51,5 +51,6 @@
   "20261019002000_hr_import_preview.sql",
   "20261019002100_hr_import_commit.sql",
   "20261019002200_hr_private_document_boundary.sql",
-  "20261019002300_hr_document_upload_ledger.sql"
+  "20261019002300_hr_document_upload_ledger.sql",
+  "20261019002400_hr_upload_shutdown_guard.sql"
 ]

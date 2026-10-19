@@ -34,7 +34,16 @@ try{
  assert.equal(new Set([...first.uploads,...second.uploads].map(x=>x.id)).size,100);
  fails(()=>prepare(10001),'HR_UPLOAD_LIMIT');assert.equal(prepare(9813).state,'pending');
  checks.push('100 pending limit with exact replay and lossless two-page listing');
+ const preflight=()=>auth(`hr_document_shutdown_preflight_v1('${id(11)}','${id(1)}')`);
+ assert.equal(preflight().pendingUploads,100);assert.equal(preflight().blocking,true);
+ fails(()=>sql(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='hr'`),'HR_UPLOADS_PENDING');
+ fails(()=>sql(`UPDATE tenant_module_entitlements SET granted=false WHERE tenant_id='${id(1)}' AND module_key='hr'`),'HR_UPLOADS_PENDING');
+ assert.equal(sql(`SELECT enabled FROM tenant_module_settings WHERE tenant_id='${id(1)}' AND module_key='hr'`),'t');
+ checks.push('Shutdown preflight counts pending; disabling module or entitlement is rejected');
  sql(`UPDATE tenant_memberships SET role='ik' WHERE user_id='${id(11)}' AND tenant_id='${id(1)}'`);fails(()=>prepare(9812),'HR_MANAGER_REQUIRED');fails(pending,'HR_MANAGER_REQUIRED');sql(`UPDATE tenant_memberships SET role='yonetici' WHERE user_id='${id(11)}' AND tenant_id='${id(1)}'`);
+ // Synthetic fixture only: terminalize reservations to exercise the no-pending branch.
+ sql(`UPDATE hr_document_uploads SET state='cancelled' WHERE tenant_id='${id(1)}'`);
+ assert.equal(preflight().blocking,false);
  sql(`UPDATE tenant_module_settings SET enabled=false WHERE tenant_id='${id(1)}' AND module_key='hr'`);fails(()=>prepare(),'HR_MODULE_CLOSED');checks.push('Read-only HR role and closed module cannot prepare/list/replay');
  assert.equal(sql("SELECT has_table_privilege('authenticated','hr_document_uploads','SELECT')"),'f');checks.push('Ledger private; Storage remains disabled');
  writeFileSync(new URL('./hr-document-upload-result.json',import.meta.url),JSON.stringify({passed:checks.length,checks,syntheticOnly:true},null,2)+'\n');console.log('PASS',checks.length,'HR upload ledger groups');

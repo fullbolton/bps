@@ -1,11 +1,12 @@
 {
-  "passed": 7,
+  "passed": 8,
   "checks": [
     "Reservation is idempotent; payload change rejected; owner can list pending",
     "Empty cancel is idempotent and cannot resurrect upload",
     "Title validation and exact employment binding",
     "Existing synthetic object prevents cancellation and retains pending receipt",
     "100 pending limit with exact replay and lossless two-page listing",
+    "Shutdown preflight counts pending; disabling module or entitlement is rejected",
     "Read-only HR role and closed module cannot prepare/list/replay",
     "Ledger private; Storage remains disabled"
   ],

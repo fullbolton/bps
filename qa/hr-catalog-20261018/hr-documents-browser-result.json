@@ -1,0 +1,13 @@
+{
+  "syntheticOnly": true,
+  "environment": "Local Next + Auth/PostgREST/Storage fixture",
+  "documentMetadata": "expired document shown",
+  "emptyCancel": "UI success and database state cancelled",
+  "mutualExclusion": "create/import hidden and employee actions disabled while panel open",
+  "mobile": {
+    "width": 390,
+    "scrollWidth": 390
+  },
+  "realFileTransferTested": false,
+  "fixtureCleaned": true
+}

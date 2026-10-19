@@ -1396,6 +1396,7 @@ export interface Database {
       hr_access_activate_v1: { Args: { p_actor: string; p_tenant: string; p_command: string; p_token: string }; Returns: Json }
       hr_location_transfer_options_v1: {Args: {p_actor:string;p_tenant:string;p_employee:string;p_after?:string};Returns:Json;};
       hr_scoped_location_transfer_v1: {Args: {p_actor:string;p_tenant:string;p_command:string;p_revision:number;p_payload:Json};Returns:Json;};
+      hr_document_shutdown_preflight_v1: {Args: {p_actor: string; p_tenant: string}; Returns: Json;};
       hr_document_prepare_v1: {Args: {p_actor: string; p_tenant: string; p_id: string; p_employee: string; p_employment: string; p_title: string; p_size: number; p_sha256: string; p_validity?: string}; Returns: Json;};
       hr_document_pending_v1: {Args: {p_actor: string; p_tenant: string; p_employee: string; p_after?: string}; Returns: Json;};
       hr_document_cancel_empty_v1: {Args: {p_actor: string; p_tenant: string; p_id: string}; Returns: Json;};
