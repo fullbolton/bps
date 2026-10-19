@@ -2048,3 +2048,12 @@ hr_malware_status_v1 aday RPC'si yalnız mevcut yetkili yükleme sahibine durum 
 Kanıt: 891/891 uygulama testi, 8 gerçek geçici PostgreSQL kuyruk test grubu ve TypeScript denetimi geçti. Rol geri alma, yanlış yükleme, süre aşımı ve lease bilgilerinin dışarı çıkmaması doğrulandı. Gerçek ClamAV/Storage birleşik testi bu değişiklikte tekrar çalıştırılmadı; önceki kanıt ayrı tutuldu.
 
 Karar: süresi geçmiş temiz sonucu otomatik yeniden kuyruğa almıyoruz; yeniden tarama için açık, sınırlı ve idempotent işlem tasarlanmalı. Failed/blocked sonuç sıradan enqueue ile temizlenmez veya deneme bütçesi sıfırlanmaz. Sonraki paket yeniden tarama sözleşmesi ve ardından asenkron upload API/UI bağlantısıdır. Kalıcı işçi dağıtımı, production migration ve canlı antivirüs aktivasyonu yapılmadı.
+
+
+## 20 Ekim — sınırlı ve idempotent yeniden tarama
+
+Aday hr_malware_rescan_v1 yalnız pending yüklemenin yetkili sahibine, tamamlanmış temiz fakat süresi geçmiş sonuç için yeniden tarama verir. Güncel doğrulama bağlamı her çağrıda kontrol edilir. İstek UUID'si kuyrukta tutulur; aynı isteğin queued/running/complete aşamalarındaki tekrarı yeni iş veya deneme oluşturmaz. Yeni taramada eski lease iptal edilir. Toplam deneme sayısı sıfırlanmaz: yükleme ömrü boyunca en çok 3. Engellenmiş/başarısız iş, hâlâ güncel temiz sonuç veya bütçesi bitmiş sonuç yeni isteği reddeder. İstemci durum modeli yalnız expired ve 1–2 denemeli sonuçta canRescan verir; sunucu kontrolünün yerine geçmez.
+
+Karar: güvenlik kontrolünü aşabilen genel “tekrar dene” yerine yalnız eski temiz sonuç yenilenebilir. Üç hakkı dolan yüklemenin kullanıcı akışı ayrıca açıklanmalı; otomatik sonsuz tekrar yok. Aynı istek kimliği istemci tarafından tekrar gönderimde korunmalı. Bu sözleşme henüz upload API/UI'ye bağlanmadı.
+
+Kanıt: 892/892 uygulama testi, 9 gerçek geçici PostgreSQL test grubu, TypeScript ve diff kontrolü geçti. Yenileme sırasında eski lease reddi, isteğin üç aşamada tekrarı, yeni sonuçtan sonra eski isteğin iş başlatmaması, fresh/blocked/failed retleri ve toplam üç hak sınırı test edildi. ClamAV/Storage birleşik kabul bu SQL ve durum modeli paketinde tekrar edilmedi. Production migration, dağıtım veya canlı tarama aktivasyonu yapılmadı. Sonraki iş: asenkron upload API/UI ve kalıcı worker işletimi.

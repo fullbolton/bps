@@ -7,6 +7,7 @@ CREATE TABLE public.hr_malware_jobs (
  attempts integer NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 3),
  available_at timestamptz NOT NULL DEFAULT statement_timestamp(),
  lease_token uuid,worker_id uuid,lease_until timestamptz,
+ rescan_request uuid,
  completed_report jsonb
 );
 ALTER TABLE public.hr_malware_jobs ENABLE ROW LEVEL SECURITY;
@@ -125,4 +126,30 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.hr_malware_status_v1(uuid,uuid,uuid) FROM PUBLIC,anon,service_role;
 GRANT EXECUTE ON FUNCTION public.hr_malware_status_v1(uuid,uuid,uuid) TO authenticated;
+
+-- Explicit rescan retains the upload's lifetime attempt budget.
+CREATE FUNCTION public.hr_malware_rescan_v1(p_actor uuid,p_tenant uuid,p_upload uuid,p_request uuid) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path='' SET lock_timeout='5s' AS $$
+DECLARE context jsonb;job public.hr_malware_jobs;scan public.hr_malware_scans;stamp timestamptz:=statement_timestamp();
+BEGIN
+ IF current_setting('transaction_isolation')<>'read committed' THEN RAISE EXCEPTION 'ACCESS_ISOLATION';END IF;
+ IF p_request IS NULL THEN RAISE EXCEPTION 'HR_SCAN_REQUEST';END IF;
+ PERFORM 1 FROM public.tenant_module_config WHERE tenant_id=p_tenant FOR UPDATE;
+ context:=public.hr_document_verification_context_v1(p_actor,p_tenant,p_upload);
+ SELECT * INTO job FROM public.hr_malware_jobs WHERE upload_id=p_upload FOR UPDATE;
+ IF NOT FOUND OR job.tenant_id IS DISTINCT FROM p_tenant OR job.actor_id IS DISTINCT FROM p_actor THEN RAISE EXCEPTION 'HR_SCAN_BINDING';END IF;
+ IF job.rescan_request IS DISTINCT FROM p_request THEN
+  IF job.state<>'complete' THEN RAISE EXCEPTION 'HR_SCAN_RETRY_UNAVAILABLE';END IF;
+  IF job.attempts>=3 THEN RAISE EXCEPTION 'HR_SCAN_ATTEMPTS_EXHAUSTED';END IF;
+  SELECT * INTO scan FROM public.hr_malware_scans WHERE upload_id=p_upload FOR SHARE;
+  IF NOT FOUND OR scan.verdict<>'clean' OR NOT scan.complete OR scan.encrypted OR scan.limit_exceeded THEN RAISE EXCEPTION 'HR_SCAN_NOT_CLEAN';END IF;
+  IF scan.scanned_at>=stamp-interval '5 minutes' AND scan.signatures_updated_at>=stamp-interval '24 hours' THEN RAISE EXCEPTION 'HR_SCAN_STILL_FRESH';END IF;
+  UPDATE public.hr_malware_jobs SET state='queued',available_at=stamp,lease_token=NULL,worker_id=NULL,lease_until=NULL,completed_report=NULL,rescan_request=p_request
+  WHERE upload_id=p_upload RETURNING * INTO job;
+ END IF;
+ RETURN jsonb_build_object('schemaVersion',1,'uploadId',p_upload,'state',job.state,'attempts',job.attempts);
+END $$;
+REVOKE ALL ON FUNCTION public.hr_malware_rescan_v1(uuid,uuid,uuid,uuid) FROM PUBLIC,anon,service_role;
+GRANT EXECUTE ON FUNCTION public.hr_malware_rescan_v1(uuid,uuid,uuid,uuid) TO authenticated;
+
 COMMIT;

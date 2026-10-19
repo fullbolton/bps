@@ -1,5 +1,5 @@
 {
-  "passed": 8,
+  "passed": 9,
   "checks": [
     "Enqueue retries produce one private job; browser cannot claim and service cannot bypass leased completion",
     "Leased context and completion recheck live manager role; pending jobs block entitlement removal and cleanup denies object context without a user JWT",
@@ -8,6 +8,7 @@
     "Three crashed attempts exhaust retry budget; enqueue does not reset it",
     "User status respects live permissions, exact scope, freshness and lifecycle; no worker or lease fields exposed",
     "Infected result remains blocked and cleanup-requested upload is not claimed",
+    "Expired clean rescan is idempotent through queue, lease and completion; old lease rejected and lifetime three-attempt budget preserved; blocked/failed cannot reset",
     "Two concurrent database sessions obtain exactly one lease and one attempt; invalid report leaves running job without a scan"
   ],
   "syntheticOnly": true,

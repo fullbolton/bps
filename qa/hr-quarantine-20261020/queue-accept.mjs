@@ -82,6 +82,21 @@ try{
  assert.equal(status(9812).status,'blocked');assert.equal(status(9813).status,'cancelling');
  checks.push('User status respects live permissions, exact scope, freshness and lifecycle; no worker or lease fields exposed');
  checks.push('Infected result remains blocked and cleanup-requested upload is not claimed');
+
+ const rescan=(n,request)=>auth(`hr_malware_rescan_v1('${id(11)}','${id(1)}','${id(n)}','${id(request)}')`);
+ fails(()=>rescan(9812,9950),'HR_SCAN_RETRY_UNAVAILABLE');fails(()=>rescan(9811,9950),'HR_SCAN_RETRY_UNAVAILABLE');
+ add(9815);enqueue(9815);const initial=claim();complete(9815,initial.leaseToken,report(9815));
+ fails(()=>rescan(9815,9950),'HR_SCAN_STILL_FRESH');
+ const age=()=>sql(`UPDATE hr_malware_scans SET scanned_at=statement_timestamp()-interval '6 minutes' WHERE upload_id='${id(9815)}'`);
+ age();assert.equal(rescan(9815,9950).state,'queued');assert.equal(rescan(9815,9950).attempts,1);
+ fails(()=>rescan(9815,9951),'HR_SCAN_RETRY_UNAVAILABLE');
+ const again=claim();assert.equal(again.attempt,2);assert.equal(rescan(9815,9950).state,'running');
+ fails(()=>complete(9815,initial.leaseToken,report(9815)),'HR_SCAN_LEASE');
+ complete(9815,again.leaseToken,report(9815));assert.equal(rescan(9815,9950).state,'complete');assert.equal(status(9815).status,'ready');
+ age();rescan(9815,9951);const last=claim();assert.equal(last.attempt,3);complete(9815,last.leaseToken,report(9815));age();
+ fails(()=>rescan(9815,9952),'HR_SCAN_ATTEMPTS_EXHAUSTED');
+ assert.equal(sql(`SELECT attempts FROM hr_malware_jobs WHERE upload_id='${id(9815)}'`),'3');
+ checks.push('Expired clean rescan is idempotent through queue, lease and completion; old lease rejected and lifetime three-attempt budget preserved; blocked/failed cannot reset');
  add(9814);enqueue(9814);
  const concurrent=async w=>{const input=`BEGIN;SET LOCAL ROLE service_role;SET LOCAL request.jwt.claims='{"role":"service_role"}';SELECT hr_malware_claim_v1('${id(1)}','${w}');SELECT pg_sleep(0.2);COMMIT;`;
  const {stdout}=await promisify(execFile)('docker',['exec',server,'psql','-X','-qAt','-U','postgres','-d',db,'-v','ON_ERROR_STOP=1','-c',input],{encoding:'utf8'});return stdout.trim()?JSON.parse(stdout.trim()):null;};
