@@ -748,5 +748,9 @@
   {
     "file": "scripts/hr-scoped-create.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-scoped-transfer.test.mjs",
+    "suite": "application"
   }
 ]

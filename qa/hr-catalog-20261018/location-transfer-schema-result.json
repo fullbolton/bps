@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-19T11:55:26.474Z",
+  "checks": [
+    "Source-only, destination-only, read-only and explicit destination deny cannot move an employee",
+    "Stale policy/row, unchanged location and injected insert failure leave the original assignment unchanged",
+    "Concurrent retry creates one transfer with contiguous history, same receipt and current directory visibility",
+    "New command on ended source, same-day transfer, revoked destination access and module revocation are denied"
+  ],
+  "deployed": false,
+  "clientExecuteGranted": false
+}
