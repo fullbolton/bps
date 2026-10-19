@@ -1821,3 +1821,12 @@ Güncel üretim salt okunur ön kontrolü ve eşlenmiş yerel kurulum geçti. Do
 İlk açılışta şirket doğrulaması uzun süre bekledi; mevcut oturum yenilendikten sonra şirket adı ve sayfalar yüklendi. Kalıcı başarısızlık görülmedi, fakat sebep/gecikme ölçümü yapılmadığı için ayrı takip maddesi bırakıldı. Bunu düzeltilmiş performans sorunu olarak sunmuyoruz. Kanıt documents/production-installation.json, production-postflight.json, live-http-smoke.json ve release.json. Önceki aday/hazırlık kayıtları tarihseldir; güncel canlı yayın kaydı release.json.
 
 Sıradaki işler: şirket doğrulama beklemesini ölçmek ve sınırlamak; İK kontrollü aktivasyon kabul planı; ardından onaylanmış izin ve satın alma yönetici onay akışları. Otomatik dal yayını kapalı kalır.
+
+
+## 19 Ekim — Şirket doğrulamasına üst süre sınırı
+
+Canlı smoke sırasında görülen ilk doğrulama beklemesinin kök nedeni kesinleşmedi. Kod incelemesinde current_workspace_context için 12 saniye abort olmasına rağmen ilk auth.getUser ve birleşik çözümleme için üst sınır olmadığı görüldü. createAuthResolution içine 20 saniyelik deneme süresi eklendi; başlangıç, auth event ve arka plan yeniden doğrulaması kapsanır. Süre dolunca erişim kapatılır, geç gelen sonuç sequence ile reddedilir. Başarı, yeni olay ve dispose eski zamanlayıcıyı temizler. Bu JavaScript zamanlayıcısıdır; tarayıcının askıya aldığı sekmede gerçek duvar saati garantisi değildir.
+
+Arayüzde zaman aşımı için açık mesaj, Yeniden dene (sayfa yenileme) ve Şirket bağlantısını doğrula bağlantısı bulunur. Otomatik tekrar, yetki atlama veya gerçek veri değişikliği yok. Beş yeni gerçek helper testi: askıda ilk auth, askıda workspace ve yeni event ile toparlanma, eski deadline, background fail-closed, signout/dispose. Toplam 855 uygulama testi, TypeScript ve 16 statik kontrol (0 hata/uyarı) geçti.
+
+Değişiklik yereldir; canlı sürüm hâlâ 7363719 / 216 migration. Production build ve tarayıcıda zaman aşımı ekranının kabulü henüz yapılmadı. Canlı gecikmenin nedenini giderdiği iddia edilmez; süresiz beklemeye karşı koruma sağlar. Sonraki adım bu ekranın sentetik tarayıcı kabulü ve küçük uygulama yayını; İK açılmayacak.

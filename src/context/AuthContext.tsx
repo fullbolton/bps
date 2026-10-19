@@ -74,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [generation, setGeneration] = useState<string>("pending");
   const [workspaceChanged,setWorkspaceChanged]=useState(false);
+  const [verificationTimedOut, setVerificationTimedOut] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -85,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setRole("goruntuleyici");
         setLoading(true);
+        setVerificationTimedOut(false);
       },
       resolve: async nextUser => {
         if(!nextUser)return {user:null,role:'goruntuleyici'};
@@ -94,7 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if(process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&!generation)return {user:null,role:'goruntuleyici'};
         return {...access,generation:generation??undefined};
       },
+      timedOut: () => setVerificationTimedOut(true),
       settled: result => {
+        if (result?.user) setVerificationTimedOut(false);
         if(process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'){
           const identity=result?.user?.app_metadata.active_tenant?`${result.user.id}:${result.user.app_metadata.active_tenant}:${result.role}:${result.generation}`:null;
           if(verifiedIdentity&&identity!==verifiedIdentity)setWorkspaceChanged(true);
@@ -159,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, role, displayName, loading, signOut, refreshProfile }}>
-      {process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&!workspaceChanged&&loading?<main className="mx-auto max-w-xl px-5 py-16" role="status">Şirket ve yetkileriniz doğrulanıyor…</main>:process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&!workspaceChanged&&!user?<main className="mx-auto max-w-xl space-y-4 px-5 py-16"><h1 className="text-2xl font-semibold">Şirket bağlantınızı doğrulayın</h1><p>Şirket erişiminiz henüz doğrulanmadı. Şirket bağlantınızı doğrulayarak devam edin. Oturumunuz sona erdiyse yeniden giriş yapmanız istenir.</p><a className="inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-4 text-white" href="/sirket-sec">Şirketi doğrula</a></main>:workspaceChanged?<main className="mx-auto max-w-xl space-y-4 px-5 py-16"><h1 className="text-2xl font-semibold">Şirketinizi yeniden doğrulayın</h1><p role="alert">Şirket bağlantınız veya yetkileriniz güncellendiği için önceki ekran kapatıldı. Kaydedilmemiş bilgiler başka bir şirkete taşınmaz. Erişiminizi doğrulayarak devam edin.</p><a className="inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-4 text-white" href="/sirket-sec">Şirketi doğrula</a></main>:<Fragment key={process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'?`${user?.id??'pending'}:${user?.app_metadata.active_tenant??'none'}:${role}:${generation}`:'workspace'}>{children}</Fragment>}
+      {verificationTimedOut?<main className="mx-auto max-w-xl space-y-4 px-5 py-16"><h1 className="text-2xl font-semibold">Bağlantı kontrolü tamamlanamadı</h1><p role="alert">Şirket ve erişim bilgileriniz zamanında doğrulanamadı. İnternet bağlantınızı kontrol edip yeniden deneyin.</p><button type="button" className="inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-4 text-white" onClick={() => window.location.reload()}>Yeniden dene</button><a className="block text-blue-700 underline" href="/sirket-sec">Şirket bağlantısını doğrula</a></main>:process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&!workspaceChanged&&loading?<main className="mx-auto max-w-xl px-5 py-16" role="status">Şirket ve yetkileriniz doğrulanıyor…</main>:process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'&&!workspaceChanged&&!user?<main className="mx-auto max-w-xl space-y-4 px-5 py-16"><h1 className="text-2xl font-semibold">Şirket bağlantınızı doğrulayın</h1><p>Şirket erişiminiz henüz doğrulanmadı. Şirket bağlantınızı doğrulayarak devam edin. Oturumunuz sona erdiyse yeniden giriş yapmanız istenir.</p><a className="inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-4 text-white" href="/sirket-sec">Şirketi doğrula</a></main>:workspaceChanged?<main className="mx-auto max-w-xl space-y-4 px-5 py-16"><h1 className="text-2xl font-semibold">Şirketinizi yeniden doğrulayın</h1><p role="alert">Şirket bağlantınız veya yetkileriniz güncellendiği için önceki ekran kapatıldı. Kaydedilmemiş bilgiler başka bir şirkete taşınmaz. Erişiminizi doğrulayarak devam edin.</p><a className="inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-4 text-white" href="/sirket-sec">Şirketi doğrula</a></main>:<Fragment key={process.env.NEXT_PUBLIC_BPS_MULTI_WORKSPACE_ENABLED==='true'?`${user?.id??'pending'}:${user?.app_metadata.active_tenant??'none'}:${role}:${generation}`:'workspace'}>{children}</Fragment>}
     </AuthContext.Provider>
   );
 }
