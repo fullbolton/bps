@@ -24,6 +24,28 @@ let created = false;
 try {
   sql(`CREATE DATABASE ${db} TEMPLATE bps_module_chain_20261005`, 'postgres'); created = true;
   for (const f of fixture.filter(f => versions.includes(f.slice(0,14)))) sql(readFileSync(new URL('supabase/migrations/' + f, root),'utf8'));
+  const liveLedger = JSON.parse(readFileSync(new URL('./live-ledger.json', import.meta.url)));
+  assert.deepEqual(liveLedger.rows.map(r => r.version), versions, 'Live ledger changed: reconcile baseline before rehearsal');
+  const liveCatalog = JSON.parse(readFileSync(new URL('./live-catalog.json', import.meta.url)));
+  // Historical staged fixture intentionally retained the pre-activation ACL.
+  // Match the freshly measured production grant, only in the disposable DB.
+  const writer = liveCatalog.rows[0].catalog.functions.find(r => r.signature === 'change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb)');
+  assert.equal(writer?.acl, '{postgres=X/postgres,authenticated=X/postgres}', 'Production writer ACL changed; review before rehearsal');
+  sql('GRANT EXECUTE ON FUNCTION public.change_workspace_modules_v1(uuid,uuid,uuid,uuid,text,uuid,jsonb) TO authenticated');
+  const localCatalog = JSON.parse(sql(readFileSync(new URL('./catalog.sql', import.meta.url),'utf8')));
+  const drift = [];
+  for (const [kind, liveRows] of Object.entries(liveCatalog.rows[0].catalog)) {
+    const key = row => kind === 'functions' ? row.signature : kind === 'columns' ? `${row.table}.${row.column}` : kind === 'policies' ? `${row.table}.${row.name}` : row.table;
+    const local = new Map(localCatalog[kind].map(row => [key(row), row]));
+    for (const row of liveRows) {
+      const candidate = local.get(key(row));
+      if (!candidate || JSON.stringify(candidate) !== JSON.stringify(row)) drift.push({kind,key:key(row),reason:candidate?'definition differs':'missing locally',fields:candidate?Object.keys(row).filter(k=>JSON.stringify(row[k])!==JSON.stringify(candidate[k])).map(k=>({name:k,live:row[k],local:candidate[k]})):[]} );
+      local.delete(key(row));
+    }
+    for (const name of local.keys()) drift.push({kind,key:name,reason:'only local'});
+  }
+  writeFileSync(new URL('./catalog-comparison.json',import.meta.url),JSON.stringify({measuredAt:new Date().toISOString(),liveMeasuredAt:liveCatalog.measuredAt,drift,matched:drift.length===0},null,2)+'\n');
+  assert.equal(drift.length,0,'Production public catalog differs; reconcile before applying candidate');
   const migrations = [];
   for (const name of pending) {
     const body = readFileSync(new URL('supabase/migrations/' + name, root),'utf8');
@@ -37,9 +59,9 @@ try {
   const result = {
     measuredAt:new Date().toISOString(), candidate:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),
     historicalBaseline:{measuredAt:baseline.measuredAt,migrationCount:versions.length,lastVersion:versions.at(-1)},
-    currentProductionLedgerVerified:false,syntheticOnly:true,migrations,
+    currentProductionLedgerVerified:true,productionLedgerMeasuredAt:liveLedger.measuredAt,catalogDriftCount:drift.length,syntheticOnly:true,migrations,
     checks:['All historical ledger versions present','No duplicate or backdated candidate version','Strict fixture manifest matches candidate','Sequential candidate installation passed','No approved HR release gates','No scoped company activation','Development Git deployment disabled'],
-    limits:['Synthetic historical template is not a fresh production schema measurement','No production SQL, deployment, data export or company activation','Application rollback and production lock duration not measured']
+    limits:['Synthetic template reconciled against measured public catalog subset; indexes, constraints, triggers, non-public schemas and production data not compared','No production SQL, deployment, data export or company activation','Application rollback and production lock duration not measured']
   };
   writeFileSync(new URL('./result.json', import.meta.url),JSON.stringify(result,null,2)+'\n');
   console.log(`PASS: ${migrations.length} sequential migrations; HR activation closed; historical baseline ${versions.length}`);

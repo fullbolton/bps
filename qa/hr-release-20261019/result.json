@@ -1,12 +1,14 @@
 {
-  "measuredAt": "2026-10-19T12:38:33.778Z",
-  "candidate": "a814d1350fdd6a84ee737a78570ad81b21c72897",
+  "measuredAt": "2026-10-19T12:42:40.736Z",
+  "candidate": "154bd4a86577bf8bba3273f98912e03c92920640",
   "historicalBaseline": {
     "measuredAt": "2026-10-18T17:24:23.756002+00:00",
     "migrationCount": 190,
     "lastVersion": "20261018000600"
   },
-  "currentProductionLedgerVerified": false,
+  "currentProductionLedgerVerified": true,
+  "productionLedgerMeasuredAt": "2026-10-19T12:41:03.537519+00:00",
+  "catalogDriftCount": 0,
   "syntheticOnly": true,
   "migrations": [
     {
@@ -88,7 +90,7 @@
     "Development Git deployment disabled"
   ],
   "limits": [
-    "Synthetic historical template is not a fresh production schema measurement",
+    "Synthetic template reconciled against measured public catalog subset; indexes, constraints, triggers, non-public schemas and production data not compared",
     "No production SQL, deployment, data export or company activation",
     "Application rollback and production lock duration not measured"
   ]

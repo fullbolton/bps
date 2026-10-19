@@ -5,10 +5,11 @@ Durum: **yerel sıralı kurulum geçti; üretim yayını yapılmadı.**
 ## Doğrulanan kapsam
 
 - Vercel salt okunur incelemesinde www.bpsys.net dağıtımı `dpl_CiWugmjyyW4wtyBqj7tSR5i9t1FA`, production ve READY. Kimlik, kayıtlı `6300bee` yayın belgesiyle aynı; kaynak commit doğrudan Vercel metadata alanından alınmadı.
-- Son kayıtlı üretim SQL ölçümü 18 Ekim 17:24 UTC: 190 migration. Bu sayı bugün yeniden ölçülmüş değildir.
+- 19 Ekim güncel salt okunur üretim SQL ölçümü: 190 migration; tarihsel kayıtla birebir eşleşti (live-ledger.json).
 - Bu tarihsel seviyeye sentetik template üzerinden hazırlanmış disposable PostgreSQL üzerinde aşağıdaki 17 migration sırayla geçti. SHA-256 değerleri result.json içinde sabittir.
 - Kurulum sonunda onaylı HR teknik kabul kaydı ve scoped şirket modu yok. Geliştirme dalının otomatik Git yayını kapalı.
-- Güncel canlı ledger erişim denemesi aktif worktree Supabase'e bağlı olmadığından başarısız oldu. CLI proje listesi erişilebilir; proje listesi şema doğrulaması değildir.
+- CLI worktree bağlantısı yerine mevcut Supabase CLI profilinin kimliğiyle resmi read-only Management API kullanıldı. Kimlik bilgileri dosyaya veya çıktıya yazılmadı. Public fonksiyon gövdeleri hash olarak, ACL/owner, kolonlar, tablo RLS/ACL ve politikalar ölçüldü (live-catalog.json). Şirket satırları/dosya içerikleri okunmadı.
+- Tek tarihsel fixture farkı change_workspace_modules_v1 authenticated EXECUTE izniydi. Güncel canlı ACL doğrulandıktan sonra yalnız disposable DB'ye aynı GRANT uygulandı; karşılaştırılan katalog eşleşti. Beklenmedik fark artık provayı durdurur. Constraints/indexes/triggers, public dışı şemalar ve gerçek veri dağılımı bu karşılaştırmaya dahil değildir.
 
 ## Aday sırası
 
@@ -32,8 +33,8 @@ Durum: **yerel sıralı kurulum geçti; üretim yayını yapılmadı.**
 
 ## Yayın öncesi zorunlu kapılar
 
-1. Üretimde salt okunur migration ledger, ilgili fonksiyon/ACL/policy tanımları ve modül bariyerini yeniden ölç. Eski 190 kaydını güncel kabul etme.
-2. Aday hashlerini yeniden karşılaştır; canlıda farklılık varsa provayı güncel şema üzerinden tekrar yap. Uygulanan migration dosyasını değiştirme.
+1. Ledger ve public fonksiyon/ACL/policy ölçümü tamamlandı. Yayın anında tazeliği tekrar denetle; modül bariyerinin güncel durumu ayrıca doğrulanmalı.
+2. Adayın 17 migration hashini ve güncel ledger eşleşmesini koru; public katalog karşılaştırması beklenmedik farkta durur. Uygulanan migration dosyasını değiştirme.
 3. Katalog/haklar (001–004), İK temel kayıtlar (005–007), özel roller/okuma (008–010), kapsamlı yazıcılar ve ekran bağlamı (011–016), aktivasyon (017) bağımlılık sırasını koru. SQL tamamlanmadan yeni uygulama yayımlanmaz.
 4. Preview/readiness kapalı kurulum ile gerçek şirket aktivasyonunu ayrı işlemler olarak yürüt. Şirket kabul satırını bu paket kendiliğinden oluşturmaz.
 5. Yayın adayı için uygulama uyumluluğu, geri dönüş yolu ve üretim kilit süresi değerlendirmesi tamamlanmalı. Bu prova bunları kanıtlamaz.
@@ -50,3 +51,5 @@ Aktivasyon PostgreSQL regresyonu ayrıca tekrar çalıştırıldı: 4 kontrol gr
 `node qa/hr-release-20261019/rehearse.mjs`
 
 Yalnız yerel Docker fixture'ını kullanır; geçici veritabanını finally içinde kaldırır. Üretim bağlantısı, veri yedeği veya deploy yapmaz. Tarihsel baseline değişirse betik ve kanıtlar bilinçli olarak güncellenmelidir.
+
+API referansı: https://supabase.com/docs/reference/api/v1-read-only-query

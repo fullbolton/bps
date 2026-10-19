@@ -1549,3 +1549,10 @@ Kapanan işler: commit sonrası belirsiz yanıtın gerçek tarayıcı kabulü; m
 Canlı Vercel dağıtım kimliği salt okunur kontrolle dpl_CiWugmjyyW4wtyBqj7tSR5i9t1FA / READY bulundu; kayıtlı 6300bee yayınıyla eşleşiyor. Güncel production ledger ölçülmedi: aktif worktree bağlı olmadığı için migration list başarısız. Son kayıtlı 190 migration yalnız tarihsel baseline olarak kullanıldı.
 
 qa/hr-release-20261019/rehearse.mjs, tarihsel baseline üstüne 17 bekleyen migration'ı disposable yerel DB'de sırayla uyguladı. Yinelenen/geri tarihli dosya, eksik baseline ve fixture manifest sapması kontrolleri geçti. Onaylı teknik HR kabul kaydı ve scoped şirket modu oluşmadı; otomatik Git yayını kapalı. SHA-256 aday listesi result.json, yayın sırası/eksik kapılar READINESS.md içinde. Gerçek veri değiştirilmedi; üretim yayını veya şirket aktivasyonu yapılmadı. Güncel üretim şema ölçümü ve bu şemaya göre aday doğrulaması yayın öncesi hâlâ zorunlu.
+
+
+## 19 Ekim — Güncel üretim ledger ve public katalog doğrulaması
+
+Resmi read-only Management API üzerinden güncel üretim ledger ölçüldü: 190 migration tarihsel kayıtla birebir eşleşti. Public fonksiyon hash/ACL/owner, kolon, tablo RLS/ACL ve policy metaverisi alındı; şirket içeriği veya dosyalar indirilmedi. Tarihsel fixture'daki tek fark modül değiştirme fonksiyonunun authenticated EXECUTE izniydi; yalnız disposable DB'de canlıdaki grant eşlendi. Son karşılaştırma eşleşti ve 17 aday migration bu tabanda tekrar geçti. Beklenmedik katalog farkı artık provayı durduruyor.
+
+Kanıtlar qa/hr-release-20261019/live-ledger.json, live-catalog.json, catalog-comparison.json ve result.json. Bu bir tam şema/veri klonu değildir: index/constraint/trigger ve public dışı katalog kapsamı, güncel bariyer, üretim kilit süreleri, uygulama geri dönüşü ve yayın sonrası smoke ayrıca açık. Üretim SQL yazımı/deploy/gerçek şirket İK aktivasyonu yapılmadı. Teknik kabul kapıları kapalı kalır.
