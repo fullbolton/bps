@@ -377,3 +377,14 @@ deployment.mjs yalnız kendi bps.deployment etiketi olan container'ları durduru
 Kanıt: genel 938/938 test geçti. Son ek volume sahiplik ve yol çakışması kontrollerinden sonra odaklı 6/6 test geçti. managed-rotation-accept.mjs doğrudan rotateManagedDeployment akışını gerçek FreshClam, ClamAV, HTTPS ve Docker değiştirme işlemleriyle çalıştırdı. Aynı imza adayının yeni daemon'da yüklendiği ölçüldü, bakım kaldırılana kadar claim alınmadı, sonrasında sorgu devam etti. managed-rotation-result.json kaydedildi; geçici kaynaklar temizlendi.
 
 Kapsam ayrımı: bu gerçek kabulde managed orchestration ürün kodudur; Docker ve kontrol adaptörleri QA sürücüsüdür (qaDockerAdapters=true). deployment.mjs güvenlik ve komut sözleşmeleri odaklı testlerle doğrulandı; native Linux üzerinde gerçek host-control + deployment + main birleşimi hâlâ bekler. Mac/Rosetta istisnası üretim koduna taşınmadı. realDatabase=false, productionMainEntry=false, productionReady=false. Üretim yayını/İK aktivasyonu yok. Sonraki kapılar: host bootstrap/supervisor ve native Linux birleşik kabul, gerçek oturumlu uygulama/DB kabulü ve üretim ön kontrolü.
+
+
+## 20 Ekim — değişiklikten önce host güvenlik ön kontrolü
+
+host-preflight.mjs yönetilen geçişin ilk adımıdır; kilit/bakım/servis durdurma öncesinde çalışır. Native Linux x64, kernel machine x86_64 ve root gerektirir. Mac üzerinde gerçek çağrı HR_DEPLOY_NATIVE_ROOT_REQUIRED ile dosya okumaya başlamadan reddedildi. Bu koşul daemon'un native çalışmasına ilişkin nihai /proc ölçümünün yerine geçmez.
+
+Mount yolları canonical olmalı; çift slash, nokta/üst dizin alias'ı, kök dizin ve çakışan/iç içe writable/secret mount'lar reddedilir. Config'in code altında olması desteklenir. Parent dizinler root sahibi ve grup/diğer yazmasına kapalı; health/control/secrets özel, socket 10001:10001/0770 olmalıdır. Config SHA256 eşleşmeli; anahtar root sahipli, özel izinli, normal ve sınırlı boyutlu dosya olmalıdır. Kod dosyalarında symlink veya başka kullanıcı yazma izni kabul edilmez. Secret içeriği ön kontrolde okunmaz/loglanmaz.
+
+Kanıt: 941/941 uygulama testi geçti. preflight-accept.mjs gerçek Linux container dosya sistemi üstünde geçerli özel dizilimi kabul etti; açık izinli secret, yazılabilir control, yanlış socket sahibi, config digest farkı, secret/code symlink'lerini reddetti. preflight-result.json kaydedildi; sentetik tmpfs/container temizlendi. Bu yalnız filesystem kabulüdür (nativeHostAcceptance=false). QA managed-rotation sürücüsündeki emülasyon düzeni açık dependency seam ile preflight atlar; üretim varsayılanı atlamaz ve çevre değişkeni istisnası yoktur.
+
+Kalan yayın kapıları değişmedi: gerçek host bootstrap/supervisor ve native Linux strict main birleşimi; gerçek oturumlu Next/DB akışı; üretim şema/yayın sırası. Host ön kontrolü yerel dosya sistemini doğrular; uzak Docker endpoint kurulumu doğrulanmış değildir. Üretime yayın, anahtar kurulumu veya İK aktivasyonu yapılmadı.

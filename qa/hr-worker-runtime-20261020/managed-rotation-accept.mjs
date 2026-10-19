@@ -31,6 +31,7 @@ try{
  const helper=script=>docker(['run','--rm','--network','none','--entrypoint','node','-v',state+':/state',image,'-e',script]);
  let after,measurements=0;
  await rotateManagedDeployment({}, {
+  preflight:async()=>{}, // QA uses Docker volumes and Rosetta; never a native-host pass.
   control:{
    lock:async()=>{helper("require('fs').writeFileSync('/state/rotation.lock','test',{flag:'wx',mode:0o600})");return async()=>helper("require('fs').unlinkSync('/state/rotation.lock')");},
    pause:async()=>helper(`require('fs').writeFileSync('/state/pause',JSON.stringify({requestId:'${requestId}'}),{mode:0o600})`),

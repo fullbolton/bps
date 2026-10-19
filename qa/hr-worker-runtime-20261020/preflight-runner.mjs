@@ -1,0 +1,17 @@
+import {mkdir,writeFile,chown,chmod,symlink,unlink,rm} from 'node:fs/promises';import {createHash} from 'node:crypto';import assert from 'node:assert/strict';
+import {verifyHostFiles} from '/worker/host-preflight.mjs';
+const root='/run/bps-preflight';await mkdir(root,{mode:0o755});
+const c={code:root+'/code',config:root+'/code/clamd.conf',health:root+'/health',control:root+'/control',secrets:root+'/secrets',socket:root+'/socket',digest:createHash('sha256').update('test config').digest('hex')};
+for(const key of ['code','health','control','secrets','socket'])await mkdir(c[key],{mode:key==='code'?0o755:0o700});
+await chown(c.socket,10001,10001);await chmod(c.socket,0o770);
+for(const file of ['main.mjs','measure.mjs','runtime.mjs'])await writeFile(c.code+'/'+file,'// synthetic',{mode:0o644});
+await writeFile(c.config,'test config',{mode:0o644});const key=c.secrets+'/bps_scan_service_key';await writeFile(key,'SYNTHETIC-ONLY',{mode:0o600});
+assert.equal((await verifyHostFiles(c)).privateMounts,true);
+await chmod(key,0o644);await assert.rejects(verifyHostFiles(c),/SECRET/);await chmod(key,0o600);
+await chmod(c.control,0o777);await assert.rejects(verifyHostFiles(c),/MOUNT/);await chmod(c.control,0o700);
+await chown(c.socket,0,0);await assert.rejects(verifyHostFiles(c),/SOCKET/);await chown(c.socket,10001,10001);
+await assert.rejects(verifyHostFiles({...c,digest:'a'.repeat(64)}),/DIGEST/);
+await unlink(key);await symlink(c.config,key);await assert.rejects(verifyHostFiles(c),/SECRET/);await unlink(key);await writeFile(key,'SYNTHETIC-ONLY',{mode:0o600});
+await unlink(c.code+'/main.mjs');await symlink(c.config,c.code+'/main.mjs');await assert.rejects(verifyHostFiles(c),/CODE/);
+await rm(root,{recursive:true});
+console.log(JSON.stringify({realLinuxFilesystem:true,syntheticOnly:true,validPrivateLayout:true,publicSecretRejected:true,writableControlRejected:true,wrongSocketOwnerRejected:true,configMismatchRejected:true,symlinkSecretAndCodeRejected:true,nativeHostAcceptance:false,productionReady:false}));

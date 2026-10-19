@@ -840,5 +840,9 @@
   {
     "file": "scripts/hr-managed-rotation.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-host-preflight.test.mjs",
+    "suite": "application"
   }
 ]

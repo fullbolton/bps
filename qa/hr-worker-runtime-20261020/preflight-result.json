@@ -1,0 +1,12 @@
+{
+  "realLinuxFilesystem": true,
+  "syntheticOnly": true,
+  "validPrivateLayout": true,
+  "publicSecretRejected": true,
+  "writableControlRejected": true,
+  "wrongSocketOwnerRejected": true,
+  "configMismatchRejected": true,
+  "symlinkSecretAndCodeRejected": true,
+  "nativeHostAcceptance": false,
+  "productionReady": false
+}
