@@ -42,5 +42,6 @@
   "20261019001100_hr_scoped_employee_create.sql",
   "20261019001200_hr_create_options.sql",
   "20261019001300_hr_scoped_location_transfer.sql",
-  "20261019001400_hr_access_cutover_routes.sql"
+  "20261019001400_hr_access_cutover_routes.sql",
+  "20261019001500_hr_screen_context.sql"
 ]

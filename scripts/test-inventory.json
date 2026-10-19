@@ -752,5 +752,9 @@
   {
     "file": "scripts/hr-scoped-transfer.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-screen.test.mjs",
+    "suite": "application"
   }
 ]

@@ -6,9 +6,12 @@ import {useScopedResource} from '@/components/ui/useScopedResource';
 import {useNavigationGuard} from '@/context/NavigationGuardContext';
 import {createClient} from '@/lib/supabase/client';
 import {loadHrDirectory,prepareHrRecord,saveHrRecord} from '@/lib/services/hr-directory';
+import {loadHrScreen} from '@/lib/services/hr-screen';
+import ScopedEmployeeForm from './ScopedEmployeeForm';
 const button='min-h-11 rounded-lg border px-4 py-2 disabled:opacity-50';
 const input='mt-1 block min-h-11 w-full rounded-lg border px-3';
-function Directory({actor,tenant}:{actor:string;tenant:string}){
+function Directory({actor,tenant,writeMode}:{actor:string;tenant:string;writeMode:'legacy'|'scoped'}){
+ const [scopedOpen,setScopedOpen]=useState(false);
  const [cursor,setCursor]=useState<string|null>(null);
  const read=useCallback(()=>loadHrDirectory(createClient(),actor,tenant,cursor),[actor,tenant,cursor]);
  const resource=useScopedResource(`${actor}:${tenant}:${cursor??'first'}`,read);
@@ -34,8 +37,9 @@ function Directory({actor,tenant}:{actor:string;tenant:string}){
  {message&&<p role="status" className="rounded-lg bg-blue-50 p-3">{message}</p>}
  {resource.loading&&<p role="status">Çalışanlar yükleniyor…</p>}
  {resource.error&&<p role="alert">Çalışanlar alınamadı. İK modülünün açık olduğunu ve erişiminizi kontrol edin.</p>}
- <div className="flex flex-wrap gap-2"><button className={button} disabled={busy||!!kind} onClick={()=>void resource.reload()}>Yenile</button>
- {resource.data&&!kind&&<><button className={button} onClick={()=>setKind('employee')}>Yeni çalışan</button><button className={button} onClick={()=>setKind('department')}>Yeni departman</button></>}</div>
+ <div className="flex flex-wrap gap-2"><button className={button} disabled={busy||!!kind||scopedOpen} onClick={()=>void resource.reload()}>Yenile</button>
+ {writeMode==='legacy'&&resource.data&&!kind&&<><button className={button} onClick={()=>setKind('employee')}>Yeni çalışan</button><button className={button} onClick={()=>setKind('department')}>Yeni departman</button></>}</div>
+ {writeMode==='scoped'&&resource.data&&<ScopedEmployeeForm actor={actor} tenant={tenant} onOpenChange={setScopedOpen} onSaved={async()=>{if(cursor)setCursor(null);else await resource.reload();}}/>}
  {kind&&<form className="max-w-xl space-y-3 rounded-xl border p-5" onSubmit={event=>{event.preventDefault();void save();}}>
  <h2 className="font-semibold">{kind==='employee'?'Yeni çalışan':'Yeni departman'}</h2>
  <fieldset disabled={busy||!!intent} className="space-y-3">
@@ -47,13 +51,20 @@ function Directory({actor,tenant}:{actor:string;tenant:string}){
  </fieldset><div className="flex gap-2"><button className={button} disabled={busy}>{busy?'Kaydediliyor…':intent?'Aynı işlemi yeniden dene':'Kaydet'}</button><button type="button" className={button} disabled={busy} onClick={clear}>Formu kapat</button></div></form>}
  {resource.data&&<><div className="overflow-x-auto rounded-xl border"><table className="w-full text-left text-sm"><caption className="sr-only">Çalışan listesi</caption><thead><tr>{['Kod','Ad soyad','İşe giriş','İşten ayrılış','Departman','Pozisyon'].map(title=><th className="p-3" key={title}>{title}</th>)}</tr></thead><tbody>{resource.data.employees.map(e=><tr key={e.id} className="border-t">{[e.code,e.name,e.startsOn,e.endsOn??'—',e.department??'Belirlenmedi',e.position??'Belirlenmedi'].map((value,index)=><td className="p-3" key={index}>{value}</td>)}</tr>)}</tbody></table></div>
  {!resource.data.employees.length&&<p>Bu sayfada çalışan kaydı yok.</p>}
- <div className="flex gap-2"><button className={button} disabled={!cursor||!!kind} onClick={()=>setCursor(null)}>İlk sayfa</button><button className={button} disabled={!resource.data.hasMore||!!kind} onClick={()=>setCursor(resource.data!.employees.at(-1)!.id)}>Sonraki 50 kayıt</button></div>
- <section><h2 className="font-semibold">Departmanlar</h2><p className="mt-2 text-sm">{resource.data.departments.map(d=>d.name).join(' · ')||'Henüz departman yok.'}</p></section></>}
+ <div className="flex gap-2"><button className={button} disabled={!cursor||!!kind||scopedOpen} onClick={()=>setCursor(null)}>İlk sayfa</button><button className={button} disabled={!resource.data.hasMore||!!kind||scopedOpen} onClick={()=>setCursor(resource.data!.employees.at(-1)!.id)}>Sonraki 50 kayıt</button></div>
+ {writeMode==='legacy'&&<section><h2 className="font-semibold">Departmanlar</h2><p className="mt-2 text-sm">{resource.data.departments.map(d=>d.name).join(' · ')||'Henüz departman yok.'}</p></section>}</>}
  </div>;
+}
+function AuthorizedDirectory({actor,tenant}:{actor:string;tenant:string}){
+ const read=useCallback(()=>loadHrScreen(createClient(),actor,tenant),[actor,tenant]);
+ const context=useScopedResource(`${actor}:${tenant}:hr-context`,read);
+ if(context.loading)return <p role="status">İK erişimi kontrol ediliyor…</p>;
+ if(context.error||!context.data)return <div role="alert">İK erişimi doğrulanamadı. Modülün açık olduğunu ve yetkinizi kontrol edin. <button className={button} onClick={()=>void context.reload()}>Yeniden dene</button></div>;
+ return <Directory key={`${actor}:${tenant}:${context.data.mode}:${context.data.writeMode}`} actor={actor} tenant={tenant} writeMode={context.data.writeMode}/>;
 }
 export default function HrDirectory(){
  const {user,role}=useAuth();const {tenantId,loading}=useVerifiedTenant();
  if(loading)return <p role="status">Şirket erişimi doğrulanıyor…</p>;
- if(!user||!tenantId||!['yonetici','ik'].includes(role??''))return <p role="alert">Bu alan için İK veya yönetici erişimi gerekiyor.</p>;
- return <Directory key={`${user.id}:${tenantId}:${role}`} actor={user.id} tenant={tenantId}/>;
+ if(!user||!tenantId)return <p role="alert">Şirket erişimi gerekiyor.</p>;
+ return <AuthorizedDirectory key={`${user.id}:${tenantId}:${role}`} actor={user.id} tenant={tenantId}/>;
 }

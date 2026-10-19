@@ -767,3 +767,20 @@ Gerçek disposable PostgreSQL, authenticated rol ve geçerli workspace/üyelik s
 4 yeni geçiş + workplace6 + directory6 + access7 + transfer4 + options4 + scoped-create5 = 36 DB kontrol grubu geçti. Önceki private aday testleri yeni internal isimleri hedefleyecek şekilde güncellendi; gerçek authenticated public route kabulü ayrı access-cutover-schema.mjs dosyasında. Kanıt access-cutover-schema-result.json ve yenilenen regresyon sonuçları. Geçici DB'ler temizlendi. SQL ağırlıklı bu turda genel uygulama suite/build/tarayıcı yeniden çalıştırılmış sayılmaz.
 
 AKTİVASYON SINIRI: backend routing yerelde tamamlandı, fakat şirketlerde scoped modu açmaya hazır ürün değil. Mevcut İK UI legacy rol/form sözleşmesini kullanır; erişim ayarları parser'ı preview_only beklediğinden enforced yanıtı başarı gibi göstermez. Bu nedenle gerçek şirket modu açılmadı ve açılmayacak: UI erişim bağlamı/eylem görünürlüğü, yeni oluşturma formu, yönetim ekranının aktif HR/henüz aktif olmayan finans ayrımı, transfer arayüzü ve gerçek tarayıcı kabulü sonraki zorunlu bloktur. HR readiness/aktivasyon kapısı değişmedi. Mod açma UI/komutu/audit ve bitiş kabulü de tamamlanmadan production aktivasyon yapılmaz. Migration/deploy üretime uygulanmadı.
+
+
+## 19 Ekim — İK erişim bağlamı ve kapsamlı çalışan oluşturma ekranı (yerel)
+
+20261019001500_hr_screen_context.sql: doğrulanmış actor/tenant, açık+hak verilmiş HR, şirket modu ve yönetici ayrımından writeMode döndürür. Legacy mod eski yönetici/İK şartını korur; scoped modda nonmanager için gerçek özel politika şarttır. /insan-kaynaklari artık yalnız frontend rol adına bakarak kullanıcı reddetmez; bağlamı sunucudan okur. Şirket yöneticisi legacy yönetim formunu, özel rol kullanıcısı yeni kapsamlı formu görür. Her veri/yazma endpointi kendi denetimini sürdürür; bağlam yanıtı güvenlik kararı yerine geçmez.
+
+ScopedEmployeeForm: yetkili departman–iş yeri eşleşmesi, sayfalı seçenek yükleme, politika revizyonu uyuşmazlığı, ad/kod/tarih/pozisyon, immutable komut ve kesin makbuz. Seçenek yoksa yeni çalışan düğmesi yoktur. Gelecek tarih yetkisi olmayan kullanıcıya açıklama gösterilir; kayıt SQL'de denetlenir. Form açıkken gezinme/sekme kapanışı korunur; üst liste yenileme ve sayfalama kilitlenir. Başka actor/tenant/rol bağlamında remount olur. Form kapatılınca eski gezinme uyarısı temizlenir.
+
+Rol ayarları parser'ı preview_only ve hr_scoped değerlerini ayrı kabul eder. Banner, kayıt onayı ve başarı metni İK aktif/finans henüz hazırlık ayrımını doğru gösterir; yönetici yönetim erişiminin korunduğu açıklanır. Diğer modüllerde özel rol enforcement varmış gibi söylenmez. Bu tur aktif rol ekranının tarayıcı kabulü yapılmadı; parser sözleşmesi test edildi.
+
+Gerçek yerel GoTrue/PostgREST/Next tarayıcı kabulü: sentetik şirket/İK üyeliği ve özel politika; çalışan oluşturma, yetkili tek eşleşme seçimi, gerçek SQL kaydı; sayfa yenilemede kalıcılık; açık formda Görevler navigasyonunun engellenmesi; Yenile düğmesinin kilitlenmesi. Kanıt hr-scoped-screen-browser.png sentetik kayıt ve gezinme koruması aşamasındandır. Son küçük düzeltme form kapatılınca uyarının temizlenmesidir; ekran görüntüsü bu düzeltmeden önce alınmıştır. Test sekmesi/sunucusu/disposable DB kapatıldı; gerçek veriye dokunulmadı.
+
+844/844 uygulama testi geçti; son parser/metin/koruma düzeltmesinden sonra ilgili 6 test ve TypeScript tekrar geçti. Gerçek DB geçiş testi 4 grup (yeni ekran bağlamında legacy/scoped/manager ayrımı dahil) geçti. Mobil, ağ hatası tarayıcı enjeksiyonu ve transfer UI testi bu tur yapılmadı.
+
+Sınır: ekran hâlâ BPS_HR_PREVIEW_ENABLED sunucu bayrağı arkasındadır. Hiçbir gerçek şirketin scoped modu açılmadı; HR readiness değişmedi; production migration/deploy yok. Kalan zorunlu parçalar: transfer için güncel atama/izinli hedef okuyucusu ve ekranı; aktif rol ekranının tarayıcı kabulü; mod açma ön kontrolü+audit+komutu ve bütün akışların kabulü. İK-1 bütünü tamamlandı değildir.
+
+Son kontrol: sentetik localhost public değerleriyle production build geçti.

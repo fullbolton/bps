@@ -30,6 +30,7 @@ try {
  sql(`INSERT INTO workspace_selections(user_id,tenant_id,version,command_id) VALUES('${id(12)}','${id(1)}','${id(9950)}','${id(9952)}') ON CONFLICT(user_id) DO UPDATE SET tenant_id=excluded.tenant_id,version=excluded.version`);
  oldCreate(11,9910,{kind:'employee',name:'Visible',code:'V',startsOn:'2026-01-01',departmentId:id(9992),position:'Role'});
  oldCreate(11,9911,{kind:'employee',name:'Hidden',code:'H',startsOn:'2026-01-01'});
+ assert.equal(auth(12,`hr_screen_context_v1('${id(12)}','${id(1)}')`).writeMode,'legacy');
  assert.equal(directory(12).employees.length,2);
  const scoped=()=>auth(12,`hr_scoped_employee_create_v1('${id(12)}','${id(1)}','${id(9912)}',1,'${JSON.stringify(base)}')`);
  fails(scoped,'HR_SCOPED_MODE_REQUIRED');
@@ -40,6 +41,8 @@ try {
  sql(`INSERT INTO company_hr_access_modes(tenant_id,mode) VALUES('${id(1)}','scoped')`);
  assert.equal(directory(12).employees.length,1);assert.equal(directory(12).employees[0].code,'V');assert.deepEqual(directory(12).departments,[]);
  assert.equal(directory(11).employees.length,2);
+ assert.equal(auth(12,`hr_screen_context_v1('${id(12)}','${id(1)}')`).writeMode,'scoped');
+ assert.equal(auth(11,`hr_screen_context_v1('${id(11)}','${id(1)}')`).writeMode,'legacy');
  assert.equal(auth(11,`company_access_settings_v1('${id(11)}','${id(1)}')`).enforcement,'hr_scoped');
  fails(()=>oldCreate(12,9913,{kind:'department',name:'Bypass'}),'HR_SCOPED_API_REQUIRED');
  fails(()=>auth(12,`hr_workplace_command_v1('${id(12)}','${id(1)}','${id(9914)}','{"kind":"create_location","name":"Bypass"}')`),'HR_SCOPED_API_REQUIRED');

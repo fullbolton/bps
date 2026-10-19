@@ -6,6 +6,7 @@ const settings=()=>({schemaVersion:1,actorId:id(1),tenantId:id(2),enforcement:'p
 const options=()=>({schemaVersion:1,actorId:id(1),tenantId:id(2),people:[],departments:[],locations:[]});
 test('settings rejects foreign scope, non-preview responses and broken role references',()=>{
  assert.equal(parse(settings(),options(),id(1),id(2)).roles[0].name,'Reader');
+ assert.equal(parse({...settings(),enforcement:'hr_scoped'},options(),id(1),id(2)).enforcement,'hr_scoped');
  for(const mutate of [s=>s.actorId=id(9),s=>s.enforcement='active',s=>s.revision=0,s=>s.roles[0].tenant_id=id(9),s=>s.roles.push(s.roles[0]),s=>s.assignments=[{tenant_id:id(2),account_id:id(4),role_id:id(9)}]]){const s=settings();mutate(s);assert.throws(()=>parse(s,options(),id(1),id(2)));}
  const o=options();o.tenantId=id(9);assert.throws(()=>parse(settings(),o,id(1),id(2)));
 });
