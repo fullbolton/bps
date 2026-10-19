@@ -12,4 +12,14 @@ const closed=parse({...raw,endsOn:'2026-06-30'});assert.throws(()=>prepareHrEmpl
 const receipt={schemaVersion:1,actorId:id(1),tenantId:id(2),employeeId:id(3),periodId:id(4),commandId:id(5),kind:'end',date:'2026-06-30',before:raw};
 const client=data=>({rpc:()=>({abortSignal:async()=>({data,error:null})})});await saveHrEmployment(client(receipt),intent);
 for(const patch of [{commandId:id(9)},{kind:'rehire'},{date:'2026-07-01'},{periodId:id(9)},{before:{...raw,token:'b'.repeat(32)}}])await assert.rejects(()=>saveHrEmployment(client({...receipt,...patch}),intent));
-writeFileSync(new URL('./employment-lifecycle-client-result.json',import.meta.url),JSON.stringify({passed:3,actualSource:true,checks:['Strict context identity, real calendar dates and nested shapes','Immutable intent and lifecycle date boundaries','Receipt bound to command, date, period and review token']},null,2)+'\n');console.log('PASS 3 employment client groups');
+const {hrEmploymentImpact}=await importActualTypeScript(new URL('../../src/lib/services/hr-employment.ts',import.meta.url));
+const row={id:id(8),startsOn:'2026-01-01',endsOn:null,revision:'1'};
+const blocked=hrEmploymentImpact({...c,linkedAccount:true,reports:[{id:id(9),endsOn:null}],assignments:[row],locations:[{...row,startsOn:'2026-08-01'}]},'2026-06-30','2026-10-19');
+assert.equal(blocked.blockers.length,3);assert.equal(blocked.departments,1);assert.equal(blocked.locations,0);
+assert.equal(hrEmploymentImpact(c,'2026-12-01','2026-10-19').blockers.length,1);
+assert.equal(hrEmploymentImpact(c,'2026-02-30','2026-10-19').blockers.length,1);
+assert.equal(hrEmploymentImpact(closed,'2026-07-01','2026-10-19').kind,'rehire');
+assert.equal(hrEmploymentImpact(closed,'2026-06-30','2026-10-19').blockers.length,1);
+const {hrWriteFailure}=await importActualTypeScript(new URL('../../src/lib/services/hr-write-failure.ts',import.meta.url));
+for(const message of ['HR_EMPLOYMENT_STALE','HR_MANAGER_HAS_REPORTS','HR_ACCOUNT_LINK_ACTIVE']){assert.equal(hrWriteFailure({code:'P0001',message}),'rejected');assert.equal(hrWriteFailure({code:'P0001',message},true),'uncertain');}
+writeFileSync(new URL('./employment-lifecycle-client-result.json',import.meta.url),JSON.stringify({passed:5,actualSource:true,checks:['Strict context identity, real calendar dates and nested shapes','Immutable intent and lifecycle date boundaries','Receipt bound to command, date, period and review token','Impact counts, account/report/future assignment blockers and date boundaries','Definitive rollback distinguished from previously uncertain result']},null,2)+'\n');console.log('PASS 5 employment client groups');

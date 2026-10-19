@@ -28,3 +28,19 @@ export async function saveHrEmployment(client:SupabaseClient<Database>,intent:Re
  const before=parseHrEmployment(r.before,intent.p_actor,intent.p_tenant,intent.p_employee);
  if(before.token!==intent.p_token||(intent.p_kind==='end'&&r.periodId!==before.periodId)||(intent.p_kind==='rehire'&&r.periodId===before.periodId))throw Error('HR_RECEIPT');
 }
+/** Presentation only: the command repeats all checks under the company lock. */
+export function hrEmploymentImpact(context:ReturnType<typeof parseHrEmployment>,effectiveDate:string,today:string){
+ const kind:'end'|'rehire'=context.endsOn===null?'end':'rehire';
+ const blockers:string[]=[];
+ if(!date(effectiveDate))blockers.push('Geçerli bir tarih seçin.');
+ else if(kind==='rehire'){
+  if(effectiveDate<=context.endsOn!)blockers.push('Yeni işe giriş, önceki ayrılış tarihinden sonra olmalı.');
+ }else{
+  if(effectiveDate<context.startsOn||effectiveDate>today)blockers.push('Ayrılış tarihi işe giriş ile bugün arasında olmalı.');
+  if(context.linkedAccount)blockers.push('Çalışanın kullanıcı hesabı bağlantısı açık. Önce hesap erişimini gözden geçirip bağlantıyı kaldırın.');
+  if(context.reports.some(a=>a.endsOn===null||a.endsOn>effectiveDate))blockers.push('Bu yöneticiye bağlı çalışanlar var. Önce yöneticilerini değiştirin veya ilgili görevlendirmeleri sonlandırın.');
+  if([...context.assignments,...context.locations].some(a=>a.startsOn>effectiveDate))blockers.push('Seçilen tarihten sonra başlayan görevlendirmeler var. Önce bu kayıtları düzenleyin.');
+ }
+ const affected=(rows:Assignment[])=>kind==='end'&&date(effectiveDate)?rows.filter(a=>a.startsOn<=effectiveDate&&(a.endsOn===null||a.endsOn>effectiveDate)).length:0;
+ return {kind,blockers,departments:affected(context.assignments),locations:affected(context.locations)};
+}

@@ -1,0 +1,34 @@
+{
+  "syntheticOnly": true,
+  "desktop": "termination committed, response dropped, exact retry confirmed",
+  "terminationReceiptsAfterRetry": 1,
+  "staleReview": "rehire rejected after concurrent end-date change",
+  "draftDatePreserved": "2026-07-01",
+  "confirmationResetAfterRefresh": true,
+  "mobile": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390,
+    "rehire": "passed"
+  },
+  "finalPeriods": [
+    [
+      "2026-01-01",
+      "2026-06-28"
+    ],
+    [
+      "2026-07-01",
+      null
+    ]
+  ],
+  "finalReceipts": 2,
+  "note": "Two direct synthetic end-date updates exercised concurrency; production untouched.",
+  "checks": {
+    "typescript": "passed",
+    "static": "0 FAIL 0 WARN",
+    "operations": 849,
+    "clientGroups": 5,
+    "syntheticProductionBuild": "passed"
+  },
+  "fixtureCleaned": true
+}
