@@ -1,0 +1,10 @@
+{
+  "realLinuxContainer": true,
+  "realMainEntry": true,
+  "syntheticSecretOnly": true,
+  "strictRootSecretRead": true,
+  "failedStartupClearsPriorHealth": true,
+  "healthCommandRejects": true,
+  "realClamav": false,
+  "productionReady": false
+}

@@ -302,3 +302,14 @@ qa/hr-worker-isolation-20261020/clamd-accept.mjs gerçek ClamAV'ı UID/GID 10001
 qa/hr-worker-runtime-20261020/https-accept.mjs geçici yerel TLS sertifikası ve gerçek HTTPS sunucusu ile service.mjs taşıyıcısını sınadı. Node TLS doğrulaması açık tutuldu; yalnız test alt sürecine geçici CA tanıtıldı. Geçerli JSON alındı, 302 takip edilmedi (sunucuya tam 4 istek), 16 KB üstü ve bozuk JSON reddedildi. CA tanıtılmayan ayrı süreçte bütün istekler TLS'de reddedildi ve sunucu sayacı değişmedi. https-result.json kaydedildi. Hiçbir gerçek servis anahtarı veya harici veri aktarımı yok; geçici sertifika/anahtar dizini ve test container/socket volume temizlendi.
 
 Bu tur ürün kodu değişmedi; önceki 915 uygulama testi tekrar çalıştırılmadı. Yeni gerçek daemon/socket ve HTTPS kabulü geçti. Kalan: native Linux'te kalıcı launcher/main+health/SIGTERM kabulü, imza güncelleme/yeniden başlatma işletimi, gerçek oturumlu Next form→API tam akışı ve üretim şema/yayın sırası. Mevcut çalışan üretime yeni worker/secret/bayrak kurulmadı.
+
+
+## 20 Ekim — servis başlangıcı ve eski sağlık kaydı düzeltmesi
+
+main.mjs işletim mantığı runtime.mjs içine taşındı; main yalnız gerçek process sinyallerini AbortController'a bağlar ve halted durumunda exit 1 verir. Runtime ilk işlem olarak unavailable sağlık yazar; ardından config/secret/motor hazırlanır. Önceki sırada secret/config hatası eski sağlıklı kaydı TTL süresince bırakabiliyordu. Artık startup hatası da unavailable kaydını yeniler; ham hata/key loglanmaz. Runtime test bağımlılıkları yalnız fonksiyon parametresidir, çevre değişkeniyle üretim ölçümü atlanmaz.
+
+Config UUID/digest/HTTPS kök adresi en başta doğrulanır. Secret okuyucu O_NOFOLLOW ile açar; izin/sahip ve byte kontrolünü aynı file descriptor üstünde yapar. Yalnız root sahipli normal dosya, grup/diğer izni kapalı, 1–8192 byte; boş/iç boşluk/kontrol karakteri olan anahtar reddedilir. Okuyucu en çok 8193 byte alır. Docker secret mount bu koşulları sağlamalıdır.
+
+Kanıt: 920/920 uygulama testi, 5 yeni lifecycle grubu dahil geçti. Sentetik lifecycle testinde mevcut iş tamamlanıp stopped sağlık yazıldı; hatalı config ve secret hatasında başarı kalmadı. qa/hr-worker-runtime-20261020/startup-accept.mjs gerçek Linux Node konteynerinde gerçek main ve health girişlerini çalıştırdı: root/0600 sentetik key okundu, eksik config main exit 1 verdi, önceki idle health unavailable oldu, health komutu exit 1 verdi. startup-result.json kaydedildi; test volume temizlendi. Bu gerçek daemon ile başarılı sürekli main çalışması veya gerçek SIGTERM entegrasyon testi değildir.
+
+Kalan: native Linux gerçek main+ClamAV+HTTPS işleme ve SIGTERM kabulü, imza güncelleme/yeniden başlatma işletimi, gerçek oturumlu Next form/API birleşimi, üretim şema/yayın sırası. Bu tur yeni canlı hizmet veya anahtar kurulmadı; üretim değişmedi.

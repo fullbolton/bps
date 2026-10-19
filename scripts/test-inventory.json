@@ -820,5 +820,9 @@
   {
     "file": "scripts/hr-worker-isolation.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-worker-lifecycle.test.mjs",
+    "suite": "application"
   }
 ]
