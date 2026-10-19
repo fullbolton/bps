@@ -56,6 +56,8 @@ transfer-http-result.json: gerçek yerel GoTrue parola oturumu + PostgREST ile d
 20 Ekim aktivasyon ek kabulü: activation-http-result.json ile gerçek yerel Auth + PostgREST dört grup geçti. Eksik şart, stale token, eşzamanlı tekrar ve ikinci geçiş reddi doğrulandı. Üretimde teknik kabul kapısı açılmadı.
 
 ### Kalan pilot sınırı (güncel)
-- Teknik: aktivasyon ekranının gerçek Auth/API ile birleşik tarayıcı kabulü; pilotta kapsam dışı görünürlük ve belge/dışa aktarma yetkilerinin hesap bazında kontrolü.
+- Teknik: aktivasyon ekranının gerçek Auth/API ile birleşik tarayıcı kabulü tamamlandı (activation-browser-result.json). Pilot hesaplarında kapsam dışı görünürlük ve belge/dışa aktarma yetkilerinin hesap bazında kontrolü kalır.
 - Ürün kararı: pilot şirket/hesaplar ve departman/iş yeri kapsamları; özel PDF politikası. Gerçek hesaplara tahmini kapsam atanmaz.
 - Sonraki geliştirme: izin ve satın alma yönetici onayları; bu paketlerin tamamlandığı veya canlıda olduğu varsayılmaz.
+
+Tekrar kurulumu: BPS_LOCAL_BROWSER=1 BPS_HR_ACTIVATION_BROWSER=1 BPS_ACCESS_PREVIEW_ENABLED=true BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Hazırlık bayrakları yalnız yerel test için kullanılır.

@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-20",
+  "actualApplication": true,
+  "actualGoTrue": true,
+  "actualPostgrest": true,
+  "syntheticLocalOnly": true,
+  "checks": [
+    "Missing gate and HR rule disable review",
+    "Current gates enable review",
+    "Changed policy during confirmation yields definite rejection and disables save",
+    "Close and refresh clears rejected intent/message",
+    "Fresh activation renders scoped mode and removes activation button",
+    "Database scoped mode and exactly one activation receipt"
+  ],
+  "applicationTests": 857,
+  "typecheck": "pass",
+  "productionActivation": false,
+  "productionBuild": "pass"
+}

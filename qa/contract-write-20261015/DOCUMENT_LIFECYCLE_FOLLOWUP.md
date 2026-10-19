@@ -1878,3 +1878,12 @@ Kanıt: qa/hr-activation-readiness-20261019/transfer-browser-result.json. Yenide
 Gerçek yerel GoTrue yönetici parola oturumu ve PostgREST üzerinden dört grup geçti: eksik İK rolü/kapalı teknik kabulde geçişin ve işlem kaydının engellenmesi; teknik kabul veya politika revizyonu değişince eski token reddi ve legacy modunun korunması; iki eşzamanlı HTTP isteği ve aynı komut tekrarında tek scoped geçiş/tek makbuz; devreye alınmış durumda yeni geçişin ve değiştirilmiş komut tekrarının reddi. Gerçek TypeScript ön kontrol/makbuz ayrıştırıcıları kullanıldı.
 
 Kanıt: qa/hr-activation-readiness-20261019/activation-http-result.json. Tekrar komutu: BPS_LOCAL_BROWSER=1 BPS_HR_ACTIVATION_HTTP=1 BPS_RELEASE_BARRIER=1 node qa/contract-write-20261015/storage-http.mjs. Koşu ve fixture temizliği başarılı. Bu yerel API kabulüdür; gerçek üretim aktivasyonu veya aktivasyon ekranının birleşik tarayıcı kabulü değildir. Mevcut sentetik tarayıcı checklist kabulü ayrı kanıttır. Üretim kodu/migration değişmedi ve yayın yapılmadı.
+
+
+## 20 Ekim — aktivasyon gerçek tarayıcı kabulü ve kesin ret UX düzeltmesi
+
+Gerçek uygulama, GoTrue ve PostgREST ile aktivasyon tarayıcı akışı tamamlandı. Eksik teknik kabul/İK rolünde inceleme kapalı; şartlar tamamlandığında açık. Form onaydayken yerel politika revizyonu değiştirildi; kesin ret görüldü ve tekrar kayıt kapandı. Onayı kapatıp yenileme eski komut/mesajı temizledi. Güncel onayla scoped geçiş başarılı oldu, ayarlar üst açıklaması güncellendi ve aktivasyon düğmesi kaldırıldı. DB tek makbuz ve scoped modu doğruladı. Kanıt activation-browser-result.json.
+
+Düzeltme: HrActivation kesin PostgreSQL retlerini belirsiz ağ hatasından ayırıyor. İlk denemedeki STALE/BLOCKED ve yetki retleri yenilemeye yönlendirir; daha önce belirsiz sonuç varsa sonraki ret önceki kaydı çürütemeyeceğinden aynı komutla deneme korunur. 857 uygulama testi ve TypeScript geçti. Gerçek üretim aktivasyonu/yayın yapılmadı.
+
+Production build sentetik ortam değerleriyle geçti; geçici yerel test ortamı temizlendi.

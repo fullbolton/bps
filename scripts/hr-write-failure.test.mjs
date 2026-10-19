@@ -9,3 +9,11 @@ test('a later rejection never disproves an earlier uncertain commit',()=>{
  assert.equal(classify({code:'P0001',message:'HR_FORBIDDEN'},true),'uncertain');
  assert.equal(classify({code:'P0001',message:'ACCESS_STALE'},true),'uncertain');
 });
+
+test('activation rollback is definitive only before any uncertain attempt',()=>{
+ for(const message of ['HR_ACTIVATION_STALE','HR_ACTIVATION_BLOCKED','ACCESS_MANAGER_REQUIRED','ACCESS_SCOPE']){
+  assert.equal(classify({code:'P0001',message}),'rejected');
+  assert.equal(classify({code:'P0001',message},true),'uncertain');
+ }
+ assert.equal(classify({code:'P0001',message:'HR_ACTIVATION_COMMAND_REUSED'}),'uncertain');
+});

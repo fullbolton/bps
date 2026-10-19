@@ -2,11 +2,12 @@
 import assert from 'node:assert/strict';
 import {writeFileSync} from 'node:fs';
 import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
-export async function acceptActivation({sql,id,authBase,restBase,loginPassword,syncAuthScope}){
+export async function acceptActivation({sql,id,authBase,restBase,loginPassword,syncAuthScope,browserSeed=false}){
  for(const url of [authBase,restBase])assert.match(url,/^http:\/\/127\.0\.0\.1:\d+$/);
  const {parseHrActivation,prepareHrActivation,parseHrActivationReceipt}=await importActualTypeScript(new URL('../../src/lib/services/hr-access-activation.ts',import.meta.url));
  const actor=id(11),tenant=id(1),checks=[];
  sql(`UPDATE profiles SET role='yonetici' WHERE id='${actor}';UPDATE tenant_memberships SET role='yonetici' WHERE user_id='${actor}' AND tenant_id='${tenant}';ALTER TABLE tenant_module_settings DISABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_settings SET enabled=true WHERE tenant_id='${tenant}' AND module_key='hr';ALTER TABLE tenant_module_settings ENABLE TRIGGER tenant_module_key_guard_v1;UPDATE tenant_module_entitlements SET granted=true WHERE tenant_id='${tenant}' AND module_key='hr';INSERT INTO company_access_state VALUES('${tenant}',1);INSERT INTO tenant_memberships(user_id,tenant_id,role) VALUES('${id(12)}','${tenant}','ik');INSERT INTO company_access_roles(id,tenant_id,name,rules) VALUES('${id(19001)}','${tenant}','Synthetic activation HR','[]');INSERT INTO company_access_assignments SELECT tenant_id,user_id,id,'${id(19001)}' FROM tenant_memberships WHERE tenant_id='${tenant}' AND user_id='${id(12)}';`);
+ if(browserSeed){syncAuthScope();console.log("LOCAL_HR_ACTIVATION_SEED_READY");return;}
  syncAuthScope();
  const login=await fetch(authBase+'/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'document-qa@example.test',password:loginPassword})});assert.ok(login.ok);const session=await login.json();
  const rpc=async(name,args,error)=>{const r=await fetch(restBase+'/rpc/'+name,{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(args),signal:AbortSignal.timeout(10000)});const data=await r.json();if(error){assert.equal(r.ok,false);assert.ok(JSON.stringify(data).includes(error),JSON.stringify(data));}else assert.ok(r.ok,JSON.stringify(data));return data;};
