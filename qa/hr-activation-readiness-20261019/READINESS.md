@@ -121,3 +121,14 @@ Kararlar: aynı zaman damgasındaki birebir sonuç tek kaydı korur; çelişen t
 Kanıt: geçici sentetik PostgreSQL'de 8 kabul grubu geçti (result.json). Yeni senaryolar: anon/kullanıcı reddi, eksik service rol iddiası, yanlış şirket/sürüm, tip hataları, eski/kısmi rapor, tek kayıtlı tekrar, çelişen/eski sonuç, infected düşürme, temizleme ve yayın sonrası ret. Ürün TypeScript değişmedi; bu tur genel uygulama testleri tekrar edilmedi.
 
 Sınır: worker-report.sql üretim migration zincirinde değildir. Gerçek ClamAV kurulumu, imza/config doğrulaması, dar kapsamlı dosya okuma ve yükleme API entegrasyonu henüz tamamlanmadı. Bu RPC kendi başına tarama yapmaz ve service_role anahtarını dar yetkili hale getirmez. Mevcut kullanıcı pending readback yolu değiştirilmeden karantina adayı yayımlanamaz. Üretim değişmedi.
+
+
+## 20 Ekim — tarama işçisi içerik bağlama çekirdeği
+
+workers/hr-malware/job.mjs: güvenilir adaptörlerden alınan nesne kimliği/sürümü, PDF başlığı, gerçek bayt uzunluğu ve SHA-256 rezervasyonla eşleştirilir; aynı baytların özel kopyası taramaya gönderilir. Motorun politika, imza güncelliği ve ölçüm güncelliği tarama öncesi/sonrası kontrol edilir; motor örneği, ayar özeti veya imza sürümü değişirse sonuç kaydedilmez. Tarama sonrası nesne yeniden kontrol edilir; persist başarısızlığı başarı makbuzuna dönüşmez. Temiz rapor mevcut TypeScript sözleşmesiyle uyumludur.
+
+Karar: motorun PDF tarama ve şifreli/limit aşımı uyarıları gerçek çalışma yapılandırmasından doğrulanmadan temiz sonuç oluşturulmaz. Bu bilgi tarayıcıdan veya kontrol edilmemiş bir env bayrağından alınamaz. FOUND yanıtı ayrıntısı bilinmediğinden complete=false ile kapalı tutulur; şifreleme/limit alt nedeni bu çekirdekte ayrıştırılmaz. Dosyalar kayda/loga yazılmaz.
+
+Doğrulama: 6 işçi senaryosu ve toplam 873 uygulama testi geçti. İçerik/sürüm değişimi, eski imza/ölçüm, uygun olmayan yapılandırma, motor yenilenmesi, zararlı/bilinmeyen sonuç, bağlantı ve kayıt hatası kapsandı. Temiz raporun mevcut doğrulayıcı tarafından kabulü ayrıca geçti.
+
+Sınır: bu paket adaptörleri enjekte edilen çekirdektir; gerçek motor ölçüm adaptörü, sınırlı Storage okuması ve guarded RPC persist bağlantısı henüz bağlanmadı. readObject adaptörü aktarım sırasında 10 MiB sınırını da uygulamalı; sonradan uzunluk kontrolü tek başına yeterli değildir. Gerçek motor kurulumu ve uçtan uca kabul tamamlanmadan yayın yok. Üretim değişmedi.

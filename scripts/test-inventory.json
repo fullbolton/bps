@@ -776,5 +776,9 @@
   {
     "file": "scripts/hr-malware-verdict.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-malware-job.test.mjs",
+    "suite": "application"
   }
 ]
