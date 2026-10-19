@@ -1680,3 +1680,14 @@ Resmi Auth/PostgREST/Storage ve yerel Next üzerinde sentetik CSV dosyası dosya
 Aynı veriler XLSX olarak 390x844 mobil görünümde tekrar seçildi: iki satır Değişiklik yok, üçüncü Eksik bilgi; tüm seçimler ve kaydetme kapalı. scrollWidth=390. Satır metninde iki UX kusuru düzeltildi ve ekranda doğrulandı: değişmeyen ad iki kez/okla gösterilmiyor; eksik yeni ad için yanlış Ad korunacak yerine Ad soyad eksik deniyor. TypeScript, 5 import ve 2 commit istemci grubu geçti. SQL değişmedi; önceki 5 commit DB grubu ve 849 uygulama testi geçerlidir, bu tur yeniden çalıştırılmadı.
 
 Kanıt hr-import-browser-result.json, hr-import-mobile.png ve sentetik fixtures/employees.csv/.xlsx. Test sekmesi/viewport ve geçici servisler/DB temizlendi; üretim değişmedi. 018–021 hâlâ yayın ön kontrolünü bekler. Sıradaki ana İK-1 işi özel evrak erişimi/yükleme yaşam döngüsüdür; scoped İK toplu aktarımı, aday bağlantısı ve daha geniş dosya akışları ayrıca açıktır.
+
+
+## 19 Ekim — Özel İK belge erişim sınırı (yerel altyapı)
+
+022 migration ile genel firma/aday evraklarından ayrı private HR metadata tablosu kuruldu. Belge aynı şirket/çalışan/istihdam dönemine bileşik FK ile bağlı; dosya boyutu, içerik SHA-256 ve süre tarihi alanları var. RLS açık, doğrudan tablo erişimi anon/authenticated/service_role için kapalı. İstemci yalnız yetkili ve 50 satırlık sayfalı RPC'den başlık/dönem/geçerlilik bilgisi alabilir; Storage yolu dönmez. Süre dolumu her okumada hesaplanır; süresiz belge expired=false.
+
+Erişim: yönetici şirket erişimi; legacy İK okuma; scoped kullanıcıda hr.employees.read VE hr.documents.download aynı gerçek çalışan kapsamıyla aranır. Genel firma evrakı izni aktarılmaz. Seçili departman ve açık deny uygulanır. Yazma için henüz özel capability yok, gelecekteki iç yardımcı manager dışını reddeder; helper dışarıya çağrılamaz. Bu migration Storage bucket/policy, dosya yükleme veya indirme bağlantısı AÇMAZ.
+
+6 geçici PostgreSQL kabul grubu: sayfalama/süre/path gizleme, legacy rol sınırları, scoped çift izin, departman ve explicit deny, doğrudan tablo/helper erişimi, tenant/kapalı modül. 3 gerçek kaynak istemci grubu ve TypeScript geçti. Statik 0 hata/1 yeni migration uyarısı; diff temiz. Kanıt hr-private-documents-result.json ve hr-private-documents-client-result.json. Üretim değişmedi; son doğrulanmış 207 migration; 018–022 yerel/GitHub bekliyor.
+
+Kalan zorunlu paket: prepare/finalize defteri; dosya sahipliği ve gerçek içerik doğrulaması; iptal/kurtarma/temizleme; modül kapanış bağlantısı; yetkili süreli indirme; çalışan ekranı ve gerçek Storage/tarayıcı kabulü. Özel evrak ürünü tamamlandı veya kullanılabilir diye sunulmaz. Geçici SQL test verisi temizlendi; gerçek belge kullanılmadı.

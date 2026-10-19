@@ -49,5 +49,6 @@
   "20261019001800_hr_employee_edit.sql",
   "20261019001900_hr_employment_lifecycle.sql",
   "20261019002000_hr_import_preview.sql",
-  "20261019002100_hr_import_commit.sql"
+  "20261019002100_hr_import_commit.sql",
+  "20261019002200_hr_private_document_boundary.sql"
 ]

@@ -1,0 +1,13 @@
+{
+  "passed": 6,
+  "checks": [
+    "Bounded stable pagination, computed expiry and no object path disclosure",
+    "Legacy HR read allowed; operations and finance roles cannot inherit general document access",
+    "Scoped mode requires both employee read and private document capability; legacy HR role cannot bypass",
+    "Selected department scope respected and explicit deny overrides matching allow",
+    "Direct table access and internal helper execution revoked",
+    "Foreign company and closed HR module denied"
+  ],
+  "syntheticOnly": true,
+  "storageUploadEnabled": false
+}

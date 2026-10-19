@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {writeFileSync} from 'node:fs';
+import {importActualTypeScript} from '../../scripts/helpers/import-typescript.mjs';
+const {parseHrPrivateDocuments}=await importActualTypeScript(new URL('../../src/lib/services/hr-private-documents.ts',import.meta.url));
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const doc={id:id(4),employmentId:id(5),title:'Synthetic document',validityDate:null,expired:false,createdAt:'2026-01-01T00:00:00Z'};
+const raw={schemaVersion:1,actorId:id(1),tenantId:id(2),employeeId:id(3),documents:[doc],hasMore:false};
+const parse=r=>parseHrPrivateDocuments(r,id(1),id(2),id(3));assert.equal(parse(raw).documents.length,1);
+for(const p of [{actorId:id(9)},{tenantId:id(9)},{employeeId:id(9)},{hasMore:true},{documents:[doc,doc]}])assert.throws(()=>parse({...raw,...p}));
+for(const p of [{validityDate:'2026-02-30'},{expired:'false'},{validityDate:null,expired:true},{createdAt:'invalid'},{employmentId:'bad'}])assert.throws(()=>parse({...raw,documents:[{...doc,...p}]}));
+assert.equal('storage_path' in parse({...raw,documents:[{...doc,storage_path:'must-not-propagate'}]}).documents[0],false);
+writeFileSync(new URL('./hr-private-documents-client-result.json',import.meta.url),JSON.stringify({passed:3,actualSource:true,checks:['Company actor employee and pagination binding','Calendar validity and duplicate rejection','Only intended metadata leaves parser']},null,2)+'\n');console.log('PASS 3 private document client groups');

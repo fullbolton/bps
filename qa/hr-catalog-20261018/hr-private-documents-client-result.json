@@ -1,0 +1,9 @@
+{
+  "passed": 3,
+  "actualSource": true,
+  "checks": [
+    "Company actor employee and pagination binding",
+    "Calendar validity and duplicate rejection",
+    "Only intended metadata leaves parser"
+  ]
+}
