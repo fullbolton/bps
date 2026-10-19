@@ -1529,3 +1529,16 @@ Yerel 390×844 tarayıcı kabulü: form açıkken politika revizyonu değiştiri
 Yayın kapıları: canlı sürüm/ledger yeniden ölçülmeli; seçilen adayın tüm bekleyen migration'ları canlı şema üzerine sıralı prova edilmeli; HR teknik kabul ve preview/readiness kapıları açıkça değerlendirilmeden hiçbir şirket modu açılmamalı. Eski yayın hazırlığı belgelerindeki sayılar güncel canlı ölçüm yerine kullanılmaz. Üretim deploy/şirket aktivasyonu yapılmadı. Sonraki blok gerçek belirsiz yanıt/kurtarma kabulü ve transfer/aktivasyon ekranlarının mobil-klavye kapanışıdır; bütün HR-1 tamamlanmış değildir.
 
 Son kontrol: sentetik localhost public değerleriyle production build ve TypeScript geçti.
+
+
+## 19 Ekim — Yanıt kaybı, mobil transfer ve aktivasyon kabulü tamamlandı
+
+Yerel authenticated-browser.mjs test proxy'sine BPS_HR_DROP_RESPONSE_ONCE=1 eklendi. Yalnız açıkça seçilen üç HR RPC'sinin ilk başarılı upstream yanıtını tüketip sentetik 502 döndürür; kayıt gerçek PostgreSQL'de tamamlanmıştır. Sonraki istek gerçek makbuzu alır. Flag olmadan davranış değişmez; üretim kodu/SQL değişmedi. İlk denemede socket kesintisi tarayıcı tarafından otomatik tekrarlandığı için görünür belirsizlik kabulü sayılmadı; ölçülen son senaryo commit sonrası 502'dir.
+
+Gerçek yerel oturum/tarayıcı ile üç akış: çalışan oluşturma, iş yeri transferi, şirket özel İK aktivasyonu. Oluşturmada ilk başarı yanıtı kayboldu; ekleme yetkisi kaldırılıp tekrar denendiğinde form yeni komuta açılmadı. Yetki geri gelince aynı komutun makbuzu alındı. Transfer ve aktivasyonda da ilk başarı yanıtı kayboldu, aynı işlemle tekrar tamamlandı. Kesin SQL sonuçları: 1 çalışan, 2 atama (1 açık), 1 aktivasyon makbuzu. Kanıt lost-response-browser-result.json, mobile-transfer-uncertain.png, mobile-activation-recovered.png.
+
+Transfer ve aktivasyon ekranlarında 390×844 viewport/390 scrollWidth; yatay taşma yok. Onay ve tekrar düğmeleri Enter ile çalıştırıldı. Bu tam klavye/screen-reader veya gerçek iOS kabulü değildir. Testte aynı sentetik hesap önce İK sonra yönetici fixture'ına geçirildi; stale üyelik oturumu doğrulama ekranına düştü. Yönetici senaryosu için yalnız disposable fixture üyelik sürümü Auth fixture ile eşlendi; bu adım gerçek rol değişimi/yeniden giriş kabulü sayılmaz. Teknik release onayı da yalnız disposable DB'de verildi. Üretim şirket modu veya verisi değiştirilmedi.
+
+İlgili 7 sözleşme testi geçti; uygulama kodu değişmediğinden önceki 849 test/production build tekrar koşulmadı, bu turun sonucu olarak yeniden sunulmaz. Test sekmeleri/sunucuları/DB'leri kapatıldı ve viewport sıfırlandı.
+
+Kapanan işler: commit sonrası belirsiz yanıtın gerçek tarayıcı kabulü; mobil transfer/aktivasyon onay-tekrar kullanım kontrolü. Sonraki yayın hazırlığı: canlı sürüm ve migration ledger'ının güncel salt okunur ölçümü, seçilen yayın adayının sıralı migration provası ve bağımlılık sırası, sonra kapsamı belli yayın/smoke. Ürün sınırı: HR readiness ve teknik release kapıları halen kapalı; mevcut sınırlı İK ekranları tüm HR-1 değildir. Tam klavye/erişilebilirlik turu ve transferde kesin ret sonrası hedef yenileme tarayıcı kabulü ayrıca açık. Bu paket yayına alınmadı.

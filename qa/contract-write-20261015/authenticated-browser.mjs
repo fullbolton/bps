@@ -45,6 +45,8 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    authBase=await restoreAuthFixture({source,auth,authDatabase,authBase,sql,docker,loginPassword,userId:id(11),tenantId:id(1)});
    if(process.env.BPS_AUTH_RESTORE_HTTP_ONLY==='1')return;
   }
+  const droppedHrResponses=new Set();
+  const hrFaultRoutes=new Set(['/rest/v1/rpc/hr_scoped_employee_create_v1','/rest/v1/rpc/hr_scoped_location_transfer_v1','/rest/v1/rpc/hr_access_activate_v1']);
   server=http.createServer((req,res)=>{
    if(req.method==='POST' && req.url.startsWith('/auth/v1/token')){
     try{syncAuthScope();}catch{res.writeHead(503);res.end('Synthetic Auth scope sync failed');return;}
@@ -57,7 +59,14 @@ CREATE TABLE public.tenant_memberships(user_id uuid,tenant_id uuid,version uuid)
    const mapping=[['/auth/v1',authBase],['/rest/v1',restBase],['/storage/v1',storageBase]].find(([prefix])=>req.url.startsWith(prefix));
    if(!mapping){res.writeHead(404);res.end();return;}
    const target=new URL(mapping[1]+req.url.slice(mapping[0].length));
-   const proxy=http.request(target,{method:req.method,headers:{...req.headers,host:target.host}},up=>{res.writeHead(up.statusCode,up.headers);up.pipe(res);});
+   const proxy=http.request(target,{method:req.method,headers:{...req.headers,host:target.host}},up=>{
+    // Test-only: let PostgreSQL finish, consume the success, then lose the response.
+    // Each route drops only once so retries exercise the server receipt, not a mock.
+    if(process.env.BPS_HR_DROP_RESPONSE_ONCE==='1'&&req.method==='POST'&&hrFaultRoutes.has(req.url)&&!droppedHrResponses.has(req.url)&&up.statusCode>=200&&up.statusCode<300){
+     droppedHrResponses.add(req.url);up.resume();up.on('end',()=>{console.log('LOCAL_HR_COMMITTED_RESPONSE_DROPPED '+req.url);res.writeHead(502,{'Content-Type':'text/plain'});res.end('Synthetic upstream response lost after commit');});return;
+    }
+    res.writeHead(up.statusCode,up.headers);up.pipe(res);
+   });
    proxy.on('error',()=>{res.writeHead(502);res.end();});req.pipe(proxy);
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(3061,'127.0.0.1',resolve);});

@@ -1,0 +1,30 @@
+{
+  "scope": "disposable local Auth/PostgREST/Next; synthetic company only",
+  "counts": {
+    "employees": 1,
+    "assignments": 2,
+    "openAssignments": 1,
+    "activationReceipts": 1,
+    "mode": "scoped"
+  },
+  "lostSuccessRoutes": [
+    "/rest/v1/rpc/hr_scoped_employee_create_v1",
+    "/rest/v1/rpc/hr_scoped_location_transfer_v1",
+    "/rest/v1/rpc/hr_access_activate_v1"
+  ],
+  "fault": "successful upstream RPC consumed; proxy returned one synthetic 502 per route",
+  "browserChecks": [
+    "create uncertain response freezes draft and command",
+    "create permission revoked after uncertain commit does not unlock replacement command",
+    "permission restored: original receipt recovered",
+    "mobile transfer confirmation and retry activated with Enter",
+    "mobile company activation confirmation and retry activated with Enter"
+  ],
+  "mobileWidths": {
+    "transfer": 390,
+    "activation": 390,
+    "viewport": 390
+  },
+  "productionChanged": false,
+  "measuredAt": "2026-10-19T12:34:30.501143+00:00"
+}
