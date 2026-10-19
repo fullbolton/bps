@@ -828,5 +828,9 @@
   {
     "file": "scripts/hr-worker-maintenance.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-worker-host-control.test.mjs",
+    "suite": "application"
   }
 ]

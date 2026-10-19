@@ -2150,3 +2150,25 @@ Complete isteği sunucuya ulaştığında yanıt 5 saniye bekletildi; bu sırada
 Kapsam: realClamav/realHttps/realRuntime/realSigtermDuringCompletion=true; realDatabase=false. Bu Mac kabulünde daemon Rosetta ile çalışır; test girişindeki engine reader emülasyona izin verirken strict process isolation ve üretim config kontrolünü uygular. Üretim main girişi değiştirilmedi; productionMainEntry=false, productionReady=false. Native Linux production main + gerçek PostgREST/Storage uçları için kabul hâlâ gerekir. Ürün kodu değişmedi; önceki 920 uygulama testi tekrar edilmedi. Yeni üç test dosyasının sözdizimi ve diff kontrolü geçti.
 
 Kalan işletim paketi: imza dosyalarını ayrı güncelleyicide hazırlama, daemon'u kontrollü yeniden başlatma ve yeniden ölçüm, native Linux launcher/supervisor sınırları, gerçek oturumlu Next form/API birleşimi ve üretim şema ön kontrolü. Üretim yayını veya gerçek anahtar kurulumu yok.
+
+
+## 20 Ekim — bakım kapısı ve imza yenileme sözleşmesi
+
+Worker bakım işaretini motor ölçümünden önce ve claim öncesinde denetler. Bakım başlayınca mevcut işi bitirir, maintenance sağlık durumuna geçer ve yeni iş almaz. Maintenance hazır/sağlıklı sayılmaz. İşaret root sahipli normal dosya olmalı; sembolik bağlantı veya yazılabilir güvensiz izinler hata verir. Üretimde kontrol dizini host tarafından yönetilip worker'a salt okunur bağlanmalıdır.
+
+maintenance.mjs imza yenileme sırasını tanımlar: kilit → bakım → mevcut işin bitişi → aday hazırlama → daemon durdurma → imzaları etkinleştirme → yeniden başlatma → ölçüm → devam. Eski imzaya dönüş, bayat/gelecek tarih, aynı daemon instance, farklı config veya beklenen imzayı yüklemeyen motor reddedilir. Hata durumunda otomatik devam/geri dönüş yok. Bu fonksiyonun host adaptörleri henüz hazırlanmadı; gerçek imza indirme/volume değiştirme/daemon yenileme tamamlanmış değildir.
+
+Kanıt: 925/925 uygulama testi geçti; bunların 5'i yeni bakım/yenileme test grubudur. BPS_TEST_MAINTENANCE=1 ile continuous-accept.mjs gerçek ClamAV + HTTPS + runtime üzerinde çalıştı: devam eden tek iş tamamlandı, maintenance görüldü, claims=1 kaldı; ardından SIGTERM ile exit 0/stopped. maintenance-result.json kaydedildi. Sentetik API cevapları kullanıldı, gerçek DB yok; Mac/Rosetta kabulü üretim main/native Linux kabulünün yerine geçmez. Geçici kaynaklar temizlendi.
+
+Kalan: gerçek host launcher ve imza güncelleme adaptörleri, native Linux üretim main kabulü, gerçek oturumlu Next form/API birleşimi ve üretim şema/yayın sırası. Canlıya yayın, gerçek anahtar kurulumu veya İK aktivasyonu yapılmadı.
+
+
+## 20 Ekim — host bakım kilidi ve isteğe bağlı tamamlanma kanıtı
+
+host-control.mjs gerçek dosya sistemi üstünde O_EXCL kilit, root/0600 bakım isteği yazımı, güncel worker onayı bekleme ve aynı isteği kaldırma adaptörlerini ekler. Host dizinleri önceden güvenli sahiplik/izinlerle hazırlanmalı; kontrol dizini worker'a salt okunur, sağlık dizini ayrı bağlanmalıdır. Mevcut kilit veya bakım isteği otomatik silinmez; çökme sonrası operatör incelemesi gerekir. Eski release çağrısı yeni kilidi kaldıramaz.
+
+Bakım işareti artık JSON requestId UUID taşır; worker aynı kimliği maintenance sağlık kaydına geçirir. Boş/eski biçimdeki işaret reddedilir. İşaret O_NONBLOCK/O_NOFOLLOW ve en fazla 513 byte okunur; FIFO'da bekleme ve sembolik bağlantı engellenir. Host yalnız aynı UUID'yi taşıyan, son 15 saniye içinde yazılmış maintenance kaydını kabul eder; en fazla 150 deneme sonrası hata ile beklemeyi bırakır ve bakım korunur. Bu kontrol aynı host zamanına dayanır.
+
+Kanıt: genel uygulama kontrolü 928/928 geçti. Son kilit-release düzeltmesi sonrası odaklı host testleri 4/4 geçti. Gerçek ClamAV + HTTPS runtime kabulü yeniden geçti; worker sağlık kaydındaki bakım kimliği istekle birebir eşleşti, mevcut tek iş tamamlandı ve claims=1 kaldı. API/DB cevapları sentetik, daemon Mac/Rosetta; native Linux üretim kabulü değildir.
+
+Entegrasyon sınırı: createHostControl.waitDrained yalnız işçinin durakladığını doğrular; rotateSignatures için host adaptörü bunun ardından eski motor baseline ölçümünü döndürmelidir. Güncel olmayan imza baseline'ı bakım sebebi olabileceğinden ayrı ölçülür. Bu tur gerçek imza indirme, signature volume değişimi veya daemon yeniden başlatma adaptörleri eklenmedi. Üretim/İK bayrakları değişmedi. Sıradaki iş bu adaptörler ve native Linux launcher kabulüdür.

@@ -17,8 +17,8 @@ try{
  const stats=()=>JSON.parse(docker(['exec','-e','NODE_EXTRA_CA_CERTS=/tls/cert.pem',api,'node','--input-type=module','-e',`console.log(await(await fetch('https://${api}:8443/stats',{headers:{Authorization:'Bearer SYNTHETIC-ONLY'}})).text())`]));
  let running=false;for(let i=0;i<60;i++){if(stats().completionStarted===1){running=true;break;}if(docker(['inspect','--format','{{.State.Running}}',worker])!=='true')throw Error(docker(['logs',worker]));await new Promise(r=>setTimeout(r,250));}assert.ok(running,'completion must be in progress');
  if(maintenance){
-  docker(['run','--rm','--network','none','--entrypoint','node','-v',state+':/state',image,'-e',"require('fs').writeFileSync('/state/pause','',{mode:0o600})"]);
-  let paused=false;for(let i=0;i<40;i++){const health=JSON.parse(docker(['exec',worker,'node','-e',"console.log(require('fs').readFileSync('/run/bps-worker/health.json','utf8'))"]));if(health.state==='maintenance'){paused=true;break;}await new Promise(r=>setTimeout(r,250));}assert.ok(paused);assert.equal(stats().claims,1);
+  docker(['run','--rm','--network','none','--entrypoint','node','-v',state+':/state',image,'-e',"require('fs').writeFileSync('/state/pause',JSON.stringify({requestId:'00000000-0000-4000-8000-000000000099'}),{mode:0o600})"]);
+  let paused=false;for(let i=0;i<40;i++){const health=JSON.parse(docker(['exec',worker,'node','-e',"console.log(require('fs').readFileSync('/run/bps-worker/health.json','utf8'))"]));if(health.state==='maintenance'){paused=true;break;}await new Promise(r=>setTimeout(r,250));}assert.ok(paused);const ack=JSON.parse(docker(['exec',worker,'node','-e',"console.log(require('fs').readFileSync('/run/bps-worker/health.json','utf8'))"]));assert.equal(ack.maintenanceId,'00000000-0000-4000-8000-000000000099');assert.equal(stats().claims,1);
  }
  docker(['kill','--signal','TERM',worker]);
  let stopped=false;for(let i=0;i<40;i++){if(docker(['inspect','--format','{{.State.Running}}',worker])==='false'){stopped=true;break;}await new Promise(r=>setTimeout(r,250));}assert.ok(stopped);assert.equal(docker(['inspect','--format','{{.State.ExitCode}}',worker]),'0');
