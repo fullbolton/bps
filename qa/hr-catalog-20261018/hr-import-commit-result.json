@@ -1,0 +1,11 @@
+{
+  "passed": 5,
+  "checks": [
+    "Duplicate or foreign row selection fails before any mutation",
+    "Audit failure rolls back entire batch including created person and name update",
+    "Atomic create/update, exact retry and stale/reused-command protection",
+    "Code and employment unchanged on name update; one provenance receipt",
+    "Same records cannot be recreated; revoked module blocks receipt replay"
+  ],
+  "syntheticOnly": true
+}

@@ -18,3 +18,12 @@ for(const patch of [{tenantId:'other'},{rows:[]},{rows:[...response.rows].revers
 console.log('PASS HR comparison identity and row binding');
 
 writeFileSync(new URL('./hr-import-client-result.json',import.meta.url),JSON.stringify({passed:5,actualSource:true,checks:['Leading zero codes and explicit Turkish/ISO date normalization','Blank cells remain blank; duplicates block full comparison','Formula/error/identity-like data and ambiguous dates rejected','Hidden sheet/duplicate mapping/row limits/empty selection rejected','Response company and ordered row identity binding']},null,2)+'\n');console.log('PASS 5 HR import client groups');
+const {prepareHrImport,saveHrImport}=await importActualTypeScript(new URL('../../src/lib/services/hr-import.ts',import.meta.url));
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const review={token:'a'.repeat(32),rows:[{row:2,code:'001',status:'new'},{row:3,code:'EXIST',status:'same'}]};
+const command=prepareHrImport(id(1),id(2),id(3),'b'.repeat(64),valid.rows,review,[2]);
+assert.throws(()=>prepareHrImport(id(1),id(2),id(3),'b'.repeat(64),valid.rows,review,[3]));assert.throws(()=>prepareHrImport(id(1),id(2),id(3),'b'.repeat(64),valid.rows,review,[2,2]));
+const receipt={schemaVersion:1,actorId:id(1),tenantId:id(2),commandId:id(3),source:'b'.repeat(64),rows:[{row:2,employeeId:id(4),action:'created'}]};
+const client=data=>({rpc:()=>({abortSignal:async()=>({data,error:null})})});assert.equal(await saveHrImport(client(receipt),command),1);
+for(const patch of [{source:'c'.repeat(64)},{commandId:id(9)},{rows:[{row:3,employeeId:id(4),action:'created'}]}])await assert.rejects(()=>saveHrImport(client({...receipt,...patch}),command));
+writeFileSync(new URL('./hr-import-commit-client-result.json',import.meta.url),JSON.stringify({passed:2,actualSource:true,checks:['Only explicitly selected eligible rows; duplicate selection rejected','Receipt bound to actor/company/command/source and selected rows']},null,2)+'\n');console.log('PASS 2 import commit client groups');

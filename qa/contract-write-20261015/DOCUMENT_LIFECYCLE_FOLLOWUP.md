@@ -1662,3 +1662,12 @@ Yerel resmi Auth/PostgREST/Storage + Next üzerinde sentetik kabul: ilk başarı
 Doğrulama: geçici PostgreSQL'de 4 kabul grubu, gerçek TypeScript kaynakta 5 istemci grubu, TypeScript ve sentetik production build geçti. Statik 0 hata/1 yeni migration uyarısı; diff temiz. Bu turun ekranı tarayıcıda henüz test edilmedi. Kanıt hr-import-schema-result.json ve hr-import-client-result.json. Üretim değişmedi; son doğrulanmış 207 migration, İK kapalı; 018–020 bekliyor.
 
 Kalan: Excel ön kontrol tarayıcı/mobil kabulü; açık satır kararı + revizyonlu/idempotent toplu kayıt ve kaynak satır kimliği; ayrı İK özel belge erişimi ve upload yaşam döngüsü. Özel evrak bu tur uygulanmadı. Önceki ürün hedefi tamamlanmış sayılmaz.
+
+
+## 19 Ekim — İK onaylı Excel toplu kayıt (yerel; tarayıcı kabulü bekliyor)
+
+021 migration, salt okunur ön kontrolün üzerine veri+karşılaştırma token'ı ve yönetici toplu komutu ekler. Kullanıcı yeni/adı değişen satırları açıkça seçer; eski/yeni ad ve yeni işe giriş gösterilir. Aynı/değerlendirilecek/eksik satırlar yazılamaz. Dosya SHA-256 ve kaynak satırlar komut makbuzunda tutulur. Yeni kayıt kişi+çalışan+ilk dönem oluşturur; ad güncellemesi kodu, istihdamı veya bağlı aday adını değiştirmez. Tüm seçili satırlar tek transaction; stale karşılaştırma veya audit hatası bütün paketi geri alır. Aynı komut aynı makbuzu verir; yeniden karşılaştırılan mevcut çalışan tekrar oluşturulamaz. Bu işlem aday eşleştirme veya yeniden işe alma değildir.
+
+UI belirsiz sonuçta kaynak/sütun/karar değişimini ve form kapatmayı engeller, aynı komutu tekrarlar. Kesin ret sonrası yeniden karşılaştırma ve seçim gerekir. Tamamlanınca listeyi yenileme yönlendirmesi görünür. Scoped İK rolüne yeni toplu yetki verilmedi; yönetici kontrolü sürer.
+
+5 geçici PostgreSQL commit kabul grubu, 2 commit istemci grubu ve önceki 5 import istemci grubu geçti; 849 mevcut uygulama testi geçti. TypeScript, statik (0 hata; yeni migration uyarısı) ve sentetik build kontrolü yapıldı. Ekran uçtan uca gerçek dosya/tarayıcı kabulü HENÜZ yapılmadı; bu paket tamamlanmış üretim özelliği sayılmaz. Sonraki: dosya yükleme→eşleme→ön kontrol→seçim→kayıt, stale/yanıt kaybı ve mobil kabul; ardından özel İK evrakları. Üretim değişmedi, son doğrulanmış 207 migration; 018–021 bekliyor. İK kapalı.
