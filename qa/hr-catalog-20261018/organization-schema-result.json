@@ -1,0 +1,18 @@
+{
+  "measuredAt": "2026-10-19T11:06:30.956Z",
+  "checks": [
+    "Private RLS tables, no grants to client/service roles, no automatic backfill",
+    "HR-only identity creates no candidate/worker; cross-company links and duplicate personnel code rejected",
+    "Rehire retains one employee and separate periods; inclusive overlapping boundary and inverted dates rejected",
+    "Assignment and manager intervals validated; direct/transitive cycles rejected but non-overlapping history permitted",
+    "Closing manager/department cannot invalidate history; physical deletion and identity reassignment rejected",
+    "Explicit candidate link has one name authority; merged source and unimplemented HR-aware merge blocked",
+    "Two concurrent opposite reporting lines serialize; only one commits and the cycle is rejected"
+  ],
+  "deployed": false,
+  "limits": [
+    "Private storage foundation only; no client writer/UI",
+    "HR activation and HR-aware candidate merge remain closed",
+    "No real data migration"
+  ]
+}

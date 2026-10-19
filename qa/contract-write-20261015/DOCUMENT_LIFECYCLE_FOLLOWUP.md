@@ -1316,3 +1316,18 @@ Giriş ekranındaki sabit Partner Staff adı kaldırıldı; Hesabım ve erişim 
 İK-1 personel/organizasyon şema ve ekranları henüz bu pakette uygulanmadı. Sonraki uygulama bloğu budur; bağlı yönetici ilişkisi izin ve satın alma onaylarının temelini oluşturacak. Üretime yayın yapılmadı ve otomatik yayın açılmadı.
 
 Son kontrol: tsc ve yerel sentetik public değerlerle production build geçti.
+
+
+## 19 Ekim — İK kişi, istihdam ve organizasyon veri çekirdeği
+
+20261019000500_hr_organization_foundation.sql ile beş özel tablo eklendi: hr_people (kimlik köprüsü), hr_employees (personel kodu), hr_employment_periods (ayrı işe giriş/çıkış dönemleri), hr_departments ve hr_assignments (tarihli departman/pozisyon/yönetici). İK kişisi otomatik aday/ops_workers kaydı oluşturmaz. Mevcut adaya yalnız açık kimlik bağlantısı yapılabilir; bağlı isim talent kaydından okunacak, ikinci isim kopyası tutulmaz. Otomatik eşleme/backfill yoktur. Ortak kimliğe bütün eski yolların taşınması tamamlanmadı; mevcut tablolar korunur.
+
+Tenant bileşik FK'leri, şirkette tek kişi/personel kodu, çakışan istihdam ve organizasyon dönemlerine PostgreSQL exclusion constraint eklendi. Tarihler son gün dahil değerlendirilir; 30 Haziran çıkışın ardından 1 Temmuz yeni dönem olabilir. Atama ve yöneticinin dönemi atama aralığını kapsamalıdır. Tarihlerin kesiştiği yönetici zincirinde kendine bağlılık ve dolaylı döngü engellenir. Şirket satırı kilidi eşzamanlı organizasyon değişikliklerini seri işler; gelecek RPC'ler aynı kilidi revizyon okumadan önce almalıdır. Departman/yönetici dönemini kısaltmak mevcut tarihçeyi geçersiz kılamaz. Normal fiziksel silme ve kişi/istihdam kimliği değiştirme engellidir.
+
+Aday birleştirme henüz İK farkındalıklı değildir: bağlı adayın birleştirilmesi açık HR_LINKED_PERSON_MERGE_REQUIRED hatasıyla durdurulur; birleşmiş adaya yeni bağlantı reddedilir. Bu geçici koruma, birleşme desteği tamamlandı anlamına gelmez. Yeni tablolar boş başlar; canlıda backfill/HR link oluşturulmaz. Tüm tablolarda RLS açık, anon/authenticated/service_role doğrudan tablo izinleri kapalıdır. Bu migration kullanıcı yazma API'si açmaz, İK hakkını/aktivasyonunu açmaz.
+
+Gerçek geçici PostgreSQL şemasında 7 kontrol grubu geçti: özel erişim/no-backfill; aday/worker oluşturmayan kişi ve tenant/kod bütünlüğü; yeniden işe giriş/çakışma; dönem ve doğrudan/dolaylı yönetici döngüsü; geçmişi koruyan kapatma/silme/kimlik; aday bağlantı ve merge koruması; eşzamanlı zıt yöneticilikte bir commit ve bir döngü reddi. İlk ters tarih testi PostgreSQL daterange hatasıyla reddedildi; kullanıcıya kararlı hata için HR_DATE_RANGE doğrulaması eklendi. Kanıt organization-schema.mjs ve organization-schema-result.json. Geçici test DB'si temizlendi.
+
+Bu paket yalnız veri çekirdeğidir. Revizyon/idempotent makbuzlu yetkili HR yazar/okuyucular, HR-aware merge, özel isim düzenleme, çalışan/organizasyon ekranları, Excel ve özel belgeler henüz tamamlanmadı. HR aktivasyonu kapalı kalır. Yeni arayüz olmadığı için bu pakette tarayıcı kabulü yapılmadı. Üretim şeması ölçülmedi ve yayın yapılmadı. Sıradaki paket: bu tablolara rol+modül denetimli komutlar ve çalışan/departman ekranları; ardından yönetici onayı/izin akışı.
+
+Genel uygulama regresyonu: 821/821 geçti. Uygulama kaynak kodu değişmediği için yeni frontend build/tarayıcı sonucu iddia edilmez.
