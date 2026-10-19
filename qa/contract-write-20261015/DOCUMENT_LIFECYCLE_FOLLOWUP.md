@@ -1236,3 +1236,8 @@ Teknik tenant sınırı farklı müşteri şirketlerinin verisini ayırmak için
 Son insan kararları ana plana işlendi: hesap başına tek şirket; Partner/MEK ayrımı yeni UX kapsamından çıktı. “Modüller ve abonelik” alanı kullanım hakkı, etkinlik, rol ve ödeme olarak ayrıldı. Mevcut H0 → platformdan hak tahsisi → şirket modül ekranı → ticari koşullar sonrası self servis ödeme sırası kaydedildi. Fiyat/deneme/sağlayıcı/iptal politikaları henüz seçilmedi. İzin ve satın alma yönetici onayları abonelik satın almayla karıştırılmayacak.
 
 Bu tur yalnız plan/ilerleme kayıtları; kaynak kodu, migration, müşteri verisi ve canlı yayın değişmedi. Önceki 798 test bu belge değişikliği için yeniden çalıştırılmadı. Operasyon Faz 1 ve evrak kabulü yeniden açılmadı. Aktif uygulama görevi hâlâ H0 katalog geçişi ve gerçek tarayıcı kabulüdür.
+
+
+## 19 Ekim — Zeops ürün aileleri ve menü kapsamı onaylandı
+
+Kullanıcının talebiyle ana plana ürün ailesi/menü/kapsam/teslim sırası matrisi eklendi. İK, self servis, izin/onay, idari işler/satın alma, zimmet, masraf/avans, formlar, işe alım, toplu işlemler, raporlar, bilgi bankası/anket ve sonraki eğitim başlıkları kayıtlı. Menü grubu satılan modülle aynı olmak zorunda değil; hak+etkinlik+yetki ile görünür. Kişisel performans ve süreye bağlı eskalasyon kapsam dışı kalır. Bordro motoru, konum takibi, ödeme ve zaman damgası sağlayıcısı ayrıca karar gerektirir. Bu tur plan güncellendi; uygulama ve yayın yapılmadı.

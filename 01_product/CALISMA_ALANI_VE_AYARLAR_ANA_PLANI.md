@@ -1,5 +1,41 @@
 # BPS — Çalışma Alanı ve Ayarlar ana planı
 
+## Zeops başlıklarının BPS kapsamına alınması — 19 Ekim 2026
+
+Kullanıcı “Biz de bunları yapacağız, plana işle” diyerek aşağıdaki ürün ailelerini yol haritasına aldı. Bu karar hepsinin bugün uygulanmış olduğu veya Zeops'un birebir kopyalanacağı anlamına gelmez. Mevcut kişisel performans puanı ve süreye bağlı yönetici eskalasyonu eklememe kararı korunur. Tek hesap/tek şirket kararı geçerlidir.
+
+### Sol menü ve erişim
+
+Menü grubu, satılan modül ve kullanıcı yetkisi ayrı kavramlardır. Kullanım hakkı + etkinlik + rol/kayıt yetkisi uygun olduğunda ilgili bağlantı gösterilir; boş gruplar gizlenir. Satın alınmamış modüller günlük sol menüye doldurulmaz, Modüller ve abonelik alanından keşfedilir. Menüde gizlemek backend yetki kontrolünün yerine geçmez. İK, İdari İşler, Çalışan İşlemlerim, Onay Bekleyenler ve Operasyon başlıkları bu düzenin hedefidir. Çalışanın kendi izin kaydı ile İK'nın yönettiği izin aynı kayıttır; iki ayrı veri kaynağı oluşturulmaz.
+
+| Ürün ailesi / menü | BPS kapsamı | Teslim sırası ve sınır |
+|---|---|---|
+| Kontrol paneli | Günün işleri, kimde hangi iş var, bekleyen onaylar, operasyon ve duyuru özeti | Mevcut ekran etkin modül ve role göre sadeleşir; kişisel puanlama yok |
+| İnsan Kaynakları | Çalışan kartı, organizasyon, departman/pozisyon/yönetici, istihdam geçmişi, özel özlük dosyaları | İK-1; operasyon veya müşteri modülüne bağımlı değil |
+| Çalışan İşlemlerim | Kendi bilgileri, izin/bakiye, talepleri, zimmetleri ve erişimine açık dosyalar | İK-2 ile başlar; başka çalışanın özel bilgileri erişilemez |
+| İzin ve rapor | Talep, ilgili yönetici onayı/ret/düzeltme, vekâlet, takvim, bakiye/hak ediş | İK-2; sağlık/rapor belgeleri ayrıca özel yetkiyle; hesap kuralları doğrulanır |
+| Onay Bekleyenler | İzin, satın alma, masraf/avans ve form taleplerinin ilgili yöneticiye düşmesi | Ortak sunum, işlem türüne özgü kurallar; kendi talebini onaylamama, esaslı değişiklikte yeniden onay |
+| İdari İşler / Satın alma | Talep, gerektiğinde tutara bağlı ikinci onay, satın alma ve teslim takibi | İzin/onay temelinden sonra; onay, teslim ve ödeme ayrı durumlar |
+| Zimmet ve işe giriş/çıkış | Teslim/iade geçmişi, kontrol listeleri, sorumlu ve eksik adımlar | İK-3; mevcut görevlerle bağlantılı |
+| Masraf ve avans | Belge, talep, onay, ödeme durumu; iş avansı/iade ve harcırah ihtiyacı | İK-4; satın alma talebinden ayrı kayıt türü |
+| Form talepleri | Araç talep/teslim, harcırah ve diğer şirket içi talepler | Önce somut form tipleri; ihtiyaç doğrulanmadan sınırsız form/iş akışı motoru kurulmaz |
+| Personel havuzu / İşe alım | Mevcut aday kartı, görüşme, ekler ve aktarım; adaydan çalışana kontrollü dönüşüm | Mevcut havuzu kullanır; ikinci kişi oluşturmaz; kalan işe alım aşamaları ayrı paket |
+| Görev ve proje | Firma dışı görevler dahil ekip işleri, üstlenme, plan ve raporlama | Mevcut akış korunur; müşteri/proje her görevde zorunlu değil |
+| Operasyon / Vardiya | Mevcut talep, atama, işe başlama, çalışma onayı ve vardiya/tekrarlı plan | Faz 1 kapalı; yeni vardiya geliştirmesi ayrı faz, İK-1'i bekletmez |
+| Toplu işlemler | Excel önizleme/eşleme, yeni/güncelle/çakışma, satır sonucu; yetkili toplu atama | Her alan kendi yetki ve revision kontrolünü korur; boş hücre sessiz silme değildir |
+| Raporlar | Personel, izin bakiyesi, zimmet, özlük eksikleri, masraf ve görev raporları | İlgili modülle birlikte; mevcut veri/yetki kapsamına göre |
+| Bilgi ve paylaşım | Duyurular, bilgi bankası, ortak dosyalar ve anket | İK çekirdeğinden sonra mevcut iletişim altyapısını tamamlar; okundu bilgisi varsayılmaz |
+| Şirket ve ayarlar | Tek şirket, departman/çalışma yeri, ekip, roller, süreç/onay, bildirim ve takvim | Çok şirket seçicisi yeni UX'e taşınmaz |
+| Modüller ve abonelik | Haklar, modül aç/kapa, plan ve ileride ödeme/yenileme | Önce yönetici hak tahsisi; fiyat/sağlayıcı/iptal kararı sonrası ödeme |
+| Dış bordro bağlantısı | Luca/harici bordro aktarımı, alan eşleme, dönem mutabakatı ve yetkili çıktı | İK-4; kendi bordro hesap motoru bu onayla otomatik kapsam içine girmez |
+| Eğitim | İçerik, çalışan atama, katılım/tamamlama | Sonraki faz; çekirdek İK ve onay süreçlerinden sonra |
+| Saha yönetimi (ORIS benzeri) | Saha ziyareti, form, görev bağlantısı | Sonraki değerlendirme paketi; konum takibi/çevrimdışı çalışma otomatik onaylanmış değildir |
+| Zaman damgası / API | Belge doğrulama ve dış entegrasyon ihtiyacı | Sağlayıcı, maliyet, yetki ve gerçek ihtiyaç değerlendirmesinden sonra |
+
+**Kapsam dışında kalan:** kişisel performans puanı/değerlendirme modülü, süreye bağlı yönetici eskalasyonu. Zeops menüsünde bulunması bu önceki kullanıcı kararını kaldırmaz.
+
+**Uygulama sırası:** H0 modül altyapısı ve kabulü → tek şirket sadeleştirmesi + İK-1 → izin/self servis/onay → satın alma → zimmet/işe giriş-çıkış → masraf/avans/dış bordro → bilgi bankası/anket/eğitim ve doğrulanmış diğer ihtiyaçlar. Her paket ekran + veri + yetki + tekrar/hata davranışı + tarayıcı kabulü ile kapanır; yayın ayrı doğrulanır. Zeops'taki satın alma, inceleme kaydında şirketin özel formudur; ayrı satın alma modülü gözlemlendiği iddia edilmez. Doğrulanmamış işleyişler ilgili paket başında tamamlanır.
+
 ## Güncel karar — hesap başına tek şirket — 19 Ekim 2026
 
 Kullanıcının son kararı önceki MEK/Partner ayrımı planını geçersiz kılar: **Her hesap tek bir şirketi yönetecek.** Yeni ürün akışında Partner–MEK ayrımı, şirket seçimi ve şirketler arası geçiş tasarlanmayacak. Şirketin departmanları, şubeleri ve yöneticileri bu tek şirketin altında yer alır; izin ve satın alma onayları ilgili şirket içi yöneticiye yönlenir. Modül aç/kapa bu şirket hesabına göre çalışmaya devam eder.
