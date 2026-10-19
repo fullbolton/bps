@@ -1542,3 +1542,10 @@ Transfer ve aktivasyon ekranlarında 390×844 viewport/390 scrollWidth; yatay ta
 İlgili 7 sözleşme testi geçti; uygulama kodu değişmediğinden önceki 849 test/production build tekrar koşulmadı, bu turun sonucu olarak yeniden sunulmaz. Test sekmeleri/sunucuları/DB'leri kapatıldı ve viewport sıfırlandı.
 
 Kapanan işler: commit sonrası belirsiz yanıtın gerçek tarayıcı kabulü; mobil transfer/aktivasyon onay-tekrar kullanım kontrolü. Sonraki yayın hazırlığı: canlı sürüm ve migration ledger'ının güncel salt okunur ölçümü, seçilen yayın adayının sıralı migration provası ve bağımlılık sırası, sonra kapsamı belli yayın/smoke. Ürün sınırı: HR readiness ve teknik release kapıları halen kapalı; mevcut sınırlı İK ekranları tüm HR-1 değildir. Tam klavye/erişilebilirlik turu ve transferde kesin ret sonrası hedef yenileme tarayıcı kabulü ayrıca açık. Bu paket yayına alınmadı.
+
+
+## 19 Ekim — İK yayın adayı sıralı kurulum provası
+
+Canlı Vercel dağıtım kimliği salt okunur kontrolle dpl_CiWugmjyyW4wtyBqj7tSR5i9t1FA / READY bulundu; kayıtlı 6300bee yayınıyla eşleşiyor. Güncel production ledger ölçülmedi: aktif worktree bağlı olmadığı için migration list başarısız. Son kayıtlı 190 migration yalnız tarihsel baseline olarak kullanıldı.
+
+qa/hr-release-20261019/rehearse.mjs, tarihsel baseline üstüne 17 bekleyen migration'ı disposable yerel DB'de sırayla uyguladı. Yinelenen/geri tarihli dosya, eksik baseline ve fixture manifest sapması kontrolleri geçti. Onaylı teknik HR kabul kaydı ve scoped şirket modu oluşmadı; otomatik Git yayını kapalı. SHA-256 aday listesi result.json, yayın sırası/eksik kapılar READINESS.md içinde. Gerçek veri değiştirilmedi; üretim yayını veya şirket aktivasyonu yapılmadı. Güncel üretim şema ölçümü ve bu şemaya göre aday doğrulaması yayın öncesi hâlâ zorunlu.

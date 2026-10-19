@@ -1,0 +1,95 @@
+{
+  "measuredAt": "2026-10-19T12:38:33.778Z",
+  "candidate": "a814d1350fdd6a84ee737a78570ad81b21c72897",
+  "historicalBaseline": {
+    "measuredAt": "2026-10-18T17:24:23.756002+00:00",
+    "migrationCount": 190,
+    "lastVersion": "20261018000600"
+  },
+  "currentProductionLedgerVerified": false,
+  "syntheticOnly": true,
+  "migrations": [
+    {
+      "name": "20261019000100_module_history_catalog_versions.sql",
+      "sha256": "75c2fff80129221ef572ffccfa3748427affc5118ea0ce034e41bf8daabe6796"
+    },
+    {
+      "name": "20261019000200_module_catalog_v2_storage.sql",
+      "sha256": "b67196904029ca64e12c3c0c4ed3fa07d5d79c778d76b9b60fc21b71f8d9e7f0"
+    },
+    {
+      "name": "20261019000300_module_entitlements.sql",
+      "sha256": "9f3655b9ec9d6e334d3fbfd7ff0d0839a67ecf3ec147ec714e2b3a726f381013"
+    },
+    {
+      "name": "20261019000400_platform_module_rights_reader.sql",
+      "sha256": "7c664efdddc440549746bde859b18cfc4604ddc241980e79bf5084068a41e090"
+    },
+    {
+      "name": "20261019000500_hr_organization_foundation.sql",
+      "sha256": "8b1a18c24d03e72a0db77a50adfb4718566b15517b8e67dc684a47f9a395ba61"
+    },
+    {
+      "name": "20261019000600_hr_directory_commands.sql",
+      "sha256": "9157b5546e38ca7fd1fd08935d768a9da33df169dfd67e87bb5542dedd43b8aa"
+    },
+    {
+      "name": "20261019000700_hr_work_locations_and_accounts.sql",
+      "sha256": "904ced22f80fb2546ae64537a0689861fed5e43ee8e8ed24b670c36322f73a45"
+    },
+    {
+      "name": "20261019000800_custom_access_roles.sql",
+      "sha256": "20ea018d76911532a383b53ba297495ac57a2bb8458e029b9adc2e402d9788ec"
+    },
+    {
+      "name": "20261019000900_access_editor_options.sql",
+      "sha256": "3c8970d4f6d7a2b4a2bc71d48668563de70ce2208c1180d05b7dacf1902c5349"
+    },
+    {
+      "name": "20261019001000_hr_scoped_directory.sql",
+      "sha256": "34f6c294cddade2ffeb0e450c2fea591f69b247f2b2aba7c24f40efef981d188"
+    },
+    {
+      "name": "20261019001100_hr_scoped_employee_create.sql",
+      "sha256": "f141c21a128439e52f081de02c796b7e8cc50d7741d823cfc5e1de3924f131c6"
+    },
+    {
+      "name": "20261019001200_hr_create_options.sql",
+      "sha256": "bfb406ec36fc89bd2c873e33b446f4b9d072cd40235132a5cae3e67f7de1d5e8"
+    },
+    {
+      "name": "20261019001300_hr_scoped_location_transfer.sql",
+      "sha256": "9815a3e58ec9c51e11c95b0c6a872c883d3d7b8d823ca508d79c0261ef9865c6"
+    },
+    {
+      "name": "20261019001400_hr_access_cutover_routes.sql",
+      "sha256": "fab156acaaa84b4af9282706119674967eb1c3d03375227383cedb6e13b71a5f"
+    },
+    {
+      "name": "20261019001500_hr_screen_context.sql",
+      "sha256": "0088d3e278aef958ee21ef9b42c63b1af395a9c36a16ba8f7234f702e9875e7d"
+    },
+    {
+      "name": "20261019001600_hr_transfer_options.sql",
+      "sha256": "78950324062b1f20f640f1734796a4b891b728e39637455ddbf3f8a9d6fdb78e"
+    },
+    {
+      "name": "20261019001700_hr_access_activation.sql",
+      "sha256": "5e3a14b412d3a40ef9f5e6a9a9f118e4a9ea5523abbbb2f3894fa3440d5934c7"
+    }
+  ],
+  "checks": [
+    "All historical ledger versions present",
+    "No duplicate or backdated candidate version",
+    "Strict fixture manifest matches candidate",
+    "Sequential candidate installation passed",
+    "No approved HR release gates",
+    "No scoped company activation",
+    "Development Git deployment disabled"
+  ],
+  "limits": [
+    "Synthetic historical template is not a fresh production schema measurement",
+    "No production SQL, deployment, data export or company activation",
+    "Application rollback and production lock duration not measured"
+  ]
+}
