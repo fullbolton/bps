@@ -1,0 +1,16 @@
+{
+  "syntheticOnly": true,
+  "realClamav": true,
+  "realHttps": true,
+  "realRuntime": true,
+  "strictIsolation": true,
+  "realSigtermDuringCompletion": false,
+  "realMaintenanceDrain": true,
+  "drainedOneJob": true,
+  "noFurtherClaim": true,
+  "stoppedHealth": true,
+  "emulatedDaemon": true,
+  "realDatabase": false,
+  "productionMainEntry": false,
+  "productionReady": false
+}

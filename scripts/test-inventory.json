@@ -824,5 +824,9 @@
   {
     "file": "scripts/hr-worker-lifecycle.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-worker-maintenance.test.mjs",
+    "suite": "application"
   }
 ]
