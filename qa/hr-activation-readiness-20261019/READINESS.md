@@ -504,3 +504,10 @@ Kullanıcı Linux kabulünü beklemeye alıp diğer işlere devam edilmesini ist
 ScopedEmployeeForm ve LocationTransfer, ağ/yanıt hatasıyla sonucu belirsiz kalan komutu form/panel kapatarak kaybetmeye artık izin vermiyor. Aynı dondurulmuş komutla yeniden deneme sürüyor. Daha sonraki kesin ret, önceki belirsiz denemenin kaydedilmediğini kanıtlamadığından yeni komut açmıyor. İlk denemedeki kesin rollback sonrasında kapatma ve güncel seçenekleri inceleme korunuyor. Transfer mesajındaki paneli kapatma önerisi kaldırıldı. Yetki, veri modeli veya migration değişikliği yok.
 
 Kanıt: gerçek TSX callback'lerini mevcut hook driver ile çalıştıran scripts/hr-form-retry.test.mjs, iki formda ağ hatası → daha sonra ret → başarı zincirinde aynı komut nesnesi/UUID ve tek başarı bildirimi; ilk kesin rette kapatabilme için 4/4 geçti. Bu DOM/tarayıcı veya gerçek ağ kabulü değildir. Uygulama paketi 971/971, TypeScript ve git diff --check geçti. Üretim yayını yapılmadı.
+
+
+## 20 Ekim — İK aktarım sonrası liste tutarlılığı
+
+Linux kabulü beklemede. Mevcut Excel ön kontrolündeki başarılı kaydın ardından panel kapandığında çalışan listesi artık otomatik yenilenir. Kullanıcı başka sayfadaysa ilk sayfaya döner; kaydetmeden kapatırsa mevcut sayfa ve liste korunur. HrImportPreview kapanışa doğrulanmış done sonucunu taşır; belirsiz aktarımda kapatma engeli korunur. Liste okuması başarısız olduğunda aktarım başarısı geri alınmış gibi gösterilmez; okuma hatası ve Yenile eylemi görünür, eski çalışan satırları temizlenir. Veri modeli/yetki/migration değişmedi.
+
+Kanıt: scripts/hr-directory-import.test.mjs gerçek Directory ve useScopedResource callback/effect akışında üç senaryoyu doğruladı: ilk sayfada yenileme, sonraki sayfada iptal/başarılı aktarım ayrımı, başarılı kayıt sonrası liste okuma hatası. Alt import bileşeni ve ağ bağımlılıkları sentetiktir; gerçek dosya/tarayıcı kabulü olarak sunulmaz. Uygulama 974/974, TypeScript ve diff kontrolü geçti. Üretim yayını yok.

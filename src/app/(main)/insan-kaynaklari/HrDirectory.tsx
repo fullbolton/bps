@@ -15,7 +15,7 @@ import LocationTransfer from './LocationTransfer';
 import ScopedEmployeeForm from './ScopedEmployeeForm';
 const button='min-h-11 rounded-lg border px-4 py-2 disabled:opacity-50';
 const input='mt-1 block min-h-11 w-full rounded-lg border px-3';
-function Directory({actor,tenant,writeMode,manager}:{actor:string;tenant:string;manager:boolean;writeMode:'legacy'|'scoped'}){
+export function Directory({actor,tenant,writeMode,manager}:{actor:string;tenant:string;manager:boolean;writeMode:'legacy'|'scoped'}){
  const [documents,setDocuments]=useState<{id:string;name:string}|null>(null);
  const [importOpen,setImportOpen]=useState(false);
  const [employment,setEmployment]=useState<{id:string;name:string}|null>(null);
@@ -52,7 +52,7 @@ function Directory({actor,tenant,writeMode,manager}:{actor:string;tenant:string;
  {writeMode==='legacy'&&resource.data&&!kind&&!editing&&!employment&&!importOpen&&!documents&&<><button className={button} onClick={()=>setKind('employee')}>Yeni çalışan</button><button className={button} onClick={()=>setKind('department')}>Yeni departman</button></>}</div>
  {writeMode==='scoped'&&!transfer&&!editing&&!employment&&!importOpen&&!documents&&resource.data&&<ScopedEmployeeForm actor={actor} tenant={tenant} onOpenChange={setScopedOpen} onSaved={async()=>{if(cursor)setCursor(null);else await resource.reload();}}/>}
  {manager&&!kind&&!editing&&!employment&&!transfer&&!scopedOpen&&!importOpen&&!documents&&<button className={button} onClick={()=>setImportOpen(true)}>Excel ön kontrolü</button>}
- {importOpen&&<HrImportPreview actor={actor} tenant={tenant} onClose={()=>setImportOpen(false)}/>}
+ {importOpen&&<HrImportPreview actor={actor} tenant={tenant} onClose={saved=>{setImportOpen(false);if(saved){setMessage('Aktarım tamamlandı.');if(cursor)setCursor(null);else void resource.reload();}}}/>}
  {employment&&<EmploymentChange key={employment.id} actor={actor} tenant={tenant} employee={employment} onClose={()=>setEmployment(null)} onSaved={async()=>{setEmployment(null);setMessage('İstihdam işlemi kaydedildi.');await resource.reload();}}/>}
  {editing&&<EmployeeEdit key={editing} actor={actor} tenant={tenant} employee={editing} onClose={()=>setEditing(null)} onSaved={async()=>{setEditing(null);setMessage('Çalışan bilgileri güncellendi.');await resource.reload();}}/>}
  {transfer&&<LocationTransfer key={transfer.id} actor={actor} tenant={tenant} employee={transfer} onClose={()=>setTransfer(null)} onSaved={async(targetName)=>{setTransfer(null);setMessage(`${transfer.name} için yeni iş yeri: ${targetName}. Değişiklik kaydedildi.`);await resource.reload();}}/>}

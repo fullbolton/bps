@@ -864,5 +864,9 @@
   {
     "file": "scripts/hr-form-retry.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-directory-import.test.mjs",
+    "suite": "application"
   }
 ]
