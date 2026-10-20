@@ -588,3 +588,8 @@ Kanıt: hr-read-order.test.mjs iki formda geciktirilmiş ilk isteği yeni yenile
 Linux kabulü beklemede. HrDocumentUpload istihdam dönemi okuması ve yeniden denemesi periodGeneration ile bağlandı. Effect temizliği önceki okumayı geçersiz kılar; effect tekrar başlatıldığında eski başarı/hata güncel dönem veya mesajı ezemez. Backend/Storage/tarama değişikliği yok.
 
 Kanıt: hr-upload-period-recovery.test.mjs içine mount effect cleanup/setup tekrarını modelleyen iki gecikmeli başarı/hata regresyonu eklendi. Upload committed testleriyle 8/8 odaklı, TypeScript ve diff kontrolü geçti. Bu hook-driver modeli React tarayıcı kabulü değildir. Son genel uygulama sonucu 1006/1006 önceki commit'e aittir; bu dar değişiklik sonrası tüm paket yeniden çalıştırılmış sayılmadı. Üretim yayını yok.
+
+
+## 20 Ekim — son İK düzeltmelerinin tam uygulama regresyonu
+
+bda343d kaynak durumu üzerinde npm run qa:operations tamamlandı: 1008 test, 1008 başarılı, 0 başarısız/atlanan. Geç gelen form/dönem yanıtları dahil son değişiklikler birlikte uygulama paketinden geçti. Bu tur yeni ürün kodu veya migration eklenmedi. Testler gerçek tarayıcı, gerçek Storage veya native Linux kabulünün yerine geçmez. Linux kullanıcı kararıyla beklemede; üretim yayını ve gerçek hesap aktivasyonu yapılmadı.
