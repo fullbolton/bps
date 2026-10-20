@@ -525,3 +525,10 @@ Kanıt: hr-directory-import.test.mjs içindeki iki yeni senaryo üç sayfada ile
 Linux kabulü beklemede. EmployeeDocuments başarılı yükleme sonrasında evrak ve bekleyen yükleme listelerini ilk sayfadan birer kez yeniler; cursor sıfırlanırken eski sayfaya ayrıca reload gönderilmez. Başarılı iptal sonraki bekleyen sayfayı ilk sayfaya döndürür; evrak listesini gereksiz yenilemez. İptal sonucu belirsizse sayfa ve işlem kimliği korunur, aynı yüklemeye yeniden deneme sürer. SQL, tarama ve erişim politikaları değişmedi.
 
 Kanıt: hr-document-list-refresh.test.mjs gerçek bileşen ve useScopedResource ile dört callback/effect senaryosu: sonraki sayfalardan başarılı yükleme, ilk sayfada başarılı yükleme, başarılı iptal, belirsiz iptal ve aynı kimlikle tekrar. 4/4 odaklı; uygulama 980/980, TypeScript ve diff kontrolü geçti. Ağ servisleri ve alt yükleme bileşeni sentetiktir; bu tarayıcı/Storage kabulü değildir. Üretim yayını yok.
+
+
+## 20 Ekim — özel evrak ve bekleyen yüklemelerde geri gezinme
+
+Linux kabulü beklemede. EmployeeDocuments içinde evraklar ve bekleyen yüklemeler için birbirinden bağımsız cursor geçmişi, önceki sayfa düğmesi ve sayfa göstergesi eklendi. Evrak okuması hata verdiğinde gezinme artık kaybolmaz; önceki/ilk sayfa üzerinden yeniden güncel kapsamla okunabilir. Yükleme, iptal veya belirsiz iptal sırasında iki listenin kontrolleri kilitli kalır. Veri yokken ileri düğmesi kapalıdır. İlk sayfa sıfırlamaları önceki paketteki tek yenileme davranışını korur. SQL/erişim/Storage politikası değişmedi.
+
+Kanıt: hr-document-list-refresh.test.mjs 7/7; ek üç senaryo iki listenin hata sonrası geri dönüşünü, bağımsız geçmişini ve yükleme kilidini doğruladı. Uygulama 983/983, TypeScript ve git diff --check geçti. Testler gerçek component/hook ve sentetik servislerle çalışır; tarayıcı/gerçek Storage kabulü değildir. Üretim yayını yok.
