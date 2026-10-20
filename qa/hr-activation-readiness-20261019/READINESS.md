@@ -511,3 +511,10 @@ Kanıt: gerçek TSX callback'lerini mevcut hook driver ile çalıştıran script
 Linux kabulü beklemede. Mevcut Excel ön kontrolündeki başarılı kaydın ardından panel kapandığında çalışan listesi artık otomatik yenilenir. Kullanıcı başka sayfadaysa ilk sayfaya döner; kaydetmeden kapatırsa mevcut sayfa ve liste korunur. HrImportPreview kapanışa doğrulanmış done sonucunu taşır; belirsiz aktarımda kapatma engeli korunur. Liste okuması başarısız olduğunda aktarım başarısı geri alınmış gibi gösterilmez; okuma hatası ve Yenile eylemi görünür, eski çalışan satırları temizlenir. Veri modeli/yetki/migration değişmedi.
 
 Kanıt: scripts/hr-directory-import.test.mjs gerçek Directory ve useScopedResource callback/effect akışında üç senaryoyu doğruladı: ilk sayfada yenileme, sonraki sayfada iptal/başarılı aktarım ayrımı, başarılı kayıt sonrası liste okuma hatası. Alt import bileşeni ve ağ bağımlılıkları sentetiktir; gerçek dosya/tarayıcı kabulü olarak sunulmaz. Uygulama 974/974, TypeScript ve diff kontrolü geçti. Üretim yayını yok.
+
+
+## 20 Ekim — İK listesinde önceki sayfa ve okuma hatasından dönüş
+
+Linux kabulü beklemede. Çalışan dizinine önceki 50 kayda dönüş ve mevcut sayfa göstergesi eklendi. Cursor geçmişi yalnız ekran oturumunda tutulur; ilk sayfa ve başarılı oluşturma/aktarım geçmişi sıfırlar. İleri sayfa okuması hata verdiğinde gezinme görünür kalır, önceki/ilk sayfaya dönüş mümkündür; ileri düğmesi veri yokken kapalıdır. Yükleme ve açık düzenleme/aktarım/evrak panellerinde gezinme kilidi korunur. Geri dönüş güncel kapsamla yeniden okur, önceki çalışan verileri önbellekten gösterilmez. Yetki/SQL değişikliği yok.
+
+Kanıt: hr-directory-import.test.mjs içindeki iki yeni senaryo üç sayfada ileri/geri, ilk sayfa sıfırlaması, hata sonrası geri dönüş ve açık panel kilidini gerçek component/hook callback'leriyle doğrular; 5/5 odaklı, uygulama 976/976, TypeScript ve diff kontrolü geçti. Driver metin yardımcısı sayısal JSX çocuklarını okuyacak şekilde düzeltildi (ilk testte sayfa rakamı okunamıyordu). Bu tarayıcı kabulü değildir. Üretim yayını yok.
