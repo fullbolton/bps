@@ -546,3 +546,10 @@ Kanıt: gerçek TSX callback'lerinde hem ağ hatası hem PostgreSQL ret biçimli
 Linux kabulü beklemede. HrDocumentUpload içindeki upload replay ve scan/finalize published makbuzu yolları ortak completed akışına alındı. Yalnız doğrulanmış published makbuzundan sonra done olur; onSaved ekran callback hatası kayıt başarısını belirsizleştirmez. Başarılı form tekrar upload/scan yapmaz, tarama eylemleri kaldırılır, gezinme koruması kalkar ve kapatma açılır. Liste yenileme hatası ayrı mesajla anlatılır. Pending/bozuk makbuz başarı sayılmaz. Backend, tarama politikası ve erişim kuralları değişmedi.
 
 Kanıt: hr-upload-committed.test.mjs gerçek TSX ve makbuz ayrıştırıcısıyla upload/finalize yollarında başarılı makbuz + callback hatası ve yanlış upload kimlikli makbuz senaryoları 4/4 geçti. Başarıdan sonra tekrar submit ağ isteği yapmıyor. Servisler sentetik; gerçek tarayıcı/Storage kabulü değil. Uygulama 995/995, TypeScript ve diff kontrolü geçti. Üretim yayını yok.
+
+
+## 20 Ekim — çalışan düzenlemede ilk okuma hatasından toparlanma
+
+Linux kabulü beklemede. EmployeeEdit ilk okuma hatasında form içinden Bilgileri yeniden getir eylemi sunar. İlk başarılı tekrar ad ve personel kodunu sunucudan doldurur; ilk hata sırasında kaydetme alanları açılmaz. Kayıt çakışması sonrası yenilemede kullanıcının taslağı korunur; personel havuzuna bağlı ad düzenlenemez hale geldiyse güncel sunucu adı kullanılır. Tamamlanmış veya sonucu belirsiz komut için refresh başlatılmaz. Veri/yetki/migration değişikliği yok.
+
+Kanıt: hr-edit-recovery.test.mjs üç yeni gerçek callback/hook senaryosu: tekrarlanan okuma hatası ardından başarı, düzenlenebilir ad taslağını koruma, bağlı adın güncel değerini kullanma. Önceki committed testleriyle 7/7 odaklı, uygulama 998/998, TypeScript ve diff kontrolü geçti. Servisler sentetik; tarayıcı/DB kabulü değil. Üretim yayını yok.

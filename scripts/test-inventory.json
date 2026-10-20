@@ -880,5 +880,9 @@
   {
     "file": "scripts/hr-upload-committed.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-edit-recovery.test.mjs",
+    "suite": "application"
   }
 ]
