@@ -892,5 +892,9 @@
   {
     "file": "scripts/hr-upload-period-recovery.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-read-order.test.mjs",
+    "suite": "application"
   }
 ]

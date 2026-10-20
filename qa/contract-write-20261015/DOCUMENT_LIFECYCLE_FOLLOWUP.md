@@ -2400,3 +2400,10 @@ Kanıt: hr-upload-period-recovery.test.mjs taslak/dosya koruma, çift tıklamada
 Kaynak 990067a üzerinde son İK form, sayfalama ve toparlanma değişiklikleri birlikte doğrulandı. İlk npm run build, public Supabase URL/key yokluğunda /ayarlar prerender aşamasında durdu. Yalnız derleme amacıyla NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321, NEXT_PUBLIC_SUPABASE_ANON_KEY=synthetic-build-only ve HR/access preview bayraklarıyla tekrar derleme exit 0; 34/34 statik sayfa, /insan-kaynaklari ve /ayarlar/roller çıktıları üretildi. Gerçek anahtar kullanılmadı veya ortama kalıcı yazılmadı. Webpack büyük string cache performans uyarısı engelleyici değildi.
 
 Statik denetim 16 PASS / 0 FAIL / 0 WARN; envanter 186 uygulama, 27 veritabanı, 7 pending dosya. Önceki 1002/1002 uygulama sonucu tekrar çalıştırılmadı; bu tur yeni özellik/kod yok. Kanıt: qa/hr-activation-readiness-20261019/ui-build-20261020.json. Bu yalnız derleme/statik entegrasyon kabulüdür, gerçek tarayıcı/hesap/Storage veya Linux kabulü değildir. Linux beklemede; üretim yayını yok.
+
+
+## 20 Ekim — İK form okumalarında geç gelen yanıt sınırı
+
+Linux kabulü beklemede. EmployeeEdit ve EmploymentChange ilk okuma ile yenileme isteklerini artan readGeneration üzerinden doğrular. Yeni okuma başlayınca ve effect temizlenince önceki yanıt geçersizleşir; eski başarı/hata güncel form bilgilerini ezemez. İstihdam yenilemesi de belirsiz/tamamlanmış komutta başlatılmaz. Veri/SQL/yetki değişmedi.
+
+Kanıt: hr-read-order.test.mjs iki formda geciktirilmiş ilk isteği yeni yenilemeden sonra başarı veya hatayla sonuçlandıran dört senaryo; önceki recovery/committed testleriyle 11/11 odaklı. Uygulama 1006/1006, TypeScript ve diff kontrolü geçti. Gerçek TSX callback/hook, sentetik ertelenmiş servisler kullanıldı; tarayıcı/DB kabulü değildir. Üretim yayını yok.
