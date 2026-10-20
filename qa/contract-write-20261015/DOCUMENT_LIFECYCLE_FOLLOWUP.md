@@ -2386,3 +2386,10 @@ Kanıt: hr-edit-recovery.test.mjs üç yeni gerçek callback/hook senaryosu: tek
 Linux kabulü beklemede. LocationTransfer ilk seçenek okuması veya kesin reddedilmiş işlem sonrası yenileme hatasında panel içinden tekrar okuma sunar. Ortak refresh eski hedef/komutu temizler; güncel atama ve yetkili seçenekler okunmadan onay sunulmaz. Sonucu belirsiz veya tamamlanmış işlemler refresh ile sıfırlanamaz. Yetki/SQL değişikliği yok.
 
 Kanıt: hr-transfer-recovery.test.mjs ilk okumada tekrarlanan hata ardından başarı ve kesin ret → yenileme hatası → başarılı yeniden okuma senaryolarını gerçek bileşen/useScopedResource ile doğruladı. Önceki form testleriyle 10/10 odaklı, uygulama 1000/1000, TypeScript ve diff kontrolü geçti. Servisler sentetik; tarayıcı/DB kabulü değildir. Üretim yayını yok.
+
+
+## 20 Ekim — evrak formunda istihdam dönemi okumasını yeniden deneme
+
+Linux kabulü beklemede. HrDocumentUpload ilk istihdam dönemi okuması hata verdiğinde form içinde yeniden deneme sunar. Başlık, tarih ve seçilmiş PDF korunur; dönem doğrulanmadan yükleme açılamaz. flight kilidi eşzamanlı tekrar okumayı engeller; kurtarma/başlatılmış komut/tamamlanmış işlem bu eylemle değişmez. Backend/erişim/tarama kuralları değişmedi.
+
+Kanıt: hr-upload-period-recovery.test.mjs taslak/dosya koruma, çift tıklamada tek okuma ve yinelenen okuma hatasında yüklemenin kapalı kalmasını doğrulayan 2/2 test geçti. Uygulama 1002/1002, TypeScript ve diff kontrolü geçti. Gerçek component/hook, sentetik servis kullanıldı; tarayıcı/DB kabulü değildir. Üretim yayını yok.

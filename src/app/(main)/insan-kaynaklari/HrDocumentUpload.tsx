@@ -8,7 +8,7 @@ import {useNavigationGuard} from '@/context/NavigationGuardContext';
 import type {parseHrScanStatus} from '@/lib/services/hr-scan-status';
 const button='min-h-11 rounded-lg border px-4 py-2 disabled:opacity-50';
 export default function HrDocumentUpload({actor,tenant,employee,recovery,onClose,onSaved}:{actor:string;tenant:string;employee:string;recovery?:HrUploadInput;onClose:()=>void;onSaved:()=>Promise<void>}){
- const [period,setPeriod]=useState<Awaited<ReturnType<typeof loadHrEmployment>>|null>(null);
+ const [period,setPeriod]=useState<Awaited<ReturnType<typeof loadHrEmployment>>|null>(null),[periodError,setPeriodError]=useState(false);
  const [title,setTitle]=useState(recovery?.title??''),[validity,setValidity]=useState(recovery?.validityDate??'');
  const [file,setFile]=useState<File|null>(null),[intent,setIntent]=useState<HrUploadInput|null>(recovery??null);
  const [scan,setScan]=useState<ReturnType<typeof parseHrScanStatus>|null>(null);
@@ -16,8 +16,15 @@ export default function HrDocumentUpload({actor,tenant,employee,recovery,onClose
  const [cancelled,setCancelled]=useState(false),[done,setDone]=useState(false);
  const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[message,setMessage]=useState('');
  const flight=useRef(false),alive=useRef(true);const guard=useNavigationGuard();
- useEffect(()=>{alive.current=true;if(!recovery)void loadHrEmployment(createClient(),actor,tenant,employee).then(r=>{if(alive.current)setPeriod(r);}).catch(()=>{if(alive.current)setMessage('İstihdam dönemi alınamadı. Formu kapatıp yeniden açın.');});return()=>{alive.current=false;};},[actor,tenant,employee,recovery]);
+ useEffect(()=>{alive.current=true;if(!recovery)void loadHrEmployment(createClient(),actor,tenant,employee).then(r=>{if(alive.current)setPeriod(r);}).catch(()=>{if(alive.current){setPeriodError(true);setMessage('İstihdam dönemi alınamadı. Bilgilerinizi koruyarak yeniden deneyebilirsiniz.');}});return()=>{alive.current=false;};},[actor,tenant,employee,recovery]);
  useEffect(()=>{if(done)return;const off=guard.register(e=>{e.preventDefault();setMessage('Önce evrak formunu tamamlayın veya kapatın.');});const stop=(e:BeforeUnloadEvent)=>{e.preventDefault();e.returnValue='';};window.addEventListener('beforeunload',stop);return()=>{off();window.removeEventListener('beforeunload',stop);};},[guard,done]);
+ async function retryPeriod(){
+  if(flight.current||intent||done||recovery)return;
+  flight.current=true;setBusy(true);setMessage('İstihdam dönemi kontrol ediliyor…');
+  try{const next=await loadHrEmployment(createClient(),actor,tenant,employee);if(alive.current){setPeriod(next);setPeriodError(false);setMessage('İstihdam dönemi alındı. Dosyanız ve yazdıklarınız korundu.');}}
+  catch{if(alive.current){setPeriodError(true);setMessage('İstihdam dönemi alınamadı. Erişiminizi kontrol edip yeniden deneyin.');}}
+  finally{flight.current=false;if(alive.current)setBusy(false);}
+ }
  async function completed(){
   setDone(true);setUncertain(false);setScan(null);setMessage('Evrak kaydedildi.');
   try{await onSaved();}catch{if(alive.current)setMessage('Evrak kaydedildi; liste yenilenemedi. Formu kapatıp evrak listesini yenileyin.');}
@@ -62,6 +69,7 @@ export default function HrDocumentUpload({actor,tenant,employee,recovery,onClose
   {period&&<p className="text-sm">İstihdam dönemi: {period.startsOn} — {period.endsOn??'Devam ediyor'}</p>}
   {!recovery&&!period&&!message&&<p role="status">İstihdam dönemi kontrol ediliyor…</p>}
   {message&&<p role="status">{message}</p>}
+  {!recovery&&!period&&periodError&&<button type="button" className={button} disabled={busy} onClick={()=>void retryPeriod()}>İstihdam dönemini yeniden getir</button>}
   {intent&&!done&&<div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={busy} onClick={()=>void checkScan('status')}>Tarama durumunu kontrol et</button>{scan?.canFinalize&&<button type="button" className={button} disabled={busy} onClick={()=>void checkScan('finalize')}>Evrakı kaydet</button>}{scan?.canRescan&&<button type="button" className={button} disabled={busy} onClick={()=>void checkScan('rescan')}>Yeniden tara</button>}</div>}
   <label className="block">Belge başlığı<input required maxLength={160} className="mt-1 min-h-11 w-full rounded-lg border px-3" disabled={busy||!!intent} value={title} onChange={e=>setTitle(e.target.value)}/></label>
   <label className="block">Geçerlilik tarihi (isteğe bağlı)<input type="date" min="1900-01-01" max="2199-12-31" className="mt-1 min-h-11 w-full rounded-lg border px-3" disabled={busy||!!intent} value={validity} onChange={e=>setValidity(e.target.value)}/></label>

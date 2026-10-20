@@ -888,5 +888,9 @@
   {
     "file": "scripts/hr-transfer-recovery.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-upload-period-recovery.test.mjs",
+    "suite": "application"
   }
 ]
