@@ -483,3 +483,10 @@ Host-control sağlık/pause okumaları readFile sonrası boyut kontrolünden, O_
 Host native kontrolünün yalnız Node hostunu ölçtüğü, varsayılan Docker context'in farklı/uzak sunucuya yönlenebileceği tespit edildi. Yeni docker-host.mjs tüm gerçek lifecycle ve signature-stage çağrılarını --host unix:///var/run/docker.sock ile sabitler; DOCKER_HOST/CONTEXT/TLS_VERIFY/CERT_PATH/API_VERSION override'larını reddeder. Ön kontrol root sahibi, world-writable olmayan gerçek socket ve read-only docker info üzerinden Linux x86_64/amd64, rootless olmayan daemon gerektirir. Yerelde doğrulanan mount'ların başka hosta taşınması engellenir.
 
 4 yeni test; ilgili paket 15/15; uygulama 967/967 geçti. README güncellendi. Yerel Mac/aarch64 ortam bu üretim kapısını geçmez; mevcut emülasyon kabulü native kabul sayılmadı. Gerçek host, izleme ve kesinti kurtarma kabulü hâlâ gerekli. Canlı yayın yok.
+
+
+## 20 Ekim — native kabul sınırının netleştirilmesi
+
+Dal temiz, son commit 5e4a349; önceki 967/967 test sonucu korundu, gereksiz tekrar yapılmadı. deploy/hr-malware/README.md içine native kabul matrisi eklendi: gerçek main döngüsü, temiz/şifreli PDF, rotation/PID yeniden bağlama, hata enjeksiyonu, reboot, timer ve izleme için gereken gözlemler ayrı yazıldı. Üretim verisi/anahtarı taşınmaz; yalnız ayrı sentetik ortam.
+
+Mevcut Mac/ARM ortam native kabulü tamamlayamaz. Kullanıcıya üretimden ayrı Linux x64 test hostunun mevcut olup olmadığı soruldu; henüz host seçilmedi, sunucu satın alınmadı veya gerçek hesaba erişim verilmedi. Bu kabul için ortam bilgisi gerekiyor. Önceki yerel testler tekrar edilerek native kabul geçmiş sayılmayacak. Canlı yayın yok.
