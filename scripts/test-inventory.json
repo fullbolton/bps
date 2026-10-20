@@ -872,5 +872,9 @@
   {
     "file": "scripts/hr-document-list-refresh.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-committed-edit.test.mjs",
+    "suite": "application"
   }
 ]

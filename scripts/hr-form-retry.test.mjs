@@ -8,7 +8,7 @@ const transfer=await importActualTypeScript(new URL('../src/lib/services/hr-scop
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const text=node=>typeof node==='string'?node:Array.isArray(node)?node.map(text).join(''):node?.props?text(node.props.children):'';
 for(const kind of ['create','transfer']){
- function setup(outcomes){
+ function setup(outcomes,callbackError=null){
   const d=driver(),commands=[];let uuidCount=0,saved=0,closed=0,reloads=0;
   const option={key:`${id(3)}:00000000-0000-0000-0000-000000000000`,departmentId:id(3),departmentName:'Test',locationId:null,locationName:null};
   const data=kind==='create'?{policyRevision:1,options:[option],hasMore:false,canCreateFuture:true}:{policyRevision:1,assignmentId:id(4),assignmentRevision:1,sourceLocationName:'A',effectiveOn:'2026-10-20',locations:[{id:id(5),name:'B'}],hasMore:false};
@@ -24,7 +24,7 @@ for(const kind of ['create','transfer']){
    '@/lib/services/hr-transfer-client':{loadHrTransferOptions:async()=>data,saveHrTransfer:write},
   };
   const Component=compile(`src/app/(main)/insan-kaynaklari/${kind==='create'?'ScopedEmployeeForm':'LocationTransfer'}.tsx`,d.hooks,deps,'default',{crypto:{randomUUID:()=>{uuidCount++;return id(10+uuidCount);}},window:{addEventListener(){},removeEventListener(){}}});
-  const props={actor:id(1),tenant:id(2),employee:{id:id(6),name:'Synthetic'},onOpenChange(){},onSaved:async()=>{saved++;},onClose:()=>{closed++;}};
+  const props={actor:id(1),tenant:id(2),employee:{id:id(6),name:'Synthetic'},onOpenChange(){},onSaved:async()=>{saved++;if(callbackError)throw callbackError;},onClose:()=>{closed++;}};
   let tree;const render=()=>{tree=d.render(Component,props);d.flush();return tree;};
   const button=label=>nodes(tree).find(n=>n.type==='button'&&text(n)===label);
   const change=(type,index,value)=>{nodes(tree).filter(n=>n.type===type)[index].props.onChange({target:{value}});render();};
@@ -45,6 +45,9 @@ for(const kind of ['create','transfer']){
    await h.submit();assert.equal(h.saved,1);assert.equal(h.uuidCount,1);
    assert.equal(h.commands.length,3);assert.strictEqual(h.commands[0],h.commands[1]);assert.strictEqual(h.commands[1],h.commands[2]);
   }finally{h.d.dispose();}
+ });
+ for(const callbackError of [new Error('render failure'),{code:'P0001',message:'HR_FORBIDDEN'}])test(`${kind}: confirmed write survives callback failure ${callbackError.message}`,async()=>{
+  const h=setup([null],callbackError);try{await h.open();await h.submit();assert.equal(h.commands.length,1);assert.equal(h.saved,1);assert.ok(text(h.tree).includes('kaydedildi; liste yenilenemedi'));assert.ok(!text(h.tree).includes('Sonuç doğrulanamadı'));if(kind==='transfer'){assert.equal(h.button('Paneli kapat').props.disabled,false);assert.equal(h.button('Kaydedildi').props.disabled,true);}else assert.ok(h.button('Yeni çalışan'));}finally{h.d.dispose();}
  });
  test(`${kind}: definitive first rollback permits closing and reviewing options`,async()=>{
   const h=setup([{code:'P0001',message:'HR_FORBIDDEN'}]);

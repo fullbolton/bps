@@ -2358,3 +2358,10 @@ Kanıt: hr-document-list-refresh.test.mjs gerçek bileşen ve useScopedResource 
 Linux kabulü beklemede. EmployeeDocuments içinde evraklar ve bekleyen yüklemeler için birbirinden bağımsız cursor geçmişi, önceki sayfa düğmesi ve sayfa göstergesi eklendi. Evrak okuması hata verdiğinde gezinme artık kaybolmaz; önceki/ilk sayfa üzerinden yeniden güncel kapsamla okunabilir. Yükleme, iptal veya belirsiz iptal sırasında iki listenin kontrolleri kilitli kalır. Veri yokken ileri düğmesi kapalıdır. İlk sayfa sıfırlamaları önceki paketteki tek yenileme davranışını korur. SQL/erişim/Storage politikası değişmedi.
 
 Kanıt: hr-document-list-refresh.test.mjs 7/7; ek üç senaryo iki listenin hata sonrası geri dönüşünü, bağımsız geçmişini ve yükleme kilidini doğruladı. Uygulama 983/983, TypeScript ve git diff --check geçti. Testler gerçek component/hook ve sentetik servislerle çalışır; tarayıcı/gerçek Storage kabulü değildir. Üretim yayını yok.
+
+
+## 20 Ekim — doğrulanmış İK kaydı ile ekran güncelleme hatasını ayırma
+
+Linux kabulü beklemede. Çalışan oluşturma, düzenleme, istihdam değişikliği ve iş yeri transferinde onSaved callback hatası artık kayıt isteğinin hatası gibi sınıflandırılmaz. Doğrulanmış yazma sonrası ekran güncellenemezse kayıt başarısı korunur ve liste yenileme mesajı gösterilir. Düzenleme/istihdam/transferde done durumu tekrar yazmayı engeller, belirsizlik ve gezinme korumasını kaldırır; panel kapatılabilir. Oluşturma formu başarıyla kapanır ve yeniden deneme komutu kaybolduğu halde belirsiz durumda bırakılmaz. SQL, yetki ve yazma sözleşmeleri değişmedi.
+
+Kanıt: gerçek TSX callback'lerinde hem ağ hatası hem PostgreSQL ret biçimli callback hatası enjekte edilen 8 yeni regresyon; önceki belirsiz yazma/aynı komut testleriyle 12/12 odaklı. Uygulama 991/991, TypeScript ve diff kontrolü geçti. Bu sentetik callback/hook testidir; gerçek tarayıcı/DB kabulü değildir. Üretim yayını yok.

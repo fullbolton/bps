@@ -23,7 +23,7 @@ export default function ScopedEmployeeForm({actor,tenant,onSaved,onOpenChange}:{
  async function save(){if(flight.current||!pages||rejected)return;const selected=pages.options.find(x=>x.key===choice);if(!selected)return;
   let command=intent;try{command??=prepareScopedHrEmployee(actor,tenant,crypto.randomUUID(),pages.policyRevision,{name:name.trim(),code:code.trim(),startsOn,...(selected.departmentId?{departmentId:selected.departmentId,position:position.trim()}:{}),...(selected.locationId?{locationId:selected.locationId}:{})});}catch{setMessage('Ad, personel kodu, tarih ve pozisyonu kontrol edin.');return;}
   setIntent(command);flight.current=true;setBusy(true);setMessage('');
-  try{await saveScopedHrEmployee(createClient(),command);if(!alive.current)return;close();setMessage('Çalışan kaydedildi.');await onSaved();}
+  try{await saveScopedHrEmployee(createClient(),command);if(!alive.current)return;close();setMessage('Çalışan kaydedildi.');try{await onSaved();}catch{if(alive.current)setMessage('Çalışan kaydedildi; liste yenilenemedi. Listeyi yenileyin.');}}
   catch(error){if(alive.current){if(hrWriteFailure(error,uncertain)==='rejected'){setRejected(true);setMessage('Bu denemede kayıt yapılmadı. Yetki veya seçenekler değişmiş olabilir. Yazdıklarınız korundu; seçenekleri yeniden kontrol edin.');}else{setUncertain(true);setMessage('Kayıt sonucu doğrulanamadı. Çift kayıt oluşturmamak için aynı işlemi yeniden deneyin.');}}}
   finally{flight.current=false;if(alive.current)setBusy(false);}
  }
