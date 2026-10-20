@@ -848,5 +848,9 @@
   {
     "file": "scripts/hr-bootstrap.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-supervision.test.mjs",
+    "suite": "application"
   }
 ]

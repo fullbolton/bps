@@ -2261,3 +2261,12 @@ Temiz dosya gerçek ClamAV sonrası ready oldu; aynı formda Evrakı kaydet tık
 workers/hr-malware/bootstrap.mjs eklendi. Native root host/dosya ön kontrolü → ortak lifecycle kilidi → ayrılmış container adlarının boş olduğunu doğrulama → nonce pause → daemon → worker → güncel nonce bekleme onayı → çalışan motor ölçümü → imza yaşı/politika/config digest kontrolü → resume sırası zorunlu. Mevcut (durdurulmuş dahil) container adları alınmaz/silinmez. Hatalı veya kısmi başlangıç pause/container/volume'u inceleme için korur; otomatik cleanup/restart yoktur. Mevcut pause işareti de üzerine yazılmaz. İlk başlangıç için önceden hazırlanmış signature-staging sahiplik etiketli hacim gerekir.
 
 6 yeni bootstrap testi ve ilgili lifecycle/preflight testleri toplam 18/18; uygulama paketi 947/947 geçti. Test envanteri güncellendi. Bunlar birim/adapter testleridir; native Linux x64 gerçek host/main sürekli servis kabulü yapılmış sayılmaz. Supervisor/host işletim entegrasyonu ve native uçtan uca kabul hâlâ kalan iştir. Canlı yayın/aktivasyon yok.
+
+
+## 20 Ekim — salt okunur servis gözetimi
+
+workers/hr-malware/supervision.mjs eklendi. Native host ön kontrolü, sahipliği doğrulanmış daemon/worker çalışma durumu, güvenli ve 512 baytla sınırlı sağlık dosyası okuması, sağlık tazeliği ve gerçek motor ölçümü birlikte değerlendirilir. Güncel nonce bakım onayı ayrı maintenance durumudur; bakım sırasında motor ölçümü/resume yapılmaz. Ölçüm sırasında pause başlarsa ready verilmez. Hatalar ham hata/credential içermeyen attention nedenlerine dönüşür.
+
+Karar: automaticRestart=false. Hatalı worker/daemon için otomatik restart veya pause kaldırma yapılmaz; özellikle PID namespace değişimi mevcut ölçüm ve bakım kapılarından geçmelidir. Bu API yalnız sağlık örneği üretir; kalıcı gözetmen/systemd kurulumu değildir ve ready sonucu kalıcı garanti/lease değildir.
+
+6 yeni gözetim testi, bootstrap/rotation ile 18/18 odaklı test; uygulama paketi 953/953 geçti. Kalan: host servis kurulum/işletim entegrasyonu ve native Linux x64 sürekli main uçtan uca kabulü. Üretim yayını veya gerçek şirket aktivasyonu yok.
