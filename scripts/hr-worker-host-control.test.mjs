@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {mkdtemp,readFile,writeFile,rm,access} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';
+import {mkdtemp,readFile,writeFile,rm,access,symlink,unlink} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';
 import {createHostControl} from '../workers/hr-malware/host-control.mjs';
 async function setup(run){const dir=await mkdtemp(join(tmpdir(),'bps-control-'));try{await run(dir);}finally{await rm(dir,{recursive:true,force:true});}}
 test('host lock excludes another updater and pause requires lock',()=>setup(async dir=>{
@@ -16,3 +16,8 @@ test('drain timeout and replaced request preserve maintenance marker',()=>setup(
 }));
 
 test('old release cannot remove a later lock from the same controller',()=>setup(async dir=>{const a=createHostControl({controlDirectory:dir,healthPath:dir+'/health'});const first=await a.lock();await first();const second=await a.lock();await first();await access(dir+'/rotation.lock');await second();await assert.rejects(access(dir+'/rotation.lock'));}));
+
+
+test('failed second drain invalidates prior permission to resume',()=>setup(async dir=>{let time=10000;const a=createHostControl({controlDirectory:dir,healthPath:dir+'/health',now:()=>time,sleep:async()=>{}});const release=await a.lock();await a.pause();const {requestId}=JSON.parse(await readFile(dir+'/pause','utf8'));await writeFile(dir+'/health',JSON.stringify({schemaVersion:1,state:'maintenance',at:time,maintenanceId:requestId}));await a.waitDrained();time=30000;await assert.rejects(a.waitDrained(),/DRAIN_TIMEOUT/);await assert.rejects(a.resume(),/CONTROL_LOCK/);await access(dir+'/pause');await release();}));
+test('oversized and symlink health cannot acknowledge drain',()=>setup(async dir=>{const a=createHostControl({controlDirectory:dir,healthPath:dir+'/health',now:()=>10000,sleep:async()=>{}});const release=await a.lock();await a.pause();const {requestId}=JSON.parse(await readFile(dir+'/pause','utf8'));const valid=JSON.stringify({schemaVersion:1,state:'maintenance',at:10000,maintenanceId:requestId});await writeFile(dir+'/health',valid+' '.repeat(513));await assert.rejects(a.waitDrained(),/DRAIN_TIMEOUT/);await unlink(dir+'/health');await writeFile(dir+'/other',valid);await symlink(dir+'/other',dir+'/health');await assert.rejects(a.waitDrained(),/DRAIN_TIMEOUT/);await assert.rejects(a.resume(),/CONTROL_LOCK/);await release();}));
+test('replacing pause with a symlink never permits resume',()=>setup(async dir=>{const a=createHostControl({controlDirectory:dir,healthPath:dir+'/health',now:()=>10000,sleep:async()=>{}});const release=await a.lock();await a.pause();const raw=await readFile(dir+'/pause','utf8'),{requestId}=JSON.parse(raw);await writeFile(dir+'/health',JSON.stringify({schemaVersion:1,state:'maintenance',at:10000,maintenanceId:requestId}));await a.waitDrained();await unlink(dir+'/pause');await writeFile(dir+'/other',raw);await symlink(dir+'/other',dir+'/pause');await assert.rejects(a.resume());await access(dir+'/pause');await release();}));

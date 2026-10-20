@@ -2295,3 +2295,10 @@ Hiçbir servis/timer kurulmadı veya etkinleştirilmedi. Gerçek host hazırlı�
 İncelemede rotation sırasında aynı pause nonce korunurken eski işçinin health.json kaydının 15 saniye tazelik sınırı içinde yeni işçi onayı sanılabileceği bulundu. createDeployment.startWorker şimdi daemon sahipliği/çalışma kontrolünden sonra, yeni container oluşturulmadan önce yalnız üretilmiş health.json kaydını kaldırır. ENOENT normaldir; başka silme hatası başlatmayı engeller. Böylece yeni worker kendi unavailable/maintenance kaydını yazmadan host eski onayla resume edemez. İş verisine, imzalara, pause veya lock dosyalarına dokunulmaz.
 
 İlk iki regresyonla uygulama paketi 959/959 geçti. Ardından eklenen gerçek geçici dosya testi dahil odaklı managed-rotation paketi 9/9 geçti: launch anında eski health dosyası yok, temizleme hatasında Docker run yok. Son ek dosya testi sonrası tüm paket yeniden çalıştırılmış gibi 960 sonucu iddia edilmedi. Native host uçtan uca kabulü hâlâ bekliyor; canlı yayın yok.
+
+
+## 20 Ekim — bakım onayı okuma sınırları ve geçersizleşme
+
+Host-control sağlık/pause okumaları readFile sonrası boyut kontrolünden, O_NOFOLLOW/O_NONBLOCK ile açılan aynı inode üzerinde regular-file/sahiplik/yazma izni kontrolü ve en fazla 513 bayt okuma modeline taşındı (512 üzeri red). Host üretimde native root ön kontrolünden geçtiğinden dosya sahibi root olmalıdır; yerel kontrol testi kendi UID'sinde sentetik dosyalarla çalışır. Symlink veya aşırı büyük sağlık kaydı drain onayı vermez, değiştirilmiş symlink pause resume edilemez. Her waitDrained başlangıcında önceki drained izni temizlenir; sonraki kontrol timeout olursa eski başarıyla resume yapılamaz.
+
+3 yeni dosya/regresyon testi dahil host-control/rotation 16/16; uygulama 963/963 geçti. Native Linux servis kabulü veya üretim aktivasyonu yapılmadı.
