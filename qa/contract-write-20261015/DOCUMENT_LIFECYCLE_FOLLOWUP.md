@@ -2288,3 +2288,10 @@ Config tam olarak name, tenant, worker, digest, origin, code, config, socket, he
 Resmî Debian bookworm-slim geçici container içinde systemd ve nodejs paketleriyle `systemd-analyze verify --man=no /qa/*.service /qa/*.timer` exit 0; calendar normalizasyonu `*-*-* 00,06,12,18:00:00 UTC` başarılı. Host/Docker hâlâ linux/aarch64: bu yalnız unit sözdizimi/takvim doğrulamasıdır, native x64 çalışma kabulü değildir. Ürün kodu değişmedi; 957 uygulama testi gereksiz tekrar edilmedi.
 
 Hiçbir servis/timer kurulmadı veya etkinleştirilmedi. Gerçek host hazırlığı, sürekli main + rotation kabulü, işletim izleme ve kontrollü kesinti kurtarma prosedürü tamamlanmadan üretim aktivasyonu yapılmaz.
+
+
+## 20 Ekim — eski işçi sağlık onayının yeniden kullanımını kapatma
+
+İncelemede rotation sırasında aynı pause nonce korunurken eski işçinin health.json kaydının 15 saniye tazelik sınırı içinde yeni işçi onayı sanılabileceği bulundu. createDeployment.startWorker şimdi daemon sahipliği/çalışma kontrolünden sonra, yeni container oluşturulmadan önce yalnız üretilmiş health.json kaydını kaldırır. ENOENT normaldir; başka silme hatası başlatmayı engeller. Böylece yeni worker kendi unavailable/maintenance kaydını yazmadan host eski onayla resume edemez. İş verisine, imzalara, pause veya lock dosyalarına dokunulmaz.
+
+İlk iki regresyonla uygulama paketi 959/959 geçti. Ardından eklenen gerçek geçici dosya testi dahil odaklı managed-rotation paketi 9/9 geçti: launch anında eski health dosyası yok, temizleme hatasında Docker run yok. Son ek dosya testi sonrası tüm paket yeniden çalıştırılmış gibi 960 sonucu iddia edilmedi. Native host uçtan uca kabulü hâlâ bekliyor; canlı yayın yok.
