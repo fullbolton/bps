@@ -856,5 +856,9 @@
   {
     "file": "scripts/hr-host-cli.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-docker-host.test.mjs",
+    "suite": "application"
   }
 ]

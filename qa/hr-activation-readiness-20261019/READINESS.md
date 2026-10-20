@@ -476,3 +476,10 @@ Hiçbir servis/timer kurulmadı veya etkinleştirilmedi. Gerçek host hazırlı�
 Host-control sağlık/pause okumaları readFile sonrası boyut kontrolünden, O_NOFOLLOW/O_NONBLOCK ile açılan aynı inode üzerinde regular-file/sahiplik/yazma izni kontrolü ve en fazla 513 bayt okuma modeline taşındı (512 üzeri red). Host üretimde native root ön kontrolünden geçtiğinden dosya sahibi root olmalıdır; yerel kontrol testi kendi UID'sinde sentetik dosyalarla çalışır. Symlink veya aşırı büyük sağlık kaydı drain onayı vermez, değiştirilmiş symlink pause resume edilemez. Her waitDrained başlangıcında önceki drained izni temizlenir; sonraki kontrol timeout olursa eski başarıyla resume yapılamaz.
 
 3 yeni dosya/regresyon testi dahil host-control/rotation 16/16; uygulama 963/963 geçti. Native Linux servis kabulü veya üretim aktivasyonu yapılmadı.
+
+
+## 20 Ekim — Docker hedefi ve daemon mimarisi sınırı
+
+Host native kontrolünün yalnız Node hostunu ölçtüğü, varsayılan Docker context'in farklı/uzak sunucuya yönlenebileceği tespit edildi. Yeni docker-host.mjs tüm gerçek lifecycle ve signature-stage çağrılarını --host unix:///var/run/docker.sock ile sabitler; DOCKER_HOST/CONTEXT/TLS_VERIFY/CERT_PATH/API_VERSION override'larını reddeder. Ön kontrol root sahibi, world-writable olmayan gerçek socket ve read-only docker info üzerinden Linux x86_64/amd64, rootless olmayan daemon gerektirir. Yerelde doğrulanan mount'ların başka hosta taşınması engellenir.
+
+4 yeni test; ilgili paket 15/15; uygulama 967/967 geçti. README güncellendi. Yerel Mac/aarch64 ortam bu üretim kapısını geçmez; mevcut emülasyon kabulü native kabul sayılmadı. Gerçek host, izleme ve kesinti kurtarma kabulü hâlâ gerekli. Canlı yayın yok.
