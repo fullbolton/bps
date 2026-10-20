@@ -884,5 +884,9 @@
   {
     "file": "scripts/hr-edit-recovery.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-transfer-recovery.test.mjs",
+    "suite": "application"
   }
 ]

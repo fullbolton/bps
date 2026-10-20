@@ -553,3 +553,10 @@ Kanıt: hr-upload-committed.test.mjs gerçek TSX ve makbuz ayrıştırıcısıyl
 Linux kabulü beklemede. EmployeeEdit ilk okuma hatasında form içinden Bilgileri yeniden getir eylemi sunar. İlk başarılı tekrar ad ve personel kodunu sunucudan doldurur; ilk hata sırasında kaydetme alanları açılmaz. Kayıt çakışması sonrası yenilemede kullanıcının taslağı korunur; personel havuzuna bağlı ad düzenlenemez hale geldiyse güncel sunucu adı kullanılır. Tamamlanmış veya sonucu belirsiz komut için refresh başlatılmaz. Veri/yetki/migration değişikliği yok.
 
 Kanıt: hr-edit-recovery.test.mjs üç yeni gerçek callback/hook senaryosu: tekrarlanan okuma hatası ardından başarı, düzenlenebilir ad taslağını koruma, bağlı adın güncel değerini kullanma. Önceki committed testleriyle 7/7 odaklı, uygulama 998/998, TypeScript ve diff kontrolü geçti. Servisler sentetik; tarayıcı/DB kabulü değil. Üretim yayını yok.
+
+
+## 20 Ekim — transfer panelinde okuma hatasından toparlanma
+
+Linux kabulü beklemede. LocationTransfer ilk seçenek okuması veya kesin reddedilmiş işlem sonrası yenileme hatasında panel içinden tekrar okuma sunar. Ortak refresh eski hedef/komutu temizler; güncel atama ve yetkili seçenekler okunmadan onay sunulmaz. Sonucu belirsiz veya tamamlanmış işlemler refresh ile sıfırlanamaz. Yetki/SQL değişikliği yok.
+
+Kanıt: hr-transfer-recovery.test.mjs ilk okumada tekrarlanan hata ardından başarı ve kesin ret → yenileme hatası → başarılı yeniden okuma senaryolarını gerçek bileşen/useScopedResource ile doğruladı. Önceki form testleriyle 10/10 odaklı, uygulama 1000/1000, TypeScript ve diff kontrolü geçti. Servisler sentetik; tarayıcı/DB kabulü değildir. Üretim yayını yok.
