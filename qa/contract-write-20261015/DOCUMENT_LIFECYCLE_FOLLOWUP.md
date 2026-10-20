@@ -2321,3 +2321,12 @@ Mevcut Mac/ARM ortam native kabulü tamamlayamaz. Kullanıcıya üretimden ayrı
 ## 20 Ekim — test hostu önerisi hazır
 
 Kullanıcı hazır Linux sunucu olmadığını belirtti. deploy/hr-malware/README.md içine sağlayıcı/maliyet/erişim/veri ayrımı ve 72 saatlik kabul planı eklendi. Öneri DigitalOcean Basic x64 4 vCPU/8 GiB; listelenen $0.07143/saat üzerinden 72 saat yaklaşık $5.14 (ekler hariç). Hetzner CX33 kapasitesi resmî sayfada unavailable olduğundan hazır varsayılmadı. Satın alma, sunucu oluşturma veya credential aktarımı yapılmadı. Sıradaki bağımlılık kullanıcı hesabında onaylı test hostu ve ayrı HTTPS test backend'inin sağlanmasıdır.
+
+
+## 20 Ekim — Linux beklemede; İK form yeniden deneme bütünlüğü
+
+Kullanıcı Linux kabulünü beklemeye alıp diğer işlere devam edilmesini istedi. Linux host/main kabulü tamamlanmış sayılmaz; tarama kapıları veya üretim aktivasyonu değiştirilmedi. Bağımsız paket olarak mevcut çalışan oluşturma ve iş yeri transferi formlarının belirsiz kayıt sonucunu koruma eksikliği kapatıldı.
+
+ScopedEmployeeForm ve LocationTransfer, ağ/yanıt hatasıyla sonucu belirsiz kalan komutu form/panel kapatarak kaybetmeye artık izin vermiyor. Aynı dondurulmuş komutla yeniden deneme sürüyor. Daha sonraki kesin ret, önceki belirsiz denemenin kaydedilmediğini kanıtlamadığından yeni komut açmıyor. İlk denemedeki kesin rollback sonrasında kapatma ve güncel seçenekleri inceleme korunuyor. Transfer mesajındaki paneli kapatma önerisi kaldırıldı. Yetki, veri modeli veya migration değişikliği yok.
+
+Kanıt: gerçek TSX callback'lerini mevcut hook driver ile çalıştıran scripts/hr-form-retry.test.mjs, iki formda ağ hatası → daha sonra ret → başarı zincirinde aynı komut nesnesi/UUID ve tek başarı bildirimi; ilk kesin rette kapatabilme için 4/4 geçti. Bu DOM/tarayıcı veya gerçek ağ kabulü değildir. Uygulama paketi 971/971, TypeScript ve git diff --check geçti. Üretim yayını yapılmadı.

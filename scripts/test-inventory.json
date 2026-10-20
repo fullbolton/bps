@@ -860,5 +860,9 @@
   {
     "file": "scripts/hr-docker-host.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-form-retry.test.mjs",
+    "suite": "application"
   }
 ]
