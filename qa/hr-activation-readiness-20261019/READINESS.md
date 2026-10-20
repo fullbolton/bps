@@ -453,3 +453,12 @@ workers/hr-malware/host-cli.mjs mevcut bootstrap/rotation/supervision/staging pa
 Config tam olarak name, tenant, worker, digest, origin, code, config, socket, health, control, secrets string alanlarını içerir. Key dosyasının içeriği JSON'a veya argümanlara alınmaz; secrets yalnız özel dizin yoludur. JSON dosyası root sahibi/özel izinli/normal dosya ve en çok 16 KiB olmalı; parent dizinlerde root sahipliği, symlink ve yazılabilirlik kontrolü var. Bütün komutlarda native Linux x64/root ve mount ön kontrolü zorunlu. CLI hataları credential/ham hata içermez; otomatik restart komutu yok.
 
 4 yeni komut testi, bootstrap/supervision ile 16/16 odaklı; uygulama 957/957 geçti. Geçersiz restart CLI çağrısı güvenli hata verdi. Bu host kurulumunun kendisi veya native kabul değildir. Kalan: gerçek host hazırlığı/servis zamanlayıcısı entegrasyonu ve native sürekli main kabulü; ardından üretim ön kontrolü. Canlı yayın/aktivasyon yapılmadı.
+
+
+## 20 Ekim — systemd zamanlayıcı dağıtım adayları
+
+`deploy/hr-malware/systemd` altında status/rotate oneshot service ve timer dosyaları; yanında host dizinleri, izinler, config anahtarları, aktivasyon sırası, hata/restart kısıtlarını açıklayan README eklendi. Status: boot sonrası 2 dk, her tamamlanmadan 1 dk sonra. Rotate: 00/06/12/18 UTC, en fazla 15 dk jitter, missed-run catch-up kapalı. Restart=no; host/Docker reboot sonrasında otomatik scanner ayağa kaldırma yok, kontrollü recovery gereksinimi açıkça yazıldı. Timerların uyarı göndermediği ve host izleme bağlantısı gerektiği belirtildi.
+
+Resmî Debian bookworm-slim geçici container içinde systemd ve nodejs paketleriyle `systemd-analyze verify --man=no /qa/*.service /qa/*.timer` exit 0; calendar normalizasyonu `*-*-* 00,06,12,18:00:00 UTC` başarılı. Host/Docker hâlâ linux/aarch64: bu yalnız unit sözdizimi/takvim doğrulamasıdır, native x64 çalışma kabulü değildir. Ürün kodu değişmedi; 957 uygulama testi gereksiz tekrar edilmedi.
+
+Hiçbir servis/timer kurulmadı veya etkinleştirilmedi. Gerçek host hazırlığı, sürekli main + rotation kabulü, işletim izleme ve kontrollü kesinti kurtarma prosedürü tamamlanmadan üretim aktivasyonu yapılmaz.
