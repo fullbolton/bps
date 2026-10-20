@@ -852,5 +852,9 @@
   {
     "file": "scripts/hr-supervision.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-host-cli.test.mjs",
+    "suite": "application"
   }
 ]

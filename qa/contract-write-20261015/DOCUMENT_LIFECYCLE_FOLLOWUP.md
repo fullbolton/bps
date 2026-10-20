@@ -2270,3 +2270,12 @@ workers/hr-malware/supervision.mjs eklendi. Native host ön kontrolü, sahipliğ
 Karar: automaticRestart=false. Hatalı worker/daemon için otomatik restart veya pause kaldırma yapılmaz; özellikle PID namespace değişimi mevcut ölçüm ve bakım kapılarından geçmelidir. Bu API yalnız sağlık örneği üretir; kalıcı gözetmen/systemd kurulumu değildir ve ready sonucu kalıcı garanti/lease değildir.
 
 6 yeni gözetim testi, bootstrap/rotation ile 18/18 odaklı test; uygulama paketi 953/953 geçti. Kalan: host servis kurulum/işletim entegrasyonu ve native Linux x64 sürekli main uçtan uca kabulü. Üretim yayını veya gerçek şirket aktivasyonu yok.
+
+
+## 20 Ekim — host işletim komut arayüzü
+
+workers/hr-malware/host-cli.mjs mevcut bootstrap/rotation/supervision/staging parçalarını birleştirir. Komutlar: `node host-cli.mjs status /mutlak/config.json`, `stage /mutlak/config.json`, `start /mutlak/config.json bps-signatures-stage-<uuid>`, `rotate /mutlak/config.json`. start sadece ilk başlangıçtır; mevcut container'a restart/adopt uygulamaz. stage yeni imza hacmini hazırlar ama aktive etmez; dönen volume adı start için açıkça seçilir. rotate mevcut yönetilen deployment'ın ölçümlü değiştirme yoludur. status attention ise çıkış 1; maintenance ise ready=false döner.
+
+Config tam olarak name, tenant, worker, digest, origin, code, config, socket, health, control, secrets string alanlarını içerir. Key dosyasının içeriği JSON'a veya argümanlara alınmaz; secrets yalnız özel dizin yoludur. JSON dosyası root sahibi/özel izinli/normal dosya ve en çok 16 KiB olmalı; parent dizinlerde root sahipliği, symlink ve yazılabilirlik kontrolü var. Bütün komutlarda native Linux x64/root ve mount ön kontrolü zorunlu. CLI hataları credential/ham hata içermez; otomatik restart komutu yok.
+
+4 yeni komut testi, bootstrap/supervision ile 16/16 odaklı; uygulama 957/957 geçti. Geçersiz restart CLI çağrısı güvenli hata verdi. Bu host kurulumunun kendisi veya native kabul değildir. Kalan: gerçek host hazırlığı/servis zamanlayıcısı entegrasyonu ve native sürekli main kabulü; ardından üretim ön kontrolü. Canlı yayın/aktivasyon yapılmadı.
