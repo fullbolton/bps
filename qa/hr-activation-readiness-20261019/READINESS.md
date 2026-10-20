@@ -567,3 +567,10 @@ Kanıt: hr-transfer-recovery.test.mjs ilk okumada tekrarlanan hata ardından ba�
 Linux kabulü beklemede. HrDocumentUpload ilk istihdam dönemi okuması hata verdiğinde form içinde yeniden deneme sunar. Başlık, tarih ve seçilmiş PDF korunur; dönem doğrulanmadan yükleme açılamaz. flight kilidi eşzamanlı tekrar okumayı engeller; kurtarma/başlatılmış komut/tamamlanmış işlem bu eylemle değişmez. Backend/erişim/tarama kuralları değişmedi.
 
 Kanıt: hr-upload-period-recovery.test.mjs taslak/dosya koruma, çift tıklamada tek okuma ve yinelenen okuma hatasında yüklemenin kapalı kalmasını doğrulayan 2/2 test geçti. Uygulama 1002/1002, TypeScript ve diff kontrolü geçti. Gerçek component/hook, sentetik servis kullanıldı; tarayıcı/DB kabulü değildir. Üretim yayını yok.
+
+
+## 20 Ekim — İK arayüz düzeltmelerinin birleşik derleme kontrolü
+
+Kaynak 990067a üzerinde son İK form, sayfalama ve toparlanma değişiklikleri birlikte doğrulandı. İlk npm run build, public Supabase URL/key yokluğunda /ayarlar prerender aşamasında durdu. Yalnız derleme amacıyla NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321, NEXT_PUBLIC_SUPABASE_ANON_KEY=synthetic-build-only ve HR/access preview bayraklarıyla tekrar derleme exit 0; 34/34 statik sayfa, /insan-kaynaklari ve /ayarlar/roller çıktıları üretildi. Gerçek anahtar kullanılmadı veya ortama kalıcı yazılmadı. Webpack büyük string cache performans uyarısı engelleyici değildi.
+
+Statik denetim 16 PASS / 0 FAIL / 0 WARN; envanter 186 uygulama, 27 veritabanı, 7 pending dosya. Önceki 1002/1002 uygulama sonucu tekrar çalıştırılmadı; bu tur yeni özellik/kod yok. Kanıt: qa/hr-activation-readiness-20261019/ui-build-20261020.json. Bu yalnız derleme/statik entegrasyon kabulüdür, gerçek tarayıcı/hesap/Storage veya Linux kabulü değildir. Linux beklemede; üretim yayını yok.

@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "990067a",
+  "build": {
+    "exitCode": 0,
+    "staticPages": 34,
+    "hrPreview": true,
+    "accessPreview": true,
+    "supabaseConfiguration": "synthetic loopback URL and non-secret build-only key",
+    "initialAttempt": "failed during /ayarlar prerender because public Supabase variables were absent"
+  },
+  "staticChecks": {
+    "passed": 16,
+    "failed": 0,
+    "warnings": 0
+  },
+  "inventory": {
+    "applicationFiles": 186,
+    "databaseFiles": 27,
+    "pendingFiles": 7
+  },
+  "previousApplicationTests": 1002,
+  "applicationTestsRerun": false,
+  "browserAcceptance": false,
+  "nativeLinuxAcceptance": false,
+  "productionDeployment": false
+}
