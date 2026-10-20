@@ -428,3 +428,10 @@ BPS_HR_INITIAL_BROWSER=1, BPS_HR_SCAN_BROWSER=1 ve önceki gerçek Next/strict S
 Temiz dosya gerçek ClamAV sonrası ready oldu; aynı formda Evrakı kaydet tıklandı ve Kaydedildi görüldü. Tek kayıt/idempotent finalize, karantina öncesi okuma yasağı ve sonrasında okuma geçti. Şifreli dosyada güvenlik engeli, kaydet/yeniden tara seçeneğinin bulunmaması ve backend finalize/read reddi geçti; kapanış ön kontrolü engeli korundu. 30 genel Storage grubu ve HR zinciri exit 0. browser-initial-result.json ile browser-initial-saved.jpg / browser-initial-blocked.jpg kaydedildi. Bu manuel CUA checkpoint kabulüdür; tam İK sayfasının navigasyon/entegrasyon kabulü değildir.
 
 Üretim yayını ve gerçek şirket aktivasyonu yok. Native Linux x64 sürekli worker main/host kabulü, ardından güncel üretim şeması/yayın sırası kontrolü bekliyor. Geçici sayfa kaldırıldı; Next route tipleri yeniden üretildi ve geçici sayfanın eski üretilmiş tip dosyası temizlendi.
+
+
+## 20 Ekim — yönetilen tarama servisi ilk başlatma kapısı
+
+workers/hr-malware/bootstrap.mjs eklendi. Native root host/dosya ön kontrolü → ortak lifecycle kilidi → ayrılmış container adlarının boş olduğunu doğrulama → nonce pause → daemon → worker → güncel nonce bekleme onayı → çalışan motor ölçümü → imza yaşı/politika/config digest kontrolü → resume sırası zorunlu. Mevcut (durdurulmuş dahil) container adları alınmaz/silinmez. Hatalı veya kısmi başlangıç pause/container/volume'u inceleme için korur; otomatik cleanup/restart yoktur. Mevcut pause işareti de üzerine yazılmaz. İlk başlangıç için önceden hazırlanmış signature-staging sahiplik etiketli hacim gerekir.
+
+6 yeni bootstrap testi ve ilgili lifecycle/preflight testleri toplam 18/18; uygulama paketi 947/947 geçti. Test envanteri güncellendi. Bunlar birim/adapter testleridir; native Linux x64 gerçek host/main sürekli servis kabulü yapılmış sayılmaz. Supervisor/host işletim entegrasyonu ve native uçtan uca kabul hâlâ kalan iştir. Canlı yayın/aktivasyon yok.

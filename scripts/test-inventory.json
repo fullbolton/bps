@@ -844,5 +844,9 @@
   {
     "file": "scripts/hr-host-preflight.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-bootstrap.test.mjs",
+    "suite": "application"
   }
 ]
