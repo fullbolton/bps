@@ -23,7 +23,7 @@ export default function EmployeeDocuments({actor,tenant,employee,name,manager,on
  async function cancel(id:string){
   if(flight.current||(intent&&intent!==id))return;
   flight.current=true;setBusy(true);setIntent(id);setMessage('');
-  try{await cancelHrDocumentUpload(createClient(),context,id);if(!alive.current)return;setIntent(null);setMessage('Yükleme kaydı iptal edildi.');await pending.reload();}
+  try{await cancelHrDocumentUpload(createClient(),context,id);if(!alive.current)return;setIntent(null);setMessage('Yükleme kaydı iptal edildi.');if(pendingAfter)setPendingAfter(undefined);else await pending.reload();}
   catch(error){if(!alive.current)return;const code=(error as {message?:string})?.message;
    if(code==='HR_UPLOAD_CLEANUP_REQUIRED'||code==='HR_UPLOAD_PUBLISHED'){
     setIntent(null);setMessage(code==='HR_UPLOAD_CLEANUP_REQUIRED'?'Bu yüklemenin dosyası mevcut. Dosya temizliği tamamlanmadan iptal edilemez.':'Bu yükleme tamamlanmış. Belge listesini yenileyin.');
@@ -39,7 +39,7 @@ export default function EmployeeDocuments({actor,tenant,employee,name,manager,on
  return <section aria-label={`${name} evrakları`} className="space-y-4 rounded-xl border p-4 sm:p-5">
   <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="break-words text-lg font-semibold">{name} · Özel evraklar</h2><button className={button} disabled={busy||!!intent||!!upload} onClick={onClose}>Kapat</button></div>
   {manager&&!upload&&<button className={button} disabled={busy||!!intent} onClick={()=>setUpload({})}>PDF yükle</button>}
-  {upload&&<HrDocumentUpload key={upload.recovery?.id??'new'} actor={actor} tenant={tenant} employee={employee} recovery={upload.recovery} onClose={()=>setUpload(null)} onSaved={async()=>{setUpload(null);setMessage('Evrak yüklendi ve doğrulandı.');setAfter(undefined);setPendingAfter(undefined);await Promise.all([documents.reload(),pending.reload()]);}}/>}
+  {upload&&<HrDocumentUpload key={upload.recovery?.id??'new'} actor={actor} tenant={tenant} employee={employee} recovery={upload.recovery} onClose={()=>setUpload(null)} onSaved={async()=>{setUpload(null);setMessage('Evrak yüklendi ve doğrulandı.');const refreshes:Promise<void>[]=[];if(after)setAfter(undefined);else refreshes.push(documents.reload());if(pendingAfter)setPendingAfter(undefined);else refreshes.push(pending.reload());await Promise.all(refreshes);}}/>}
   {message&&<p role="status" className="rounded-lg bg-blue-50 p-3">{message}</p>}
   {intent&&!busy&&<button className={button} onClick={()=>void cancel(intent)}>Aynı iptal işlemini yeniden dene</button>}
   {documents.loading?<p role="status">Evraklar yükleniyor…</p>:documents.error?<div role="alert">Evraklar alınamadı. Erişiminizi kontrol edin. <button className={button} disabled={busy||!!intent||!!upload} onClick={()=>void documents.reload()}>Yeniden dene</button></div>:<>

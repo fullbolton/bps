@@ -2344,3 +2344,10 @@ Kanıt: scripts/hr-directory-import.test.mjs gerçek Directory ve useScopedResou
 Linux kabulü beklemede. Çalışan dizinine önceki 50 kayda dönüş ve mevcut sayfa göstergesi eklendi. Cursor geçmişi yalnız ekran oturumunda tutulur; ilk sayfa ve başarılı oluşturma/aktarım geçmişi sıfırlar. İleri sayfa okuması hata verdiğinde gezinme görünür kalır, önceki/ilk sayfaya dönüş mümkündür; ileri düğmesi veri yokken kapalıdır. Yükleme ve açık düzenleme/aktarım/evrak panellerinde gezinme kilidi korunur. Geri dönüş güncel kapsamla yeniden okur, önceki çalışan verileri önbellekten gösterilmez. Yetki/SQL değişikliği yok.
 
 Kanıt: hr-directory-import.test.mjs içindeki iki yeni senaryo üç sayfada ileri/geri, ilk sayfa sıfırlaması, hata sonrası geri dönüş ve açık panel kilidini gerçek component/hook callback'leriyle doğrular; 5/5 odaklı, uygulama 976/976, TypeScript ve diff kontrolü geçti. Driver metin yardımcısı sayısal JSX çocuklarını okuyacak şekilde düzeltildi (ilk testte sayfa rakamı okunamıyordu). Bu tarayıcı kabulü değildir. Üretim yayını yok.
+
+
+## 20 Ekim — özel evrak listelerinde işlem sonrası yenileme
+
+Linux kabulü beklemede. EmployeeDocuments başarılı yükleme sonrasında evrak ve bekleyen yükleme listelerini ilk sayfadan birer kez yeniler; cursor sıfırlanırken eski sayfaya ayrıca reload gönderilmez. Başarılı iptal sonraki bekleyen sayfayı ilk sayfaya döndürür; evrak listesini gereksiz yenilemez. İptal sonucu belirsizse sayfa ve işlem kimliği korunur, aynı yüklemeye yeniden deneme sürer. SQL, tarama ve erişim politikaları değişmedi.
+
+Kanıt: hr-document-list-refresh.test.mjs gerçek bileşen ve useScopedResource ile dört callback/effect senaryosu: sonraki sayfalardan başarılı yükleme, ilk sayfada başarılı yükleme, başarılı iptal, belirsiz iptal ve aynı kimlikle tekrar. 4/4 odaklı; uygulama 980/980, TypeScript ve diff kontrolü geçti. Ağ servisleri ve alt yükleme bileşeni sentetiktir; bu tarayıcı/Storage kabulü değildir. Üretim yayını yok.

@@ -868,5 +868,9 @@
   {
     "file": "scripts/hr-directory-import.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-document-list-refresh.test.mjs",
+    "suite": "application"
   }
 ]
