@@ -876,5 +876,9 @@
   {
     "file": "scripts/hr-committed-edit.test.mjs",
     "suite": "application"
+  },
+  {
+    "file": "scripts/hr-upload-committed.test.mjs",
+    "suite": "application"
   }
 ]

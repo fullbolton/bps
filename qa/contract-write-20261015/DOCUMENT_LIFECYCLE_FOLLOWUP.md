@@ -2365,3 +2365,10 @@ Kanıt: hr-document-list-refresh.test.mjs 7/7; ek üç senaryo iki listenin hata
 Linux kabulü beklemede. Çalışan oluşturma, düzenleme, istihdam değişikliği ve iş yeri transferinde onSaved callback hatası artık kayıt isteğinin hatası gibi sınıflandırılmaz. Doğrulanmış yazma sonrası ekran güncellenemezse kayıt başarısı korunur ve liste yenileme mesajı gösterilir. Düzenleme/istihdam/transferde done durumu tekrar yazmayı engeller, belirsizlik ve gezinme korumasını kaldırır; panel kapatılabilir. Oluşturma formu başarıyla kapanır ve yeniden deneme komutu kaybolduğu halde belirsiz durumda bırakılmaz. SQL, yetki ve yazma sözleşmeleri değişmedi.
 
 Kanıt: gerçek TSX callback'lerinde hem ağ hatası hem PostgreSQL ret biçimli callback hatası enjekte edilen 8 yeni regresyon; önceki belirsiz yazma/aynı komut testleriyle 12/12 odaklı. Uygulama 991/991, TypeScript ve diff kontrolü geçti. Bu sentetik callback/hook testidir; gerçek tarayıcı/DB kabulü değildir. Üretim yayını yok.
+
+
+## 20 Ekim — özel evrak yayın başarısını ekran hatasından ayırma
+
+Linux kabulü beklemede. HrDocumentUpload içindeki upload replay ve scan/finalize published makbuzu yolları ortak completed akışına alındı. Yalnız doğrulanmış published makbuzundan sonra done olur; onSaved ekran callback hatası kayıt başarısını belirsizleştirmez. Başarılı form tekrar upload/scan yapmaz, tarama eylemleri kaldırılır, gezinme koruması kalkar ve kapatma açılır. Liste yenileme hatası ayrı mesajla anlatılır. Pending/bozuk makbuz başarı sayılmaz. Backend, tarama politikası ve erişim kuralları değişmedi.
+
+Kanıt: hr-upload-committed.test.mjs gerçek TSX ve makbuz ayrıştırıcısıyla upload/finalize yollarında başarılı makbuz + callback hatası ve yanlış upload kimlikli makbuz senaryoları 4/4 geçti. Başarıdan sonra tekrar submit ağ isteği yapmıyor. Servisler sentetik; gerçek tarayıcı/Storage kabulü değil. Uygulama 995/995, TypeScript ve diff kontrolü geçti. Üretim yayını yok.
