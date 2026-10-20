@@ -2316,3 +2316,8 @@ Host native kontrolünün yalnız Node hostunu ölçtüğü, varsayılan Docker 
 Dal temiz, son commit 5e4a349; önceki 967/967 test sonucu korundu, gereksiz tekrar yapılmadı. deploy/hr-malware/README.md içine native kabul matrisi eklendi: gerçek main döngüsü, temiz/şifreli PDF, rotation/PID yeniden bağlama, hata enjeksiyonu, reboot, timer ve izleme için gereken gözlemler ayrı yazıldı. Üretim verisi/anahtarı taşınmaz; yalnız ayrı sentetik ortam.
 
 Mevcut Mac/ARM ortam native kabulü tamamlayamaz. Kullanıcıya üretimden ayrı Linux x64 test hostunun mevcut olup olmadığı soruldu; henüz host seçilmedi, sunucu satın alınmadı veya gerçek hesaba erişim verilmedi. Bu kabul için ortam bilgisi gerekiyor. Önceki yerel testler tekrar edilerek native kabul geçmiş sayılmayacak. Canlı yayın yok.
+
+
+## 20 Ekim — test hostu önerisi hazır
+
+Kullanıcı hazır Linux sunucu olmadığını belirtti. deploy/hr-malware/README.md içine sağlayıcı/maliyet/erişim/veri ayrımı ve 72 saatlik kabul planı eklendi. Öneri DigitalOcean Basic x64 4 vCPU/8 GiB; listelenen $0.07143/saat üzerinden 72 saat yaklaşık $5.14 (ekler hariç). Hetzner CX33 kapasitesi resmî sayfada unavailable olduğundan hazır varsayılmadı. Satın alma, sunucu oluşturma veya credential aktarımı yapılmadı. Sıradaki bağımlılık kullanıcı hesabında onaylı test hostu ve ayrı HTTPS test backend'inin sağlanmasıdır.
