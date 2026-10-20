@@ -24,9 +24,10 @@ export async function accept({sql,rpcResult,request,id,jwt,service,docker,storag
   docker(['run','-d','--name',daemon,'--platform','linux/amd64',...(strict?['--user','10001:10001','--cap-drop','ALL','--security-opt','no-new-privileges:true','--read-only','--tmpfs','/tmp:rw,noexec,nosuid,size=64m']:[]),'--network','none','--memory','2500m','-e','TZ=UTC','--entrypoint','clamd','-v','bps-clam-signatures-20261020:/var/lib/clamav:ro','-v',`${volume}:/run/bps-clam`,'-v',`${configPath}:/qa/clamd.conf:ro`,'clamav/clamav@sha256:e19130cdebaeacc71fa46eab3ed6f69941f2f22aa5e08d55e9197f8edf43ce5e','--config-file=/qa/clamd.conf']);
   let ready=false;for(let i=0;i<60;i++){if(docker(['logs',daemon]).includes('Self checking every')){ready=true;break;}await new Promise(r=>setTimeout(r,500));}assert.ok(ready,'daemon readiness');
   for(const [index,file,verdict] of [[9601,'clean.pdf','clean'],[9602,'encrypted.pdf','infected'],...(strict?[]:[[9603,'limit.pdf','infected']])]){
-   const bytes=readFileSync('/tmp/bps-clam-fixtures-20261020/'+file),sha=createHash('sha256').update(bytes).digest('hex'),upload=id(index),path=`${tenant}/${upload}.pdf`,args={p_actor:actor,p_tenant:tenant,p_upload:upload};
-   const input={id:upload,employmentId:employment,title:'Synthetic '+file,size:bytes.length,sha256:sha,validityDate:null};
+   const bytes=readFileSync('/tmp/bps-clam-fixtures-20261020/'+file),sha=createHash('sha256').update(bytes).digest('hex');
+   const input={id:id(index),employmentId:employment,title:'Synthetic '+file,size:bytes.length,sha256:sha,validityDate:null};
    assert.equal((await enqueue(input,bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength))).state,'pending');
+   const upload=input.id,path=`${tenant}/${upload}.pdf`,args={p_actor:actor,p_tenant:tenant,p_upload:upload};
    assert.equal((await act(input,'status')).scan.status,'queued');
    assert.equal((await request('/object/authenticated/hr-private/'+path,'GET',undefined,token)).ok,false,'quarantined bytes must not be readable');
    assert.equal((await rpcResult('hr_document_finish_v1',args,token)).ok,false,'unscanned finalize');

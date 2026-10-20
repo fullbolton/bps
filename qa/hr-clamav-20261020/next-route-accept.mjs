@@ -4,6 +4,7 @@ export async function acceptNextRoutes({hrContext,authBase,anon,loginPassword}){
  const origin='http://127.0.0.1:3060';let ready=false;
  for(let i=0;i<120;i++){try{const r=await fetch(origin+'/login',{signal:AbortSignal.timeout(1500)});if(r.ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,500));}
  assert.ok(ready,'Next startup');
+ const initialBrowser=process.env.BPS_HR_INITIAL_BROWSER==='1';
  const checks=[];const browser=process.env.BPS_HR_SCAN_BROWSER==='1',page='src/app/qa-hr-scan';let pageCreated=false;
  try{
  await accept({...hrContext,routeFactory:async context=>{
@@ -18,15 +19,22 @@ export async function acceptNextRoutes({hrContext,authBase,anon,loginPassword}){
   assert.equal((await post('/api/hr/documents/scan',{}, {requestOrigin:'https://foreign.example'})).status,403);
   checks.push('real password session cookies; anonymous and cross-origin rejected');
   let latestStatus;
-  const hold=async(command)=>{
+  const hold=async(command,phase=latestStatus)=>{
    if(!pageCreated){if(existsSync(page))throw Error('QA_PAGE_EXISTS');mkdirSync(page);pageCreated=true;}
-   const props=JSON.stringify({actor:context.actor,tenant:context.tenant,employee:context.employee,recovery:command});
-   writeFileSync(page+'/page.tsx',`'use client';import {useState} from 'react';import HrDocumentUpload from '@/app/(main)/insan-kaynaklari/HrDocumentUpload';import {NavigationGuardProvider} from '@/context/NavigationGuardContext';export default function Page(){const [saved,setSaved]=useState(false);return <NavigationGuardProvider><main style={{maxWidth:720,margin:'32px auto',padding:24}}><h1>Sentetik tarama kabulü</h1>{saved?<p role="status">Kaydedildi</p>:<HrDocumentUpload key="${command.id}" {...${props}} onClose={()=>setSaved(true)} onSaved={async()=>setSaved(true)}/>}</main></NavigationGuardProvider>}`);
-   const marker='/tmp/bps-hr-ui-'+process.pid+'-'+latestStatus;console.log('HR_BROWSER_CHECK '+latestStatus+' http://127.0.0.1:3060/qa-hr-scan '+marker);
+   const props=JSON.stringify({actor:context.actor,tenant:context.tenant,employee:context.employee,...(initialBrowser?{}:{recovery:command})});
+   if(!initialBrowser||phase==='upload')writeFileSync(page+'/page.tsx',`'use client';import {useState} from 'react';import HrDocumentUpload from '@/app/(main)/insan-kaynaklari/HrDocumentUpload';import {NavigationGuardProvider} from '@/context/NavigationGuardContext';export default function Page(){const [saved,setSaved]=useState(false);return <NavigationGuardProvider><main style={{maxWidth:720,margin:'32px auto',padding:24}}><h1>Sentetik tarama kabulü</h1>{saved?<p role="status">Kaydedildi</p>:<HrDocumentUpload key="${command.id}" {...${props}} onClose={()=>setSaved(true)} onSaved={async()=>setSaved(true)}/>}</main></NavigationGuardProvider>}`);
+   const marker='/tmp/bps-hr-ui-'+process.pid+'-'+phase;console.log('HR_BROWSER_CHECK '+phase+' http://127.0.0.1:3060/qa-hr-scan '+marker);
    for(let i=0;i<600;i++){if(existsSync(marker)){rmSync(marker);return;}await new Promise(r=>setTimeout(r,1000));}throw Error('UI_ACCEPTANCE_TIMEOUT');
   };
   return {
    async upload(command,bytes){
+    if(initialBrowser){
+     await hold(command,'upload');
+     const rows=JSON.parse(hrContext.sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'employmentId',employment_id,'title',title,'size',file_size,'sha256',content_sha256,'validityDate',validity_date,'state',state)),'[]'::jsonb) FROM hr_document_uploads WHERE tenant_id='${context.tenant}' AND employee_id='${context.employee}' AND content_sha256='${command.sha256}'`));
+     assert.equal(rows.length,1,'exactly one browser upload');const row=rows[0];assert.equal(row.size,command.size);assert.equal(row.title,command.title);assert.equal(row.employmentId,command.employmentId);assert.equal(row.state,'pending');
+     command.id=row.id;checks.push('browser file chooser and upload; exact hash/size/title/employment matched');return row;
+    }
+
     const form=new FormData();form.set('actorId',context.actor);form.set('tenantId',context.tenant);form.set('employeeId',context.employee);form.set('command',JSON.stringify(command));form.set('file',new Blob([bytes],{type:'application/pdf'}),'synthetic.pdf');
     const r=await post('/api/hr/documents/upload',form);assert.equal(r.status,202,'Next upload');assert.equal(r.headers.get('cache-control'),'no-store');const data=await r.json();assert.equal(data.ok,true);checks.push('multipart route queued upload');return data.receipt;
    },
@@ -38,7 +46,7 @@ export async function acceptNextRoutes({hrContext,authBase,anon,loginPassword}){
    }
   };
  }});
- const result={realNextRoutes:true,realPasswordSession:true,realAuth:true,realStorage:true,realDatabase:true,realClamav:true,browserFormInteraction:browser,browserRecoveryInteraction:browser,browserInitialFileUpload:false,browserEvidenceMode:browser?'manual-cua-with-checkpoint':null,productionReady:false,syntheticOnly:true,checks};
- writeFileSync(new URL(browser?'./browser-recovery-result.json':'./next-route-result.json',import.meta.url),JSON.stringify(result,null,2)+'\n');console.log('NEXT_HR_ROUTE_ACCEPTANCE '+JSON.stringify(result));
+ const result={realNextRoutes:true,realPasswordSession:true,realAuth:true,realStorage:true,realDatabase:true,realClamav:true,browserFormInteraction:browser,browserRecoveryInteraction:browser&&!initialBrowser,browserInitialFileUpload:initialBrowser,browserEvidenceMode:browser?'manual-cua-with-checkpoint':null,productionReady:false,syntheticOnly:true,checks};
+ writeFileSync(new URL(initialBrowser?'./browser-initial-result.json':browser?'./browser-recovery-result.json':'./next-route-result.json',import.meta.url),JSON.stringify(result,null,2)+'\n');console.log('NEXT_HR_ROUTE_ACCEPTANCE '+JSON.stringify(result));
  }finally{if(pageCreated)rmSync(page,{recursive:true});}
 }

@@ -1,0 +1,24 @@
+{
+  "realNextRoutes": true,
+  "realPasswordSession": true,
+  "realAuth": true,
+  "realStorage": true,
+  "realDatabase": true,
+  "realClamav": true,
+  "browserFormInteraction": true,
+  "browserRecoveryInteraction": false,
+  "browserInitialFileUpload": true,
+  "browserEvidenceMode": "manual-cua-with-checkpoint",
+  "productionReady": false,
+  "syntheticOnly": true,
+  "checks": [
+    "real password session cookies; anonymous and cross-origin rejected",
+    "browser file chooser and upload; exact hash/size/title/employment matched",
+    "scan route status",
+    "scan route status",
+    "scan route finalize",
+    "browser file chooser and upload; exact hash/size/title/employment matched",
+    "scan route status",
+    "scan route status"
+  ]
+}
