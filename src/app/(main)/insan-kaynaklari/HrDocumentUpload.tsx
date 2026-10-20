@@ -15,15 +15,16 @@ export default function HrDocumentUpload({actor,tenant,employee,recovery,onClose
  const retryRequest=useRef<string|null>(null);
  const [cancelled,setCancelled]=useState(false),[done,setDone]=useState(false);
  const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[message,setMessage]=useState('');
+ const periodGeneration=useRef(0);
  const flight=useRef(false),alive=useRef(true);const guard=useNavigationGuard();
- useEffect(()=>{alive.current=true;if(!recovery)void loadHrEmployment(createClient(),actor,tenant,employee).then(r=>{if(alive.current)setPeriod(r);}).catch(()=>{if(alive.current){setPeriodError(true);setMessage('İstihdam dönemi alınamadı. Bilgilerinizi koruyarak yeniden deneyebilirsiniz.');}});return()=>{alive.current=false;};},[actor,tenant,employee,recovery]);
+ useEffect(()=>{alive.current=true;const request=++periodGeneration.current;if(!recovery)void loadHrEmployment(createClient(),actor,tenant,employee).then(r=>{if(alive.current&&request===periodGeneration.current)setPeriod(r);}).catch(()=>{if(alive.current&&request===periodGeneration.current){setPeriodError(true);setMessage('İstihdam dönemi alınamadı. Bilgilerinizi koruyarak yeniden deneyebilirsiniz.');}});return()=>{alive.current=false;++periodGeneration.current;};},[actor,tenant,employee,recovery]);
  useEffect(()=>{if(done)return;const off=guard.register(e=>{e.preventDefault();setMessage('Önce evrak formunu tamamlayın veya kapatın.');});const stop=(e:BeforeUnloadEvent)=>{e.preventDefault();e.returnValue='';};window.addEventListener('beforeunload',stop);return()=>{off();window.removeEventListener('beforeunload',stop);};},[guard,done]);
  async function retryPeriod(){
   if(flight.current||intent||done||recovery)return;
-  flight.current=true;setBusy(true);setMessage('İstihdam dönemi kontrol ediliyor…');
-  try{const next=await loadHrEmployment(createClient(),actor,tenant,employee);if(alive.current){setPeriod(next);setPeriodError(false);setMessage('İstihdam dönemi alındı. Dosyanız ve yazdıklarınız korundu.');}}
-  catch{if(alive.current){setPeriodError(true);setMessage('İstihdam dönemi alınamadı. Erişiminizi kontrol edip yeniden deneyin.');}}
-  finally{flight.current=false;if(alive.current)setBusy(false);}
+  const request=++periodGeneration.current;flight.current=true;setBusy(true);setMessage('İstihdam dönemi kontrol ediliyor…');
+  try{const next=await loadHrEmployment(createClient(),actor,tenant,employee);if(alive.current&&request===periodGeneration.current){setPeriod(next);setPeriodError(false);setMessage('İstihdam dönemi alındı. Dosyanız ve yazdıklarınız korundu.');}}
+  catch{if(alive.current&&request===periodGeneration.current){setPeriodError(true);setMessage('İstihdam dönemi alınamadı. Erişiminizi kontrol edip yeniden deneyin.');}}
+  finally{flight.current=false;if(alive.current&&request===periodGeneration.current)setBusy(false);}
  }
  async function completed(){
   setDone(true);setUncertain(false);setScan(null);setMessage('Evrak kaydedildi.');

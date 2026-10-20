@@ -2407,3 +2407,10 @@ Statik denetim 16 PASS / 0 FAIL / 0 WARN; envanter 186 uygulama, 27 veritabanı,
 Linux kabulü beklemede. EmployeeEdit ve EmploymentChange ilk okuma ile yenileme isteklerini artan readGeneration üzerinden doğrular. Yeni okuma başlayınca ve effect temizlenince önceki yanıt geçersizleşir; eski başarı/hata güncel form bilgilerini ezemez. İstihdam yenilemesi de belirsiz/tamamlanmış komutta başlatılmaz. Veri/SQL/yetki değişmedi.
 
 Kanıt: hr-read-order.test.mjs iki formda geciktirilmiş ilk isteği yeni yenilemeden sonra başarı veya hatayla sonuçlandıran dört senaryo; önceki recovery/committed testleriyle 11/11 odaklı. Uygulama 1006/1006, TypeScript ve diff kontrolü geçti. Gerçek TSX callback/hook, sentetik ertelenmiş servisler kullanıldı; tarayıcı/DB kabulü değildir. Üretim yayını yok.
+
+
+## 20 Ekim — evrak formunda geç gelen dönem yanıtı
+
+Linux kabulü beklemede. HrDocumentUpload istihdam dönemi okuması ve yeniden denemesi periodGeneration ile bağlandı. Effect temizliği önceki okumayı geçersiz kılar; effect tekrar başlatıldığında eski başarı/hata güncel dönem veya mesajı ezemez. Backend/Storage/tarama değişikliği yok.
+
+Kanıt: hr-upload-period-recovery.test.mjs içine mount effect cleanup/setup tekrarını modelleyen iki gecikmeli başarı/hata regresyonu eklendi. Upload committed testleriyle 8/8 odaklı, TypeScript ve diff kontrolü geçti. Bu hook-driver modeli React tarayıcı kabulü değildir. Son genel uygulama sonucu 1006/1006 önceki commit'e aittir; bu dar değişiklik sonrası tüm paket yeniden çalıştırılmış sayılmadı. Üretim yayını yok.

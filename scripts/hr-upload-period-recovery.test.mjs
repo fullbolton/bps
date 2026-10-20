@@ -17,3 +17,15 @@ test('period retries continue to fail closed without exposing upload',async()=>{
  const Component=compile('src/app/(main)/insan-kaynaklari/HrDocumentUpload.tsx',d.hooks,deps,'default',{window:{addEventListener(){},removeEventListener(){}}});let tree;const render=()=>{tree=d.render(Component,{actor:'a',tenant:'t',employee:'e',onClose(){},onSaved:async()=>{}});d.flush();};
  try{render();await settle();render();for(let i=0;i<2;i++){nodes(tree).find(n=>n.type==='button'&&text(n)==='İstihdam dönemini yeniden getir').props.onClick();await settle();render();assert.ok(nodes(tree).find(n=>n.type==='button'&&text(n)==='Yükle').props.disabled);}assert.equal(reads,3);}finally{d.dispose();}
 });
+
+for(const oldFails of [false,true])test(`effect restart ignores obsolete period ${oldFails?'failure':'success'}`,async()=>{
+ const d=driver();let resolveOld,rejectOld,reads=0,restart;
+ const old=new Promise((resolve,reject)=>{resolveOld=resolve;rejectOld=reject;});
+ // Replay the first mount effect as React Strict Mode does, preserving hook state.
+ let firstEffect=true;
+ const hooks={...d.hooks,useEffect(callback,deps){if(firstEffect){firstEffect=false;d.hooks.useEffect(()=>{let cleanup=callback();restart=()=>{cleanup?.();cleanup=callback();};return()=>cleanup?.();},deps);}else d.hooks.useEffect(callback,deps);}};
+ const deps={'@/lib/supabase/client':{createClient:()=>({})},'@/lib/services/hr-employment':{loadHrEmployment:async()=>++reads===1?old:{periodId:'new',startsOn:'2026-02-01',endsOn:null}},'@/lib/pdf-upload':{},'@/lib/services/hr-document-upload':{},'@/context/NavigationGuardContext':{useNavigationGuard:()=>({register:()=>()=>{}})}};
+ const Component=compile('src/app/(main)/insan-kaynaklari/HrDocumentUpload.tsx',hooks,deps,'default',{window:{addEventListener(){},removeEventListener(){}}});let tree;
+ const render=()=>{tree=d.render(Component,{actor:'a',tenant:'t',employee:'e',onClose(){},onSaved:async()=>{}});d.flush();};
+ try{render();restart();await settle();render();assert.ok(text(tree).includes('2026-02-01'));const before=text(tree);if(oldFails)rejectOld(Error('obsolete'));else resolveOld({periodId:'old',startsOn:'2025-01-01',endsOn:null});await settle();render();assert.equal(text(tree),before);assert.ok(!text(tree).includes('2025-01-01'));assert.equal(reads,2);}finally{d.dispose();}
+});
